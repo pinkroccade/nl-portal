@@ -59,7 +59,6 @@ class ThemaQueryIT(
         @DynamicPropertySource
         fun properties(propsRegistry: DynamicPropertyRegistry) {
             propsRegistry.add("nl-portal.config.openproduct.properties.product-type-api-url") { url }
-            propsRegistry.add("nl-portal.config.openproduct.properties.product-api-url") { url }
         }
 
         @JvmStatic
