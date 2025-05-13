@@ -31,11 +31,11 @@ class ProductenPage(
             pageSize: Int,
             resultPage: ResultPage<OpenProductProduct>,
         ): ProductenPage {
-            val products = resultPage.results.map { it }
+            val content = resultPage.results.map { it }
             return ProductenPage(
                 number = pageNumber,
                 size = pageSize,
-                content = products,
+                content = content,
                 totalElements = resultPage.count,
             )
         }
