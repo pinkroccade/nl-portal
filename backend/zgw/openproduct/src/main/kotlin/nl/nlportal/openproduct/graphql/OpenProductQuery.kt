@@ -49,11 +49,11 @@ class OpenProductQuery(
     @GraphQLDescription("Get a Open product type by id")
     suspend fun getOpenProduct(
         dfe: DataFetchingEnvironment,
-        productId: UUID,
+        id: UUID,
     ): OpenProductProduct? {
         return openProductService.getProduct(
             authentication = dfe.graphQlContext[SecurityConstants.AUTHENTICATION_KEY],
-            productId = productId,
+            id = id,
         )
     }
 }
