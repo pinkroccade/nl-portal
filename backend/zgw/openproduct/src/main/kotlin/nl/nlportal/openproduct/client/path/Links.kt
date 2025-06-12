@@ -26,7 +26,7 @@ import java.util.*
 class Links(
     val client: OpenProductTypeClient,
 ) : OpenProductPath() {
-    override val path: String = "/links/"
+    override val path: String = "/links"
 
     suspend fun get(searchFilters: List<Pair<OpenProductLinksFilters, Any>>? = null): ResultPage<OpenProductLink> =
         client
@@ -47,7 +47,7 @@ class Links(
             .get()
             .uri { uriBuilder ->
                 uriBuilder
-                    .path("$path$id/")
+                    .path("$path/$id")
                     .build()
             }.accept(MediaType.APPLICATION_JSON)
             .retrieve()

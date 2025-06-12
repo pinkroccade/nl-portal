@@ -202,13 +202,13 @@ class OpenProductQueryIT(
                     val path = request.path?.substringBefore('?')
                     val response =
                         when (request.method + " " + path) {
-                            "GET /producten/694242af-d906-470b-b7e1-eb3527886854/" -> {
+                            "GET /producten/694242af-d906-470b-b7e1-eb3527886854" -> {
                                 TestHelper.mockResponseFromFile("/config/data/get-product.json")
                             }
-                            "GET /themas/41f71c2e-9e0c-4a1b-8d39-709669b256c2/" -> {
+                            "GET /themas/41f71c2e-9e0c-4a1b-8d39-709669b256c2" -> {
                                 TestHelper.mockResponseFromFile("/config/data/get-thema.json")
                             }
-                            "GET /producten/" -> {
+                            "GET /producten" -> {
                                 TestHelper.mockResponseFromFile("/config/data/get-producten.json")
                             }
                             else -> MockResponse().setResponseCode(404)
