@@ -28,14 +28,4 @@ class HaalCentraal2BrpQuery(
 ) : Query {
     @GraphQLDescription("Gets the persoon data")
     suspend fun getPersoonV2(dfe: DataFetchingEnvironment): BrpPersoon? = haalCentraal2Service.getPersoon(dfe.graphQlContext[AUTHENTICATION_KEY])
-
-    @GraphQLDescription("Gets the number of people living in the same house of the adresseerbaarObjectIdentificatie")
-    suspend fun getBewonersAantalV2(
-        dfe: DataFetchingEnvironment,
-        adresseerbaarObjectIdentificatie: String,
-    ): Int? =
-        haalCentraal2Service.getBewonersAantal(
-            dfe.graphQlContext[AUTHENTICATION_KEY],
-            adresseerbaarObjectIdentificatie,
-        )
 }
