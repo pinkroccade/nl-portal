@@ -1,4 +1,4 @@
-type Query {
+extend type Query {
     # Get DigitaleAdressen of authenticated user.
     getUserDigitaleAdressen: [DigitaleAdresResponse!]
 
@@ -23,7 +23,7 @@ type Query {
 
 }
 
-type Mutation {
+extend type Mutation {
     # Create DigitaleAdres for User
     createUserDigitaleAdres(
         digitaleAdresRequest: DigitaleAdresRequestInput!
@@ -749,7 +749,3 @@ enum SoortPartij {
     ORGANISATIE
     CONTACTPERSOON
 }
-
-scalar JSON
-scalar UUID
-scalar Date
