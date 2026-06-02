@@ -15,17 +15,21 @@
  */
 package nl.nlportal.zakenapi.web.rest
 
+import io.github.oshai.kotlinlogging.KotlinLogging
 import kotlinx.coroutines.flow.Flow
 import nl.nlportal.commonground.authentication.CommonGroundAuthentication
+import nl.nlportal.documentenapi.util.FilenameSanitizer
 import nl.nlportal.zakenapi.service.ZakenApiService
 import org.springframework.core.io.buffer.DataBuffer
 import org.springframework.http.HttpHeaders
+import org.springframework.http.HttpStatus
 import org.springframework.http.MediaType
 import org.springframework.http.ResponseEntity
 import org.springframework.web.bind.annotation.GetMapping
 import org.springframework.web.bind.annotation.PathVariable
 import org.springframework.web.bind.annotation.RequestMapping
 import org.springframework.web.bind.annotation.RestController
+import org.springframework.web.server.ResponseStatusException
 
 @RestController
 @RequestMapping(value = ["/api"])
@@ -36,7 +40,7 @@ class ZaakDocumentResource(
     suspend fun getContentStreaming(
         @PathVariable zaakDocumentId: String,
         authentication: CommonGroundAuthentication,
-    ): ResponseEntity<Flow<DataBuffer>>? {
+    ): ResponseEntity<Flow<DataBuffer>> {
         val (document, content) =
             zakenApiService
                 .getZaakDocumentContent(
@@ -44,21 +48,27 @@ class ZaakDocumentResource(
                     commonGroundAuthentication = authentication,
                 )
 
-        return when (document != null && content != null) {
-            true -> {
-                ResponseEntity.ok()
-                    .headers(
-                        HttpHeaders().apply {
-                            set(
-                                "Content-Disposition",
-                                "attachment; filename=\"${document.bestandsnaam}\"",
-                            )
-                        },
-                    )
-                    .contentType(MediaType.APPLICATION_OCTET_STREAM)
-                    .body(content)
+        if (document == null || content == null) {
+            logger.debug {
+                "Access denied to document $zaakDocumentId for user ${authentication.userId}"
             }
-            false -> null
+            throw ResponseStatusException(HttpStatus.UNAUTHORIZED, "Access denied")
         }
+
+        return ResponseEntity.ok()
+            .headers(
+                HttpHeaders().apply {
+                    set(
+                        "Content-Disposition",
+                        FilenameSanitizer.encodeForContentDisposition(document.bestandsnaam),
+                    )
+                },
+            )
+            .contentType(MediaType.APPLICATION_OCTET_STREAM)
+            .body(content)
+    }
+
+    companion object {
+        private val logger = KotlinLogging.logger {}
     }
 }
