@@ -173,6 +173,19 @@ class BerichtenQueryIT(
         }
     }
 
+    @WithBurgerUser("999990755")
+    @Test
+    fun `every query is not available when the documentenapis module it requires is off`() {
+        BerichtenFlagFile.switchTo(true, moduleGate, documentenapis = false)
+
+        httpGraphQlTester
+            .document(TestHelper.graphqlBerichtenPageRequest)
+            .execute()
+            .errors()
+            .expect { it.message == "Module 'berichten' is niet beschikbaar" && it.extensions["code"] == "MODULE_NOT_AVAILABLE" }
+            .verify()
+    }
+
     fun setupMockObjectsApiServer() {
         val dispatcher: Dispatcher =
             object : Dispatcher() {

@@ -23,7 +23,7 @@ import org.springframework.security.core.Authentication
 /**
  * Per-request gate of a module. The module's beans are always registered; its GraphQL queries and REST
  * resources call [require] first, so a disabled module answers "not available" instead of failing or
- * returning empty data. The GraphQL schema does not change: the fields stay visible in introspection.
+ * returning empty data. A module is also off when a module it requires is off ([ModuleFlag.requires]). The GraphQL schema does not change: the fields stay visible in introspection.
  *
  * The context is passed explicitly, never read from thread-bound state, which does not survive thread hops in WebFlux.
  */
@@ -35,7 +35,7 @@ class ModuleGate(
     fun isEnabled(
         module: ModuleFlag,
         context: EvaluationContext,
-    ): Boolean = featureGate.isEnabled(module.flag, context)
+    ): Boolean = (listOf(module) + module.allRequired).all { featureGate.isEnabled(it.flag, context) }
 
     /** Throws [ModuleNotAvailableException] when [module] is off for the request of [authentication]. */
     fun require(
@@ -46,6 +46,9 @@ class ModuleGate(
             throw ModuleNotAvailableException(module.module)
         }
     }
+
+    /** The module names each registered module requires, directly or through other modules, sorted by name. */
+    fun dependencies(): Map<String, List<String>> = modules.associate { it.module to it.allRequired.map { required -> required.module }.sorted() }
 
     /** The outcome of every registered module flag, by module name. */
     fun status(context: EvaluationContext): Map<String, Boolean> = modules.associate { it.module to isEnabled(it, context) }
