@@ -7,3 +7,22 @@ export const smokeThresholds: Record<string, string[]> = {
   checks: ["rate==1"],
   http_req_duration: ["p(95)<2000"],
 };
+
+/** De GraphQL-operations van de read-only journeys; de `name`-tag van elk verzoek. */
+export const OPERATIES = ["getZaken", "getZaak", "getTakenV2", "getPersoonV2"] as const;
+
+/**
+ * Thresholds voor de journeys, per GraphQL-operation. Voorlopig signalerend: de grenzen zijn ruim en
+ * worden pas aangescherpt als de baseline en de variantie bekend zijn (ADR 0018).
+ */
+export function journeyThresholds(operaties: readonly string[]): Record<string, string[]> {
+  const thresholds: Record<string, string[]> = {
+    http_req_failed: ["rate<0.01"],
+    checks: ["rate>0.99"],
+    "http_req_duration{name:keycloak_token}": ["p(95)<2000"],
+  };
+  for (const operatie of operaties) {
+    thresholds[`http_req_duration{name:${operatie}}`] = ["p(95)<2000"];
+  }
+  return thresholds;
+}
