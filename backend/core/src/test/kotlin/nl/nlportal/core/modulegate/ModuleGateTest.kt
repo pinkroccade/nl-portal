@@ -32,8 +32,15 @@ import org.junit.jupiter.api.assertThrows
 class ModuleGateTest {
     private val berichten = ModuleFlag("berichten")
     private val taak = ModuleFlag("taak")
+    private val documenten = ModuleFlag("documenten")
+    private val objecten = ModuleFlag("objecten")
+    private val dependent = ModuleFlag("afhankelijk", requires = listOf(documenten, objecten))
+    private val chained = ModuleFlag("keten", requires = listOf(dependent))
 
-    private fun gateWith(flags: Map<String, Boolean>): ModuleGate {
+    private fun gateWith(
+        flags: Map<String, Boolean>,
+        modules: List<ModuleFlag> = listOf(berichten, taak),
+    ): ModuleGate {
         val api = OpenFeatureAPI.getInstance()
         api.setProviderAndWait(
             InMemoryProvider(
@@ -49,7 +56,7 @@ class ModuleGateTest {
         return ModuleGate(
             featureGate = OpenFeatureFeatureGate(api.client),
             featureContextFactory = FeatureContextFactory(FeatureFlagProperties.Context()),
-            modules = listOf(berichten, taak),
+            modules = modules,
         )
     }
 
@@ -89,5 +96,62 @@ class ModuleGateTest {
         val gate = gateWith(mapOf("ops.berichten.enabled" to true, "ops.taak.enabled" to false))
 
         assertEquals(mapOf("berichten" to true, "taak" to false), gate.status(ImmutableContext()))
+    }
+
+    @Test
+    fun `a module is enabled when its own flag and all required flags are on`() {
+        val gate = gateWith(mapOf("ops.afhankelijk.enabled" to true, "ops.documenten.enabled" to true, "ops.objecten.enabled" to true))
+
+        assertTrue(gate.isEnabled(dependent, ImmutableContext()))
+        assertDoesNotThrow { gate.require(dependent, null) }
+    }
+
+    @Test
+    fun `a module is disabled when one of its required flags is off or unknown`() {
+        val offGate = gateWith(mapOf("ops.afhankelijk.enabled" to true, "ops.documenten.enabled" to true, "ops.objecten.enabled" to false))
+        val unknownGate = gateWith(mapOf("ops.afhankelijk.enabled" to true, "ops.documenten.enabled" to true))
+
+        assertFalse(offGate.isEnabled(dependent, ImmutableContext()))
+        assertFalse(unknownGate.isEnabled(dependent, ImmutableContext()))
+        assertThrows<ModuleNotAvailableException> { offGate.require(dependent, null) }
+    }
+
+    @Test
+    fun `a required flag that is on does not enable a module whose own flag is off`() {
+        val gate = gateWith(mapOf("ops.afhankelijk.enabled" to false, "ops.documenten.enabled" to true, "ops.objecten.enabled" to true))
+
+        assertFalse(gate.isEnabled(dependent, ImmutableContext()))
+    }
+
+    @Test
+    fun `a requirement counts through the whole chain`() {
+        val gate =
+            gateWith(
+                mapOf(
+                    "ops.keten.enabled" to true,
+                    "ops.afhankelijk.enabled" to true,
+                    "ops.documenten.enabled" to true,
+                    "ops.objecten.enabled" to false,
+                ),
+            )
+
+        assertFalse(gate.isEnabled(chained, ImmutableContext()))
+    }
+
+    @Test
+    fun `the status shows a module with an unmet requirement as off`() {
+        val gate = gateWith(mapOf("ops.afhankelijk.enabled" to true, "ops.documenten.enabled" to false), listOf(dependent, documenten))
+
+        assertEquals(mapOf("afhankelijk" to false, "documenten" to false), gate.status(ImmutableContext()))
+    }
+
+    @Test
+    fun `the dependency graph lists the required modules of every registered module, transitively`() {
+        val gate = gateWith(emptyMap(), listOf(chained, taak))
+
+        assertEquals(
+            mapOf("keten" to listOf("afhankelijk", "documenten", "objecten"), "taak" to emptyList()),
+            gate.dependencies(),
+        )
     }
 }

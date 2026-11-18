@@ -20,6 +20,7 @@ import java.nio.file.Files
 import java.nio.file.Path
 import java.time.Duration
 import nl.nlportal.core.modulegate.ModuleGate
+import nl.nlportal.documentenapi.DOCUMENTENAPIS_MODULE
 import org.awaitility.Awaitility.await
 import org.springframework.test.context.DynamicPropertyRegistry
 
@@ -29,25 +30,27 @@ import org.springframework.test.context.DynamicPropertyRegistry
  * The module is on by default; a test that needs it off calls [switchTo] and restores it afterwards.
  */
 object BerichtenFlagFile {
-    private val file: Path = Files.createTempFile("berichten-flags", ".flagd.json").also { write(it, enabled = true) }
+    private val file: Path = Files.createTempFile("berichten-flags", ".flagd.json").also { write(it, berichten = true, documentenapis = true) }
 
     fun register(registry: DynamicPropertyRegistry) {
         registry.add("nl-portal.feature-flags.file") { file.toString() }
         registry.add("nl-portal.feature-flags.poll-interval-ms") { 200 }
     }
 
-    /** Writes the flag and waits until the running application sees the new state. */
+    /** Writes the flags and waits until the running application sees the new state of the berichten module. */
     fun switchTo(
         enabled: Boolean,
         moduleGate: ModuleGate,
+        documentenapis: Boolean = true,
     ) {
-        write(file, enabled)
-        await().atMost(Duration.ofSeconds(10)).until { moduleGate.isEnabled(BERICHTEN_MODULE, ImmutableContext()) == enabled }
+        write(file, berichten = enabled, documentenapis = documentenapis)
+        await().atMost(Duration.ofSeconds(10)).until { moduleGate.isEnabled(BERICHTEN_MODULE, ImmutableContext()) == (enabled && documentenapis) }
     }
 
     private fun write(
         file: Path,
-        enabled: Boolean,
+        berichten: Boolean,
+        documentenapis: Boolean,
     ) {
         Files.writeString(
             file,
@@ -58,7 +61,12 @@ object BerichtenFlagFile {
                 "${BERICHTEN_MODULE.flag.key}": {
                   "state": "ENABLED",
                   "variants": { "on": true, "off": false },
-                  "defaultVariant": "${if (enabled) "on" else "off"}"
+                  "defaultVariant": "${if (berichten) "on" else "off"}"
+                },
+                "${DOCUMENTENAPIS_MODULE.flag.key}": {
+                  "state": "ENABLED",
+                  "variants": { "on": true, "off": false },
+                  "defaultVariant": "${if (documentenapis) "on" else "off"}"
                 }
               }
             }

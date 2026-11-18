@@ -45,6 +45,23 @@ suspend fun getBerichten(authentication: CommonGroundAuthentication, ...): Beric
 Een veld dat een onderdeel is van een gegate bovenliggend object (zoals `Bericht.documenten`) hoeft de gate niet zelf
 aan te roepen.
 
+## Afhankelijkheden tussen modules (#158)
+
+Een module-flag declareert de flags die hij vereist, in de code bij de flag zelf:
+
+```kotlin
+val DOCUMENTENAPIS_MODULE = ModuleFlag("documentenapis")
+val BERICHTEN_MODULE = ModuleFlag("berichten", requires = listOf(DOCUMENTENAPIS_MODULE))
+```
+
+`ModuleGate.isEnabled` en `require` kijken naar de eigen flag en naar alle vereiste flags, ook die van vereiste modules.
+Staat een vereiste flag uit of ontbreekt hij, dan is de module fail-closed niet beschikbaar, ook als zijn eigen flag aan
+staat. Cycli kunnen niet voorkomen: een `ModuleFlag` bevat zijn vereisten als waarde. `ModuleGate.dependencies()` geeft
+de graaf als lijst per geregistreerde module. De bijgewerkte tabel staat in de
+[feature flags-referentie](../../hosting-en-configuratie/feature-flags.md). De vereiste flag hoeft zelf niet als bean
+geregistreerd te zijn: een module die nog niet via zijn flag wordt aan- of uitgezet (zoals documentenapis) is alleen
+afhankelijkheid.
+
 ## Wat startup-gebonden blijft
 
 De gate werkt per request. Dit blijft bij het opstarten vastliggen en valt buiten de gate:
@@ -65,4 +82,4 @@ singleton in de JVM. Laat alle testcontexts van een module daarom hetzelfde flag
 2. Haal `<module>.enabled` uit de `@ConditionalOnProperty` van de autoconfiguratie en uit de `@ConfigurationProperties`.
 3. Registreer de `ModuleFlag` als bean en roep `moduleGate.require(...)` aan in elke query, mutatie en resource.
 4. Verwijder `NLPORTAL_CONFIG_<MODULE>_ENABLED` uit voorbeeld- en compose-bestanden en zet de flag in de testbestanden.
-5. Schrijf de tests voor aan en uit en neem de flag op in de [feature flags-referentie](../../hosting-en-configuratie/feature-flags.md).
+5. Declareer de vereiste modules met `requires` en schrijf de tests voor aan, uit en een uitgeschakelde afhankelijkheid en neem de flag op in de [feature flags-referentie](../../hosting-en-configuratie/feature-flags.md).

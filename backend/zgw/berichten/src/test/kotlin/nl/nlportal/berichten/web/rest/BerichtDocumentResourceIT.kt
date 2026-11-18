@@ -137,6 +137,19 @@ class BerichtDocumentResourceIT(
             .isEqualTo("Module 'berichten' is niet beschikbaar")
     }
 
+    @Test
+    @WithBurgerUser("999990755")
+    fun `should return 503 when the documentenapis module it requires is off`() {
+        BerichtenFlagFile.switchTo(true, moduleGate, documentenapis = false)
+
+        webTestClient
+            .get()
+            .uri("/api/berichten/$OPENED_BERICHT_ID/document/$KNOWN_DOC_ID/content")
+            .exchange()
+            .expectStatus()
+            .isEqualTo(503)
+    }
+
     private fun setupDispatcher() {
         val dispatcher: Dispatcher =
             object : Dispatcher() {
