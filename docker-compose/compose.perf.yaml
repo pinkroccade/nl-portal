@@ -61,5 +61,11 @@ services:
             - OTEL_EXPORTER_OTLP_ENDPOINT=http://localhost:4317
             - OTEL_EXPORTER_OTLP_PROTOCOL=grpc
 
+    # De seed-gebruikers (burger-001.., BSN's vanaf 900000000) staan niet in de demodata van de BRP-mock.
+    # Dit bestand (gegenereerd met `mise run perf:brp-data`) vervangt de mock-data door een persoon per seed-gebruiker.
+    nl-portal-haalcentraal-personen:
+        volumes:
+            - ./imports/haalcentraal-perf/test-data.json:/app/Data/test-data.json:ro
+
 volumes:
     otel-agent:
