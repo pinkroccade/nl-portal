@@ -37,6 +37,16 @@ staat; voeg een nieuwe term toe zodra een module ernaar vernoemd wordt (zie de
   configuratie in plaats van uit de code. Vier typen: *ops* (runtime-gedrag), *permission* (toegang;
   bij twijfel geweigerd), *experiment* en *release* (kortlevend). NL Portal werkt ook zonder
   aparte flag-voorziening (zie issue #143).
+- **Module** — een afgebakend, aan of uit te zetten onderdeel van NL Portal dat een koppeling of
+  functie levert, bijvoorbeeld Open Product of Zaken. Een module staat per omgeving aan of uit.
+- **Harde afhankelijkheid** — een andere module of externe API zonder welke een module zinloos is.
+  Staat de module aan terwijl een harde afhankelijkheid uit staat, dan is dat een configuratiefout die
+  bij het opstarten wordt gemeld.
+- **Optionele afhankelijkheid** — een andere module of externe API die een module extra functies geeft,
+  maar waarzonder de module nog werkt. Zonder de afhankelijkheid ontbreken alleen die functies.
+- **Uitbreiding** — een voor de gebruiker zichtbare functie van een module die alleen bestaat als een
+  optionele afhankelijkheid beschikbaar is, bijvoorbeeld de zaken bij een product. Een uitbreiding heeft
+  een eigen feature flag en wordt uitgeleverd uitgeschakeld.
 - **Omgevingsconfiguratie** — de set config-files die één deployment aan één gemeente bindt: thema,
   koppelingen en teksten. Wijzigen betekent een nieuwe uitrol, geen aanpassing in een draaiende
   omgeving. _Avoid_: configuration panel, instellingenbeheer.
