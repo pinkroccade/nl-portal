@@ -93,6 +93,9 @@ rules, ...); `mise tasks` lists them all. Integration tests run with
 Gradle hangs without output: stop stale daemons with `mise exec -- ./gradlew --stop` from `backend/`
 and rerun.
 Send long runs to a log file instead of piping through `grep`/`head`, which buffers until the end.
+The same goes for `git push` and `git commit`: never pipe them (`| tail`, `| grep`), because the hooks start a
+Gradle daemon that keeps the pipe open and the command never returns. Redirect to a file (`> push.log 2>&1`)
+and read that.
 
 For a security- or dependency-relevant change, also run the applicable `mise run security:*` task
 (see below) before considering it done.
