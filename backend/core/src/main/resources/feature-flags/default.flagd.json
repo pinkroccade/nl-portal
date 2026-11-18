@@ -9,6 +9,14 @@
       },
       "defaultVariant": "off"
     },
+    "ops.documentenapis.enabled": {
+      "state": "ENABLED",
+      "variants": {
+        "on": true,
+        "off": false
+      },
+      "defaultVariant": "off"
+    },
     "ops.frontend.message-count": {
       "state": "ENABLED",
       "variants": {
