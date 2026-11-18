@@ -1,6 +1,20 @@
 #!/usr/bin/env sh
 set -e
 
+# Git geeft per ref een regel op stdin: <local ref> <local sha> <remote ref> <remote sha>.
+# Bij een verwijdering is de local sha allemaal nullen. Is elke regel een verwijdering (of is stdin leeg),
+# dan valt er niets te linten en slaan we de stappen over; anders blijft Gradle's daemon nodeloos draaien.
+alleen_verwijderen=true
+while read -r _local_ref local_sha _remote_ref _remote_sha; do
+  case "$local_sha" in
+    *[!0]*) alleen_verwijderen=false ;;
+  esac
+done
+if [ "$alleen_verwijderen" = true ]; then
+  echo "▶ Pre-push: alleen verwijderingen, lint en spotless overgeslagen"
+  exit 0
+fi
+
 # Via mise krijgen pnpm en Gradle de tools uit mise.toml (o.a. JAVA_HOME), ook in een shell zonder mise-activatie.
 if command -v mise >/dev/null 2>&1; then run="mise exec --"; else run=""; fi
 
