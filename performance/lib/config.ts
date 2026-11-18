@@ -32,3 +32,30 @@ export function loadConfig(env: Env): PerfConfig {
     password: verplicht(env, "PERF_PASSWORD"),
   };
 }
+
+export interface UserPool {
+  prefix: string;
+  aantal: number;
+  password: string;
+}
+
+/** De gebruikers uit `mise run perf:seed` (burger-001..): elke VU krijgt er een, zodat niet alle VU's één gebruiker delen. */
+export function loadUserPool(env: Env): UserPool {
+  const aantal = Number(env.PERF_USERS ?? "10");
+  if (!Number.isInteger(aantal) || aantal < 1) {
+    throw new Error(`PERF_USERS moet een geheel getal van minimaal 1 zijn, kreeg ${env.PERF_USERS}`);
+  }
+  return { prefix: env.PERF_USERNAME_PREFIX ?? "burger-", aantal, password: verplicht(env, "PERF_PASSWORD") };
+}
+
+/** Gebruiker voor VU `vu` (1-gebaseerd); bij meer VU's dan gebruikers wordt rondgewisseld. */
+export function gebruikerVoorVu(pool: UserPool, vu: number): { username: string; password: string } {
+  const nummer = ((vu - 1) % pool.aantal) + 1;
+  return { username: `${pool.prefix}${String(nummer).padStart(3, "0")}`, password: pool.password };
+}
+
+/** Configuratie voor de journeys: endpoints en client zoals `loadConfig`, de gebruiker komt per VU uit de pool. */
+export function loadJourneyConfig(env: Env): { config: PerfConfig; pool: UserPool } {
+  const pool = loadUserPool(env);
+  return { config: loadConfig({ ...env, PERF_USERNAME: "per-vu", PERF_PASSWORD: pool.password }), pool };
+}

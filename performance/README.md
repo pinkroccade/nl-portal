@@ -11,9 +11,13 @@ k6 staat in `mise.toml`; de scripts zijn TypeScript en draaien direct onder k6 (
 | `lib/config.ts` | Configuratie uit de omgeving (URL's, realm, client, testgebruiker) |
 | `lib/auth.ts` | Tokenflow: access token via Keycloak (direct access grant) |
 | `lib/graphql.ts` | GraphQL-request en foutdetectie op een HTTP 200-antwoord |
-| `lib/thresholds.ts` | Gedeelde thresholds (pass/fail) |
+| `lib/thresholds.ts` | Gedeelde thresholds (pass/fail) en de thresholds per GraphQL-operation van de journeys |
+| `lib/profielen.ts` | Belastingsprofielen `smoke`, `load` en `stress` |
+| `lib/queries.ts` | GraphQL-queries van de journeys |
 | `seed/` | Deterministisch seed-script (`plan.ts` is het pure plan, `seed.ts` voert het uit) en de definitie van de perf-only Keycloak-client |
 | `scenarios/smoke.ts` | Smoke: 1 gebruiker, 1 iteratie |
+| `scenarios/journeys.ts` | Read-only journeys: inloggen, zakenlijst, zaakdetail, taken en profiel (BRP) |
+| `seed/brp.ts` | Genereert de BRP-testdata voor de seed-gebruikers |
 
 ## Seed-data en perf-client
 
@@ -38,7 +42,7 @@ PERF_USERNAME=burger-001 PERF_PASSWORD=perf-wachtwoord PERF_CLIENT_ID=nl-portal-
 | `PERF_OPENZAAK_URL`, `PERF_OBJECTEN_URL` | `http://localhost:8001`, `http://localhost:8010` |
 | `PERF_ZGW_CLIENT_ID`, `PERF_ZGW_SECRET`, `PERF_OBJECTEN_TOKEN` | `nl-portal`, de gegenereerde `OPENZAAK_NLPORTAL_SECRET` en `OBJECTS_API_TOKEN` uit `docker-compose/.env` |
 
-Secrets en tokens hebben geen vaste standaardwaarde: `mise run perf:seed` leest ze uit `docker-compose/.env` (draai eerst `mise run dev:setup`). De overige standaardwaarden zijn lokale demo-gegevens; zet voor een andere omgeving eigen waarden in `mise.local.toml`. De BSN's van de seed-gebruikers staan niet in de BRP-mock: de profiel/BRP-journey vraagt dus eerst om aanvullende mockdata.
+Secrets en tokens hebben geen vaste standaardwaarde: `mise run perf:seed` leest ze uit `docker-compose/.env` (draai eerst `mise run dev:setup`). De overige standaardwaarden zijn lokale demo-gegevens; zet voor een andere omgeving eigen waarden in `mise.local.toml`. De BSN's van de seed-gebruikers staan niet in de demodata van de BRP-mock. De perf-overlay (`docker-compose/compose.perf.yaml`) mount daarom `docker-compose/imports/haalcentraal-perf/test-data.json` met een persoon per seed-gebruiker; `mise run perf:brp-data` genereert dat bestand opnieuw.
 
 ## Draaien
 
@@ -60,10 +64,32 @@ PERF_USERNAME=<gebruiker> PERF_PASSWORD=<wachtwoord> mise run perf:smoke
 `perf:smoke` eindigt met een exitcode ongelijk aan 0 bij een falend verzoek, een falende check of een
 gemiste threshold.
 
+## Journeys en belastingsprofielen
+
+`scenarios/journeys.ts` logt per VU in als een eigen seed-gebruiker (`burger-001`, ... rondgewisseld) en bevraagt de zakenlijst, een zaakdetail, de taken en het profiel. Elk verzoek krijgt de operationnaam als `name`-tag, zodat k6 p95, foutpercentage en doorvoer per GraphQL-operation rapporteert.
+
+```shell
+PERF_PASSWORD=perf-wachtwoord PERF_CLIENT_ID=nl-portal-perf mise run perf:journeys   # profiel smoke
+PERF_PASSWORD=perf-wachtwoord PERF_CLIENT_ID=nl-portal-perf mise run perf:load
+PERF_PASSWORD=perf-wachtwoord PERF_CLIENT_ID=nl-portal-perf mise run perf:stress
+```
+
+| Variabele | Standaard |
+|---|---|
+| `PERF_PROFILE` | `smoke` (1 gebruiker, 1 iteratie); `load` en `stress` via hun eigen taak |
+| `PERF_PEAK_VUS` | 10 bij `load`, 100 bij `stress` |
+| `PERF_USERS`, `PERF_USERNAME_PREFIX` | 10, `burger-` |
+| `PERF_THINK_TIME` (seconden) | 1 |
+| `PERF_BRP` | `true`; `false` slaat de profiel/BRP-stap over |
+
+De thresholds van de journeys zijn voorlopig signalerend (p95 < 2 s per operation, < 1% fouten) en worden aangescherpt zodra er een baseline is (#432).
+
 ## Taken
 
 - `mise run perf:seed`: de seed hierboven.
 - `mise run perf:smoke`: de smoke-test tegen de draaiende stack.
+- `mise run perf:journeys`, `perf:load`, `perf:stress`: de journeys met profiel smoke, load of stress.
+- `mise run perf:brp-data`: genereert de BRP-testdata voor de perf-overlay.
 - `mise run perf:test`: unit-tests van de helpers (`lib/*.test.ts` en `seed/*.test.ts`, `node --test`); onderdeel van `mise run test`.
 - `mise run perf:check`: laadt het script zonder stack (syntax en imports); onderdeel van `mise run lint`.
 
