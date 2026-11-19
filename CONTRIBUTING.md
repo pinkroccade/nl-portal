@@ -115,6 +115,37 @@ Docker must be running for those. The PR gate in CI runs `mise run backend:check
 `mise tasks` lists every task with its description. See `backend/README.md`, `frontend/README.md` and
 `docker-compose/README.md` for details.
 
+## CodeGraph (optional)
+
+CodeGraph indexes the codebase so an AI agent can look up symbols, call paths and callers in one call instead of
+reading files. It is optional and nothing in the build depends on it. The index and the MCP configuration are per
+machine: `.codegraph/` and `.mcp.json` are both in `.gitignore`.
+
+To use it:
+
+1. Make sure the `codegraph` CLI is on your `PATH`.
+2. From the repo root, run `codegraph init -y`. It builds the initial index in `.codegraph/`. `codegraph sync` brings
+   the index up to date after changes made while no CodeGraph server was running, and `codegraph status` shows its
+   state.
+3. Create `.mcp.json` in the repo root so your agent can call the `codegraph` tools:
+
+   ```json
+   {
+     "mcpServers": {
+       "codegraph": {
+         "type": "stdio",
+         "command": "codegraph",
+         "args": ["serve", "--mcp"],
+         "alwaysLoad": true
+       }
+     }
+   }
+   ```
+
+The rest is already in the repository: `.claude/settings.json` allows the `codegraph` tools and runs a prompt hook
+(`scripts/codegraph-prompt-hook.mjs`) that skips system-generated messages, and `.claude/CLAUDE.md` tells agents when
+to use CodeGraph. To remove it again, run `codegraph uninit` and delete `.mcp.json`.
+
 ## Copyright headers
 
 Every backend `.kt` / `.kts` and frontend `.ts` / `.tsx` / `.js` / `.jsx` file
