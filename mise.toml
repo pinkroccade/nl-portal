@@ -196,6 +196,18 @@ description = "Draai de journeys in oplopende stappen tot het piekaantal (profie
 env = { PERF_PROFILE = "stress" }
 run = "k6 run performance/scenarios/journeys.ts"
 
+[tasks."perf:meet"]
+description = "Draai de journeys PERF_RUNS keer (standaard 3) met profiel PERF_PROFILE (standaard load) en bewaar de k6-summaries in performance/resultaten/. Vereist PERF_PASSWORD"
+run = "node performance/baseline/meet.ts"
+
+[tasks."perf:baseline"]
+description = "Leg de mediaan van de runs uit perf:meet vast als baseline (performance/baseline/<profiel>.json); alleen via een PR wijzigen (ADR 0018)"
+run = "node performance/baseline/vastleggen.ts"
+
+[tasks."perf:vergelijk"]
+description = "Vergelijk de runs uit perf:meet met de baseline; delta als Markdown en een waarschuwing bij verslechtering (signalerend, exitcode 0)"
+run = "node performance/baseline/vergelijken.ts"
+
 # --- Scripts, docs, architectuurmodel, compliance ---
 
 [tasks."scripts:test"]
@@ -347,14 +359,17 @@ run = "node scripts/release-cut-rc.mjs"
 [tasks."perf:stack-up"]
 description = "Start de compose-stack met de perf-overlay zonder tracing (baseline; RUN_MODE standaard local)"
 dir = "docker-compose"
-run = 'RUN_MODE="${RUN_MODE:-local}" docker compose -f docker-compose.yaml -f compose.perf.yaml --profile zgw up -d --build'
+shell = "bash -c"
+run = 'RUN_MODE="${RUN_MODE:-local}" docker compose -f docker-compose.yaml -f compose.perf.yaml --profile zgw --profile haalcentraal up -d --build'
 
 [tasks."perf:stack-up-tracing"]
 description = "Start de compose-stack met de perf-overlay, OTel-agent en Tempo (100% tracing, diagnose; RUN_MODE standaard local)"
 dir = "docker-compose"
-run = 'RUN_MODE="${RUN_MODE:-local}" PERF_JAVA_AGENT=true PERF_OTEL_SDK_DISABLED=false COMPOSE_PROFILES=zgw,tracing docker compose -f docker-compose.yaml -f compose.perf.yaml up -d --build'
+shell = "bash -c"
+run = 'RUN_MODE="${RUN_MODE:-local}" PERF_JAVA_AGENT=true PERF_OTEL_SDK_DISABLED=false COMPOSE_PROFILES=zgw,haalcentraal,tracing docker compose -f docker-compose.yaml -f compose.perf.yaml up -d --build'
 
 [tasks."perf:stack-down"]
 description = "Stop de perf-stack en verwijder de volumes"
 dir = "docker-compose"
-run = 'RUN_MODE="${RUN_MODE:-local}" COMPOSE_PROFILES=zgw,tracing docker compose -f docker-compose.yaml -f compose.perf.yaml down -v'
+shell = "bash -c"
+run = 'RUN_MODE="${RUN_MODE:-local}" COMPOSE_PROFILES=zgw,haalcentraal,tracing docker compose -f docker-compose.yaml -f compose.perf.yaml down -v'

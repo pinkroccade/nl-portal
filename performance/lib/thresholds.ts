@@ -21,8 +21,11 @@ export function journeyThresholds(operaties: readonly string[]): Record<string, 
     checks: ["rate>0.99"],
     "http_req_duration{name:keycloak_token}": ["p(95)<2000"],
   };
+  // Op elke submetric een threshold: alleen dan neemt k6 hem op in de summary-export (zie baseline.ts).
   for (const operatie of operaties) {
     thresholds[`http_req_duration{name:${operatie}}`] = ["p(95)<2000"];
+    thresholds[`http_req_failed{name:${operatie}}`] = ["rate<0.01"];
+    thresholds[`http_reqs{name:${operatie}}`] = ["count>0"];
   }
   return thresholds;
 }
