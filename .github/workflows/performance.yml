@@ -34,6 +34,10 @@ jobs:
                 uses: jdx/mise-action@b44d12e7d0d8ee7461bb893e1b1993500433185b # v5.2.7
             -   name: Genereer de dev-omgeving (willekeurige secrets)
                 run: mise run dev:setup
+            -   name: Maak private-media schrijfbaar voor de Open Zaak-container
+                # De map wordt in de container gemount; op een Linux-runner is hij van de runner-gebruiker en
+                # mag de container er geen uploads/<jaar>/<maand> in aanmaken (PermissionError bij het seeden).
+                run: chmod -R a+rwX docker-compose/imports/openzaak/private-media
             -   name: Start de perf-stack (zonder tracing)
                 run: mise run perf:stack-up
             -   name: Wacht tot de stack klaar is
