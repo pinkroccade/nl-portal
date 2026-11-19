@@ -37,6 +37,7 @@ import java.net.URI
 class CommonGroundAuthenticationConverter(
     val decoder: ReactiveJwtDecoder,
     val keycloakConfig: KeycloakConfig,
+    val tokenEndpoint: URI,
 ) : PortalAuthenticationConverter() {
     private val jwtGrantedAuthoritiesConverter = JwtGrantedAuthoritiesConverter()
     private val webClient = WebClient.create()
@@ -80,7 +81,7 @@ class CommonGroundAuthenticationConverter(
     fun tokenExchange(jwt: Jwt): Mono<TokenResponse> =
         webClient
             .post()
-            .uri(URI.create("${jwt.issuer.toString().trimEnd('/')}/protocol/openid-connect/token"))
+            .uri(tokenEndpoint)
             .body(BodyInserters.fromFormData(tokenExchangeFormData(jwt)))
             .retrieve()
             .onStatus({ it.isError }) { response ->

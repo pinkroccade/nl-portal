@@ -32,6 +32,7 @@ import org.mockito.kotlin.whenever
 import org.springframework.security.oauth2.jwt.Jwt
 import org.springframework.security.oauth2.jwt.ReactiveJwtDecoder
 import reactor.core.publisher.Mono
+import java.net.URI
 
 @ExtendWith(MockitoExtension::class)
 internal class CommonGroundAuthenticationConverterTest {
@@ -43,7 +44,7 @@ internal class CommonGroundAuthenticationConverterTest {
     @BeforeEach
     fun init() {
         MockitoAnnotations.openMocks(this)
-        converter = spy(CommonGroundAuthenticationConverter(decoder, keycloak))
+        converter = spy(CommonGroundAuthenticationConverter(decoder, keycloak, URI.create("http://keycloak.invalid/token")))
     }
 
     @Test

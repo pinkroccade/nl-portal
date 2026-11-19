@@ -28,6 +28,8 @@ De koppeling met de backend verloopt via de volgende environment variabelen van 
 | Variabele | Betekenis |
 | --------- | --------- |
 | `JWKS_URI` | Wijst de backend naar het realm waarmee hij tokens valideert: `<keycloak-url>/realms/<realm>/protocol/openid-connect/certs`. Draait je Keycloak onder een pad (zoals de demo-omgeving, met `KC_HTTP_RELATIVE_PATH=/auth`), neem dat pad dan mee: `<keycloak-url>/auth/realms/<realm>/protocol/openid-connect/certs`. |
+| `KEYCLOAK_ISSUER_URI` | Verplicht. De publieke URL van de realm, gelijk aan de `iss`-claim: `<keycloak-url>/realms/<realm>` (met `/auth` ervoor als Keycloak onder dat pad draait). Tokens met een andere issuer worden geweigerd. |
+| `KEYCLOAK_TOKEN_URI` | Optioneel. Token-endpoint voor de token exchange, bijvoorbeeld het interne adres van Keycloak. Leeg: `<KEYCLOAK_ISSUER_URI>/protocol/openid-connect/token`. Zie [Keycloak-koppeling](./deployment-guide.md#backend-keycloak-koppeling). |
 | `KEYCLOAK_CLIENT_ID` | Client id van de m2m (backend) client |
 | `KEYCLOAK_CLIENT_SECRET` | Secret van de m2m (backend) client |
 | `KEYCLOAK_TOKEN_EXCHANGE_AUDIENCE` | Optioneel. Filter op de `aud` van de uitgewisselde token. Laat leeg, tenzij de m2m client deze audience mag uitgeven. |
@@ -89,7 +91,7 @@ De attributen `bsn` en `authenticationMethod` zijn **user attributes op de Keycl
 
 ## Audience validatie
 
-De app image configureert alleen een `jwk-set-uri` en verder geen validatie op de ontvangen token. Daardoor wordt **elke** token die door hetzelfde realm is ondertekend geaccepteerd, ongeacht welke client die heeft uitgegeven. Een andere applicatie in hetzelfde realm kan een token van een gebruiker dus doorspelen naar de portal API.
+De app image controleert van de ontvangen token de handtekening (`JWKS_URI`) en de issuer (`KEYCLOAK_ISSUER_URI`), maar niet de audience. Daardoor wordt **elke** token die door hetzelfde realm is ondertekend geaccepteerd, ongeacht welke client die heeft uitgegeven. Een andere applicatie in hetzelfde realm kan een token van een gebruiker dus doorspelen naar de portal API.
 
 Je sluit dat af door de backend alleen tokens te laten accepteren met een bepaalde audience:
 

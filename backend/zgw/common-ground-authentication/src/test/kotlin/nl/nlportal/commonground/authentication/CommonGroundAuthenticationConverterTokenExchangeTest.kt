@@ -64,6 +64,17 @@ internal class CommonGroundAuthenticationConverterTokenExchangeTest {
     }
 
     @Test
+    fun `sends the exchange to the configured token endpoint, not to the issuer of the token`() {
+        val converter = converter(audience = "")
+        mockServer.enqueue(tokenResponse())
+
+        converter.tokenExchange(jwt(issuer = "http://elsewhere.invalid/auth/realms/other")).block()
+
+        assertEquals(1, mockServer.requestCount)
+        assertEquals("/auth/realms/de-bosrand/protocol/openid-connect/token", mockServer.takeRequest().path)
+    }
+
+    @Test
     fun `sends the audience when one is configured`() {
         val converter = converter(audience = "some-other-client")
         mockServer.enqueue(tokenResponse())
@@ -127,13 +138,14 @@ internal class CommonGroundAuthenticationConverterTokenExchangeTest {
                 audience = audience,
                 credentials = KeycloakCredentials("secret"),
             ),
+            mockServer.url("/auth/realms/de-bosrand/protocol/openid-connect/token").toUri(),
         )
 
-    private fun jwt(): Jwt =
+    private fun jwt(issuer: String = "http://${mockServer.hostName}:${mockServer.port}/auth/realms/de-bosrand"): Jwt =
         Jwt
             .withTokenValue("token")
             .header("alg", "none")
-            .issuer("http://${mockServer.hostName}:${mockServer.port}/auth/realms/nlportal")
+            .issuer(issuer)
             .claim("sub", "a-subject")
             .build()
 
