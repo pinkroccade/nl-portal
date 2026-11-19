@@ -97,6 +97,8 @@ De thresholds van de journeys (ook per operation op fouten en aantal verzoeken, 
 - `mise run perf:baseline`: legt de mediaan vast in `baseline/<profiel>.json` (alleen via een PR).
 - `mise run perf:vergelijk`: delta t.o.v. de baseline, met een waarschuwing bij verslechtering.
 
+De werkwijze (baseline bijwerken, nachtelijke run lezen) staat in [Performancetesten](../site/development/workflows/performance-testing.md).
+
 - `mise run perf:test`: unit-tests van de helpers (`lib/*.test.ts` en `seed/*.test.ts`, `node --test`); onderdeel van `mise run test`.
 - `mise run perf:check`: laadt het script zonder stack (syntax en imports); onderdeel van `mise run lint`.
 
