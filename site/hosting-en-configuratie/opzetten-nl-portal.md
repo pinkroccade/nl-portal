@@ -18,52 +18,42 @@ Alle code en informatie is opensource en kan gevonden worden in deze GitHub-repo
 
 Voor de meeste implementaties gebruik je de gepubliceerde images (zie Route 1). Voor maatwerk dienen de app-directories (`backend/app`, `frontend/packages/app`) als startpunt.
 
-### Route 1: De prebuilt images draaien
+### Route 1: Quickstart (lokaal gebouwd)
 
-De snelste manier om de NL Portal te bekijken is via de kant-en-klare demo-omgeving in de `docker-compose/` map van de monorepo. Die bevat alles wat nodig is:
-
-* De prebuilt NL Portal backend en frontend images (`ghcr.io/pinkroccade/nl-portal-backend` en `ghcr.io/pinkroccade/nl-portal-frontend`). Zolang er nog geen release is gepubliceerd, zijn alleen snapshot-tags beschikbaar; kies de tag met `NL_PORTAL_IMAGE_TAG` (zie `docker-compose/README.md`).
-* De benodigde ZGW componenten (Open Zaak, Open Object, OpenKlant, OpenProduct) en Haal Centraal mocks, opgedeeld in docker-compose profielen zodat je zelf kiest welke onderdelen je start.
-* Een voorgeconfigureerde Keycloak met per tenant een realm en de client `nl-portal-backend` (zie de [Keycloak configuratie](./keycloak.md) pagina) en een Redis voor de sessies.
-
-Clone de monorepo op de gewenste `release/*` branch of release-tag en start de demo-omgeving vanuit `docker-compose/`:
+De snelste manier om de NL Portal te bekijken is de quickstart in de `docker-compose/` map van de monorepo. De standaardopzet start alleen wat bij livegang draait: de NL Portal backend en frontend, een Keycloak met per tenant een realm en de client `nl-portal-backend` (zie de [Keycloak configuratie](./keycloak.md) pagina) en een Redis voor de sessies. Backend en frontend worden uit je checkout gebouwd: de gepubliceerde images bevatten de BFF-authenticatie nog niet.
 
 ```shell
-RUN_MODE=remote docker compose --profile zgw --profile haalcentraal up -d
+mise run dev:setup        # in de repo-root: secrets, realm en sleutelpaar
+mise run keycloak:image   # het eigen Keycloak-image
+cd docker-compose
+docker compose up -d --build
 ```
-
-**Let op:** Route 1 draait de gepubliceerde stable image met de bijbehorende demo-imports; image en imports horen als één release bij elkaar. Gebruik daarom een `release/*` branch of een release-tag. Op andere branches bestaat die image (nog) niet — bouw daar lokaal met Route 2.
 
 De NL Portal is daarna bereikbaar op `http://localhost:3000`. Je kunt inloggen met de volgende testgebruikers:
 
 | Gebruikersnaam | Wachtwoord | Identificatie (BSN/KVK) |
 | -------------- | ---------- | ----------------------- |
 | burger         | burger     | 999993847               |
-| bedrijf        | bedrijf    | 14127293                |
 
-**Let op:** het opstarten van alle ZGW componenten kan enkele minuten duren. De `RUN_MODE`-waarden `remote` en `local` kunnen niet tegelijk draaien omdat ze dezelfde poorten gebruiken.
+Optionele onderdelen start je met profielen: `brp-mock` (BRP Personen-mock, voor persoonsgegevens), `bewoning`, `openzaak`, `objecten`, `openklant`, `openproduct` en `clamav`. De demo met zaken en taken en fixtures start met `docker compose -f compose.yaml -f compose.demo.yaml up -d`; het laden van de fixtures kan enkele minuten duren. De volledige tabel met services, poorten en profielen vind je in `docker-compose/README.md`.
 
-De volledige tabel met services, poorten en profielen vind je in `docker-compose/README.md` in de monorepo.
+### Route 2: Dev-variant met debugger
 
-### Route 2: Zelf bouwen (local)
-
-Draai je eigen wijzigingen zoals ze verscheept zouden worden, of zit je op een branch zonder gepubliceerde images? Bouw de images uit je checkout. Dit werkt op elke branch. Start vanuit `docker-compose/` met:
+Draai je eigen wijzigingen met een debugger op poort 8000 (`compose.dev.yaml`):
 
 ```shell
-RUN_MODE=local docker compose --profile zgw --profile haalcentraal up -d --build
+docker compose -f compose.yaml -f compose.dev.yaml up -d --build
 ```
-
-De NL Portal is bereikbaar op `http://localhost:3000` met dezelfde testgebruikers als hierboven.
 
 ### Route 3: Vanuit broncode (sources)
 
-Voor actieve ontwikkeling draai je alleen de ondersteunende services in compose en start je de backend en frontend zelf (snelle reload). Start vanuit `docker-compose/` met:
+Voor actieve ontwikkeling draai je alleen de ondersteunende services in compose en start je de backend en frontend zelf (snelle reload). Start vanuit de repo-root:
 
 ```shell
-docker compose --profile zgw up -d
+mise run dev:diensten
 ```
 
-Start daarna de backend (`./gradlew :app:bootRun` vanuit `backend/`; vereist een `.env.properties` (genereer die met `mise run dev:setup`), zie `backend/app/README.md`) en de frontend (`pnpm install && pnpm dev` vanuit `frontend/`). Zie [`GETTING_STARTED.md`](https://github.com/pinkroccade/nl-portal/blob/main/GETTING_STARTED.md) en `docker-compose/README.md` voor de details.
+Start daarna de backend (`./gradlew :app:bootRun` vanuit `backend/`; vereist een `.env.properties` (genereer die met `mise run dev:setup`), zie `backend/app/README.md`) en de frontend (`pnpm install && pnpm dev` vanuit `frontend/`). Zie `docker-compose/README.md` voor de details.
 
 ### Configureren via bestanden
 

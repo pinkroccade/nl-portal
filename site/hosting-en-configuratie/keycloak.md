@@ -90,7 +90,7 @@ Keycloak bewaart bij een gekoppelde (federated) identiteit de NameID, met daarin
 
 De docker-compose-omgeving in de monorepo is een volledig werkend voorbeeld:
 
-* `docker-compose/docker-compose.yaml` — Keycloak, Redis (`nl-portal-sessies`) en het configuratieproces `nl-portal-keycloak-config`.
+* `docker-compose/compose.yaml` — Keycloak, Redis (`nl-portal-sessies`) en het configuratieproces `nl-portal-keycloak-config`.
 * `docker-compose/imports/tenants/` — het tenantbestand van de demo-tenant De Bosrand, met het `authenticatie`-blok.
 * `keycloak/realm-template/` — het realm-template; `mise run dev:setup` genereert er per tenant een realm en een clientsleutelpaar uit.
 

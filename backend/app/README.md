@@ -11,13 +11,13 @@ Active feature work and the demo live in the developer-only dev app `:app-dev`
 
 ## Running locally
 
-Generate the local environment (random secrets, gitignored), start the supporting services (the default
-`sources` mode leaves the app ports `8080`/`8000`/`3000` free for an IDE/Gradle run), then run the app:
+Generate the local environment (random secrets, gitignored), start the supporting services (the
+app ports `8080`/`3000` stay free for an IDE/Gradle run), then run the app:
 
 ```shell
 mise run dev:setup   # from the repo root: .env.properties, Keycloak realms and docker-compose/.env
-cd docker-compose && docker compose --profile zgw up -d
-cd ../backend && ./gradlew :app:bootRun
+mise run dev:diensten   # Keycloak, BRP mock and ZGW components, without app containers
+cd backend && ./gradlew :app:bootRun
 ```
 
 The GraphQL endpoint is served at `/graphql`. Keycloak and ZGW service URLs (and the test
@@ -52,7 +52,7 @@ this same config and supplies differences purely through environment variables.
 `./gradlew :app:bootRun` loads its environment from **`.env.properties`** in this directory. This is
 the *only* config source for a from-source run - it is independent of
 [`docker-compose/imports/backend.env`](../../docker-compose/imports/backend.env), which configures
-the *containerised* backend under `RUN_MODE=local`/`remote`.
+the *containerised* backend (`docker-compose/compose.yaml`).
 
 `.env.properties` is **gitignored** (it holds the random Redis password for the sessions and the secrets and tokens of the ZGW components). `mise run dev:setup` renders
 the tracked template `.env.properties.example` into it, with fresh secrets on every run; adjust the
@@ -63,7 +63,7 @@ mise run dev:setup   # from the repo root
 ```
 
 `bootRun` fails with a clear message if the file is missing. The template assumes the supporting
-stack runs via `docker compose --profile zgw up -d` (default `sources` mode), so every service is reachable
+stack runs via `mise run dev:diensten`, so every service is reachable
 on `localhost:<published-port>` from the host. It differs from the containerised
 `backend.env` in a few ways:
 

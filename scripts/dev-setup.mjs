@@ -10,7 +10,7 @@
 // Usage: node scripts/dev-setup.mjs [--root <repo-root>]
 
 import { pbkdf2Sync, randomBytes } from "node:crypto";
-import { chmodSync, existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
+import { chmodSync, existsSync, mkdirSync, readdirSync, readFileSync, writeFileSync } from "node:fs";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { maakClientSleutel } from "./lib/clientsleutel.mjs";
@@ -77,6 +77,9 @@ export const CLIENTSLEUTEL_UITVOER = (oin) => `docker-compose/.generated/tenants
 // dat geen conflict. Een tweede tenant (stap 8) krijgt zijn OIN als realmnaam (ADR 0021 besluit 3).
 export const DEV_REALM = "nlportal";
 export const DEV_BROKER_URL = "http://localhost:8082";
+// De tenantbestanden in de compose-map wijzen naar hostnames op het compose-netwerk. Een bootRun op de host bereikt die services op
+// 127.0.0.1 (de gepubliceerde poorten zijn gelijk aan de interne): daarvoor schrijft dev:setup een variant met localhost.
+export const TENANTS_HOST_MAP = "docker-compose/.generated/tenants-host";
 export const COMPOSE_ENV = "docker-compose/.env";
 export const COMPOSE_ENV_EXAMPLE = "docker-compose/.env.example";
 
@@ -134,6 +137,19 @@ export function genereerTenantRealms(root, sleutelMaker = maakClientSleutel) {
   });
 }
 
+/** Vervangt de hostnames van het compose-netwerk (`http://nl-portal-...:poort`) door localhost, voor een bootRun op de host. */
+export const naarHostAdressen = (tekst) => tekst.replace(/http:\/\/nl-portal-[a-z0-9-]+:(\d+)/g, "http://localhost:$1");
+
+/** Schrijft per tenantbestand de variant voor een bootRun op de host; geeft de geschreven paden terug. */
+export function genereerHostTenants(root) {
+  return readdirSync(join(root, TENANTS_MAP))
+    .filter((naam) => naam.endsWith(".yaml"))
+    .map((naam) => {
+      write(root, `${TENANTS_HOST_MAP}/${naam}`, naarHostAdressen(readFileSync(join(root, TENANTS_MAP, naam), "utf8")));
+      return `${TENANTS_HOST_MAP}/${naam}`;
+    });
+}
+
 /**
  * Uid 0 (dev:setup onder sudo) schrijft geen LOCAL_UID: de backend-container zou als root draaien. Compose valt dan terug op 1000
  * en de 0600-sleutel is voor root, dus de run faalt zichtbaar in plaats van stil met te veel rechten.
@@ -154,8 +170,9 @@ export function devSetup(root, secrets = generateSecrets()) {
   }
 
   written.push(...genereerTenantRealms(root));
+  written.push(...genereerHostTenants(root));
 
-  // Eigen regels in een bestaande docker-compose/.env (RUN_MODE, NETWERK, ...) blijven staan.
+  // Eigen regels in een bestaande docker-compose/.env (BRP_API_URL, poorten, ...) blijven staan.
   const base = existsSync(join(root, COMPOSE_ENV)) ? COMPOSE_ENV : COMPOSE_ENV_EXAMPLE;
   write(root, COMPOSE_ENV, withManagedBlock(readFileSync(join(root, base), "utf8"), secrets, huidigeGebruiker()));
   written.push(COMPOSE_ENV);

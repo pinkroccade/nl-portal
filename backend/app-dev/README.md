@@ -10,8 +10,8 @@ compiles it (`./gradlew build`, including its integration tests), but nothing sh
 ## Running
 
 ```shell
-cd ../../docker-compose && docker compose --profile zgw --profile haalcentraal up -d
-cd ../backend && ./gradlew :app-dev:bootRun
+mise run dev:diensten   # Keycloak, BRP-mock en ZGW-componenten in compose, zonder app-containers
+cd .. && ./gradlew :app-dev:bootRun
 ```
 
 Only a generated `.env.properties` is read (`mise run dev:setup`): the Redis password and the

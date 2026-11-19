@@ -36,7 +36,7 @@ import java.nio.file.Path
  */
 class RedisTestInstantie : AutoCloseable {
     val wachtwoord = "test-wachtwoord-" + System.nanoTime()
-    private val compose = Files.readString(wortel().resolve("docker-compose/docker-compose.yaml"))
+    private val compose = Files.readString(wortel().resolve("docker-compose/compose.yaml"))
     private val image = Regex("""nl-portal-sessies:.*?image:\s*(\S+)""", RegexOption.DOT_MATCHES_ALL).find(compose)!!.groupValues[1]
     private val opdracht: List<String> =
         jacksonObjectMapper()
@@ -81,7 +81,7 @@ class RedisTestInstantie : AutoCloseable {
 
     private fun wortel(): Path {
         var map: Path? = Path.of("").toAbsolutePath()
-        while (map != null && !Files.exists(map.resolve("docker-compose/docker-compose.yaml"))) map = map.parent
+        while (map != null && !Files.exists(map.resolve("docker-compose/compose.yaml"))) map = map.parent
         return map ?: error("docker-compose/ niet gevonden vanaf " + Path.of("").toAbsolutePath())
     }
 }

@@ -37,7 +37,7 @@
       "consentRequired": false,
       "config": {
         "introspection.token.claim": "true",
-        "included.client.audience": "nl-portal-m2m",
+        "included.client.audience": "nl-portal-backend",
         "id.token.claim": "false",
         "lightweight.claim": "false",
         "access.token.claim": "true"

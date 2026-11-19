@@ -1,6 +1,6 @@
 // Integratietest van het realm-template (#505, seam 3 van epic #499): laadt keycloak-config-cli de realms die het template
 // per tenant oplevert in een echte Keycloak (eigen image, met de mappers van #527)? Dezelfde kcc-versie en -instellingen als
-// de compose-stack (`docker-compose/docker-compose.yaml`, service nl-portal-keycloak-config).
+// de compose-stack (`docker-compose/compose.yaml`, service nl-portal-keycloak-config).
 //
 // Drie realms: `nlportal` uit een ontwikkeltenant (testinlogmiddel), `acceptatie` uit een tenant met DigiD en wallet zonder
 // testinlogmiddel en `samllogin` uit een ontwikkeltenant met DigiD (gesimuleerd via SAML, zodat een echte SAML-login door het
@@ -22,7 +22,7 @@ import { KC, admin, decodeJwt, login, userinfo, waitForKeycloak } from "./stack.
 
 const repoRoot = resolve(dirname(fileURLToPath(import.meta.url)), "..", "..");
 // Eén plek voor de kcc-versie: de compose-stack.
-const COMPOSE = readFileSync(join(repoRoot, "docker-compose", "docker-compose.yaml"), "utf8");
+const COMPOSE = readFileSync(join(repoRoot, "docker-compose", "compose.yaml"), "utf8");
 const KCC_IMAGE = /image:\s*(adorsys\/keycloak-config-cli@sha256:[0-9a-f]{64})/.exec(COMPOSE)?.[1];
 /** De letterlijke `IMPORT_*`- en `KEYCLOAK_AVAILABILITYCHECK_*`-instellingen uit het environment-blok van de kcc-service in de compose. */
 function kccInstellingenUitCompose() {
@@ -93,7 +93,7 @@ let realmSaml;
 const rep = async (naam, pad = "") => (await admin(`/${naam}${pad}`)).json();
 
 before(async () => {
-  assert.ok(KCC_IMAGE, "docker-compose.yaml moet keycloak-config-cli op digest vastpinnen");
+  assert.ok(KCC_IMAGE, "compose.yaml moet keycloak-config-cli op digest vastpinnen");
   await waitForKeycloak();
   realmDev = genereerRealm({ tenant: DEV, realm: "nlportal", brokerUrl: KC, clientSleutels: [sleutel.publiek] });
   const idp = {

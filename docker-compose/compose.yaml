@@ -1,25 +1,76 @@
-name: nl-portal-docker-compose
+# NL Portal: standaardopzet met portal, Keycloak en de sessiestore van de BFF (ADR 0022).
+# Optionele profielen: brp-mock, bewoning, openzaak, objecten, openklant, openproduct, clamav.
+# Demo met zaken en taken: compose.demo.yaml. Backend en frontend met debugger: compose.dev.yaml. Zie README.md.
+#
+# Elke service heeft een eigen hostname op het benoemde netwerk en publiceert zijn eigen poort op 127.0.0.1 (instelbaar via .env).
+# De browser bereikt Keycloak op http://localhost:8082; de backend bereikt het via het netwerk (tenantbestand: interneBasisUrl).
+name: nl-portal
 
-include:
-    - path: "compose.localhost-${RUN_MODE:-sources}.yaml"
-    - path: "compose.netwerk-${NETWERK:-uit}.yaml"
+networks:
+    default:
+        # Benoemd, zodat een eigen compose (bijvoorbeeld een mock) er als extern netwerk op aansluit.
+        name: ${NL_PORTAL_NETWORK:-nl-portal}
 
 services:
 
-    localhost:
-        container_name: localhost
-        image: alpine:latest
-        command: sleep infinity
+    nl-portal-frontend:
+        image: nl-portal-frontend:dev
+        build: ../frontend
+        pull_policy: never
+        container_name: nl-portal-frontend
+        env_file: imports/frontend.env
+        environment:
+            # De nginx van de frontend stuurt /graphql, /api, /oauth2, /login en /logout naar de backend (same-origin, BFF).
+            NL_PORTAL_BACKEND_UPSTREAM: nl-portal-backend:8080
+        depends_on:
+            - nl-portal-backend
         ports:
-            - "8082:8082" # Keycloak port
-            - "8001:8001" # OpenZaak
-            - "8010:8010" # Open Object
-            - "8012:8012" # Open Notificaties
-            - "8014:8014" # OpenKlant 2
-            - "8015:8015" # OpenProduct
-            - "5010:5010" # Haalcentraal BRP
-            - "5011:5011" # Haalcentraal Bewoning
-            - "3310:3310" # ClamAV virus scan
+            - "127.0.0.1:${FRONTEND_PORT:-3000}:8081"
+
+    nl-portal-backend:
+        image: nl-portal-backend:dev
+        build: ../backend
+        pull_policy: never
+        container_name: nl-portal-backend
+        env_file: imports/backend.env
+        # De clientsleutel is 0600 van de gebruiker die `mise run dev:setup` draaide; de container leest hem als diezelfde uid (Linux).
+        user: "${LOCAL_UID:-1000}:${LOCAL_GID:-1000}"
+        depends_on:
+            nl-portal-sessies:
+                condition: service_healthy
+            nl-portal-keycloak-config:
+                condition: service_completed_successfully
+        environment:
+            # De BFF (ADR 0022): sessies in Redis met ACL, en de publieke basis-URL van Keycloak waaronder elke issuer valt.
+            REDIS_HOST: nl-portal-sessies
+            REDIS_USERNAME: nlportal
+            # De Redis van de compose-stack praat geen TLS; buiten lokaal staat REDIS_SSL standaard aan.
+            REDIS_SSL: "false"
+            REDIS_PASSWORD: ${REDIS_PASSWORD:?draai eerst mise run dev:setup}
+            KEYCLOAK_BROKER_URL: http://localhost:${KEYCLOAK_PORT:-8082}
+            NL_PORTAL_GEHEIMEN_00000099000000000001_OBJECTENAPI_TOKEN: "Token ${OBJECTS_API_TOKEN:?draai eerst mise run dev:setup}"
+            NL_PORTAL_GEHEIMEN_00000099000000000001_ZAKEN_SECRET: "${OPENZAAK_NLPORTAL_SECRET:?draai eerst mise run dev:setup}"
+            NL_PORTAL_GEHEIMEN_00000099000000000001_CATALOGIAPI_SECRET: "${OPENZAAK_NLPORTAL_SECRET:?draai eerst mise run dev:setup}"
+            NLPORTAL_CONFIG_BESLUITENAPI_PROPERTIES_SECRET: "${OPENZAAK_NLPORTAL_SECRET:?draai eerst mise run dev:setup}"
+            NL_PORTAL_GEHEIMEN_00000099000000000001_DOCUMENTEN_API_SECRET: "${OPENZAAK_NLPORTAL_SECRET:?draai eerst mise run dev:setup}"
+            NL_PORTAL_GEHEIMEN_00000099000000000001_DOCUMENTEN_DUMMYDOC_SECRET: "${OPENZAAK_NLPORTAL_SECRET:?draai eerst mise run dev:setup}"
+            NL_PORTAL_GEHEIMEN_00000099000000000001_VERIFICATIE_SECRET: "${OPENZAAK_NLPORTAL_SECRET:?draai eerst mise run dev:setup}"
+            NL_PORTAL_GEHEIMEN_00000099000000000001_VERIFICATIE_APIKEY: "${OPENZAAK_NLPORTAL_SECRET:?draai eerst mise run dev:setup}"
+            NLPORTAL_CONFIG_OPENKLANT2_PROPERTIES_TOKEN: "${OPENKLANT_API_TOKEN:?draai eerst mise run dev:setup}"
+            NLPORTAL_BEHEER_WACHTWOORDHASH: "{noop}${BACKEND_BEHEER_PASSWORD:?draai eerst mise run dev:setup}"
+            NLPORTAL_FEATUREFLAGS_FILE: /etc/nl-portal/flags/nl-portal.flagd.json
+            NL_PORTAL_TENANTS_DIRECTORY: /etc/nl-portal/imports/tenants
+            NL_PORTAL_SLEUTELMAP: /etc/nl-portal/sleutels
+            SPRING_CONFIG_IMPORT: optional:configtree:/etc/nl-portal/koppelingen/
+        volumes:
+            - ./imports/flags:/etc/nl-portal/flags:ro
+            - ./imports/koppelingen:/etc/nl-portal/koppelingen:ro
+            # De map met tenantbestanden en de sleutelmap met de gegenereerde clientsleutel per tenant (<oin>/clientsleutel.jwk.json).
+            - ./imports/tenants:/etc/nl-portal/imports/tenants:ro
+            - ./.generated/tenants:/etc/nl-portal/sleutels:ro
+        ports:
+            - "127.0.0.1:${BACKEND_PORT:-8080}:8080"
+            - "127.0.0.1:${BEHEER_PORT:-8091}:8091"
 
     # Sessies van de BFF (ADR 0022): Redis met ACL (de default-gebruiker staat uit, alleen `nlportal`), zonder persistentie en met
     # noeviction, zodat een volle Redis sessies niet ongemerkt weggooit voor hun TTL. Elke sleutel heeft een TTL (Spring Session en
@@ -46,11 +97,12 @@ services:
     # Draait geoptimaliseerd (`start --optimized`): de bouwopties (postgres, health) zitten in het image.
     nl-portal-keycloak:
         container_name: nl-portal-keycloak
+        ports:
+            - "127.0.0.1:${KEYCLOAK_PORT:-8082}:8082"
         depends_on:
             - nl-portal-keycloak-database
         image: nl-portal-keycloak:dev
         pull_policy: never
-        network_mode: "service:localhost"
         environment:
             KC_DB_URL: jdbc:postgresql://nl-portal-keycloak-database/keycloak
             KC_DB_USERNAME: keycloak
@@ -60,8 +112,17 @@ services:
             # Lokaal over http; buiten ontwikkeling zit Keycloak achter TLS (sslRequired: all in het realm).
             KC_HTTP_ENABLED: "true"
             KC_HTTP_PORT: "8082"
-            KC_HOSTNAME: http://localhost:8082
+            # Vaste publieke URL: de issuer is altijd localhost, ook bij verzoeken van de backend via het interne netwerk.
+            KC_HOSTNAME: http://localhost:${KEYCLOAK_PORT:-8082}
+            KC_HOSTNAME_BACKCHANNEL_DYNAMIC: "true"
         command: ["start", "--optimized"]
+        healthcheck:
+            # De image heeft geen curl; bash praat zelf HTTP met de beheerpoort (9000).
+            test: ["CMD-SHELL", "exec 3<>/dev/tcp/127.0.0.1/9000 && printf 'GET /health/ready HTTP/1.1\\r\\nHost: localhost\\r\\nConnection: close\\r\\n\\r\\n' >&3 && grep -q UP <&3"]
+            interval: 5s
+            timeout: 5s
+            retries: 40
+            start_period: 10s
 
     # Laadt het realm van elke tenant (docker-compose/.generated/keycloak/<oin>.json, gemaakt door `mise run dev:setup` uit
     # keycloak/realm-template en de tenantbestanden) in Keycloak en stopt. Draai opnieuw (`docker compose run --rm
@@ -72,11 +133,11 @@ services:
         container_name: nl-portal-keycloak-config
         image: adorsys/keycloak-config-cli@sha256:0955d98c8a341898b7aa177477edf8a1e90569ae50bbe7598141c1270b773274 # 6.5.1-26.5.5
         depends_on:
-            - nl-portal-keycloak
-        network_mode: "service:localhost"
+            nl-portal-keycloak:
+                condition: service_healthy
         restart: "no"
         environment:
-            KEYCLOAK_URL: http://localhost:8082
+            KEYCLOAK_URL: http://nl-portal-keycloak:8082
             KEYCLOAK_USER: admin
             KEYCLOAK_PASSWORD: ${KEYCLOAK_ADMIN_PASSWORD:?draai eerst mise run dev:setup}
             KEYCLOAK_AVAILABILITYCHECK_ENABLED: "true"
@@ -100,11 +161,11 @@ services:
     nl-portal-openzaak:
         image: openzaak/open-zaak:1.31.2
         container_name: nl-portal-openzaak
+        ports:
+            - "127.0.0.1:${OPENZAAK_PORT:-8001}:8001"
         platform: linux/amd64
         profiles:
-            - zgw
             - openzaak
-        network_mode: "service:localhost"
         environment: &openzaak-env
             - OPENZAAK_PORT=8001
             - OTEL_SDK_DISABLED=true
@@ -129,23 +190,22 @@ services:
             - nl-portal-openzaak-database
             - nl-portal-redis
         volumes:
-            - ./imports/openzaak/private-media:/app/private-media
+            - openzaak-private-media:/app/private-media
 
     nl-portal-openzaak-import:
         image: openzaak/open-zaak:1.31.2
         container_name: nl-portal-openzaak-import
         platform: linux/amd64
         profiles:
-            - zgw
             - openzaak
         environment: *openzaak-env
-        network_mode: "service:localhost"
         command: sh init/init.sh
         volumes:
             - ./imports/openzaak/fixtures:/app/src/openzaak/fixtures
-            - ./imports/openzaak/private-media:/app/private-media
             - ./imports/openzaak/init:/app/init
             - ./.generated/openzaak:/app/generated:ro
+            - ./imports/openzaak/media:/app/fixture-media:ro
+            - openzaak-private-media:/app/private-media
         depends_on:
             - nl-portal-openzaak
             - nl-portal-openzaak-database
@@ -156,7 +216,6 @@ services:
         container_name: nl-portal-openzaak-database
         platform: linux/amd64
         profiles:
-            - zgw
             - openzaak
         environment:
             - POSTGRES_USER=openzaak
@@ -166,13 +225,13 @@ services:
     nl-portal-openklant-2:
         image: maykinmedia/open-klant:2.19.2
         container_name: nl-portal-openklant-2
+        ports:
+            - "127.0.0.1:${OPENKLANT_PORT:-8014}:8014"
         profiles:
-            - zgw
             - openklant
         depends_on:
             - nl-portal-openklant-2-db
             - nl-portal-redis
-        network_mode: "service:localhost"
         environment: &openklant-2-env
             - OPENKLANT_PORT=8014
             - OTEL_SDK_DISABLED=true
@@ -197,10 +256,8 @@ services:
         image: maykinmedia/open-klant:2.19.2
         container_name: nl-portal-openklant-2-import
         profiles:
-            - zgw
             - openklant
         environment: *openklant-2-env
-        network_mode: "service:localhost"
         command: sh init/init.sh
         volumes:
             - ./imports/openklant-2/fixtures:/app/src/openklant/fixtures
@@ -215,7 +272,6 @@ services:
         image: postgres:15
         container_name: nl-portal-openklant-2-db
         profiles:
-            - zgw
             - openklant
         environment:
             - POSTGRES_USER=openklant
@@ -225,10 +281,10 @@ services:
     nl-portal-open-object:
         image: maykinmedia/open-object:4.3.0
         container_name: nl-portal-open-object
+        ports:
+            - "127.0.0.1:${OPEN_OBJECT_PORT:-8010}:8010"
         platform: linux/amd64
-        network_mode: "service:localhost"
         profiles:
-            - zgw
             - objecten
         environment: &objects-env
             - OPENOBJECT_PORT=8010
@@ -262,9 +318,7 @@ services:
         image: maykinmedia/open-object:4.3.0
         container_name: nl-portal-open-object-celery
         platform: linux/amd64
-        network_mode: "service:localhost"
         profiles:
-            - zgw
             - objecten
         depends_on:
             - nl-portal-open-object
@@ -278,7 +332,6 @@ services:
         container_name: nl-portal-open-object-database
         platform: linux/amd64
         profiles:
-            - zgw
             - objecten
         environment:
             - POSTGRES_USER=objects
@@ -290,10 +343,8 @@ services:
         container_name: nl-portal-open-object-import
         platform: linux/amd64
         profiles:
-            - zgw
             - objecten
         environment: *objects-env
-        network_mode: "service:localhost"
         command: sh init/init.sh
         volumes:
             - ./imports/open-object/fixtures:/app/src/objects/fixtures
@@ -306,10 +357,10 @@ services:
     nl-portal-open-notificaties:
         image: openzaak/open-notificaties:1.17.0
         container_name: nl-portal-open-notificaties
+        ports:
+            - "127.0.0.1:${OPEN_NOTIFICATIES_PORT:-8012}:8012"
         platform: linux/amd64
-        network_mode: "service:localhost"
         profiles:
-            - zgw
             - objecten
         environment: &notificaties-env
             - OPENNOTIFICATIES_PORT=8012
@@ -340,9 +391,7 @@ services:
         image: openzaak/open-notificaties:1.17.0
         container_name: nl-portal-open-notificaties-import
         platform: linux/amd64
-        network_mode: "service:localhost"
         profiles:
-            - zgw
             - objecten
         command: sh init/init.sh
         volumes:
@@ -358,9 +407,7 @@ services:
         image: openzaak/open-notificaties:1.17.0
         container_name: nl-portal-open-notificaties-celery
         platform: linux/amd64
-        network_mode: "service:localhost"
         profiles:
-            - zgw
             - objecten
         command: /celery_worker.sh
         healthcheck:
@@ -376,7 +423,6 @@ services:
         container_name: nl-portal-open-notificaties-database
         platform: linux/amd64
         profiles:
-            - zgw
             - objecten
         environment:
             - POSTGRES_USER=notifications
@@ -395,11 +441,11 @@ services:
     nl-portal-openproduct:
         image: maykinmedia/open-product:1.10.0
         container_name: nl-portal-openproduct
+        ports:
+            - "127.0.0.1:${OPENPRODUCT_PORT:-8015}:8015"
         profiles:
-            - zgw
             - openproduct
         platform: linux/amd64
-        network_mode: "service:localhost"
         depends_on:
             - nl-portal-openproduct-database
             - nl-portal-redis
@@ -428,10 +474,8 @@ services:
         container_name: nl-portal-openproduct-import
         platform: linux/amd64
         profiles:
-            - zgw
             - openproduct
         environment: *open-product-env
-        network_mode: "service:localhost"
         command: sh init/init.sh
         volumes:
             - ./imports/openproduct/fixtures:/app/src/openproduct/fixtures
@@ -446,9 +490,7 @@ services:
         image: maykinmedia/open-product:1.10.0
         container_name: nl-portal-openproduct-celery
         platform: linux/amd64
-        network_mode: "service:localhost"
         profiles:
-            - zgw
             - openproduct
         command: /celery_worker.sh
         environment: *open-product-env
@@ -457,7 +499,6 @@ services:
         image: postgres:17
         container_name: nl-portal-openproduct-database
         profiles:
-            - zgw
             - openproduct
         environment:
             - POSTGRES_USER=${DB_USER:-openproduct}
@@ -468,7 +509,6 @@ services:
         image: redis:6.2.24
         container_name: nl-portal-redis
         profiles:
-            - zgw
             - openzaak
             - objecten
             - openproduct
@@ -476,34 +516,41 @@ services:
 
     nl-portal-haalcentraal-personen:
         container_name: nl-portal-haalcentraal-personen
+        ports:
+            - "127.0.0.1:${BRP_MOCK_PORT:-5010}:5010"
         profiles:
-            - haalcentraal
+            - brp-mock
         image: ghcr.io/brp-api/personen-mock:2.2.1
-        network_mode: "service:localhost"
         environment:
             - ASPNETCORE_ENVIRONMENT=Release
             - ASPNETCORE_URLS=http://+:5010
 
     nl-portal-haalcentraal-bewoningen:
         container_name: nl-portal-haalcentraal-bewoningen
+        ports:
+            - "127.0.0.1:${BEWONING_MOCK_PORT:-5011}:5011"
         profiles:
-            - haalcentraal
+            - bewoning
         image: ghcr.io/brp-api/haal-centraal-bewoning-bevragen-mock:2.0.1
-        network_mode: "service:localhost"
         environment:
             - ASPNETCORE_ENVIRONMENT=Release
             - ASPNETCORE_URLS=http://+:5011
 
     nl-portal-clamav:
         container_name: nl-portal-clamav
+        ports:
+            - "127.0.0.1:${CLAMAV_PORT:-3310}:3310"
         image: clamav/clamav:latest
         platform: linux/amd64
         profiles:
             - clamav
-        network_mode: "service:localhost"
         healthcheck:
             test: ["CMD", "/usr/local/bin/clamdcheck.sh"]
             interval: 30s
             timeout: 10s
             retries: 5
             start_period: 120s
+
+volumes:
+    # Bestanden van Open Zaak: een named volume neemt de rechten van de image over (een bind mount geeft op Linux een PermissionError).
+    openzaak-private-media:

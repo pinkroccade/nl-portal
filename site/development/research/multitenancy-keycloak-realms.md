@@ -2,7 +2,7 @@
 
 Geraadpleegd op: 2026-11-06. Onderzoek voor #199 (kaart #197), gebruikt door #201.
 
-Peilversie: Keycloak **26.8.2** (laatste release, 2026-11-05). De demo-omgeving draait `quay.io/keycloak/keycloak:26.3` (`docker-compose/docker-compose.yaml`).
+Peilversie: Keycloak **26.8.2** (laatste release, 2026-11-05). De demo-omgeving draait `quay.io/keycloak/keycloak:26.3` (`docker-compose/compose.yaml`).
 
 ## Samenvatting
 
