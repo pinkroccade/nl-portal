@@ -373,21 +373,24 @@ description = "Bepaal de volgende SemVer-versie uit Conventional Commits sinds d
 run = "node scripts/release-cut-rc.mjs"
 
 # --- Performance-stack (overlay docker-compose/compose.perf.yaml) ---
+# De perf-taken draaien onder een eigen compose-projectnaam (nl-portal-perf): `perf:stack-down` raakt zo de gewone
+# dev-stack niet, en andersom. De containernamen zijn vast, dus beide stacks tegelijk draaien kan niet; dat geeft een
+# duidelijke fout in plaats van een stack die onder je vandaan wordt vervangen.
 
 [tasks."perf:stack-up"]
 description = "Start de compose-stack met de perf-overlay zonder tracing (baseline; RUN_MODE standaard local)"
 dir = "docker-compose"
 shell = "bash -c"
-run = 'RUN_MODE="${RUN_MODE:-local}" docker compose -f docker-compose.yaml -f compose.perf.yaml --profile zgw --profile haalcentraal up -d --build'
+run = 'RUN_MODE="${RUN_MODE:-local}" docker compose -p nl-portal-perf -f docker-compose.yaml -f compose.perf.yaml --profile zgw --profile haalcentraal up -d --build'
 
 [tasks."perf:stack-up-tracing"]
 description = "Start de compose-stack met de perf-overlay, OTel-agent en Tempo (100% tracing, diagnose; RUN_MODE standaard local)"
 dir = "docker-compose"
 shell = "bash -c"
-run = 'RUN_MODE="${RUN_MODE:-local}" PERF_JAVA_AGENT=true PERF_OTEL_SDK_DISABLED=false COMPOSE_PROFILES=zgw,haalcentraal,tracing docker compose -f docker-compose.yaml -f compose.perf.yaml up -d --build'
+run = 'RUN_MODE="${RUN_MODE:-local}" PERF_JAVA_AGENT=true PERF_OTEL_SDK_DISABLED=false COMPOSE_PROFILES=zgw,haalcentraal,tracing docker compose -p nl-portal-perf -f docker-compose.yaml -f compose.perf.yaml up -d --build'
 
 [tasks."perf:stack-down"]
 description = "Stop de perf-stack en verwijder de volumes"
 dir = "docker-compose"
 shell = "bash -c"
-run = 'RUN_MODE="${RUN_MODE:-local}" COMPOSE_PROFILES=zgw,haalcentraal,tracing docker compose -f docker-compose.yaml -f compose.perf.yaml down -v'
+run = 'RUN_MODE="${RUN_MODE:-local}" COMPOSE_PROFILES=zgw,haalcentraal,tracing docker compose -p nl-portal-perf -f docker-compose.yaml -f compose.perf.yaml down -v'
