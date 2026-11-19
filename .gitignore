@@ -84,3 +84,6 @@ mise.local.toml
 .codegraph/
 .mcp.json
 strix_runs/
+
+# k6-summaries van mise run perf:meet
+performance/resultaten/
