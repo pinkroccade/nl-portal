@@ -95,7 +95,7 @@ modules:
   ":zgw:common-ground-authentication":
     omvang: L
     risico: hoog
-    toelichting: Eén Keycloak-client en jwk-set-uri voor de hele runtime; token-endpoint wordt afgeleid uit de iss-claim.
+    toelichting: Eén Keycloak-client en jwk-set-uri, issuer en token-endpoint voor de hele runtime (uit configuratie, niet uit het token).
     signalen:
       config: KeycloakConfig is een singleton.
       webclient: WebClient.create() in CommonGroundAuthenticationConverter.

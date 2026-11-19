@@ -24,6 +24,9 @@ data class KeycloakConfig
         var resource: String = "",
         var audience: String = "",
         var credentials: KeycloakCredentials = KeycloakCredentials(""),
+        // Token-endpoint voor de token exchange, bijvoorbeeld het interne adres van Keycloak.
+        // Leeg: <issuer-uri>/protocol/openid-connect/token. Nooit afgeleid uit het binnenkomende token.
+        var tokenUri: String = "",
     ) {
         data class KeycloakCredentials(
             var secret: String = "",

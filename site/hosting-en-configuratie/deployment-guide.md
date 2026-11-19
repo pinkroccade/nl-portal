@@ -46,6 +46,24 @@ NLPORTAL_CONFIG_ZAKENAPI_PROPERTIES_SECRET=<secret>
 
 Alle module properties, inclusief de optionele, zijn met inline documentatie te vinden in `docker-compose/imports/backend.env` in de monorepo.
 
+### Backend: Keycloak-koppeling
+
+De backend kent Keycloak onder twee adressen: het **publieke** adres, zoals de browser het ziet, en
+eventueel een **intern** adres waarop de backend Keycloak zelf bereikt (bijvoorbeeld een
+servicenaam in Kubernetes of docker-compose).
+
+| Variabele | Verplicht | Adres | Betekenis |
+| --------- | --------- | ----- | --------- |
+| `KEYCLOAK_ISSUER_URI` | ja | publiek | De verwachte issuer: de URL van de realm, teken voor teken gelijk aan de `iss`-claim van de tokens, zonder `/` aan het eind (`https://login.gemeente.nl/auth/realms/portal`). Een token met een andere `iss` krijgt een 401. Zonder deze variabele start de backend niet. |
+| `JWKS_URI` | ja | intern of publiek | De sleutelset waarmee de backend handtekeningen controleert (`<realm-url>/protocol/openid-connect/certs`). |
+| `KEYCLOAK_TOKEN_URI` | nee | intern of publiek | Het token-endpoint voor de token exchange. Leeg: `<KEYCLOAK_ISSUER_URI>/protocol/openid-connect/token`. |
+
+De backend leidt het token-endpoint nooit af uit het binnenkomende token. Heeft de backend een
+interne route naar Keycloak, zet dan `JWKS_URI` en `KEYCLOAK_TOKEN_URI` op het interne adres; de
+issuer blijft het publieke adres. Laat Keycloak de publieke URL in de tokens zetten, ook bij een
+verzoek via het interne adres (`KC_HOSTNAME` op de publieke URL en
+`KC_HOSTNAME_BACKCHANNEL_DYNAMIC=true`).
+
 ### Backend: CORS
 
 De backend staat standaard geen cross-origin verzoeken toe. Zonder configuratie stuurt hij geen CORS-headers (`Access-Control-Allow-Origin`) mee, waardoor de browser cross-origin antwoorden blokkeert. Dat is voldoende als de frontend en de backend via dezelfde host worden bediend, bijvoorbeeld achter een reverse proxy die beide onder één origin publiceert.

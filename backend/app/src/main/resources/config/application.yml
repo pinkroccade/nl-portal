@@ -26,6 +26,8 @@ spring:
             resourceserver:
                 jwt:
                     jwk-set-uri: ${JWKS_URI}
+                    # Verwachte issuer (publieke URL van de realm); verplicht, zie keycloak-token-exchange.md.
+                    issuer-uri: ${KEYCLOAK_ISSUER_URI}
     graphql:
         graphiql:
             enabled: false
@@ -47,6 +49,7 @@ nl-portal:
         keycloak:
             resource: ${KEYCLOAK_CLIENT_ID}
             audience: ${KEYCLOAK_TOKEN_EXCHANGE_AUDIENCE:}
+            token-uri: ${KEYCLOAK_TOKEN_URI:}
             credentials:
                 secret: ${KEYCLOAK_CLIENT_SECRET}
         machtingsdienst:
