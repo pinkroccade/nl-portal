@@ -15,7 +15,9 @@ shellcheck = "0.11.0"
 # Taken heten <domein>:<actie>. De aggregaten zonder prefix (build, test, lint, arch-check) roepen via
 # `depends` de domeintaken aan. Taken van meer dan een regel staan als bestand onder mise-tasks/.
 # Er is bewust geen `e2e`-aggregaat: de repo heeft nog geen e2e-tests.
-# Taken die `./gradlew` aanroepen hebben `shell = "bash -c"` nodig: onder Windows draait mise anders cmd.
+# Inline taken met bash-syntaxis (VAR=x cmd, ${VAR:-x}, $(...), [ ], ./gradlew) hebben `shell = "bash -c"` nodig: onder
+# Windows draait mise anders cmd, en de instelling om dat te wijzigen negeert mise in een projectconfig.
+# `mise run mise:check-shell` (lint en CI) faalt op een taak die dat vergeet.
 
 # --- Aggregaten ---
 
@@ -29,7 +31,7 @@ depends = ["backend:test", "frontend:test", "scripts:test", "perf:test"]
 
 [tasks.lint]
 description = "Lint, typecheck en formatteringscontrole van backend en frontend"
-depends = ["backend:lint", "frontend:lint", "frontend:typecheck", "frontend:prettier", "perf:check", "workflows:lint"]
+depends = ["backend:lint", "frontend:lint", "frontend:typecheck", "frontend:prettier", "perf:check", "workflows:lint", "mise:check-shell"]
 
 [tasks.arch-check]
 description = "Bewaak de architectuurregels (backend: ArchUnit; frontend: package-boundaries valt onder frontend:lint)"
@@ -278,6 +280,10 @@ description = "Exporteer de LikeC4-views naar PNG onder site/architectuur/img/li
 sources = ["site/likec4/**/*.c4"]
 outputs = ["site/architectuur/img/likec4/**/*.png"]
 run = "npx --yes likec4@1.60.0 export png site/likec4 --output site/architectuur/img/likec4"
+
+[tasks."mise:check-shell"]
+description = "Faal als een inline mise-taak bash-syntaxis gebruikt zonder shell = \"bash -c\" (faalt onder Windows)"
+run = "node scripts/check-mise-shell.mjs"
 
 [tasks."java:check-version"]
 description = "Faal als mise, Dockerfile, README of workflows een andere Java-versie noemen dan javaVersion in backend/gradle.properties"
