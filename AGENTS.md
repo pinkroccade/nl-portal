@@ -57,7 +57,7 @@ skill first:
 | Scanning the codebase for deepening/architecture-improvement candidates | `improve-codebase-architecture` |
 | Building a feature or fixing a bug | `tdd` |
 | Investigating a hard bug or a performance regression | `diagnosing-bugs` |
-| Reviewing changes before opening a PR | `code-review` (`security-review` for security-sensitive changes) |
+| Reviewing changes before opening a PR | `code-review` (toetst aan [CODING_STANDARDS.md](./CODING_STANDARDS.md); `security-review` for security-sensitive changes) |
 | A quality pass that isn't a bug hunt | `simplify` |
 | Writing the PR description | `pr` |
 | Researching external facts or docs before deciding | `research` |
