@@ -18,6 +18,8 @@ k6 staat in `mise.toml`; de scripts zijn TypeScript en draaien direct onder k6 (
 | `scenarios/smoke.ts` | Smoke: 1 gebruiker, 1 iteratie |
 | `scenarios/journeys.ts` | Read-only journeys: inloggen, zakenlijst, zaakdetail, taken en profiel (BRP) |
 | `seed/brp.ts` | Genereert de BRP-testdata voor de seed-gebruikers |
+| `lib/baseline.ts` | Meetwaarden per operation uit een k6-summary en de vergelijking met de baseline |
+| `baseline/` | De baseline (`load.json`) en de scripts voor meten, vastleggen en vergelijken |
 
 ## Seed-data en perf-client
 
@@ -82,7 +84,7 @@ PERF_PASSWORD=perf-wachtwoord PERF_CLIENT_ID=nl-portal-perf mise run perf:stress
 | `PERF_THINK_TIME` (seconden) | 1 |
 | `PERF_BRP` | `true`; `false` slaat de profiel/BRP-stap over |
 
-De thresholds van de journeys zijn voorlopig signalerend (p95 < 2 s per operation, < 1% fouten) en worden aangescherpt zodra er een baseline is (#432).
+De thresholds van de journeys (ook per operation op fouten en aantal verzoeken, zodat k6 die submetrics exporteert) zijn voorlopig signalerend (p95 < 2 s per operation, < 1% fouten) en worden aangescherpt zodra er een baseline is (#432).
 
 ## Taken
 
@@ -90,6 +92,10 @@ De thresholds van de journeys zijn voorlopig signalerend (p95 < 2 s per operatio
 - `mise run perf:smoke`: de smoke-test tegen de draaiende stack.
 - `mise run perf:journeys`, `perf:load`, `perf:stress`: de journeys met profiel smoke, load of stress.
 - `mise run perf:brp-data`: genereert de BRP-testdata voor de perf-overlay.
+- `mise run perf:meet`: draait de journeys `PERF_RUNS` keer (standaard 3) en bewaart de k6-summaries in `performance/resultaten/`.
+- `mise run perf:baseline`: legt de mediaan vast in `baseline/<profiel>.json` (alleen via een PR).
+- `mise run perf:vergelijk`: delta t.o.v. de baseline, met een waarschuwing bij verslechtering.
+
 - `mise run perf:test`: unit-tests van de helpers (`lib/*.test.ts` en `seed/*.test.ts`, `node --test`); onderdeel van `mise run test`.
 - `mise run perf:check`: laadt het script zonder stack (syntax en imports); onderdeel van `mise run lint`.
 
