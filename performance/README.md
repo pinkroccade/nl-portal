@@ -92,6 +92,7 @@ De thresholds van de journeys (ook per operation op fouten en aantal verzoeken, 
 - `mise run perf:smoke`: de smoke-test tegen de draaiende stack.
 - `mise run perf:journeys`, `perf:load`, `perf:stress`: de journeys met profiel smoke, load of stress.
 - `mise run perf:brp-data`: genereert de BRP-testdata voor de perf-overlay.
+- `mise run perf:wacht`: wacht tot de stack klaar is voor `perf:seed` (Keycloak, imports en backend); ook de nachtelijke workflow gebruikt hem.
 - `mise run perf:meet`: draait de journeys `PERF_RUNS` keer (standaard 3) en bewaart de k6-summaries in `performance/resultaten/`.
 - `mise run perf:baseline`: legt de mediaan vast in `baseline/<profiel>.json` (alleen via een PR).
 - `mise run perf:vergelijk`: delta t.o.v. de baseline, met een waarschuwing bij verslechtering.
