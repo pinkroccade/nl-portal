@@ -22,6 +22,8 @@ while true; do
     echo "Perf-stack na $limiet s niet klaar (keycloak=$kc, backend=$be)" >&2
     docker ps -a --format '{{.Names}}\t{{.Status}}' >&2
     docker logs --tail 20 nl-portal-openzaak-import >&2 || true
+    echo "--- nl-portal-backend ---" >&2
+    docker logs --tail 40 nl-portal-backend >&2 || true
     exit 1
   fi
   sleep 10
