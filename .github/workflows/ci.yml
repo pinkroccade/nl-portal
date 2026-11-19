@@ -164,8 +164,21 @@ jobs:
             -   name: Build docs site (navigation tests, dead-link and anchor check)
                 run: mise run docs:build
 
+    workflows-lint:
+        needs: changes
+        if: ${{ needs.changes.outputs.workflows == 'true' }}
+        runs-on: ubuntu-latest
+        steps:
+            -   uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+            -   name: Set up mise (alleen actionlint en shellcheck)
+                uses: jdx/mise-action@b44d12e7d0d8ee7461bb893e1b1993500433185b # v5.2.7
+                with:
+                    install_args: actionlint shellcheck
+            -   name: Lint de workflows
+                run: mise run workflows:lint
+
     ci-required:
-        needs: [changes, validate, test-scripts, java-version-consistent, capabilities-docs-fresh, compliance-register-consistent, docs-site]
+        needs: [changes, validate, test-scripts, java-version-consistent, capabilities-docs-fresh, compliance-register-consistent, docs-site, workflows-lint]
         if: always()
         runs-on: ubuntu-latest
         steps:
@@ -177,6 +190,7 @@ jobs:
                     CAPABILITIES_RESULT: ${{ needs.capabilities-docs-fresh.result }}
                     COMPLIANCE_RESULT: ${{ needs.compliance-register-consistent.result }}
                     DOCS_SITE_RESULT: ${{ needs.docs-site.result }}
+                    WORKFLOWS_LINT_RESULT: ${{ needs.workflows-lint.result }}
                 run: |
                     echo "::notice::validate result = ${VALIDATE_RESULT}"
                     echo "::notice::test-scripts result = ${SCRIPTS_RESULT}"
@@ -184,6 +198,7 @@ jobs:
                     echo "::notice::capabilities-docs-fresh result = ${CAPABILITIES_RESULT}"
                     echo "::notice::compliance-register-consistent result = ${COMPLIANCE_RESULT}"
                     echo "::notice::docs-site result = ${DOCS_SITE_RESULT}"
+                    echo "::notice::workflows-lint result = ${WORKFLOWS_LINT_RESULT}"
                     if [ "${VALIDATE_RESULT}" = "failure" ] || [ "${VALIDATE_RESULT}" = "cancelled" ]; then
                       exit 1
                     fi
@@ -200,6 +215,9 @@ jobs:
                       exit 1
                     fi
                     if [ "${DOCS_SITE_RESULT}" = "failure" ] || [ "${DOCS_SITE_RESULT}" = "cancelled" ]; then
+                      exit 1
+                    fi
+                    if [ "${WORKFLOWS_LINT_RESULT}" = "failure" ] || [ "${WORKFLOWS_LINT_RESULT}" = "cancelled" ]; then
                       exit 1
                     fi
 
