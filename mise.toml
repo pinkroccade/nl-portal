@@ -9,6 +9,8 @@ gitleaks = "8.30.1"
 k6 = "2.3.0"
 # Controleert .github/workflows (syntax, expressies, acties); `mise run workflows:lint`.
 actionlint = "1.7.11"
+# actionlint controleert de `run:`-scripts met shellcheck als dat beschikbaar is; vastgepind zodat lokaal en CI hetzelfde zien.
+shellcheck = "0.11.0"
 
 # Taken heten <domein>:<actie>. De aggregaten zonder prefix (build, test, lint, arch-check) roepen via
 # `depends` de domeintaken aan. Taken van meer dan een regel staan als bestand onder mise-tasks/.
