@@ -29,14 +29,11 @@ dependencies {
 
     api("org.springframework.boot:spring-boot-starter-validation")
     api("org.springframework.boot:spring-boot-starter-security")
+    implementation("org.springframework.boot:spring-boot-starter-actuator")
     api(Dependencies.springWebFlux)
     api(Dependencies.springBootWebClient)
     api("org.springframework.security:spring-security-oauth2-jose")
     api("org.springframework.boot:spring-boot-starter-security-oauth2-resource-server")
-
-    // Spring Cloud
-    api(Dependencies.springCloudConfig)
-    api(Dependencies.springCloudBootstrap)
 
     // Jackson
     api(Dependencies.jacksonKotlinModule)
@@ -49,7 +46,11 @@ dependencies {
 
     // Feature flags: OpenFeature API (spec-compliant) with flagd file provider as server-less default (#143)
     api(Dependencies.openFeatureSdk)
-    implementation(Dependencies.openFeatureFlagd)
+    // grpc-netty-shaded bundles its own netty (4.2.17) that the netty-bom pin does not reach (CVE-2026-44891 e.a., #323).
+    // Only flagd's ChannelBuilder (RPC/in-process resolvers) uses it; the FILE resolver above never does, so it is excluded.
+    implementation(Dependencies.openFeatureFlagd) {
+        exclude(group = "io.grpc", module = "grpc-netty-shaded")
+    }
 
     // Logging for Kotlin
     api(Dependencies.kotlinLogging)
@@ -108,5 +109,3 @@ tasks.named("pitest") {
         survivors.forEach { (file, line, what) -> println("  $file:$line  $what") }
     }
 }
-
-apply(from = "gradle/publishing.gradle.kts")

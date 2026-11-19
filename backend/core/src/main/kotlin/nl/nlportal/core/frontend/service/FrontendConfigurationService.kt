@@ -16,55 +16,68 @@
 package nl.nlportal.core.frontend.service
 
 import dev.openfeature.sdk.EvaluationContext
-import kotlin.reflect.KClass
-import kotlin.reflect.full.memberProperties
 import nl.nlportal.core.featureflag.FeatureFlag
 import nl.nlportal.core.featureflag.FeatureGate
 import nl.nlportal.core.featureflag.ToggleType
 import nl.nlportal.core.frontend.configuration.FrontendConfigurationProperties
-import nl.nlportal.core.frontend.configuration.FrontendConfigurationProperties.FrontendProperties
-import nl.nlportal.core.frontend.configuration.FrontendConfigurationProperties.FrontendToggles
 import nl.nlportal.core.frontend.configuration.FrontendModuleConfigurationProperties
 import nl.nlportal.core.frontend.configuration.FrontendModuleConfigurationProperties.FrontendModuleProperties
 import nl.nlportal.core.frontend.domain.FrontendData
+import nl.nlportal.core.frontend.domain.FrontendToggles
+import nl.nlportal.core.modulegate.ModuleGate
+import nl.nlportal.core.util.Mapper
 
 class FrontendConfigurationService(
     private val frontendConfigurationProperties: FrontendConfigurationProperties,
     private val frontendModuleConfigurationProperties: FrontendModuleConfigurationProperties,
     private val featureGate: FeatureGate,
+    private val moduleGate: ModuleGate,
 ) {
     fun getFrontendData(context: EvaluationContext): FrontendData =
         FrontendData(
-            modules = getModules(),
+            modules = getModules(context),
             toggles = getToggles(context),
             properties = frontendConfigurationProperties.properties,
             theme = frontendConfigurationProperties.theme,
         )
 
-    // Only the message count toggle is flag-driven so far; the remaining toggles follow in #156.
     private fun getToggles(context: EvaluationContext): FrontendToggles {
-        val source = frontendConfigurationProperties.toggles
-        return FrontendToggles().apply {
-            messageCountEnabled = featureGate.isEnabled(MESSAGE_COUNT, context)
-            casesPartialSearchEnabled = source.casesPartialSearchEnabled
-            openProductEnabled = source.openProductEnabled
-            casesResultExplanationEnabled = source.casesResultExplanationEnabled
-            myInhabitantCountEnabled = source.myInhabitantCountEnabled
-            casesContactMomentsEnabled = source.casesContactMomentsEnabled
-            overviewIntroEnabled = source.overviewIntroEnabled
-            overviewMaintenanceAlertEnabled = source.overviewMaintenanceAlertEnabled
-            custom = source.custom
-        }
+        fun enabled(flag: FeatureFlag) = featureGate.isEnabled(flag, context)
+        return FrontendToggles(
+            messageCountEnabled = enabled(MESSAGE_COUNT),
+            casesPartialSearchEnabled = enabled(CASES_PARTIAL_SEARCH),
+            openProductEnabled = enabled(OPEN_PRODUCT),
+            casesResultExplanationEnabled = enabled(CASES_RESULT_EXPLANATION),
+            myInhabitantCountEnabled = enabled(MY_INHABITANT_COUNT),
+            casesContactMomentsEnabled = enabled(CASES_CONTACT_MOMENTS),
+            overviewIntroEnabled = enabled(OVERVIEW_INTRO),
+            overviewMaintenanceAlertEnabled = enabled(OVERVIEW_MAINTENANCE_ALERT),
+            custom = Mapper.get().writeValueAsString(featureGate.booleanMap(CUSTOM_TOGGLES_KEY, context)),
+        )
     }
 
-    fun getModules(): Map<String, FrontendModuleProperties> {
+    /** Modules that have a module flag are listed by that flag; the others still come from the old properties. */
+    fun getModules(context: EvaluationContext): Map<String, FrontendModuleProperties> {
         val modulesWhitelist = frontendConfigurationProperties.modulesWhitelist
+        val gated =
+            moduleGate.status(context).mapValues { (_, enabled) -> FrontendModuleProperties().apply { this.enabled = enabled } }
         return frontendModuleConfigurationProperties.config
             .filterKeys { it in modulesWhitelist }
             .mapKeys { (key, _) -> key.replace("api", "") }
+            .filterKeys { it !in gated } + gated
     }
 
     private companion object {
-        val MESSAGE_COUNT = FeatureFlag("ops.frontend.message-count", ToggleType.OPS)
+        fun frontendFlag(name: String) = FeatureFlag("ops.frontend.$name", ToggleType.OPS)
+
+        val MESSAGE_COUNT = frontendFlag("message-count")
+        val CASES_PARTIAL_SEARCH = frontendFlag("cases-partial-search")
+        val OPEN_PRODUCT = frontendFlag("open-product")
+        val CASES_RESULT_EXPLANATION = frontendFlag("cases-result-explanation")
+        val MY_INHABITANT_COUNT = frontendFlag("my-inhabitant-count")
+        val CASES_CONTACT_MOMENTS = frontendFlag("cases-contact-moments")
+        val OVERVIEW_INTRO = frontendFlag("overview-intro")
+        val OVERVIEW_MAINTENANCE_ALERT = frontendFlag("overview-maintenance-alert")
+        const val CUSTOM_TOGGLES_KEY = "ops.frontend.custom-toggles"
     }
 }

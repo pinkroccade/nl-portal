@@ -1,7 +1,7 @@
 # Tenantbestand, flag en secret store
 
 > **Voorgesteld, nog niet geïmplementeerd.** Deze pagina beschrijft het doelbeeld uit
-> [ADR 0017](../development/adr/0017-gedeelde-multi-tenant-runtime-met-cellen.md) (status: voorgesteld). Wat vandaag
+> [ADR 0021](../development/adr/0021-gedeelde-multi-tenant-runtime-met-cellen.md) (status: voorgesteld). Wat vandaag
 > werkt, staat in de [Deployment guide](./deployment-guide.md): één deployment is nu één gemeente.
 
 Als NL Portal als gedeelde dienst voor meerdere gemeenten (tenants) draait, staat de inrichting van een
@@ -30,25 +30,25 @@ dienst. Er is geen hot reload en er is geen Configuration Panel meer.
 - **Een secret toevoegen of roteren** (bijvoorbeeld het client secret van een koppeling): in de secret store.
   Het tenantbestand verwijst alleen naar de naam. De nieuwe waarde komt na een rolling restart van de cel in
   gebruik.
-- **Een module voor een tenant aan- of uitzetten**: met de flag van die module. Dit werkt direct. Een module
+- **Een module voor een tenant aan- of uitzetten**: met de flag van die module. Ook dit landt via een rolling restart van de eigen cel. Een module
   is alleen bruikbaar als de configuratie in het tenantbestand aanwezig is **én** de flag aanstaat. Een flag
   zonder configuratie doet niets (CI waarschuwt hiervoor).
-- **Een module snel uitschakelen voor één tenant** (kill switch): de flag van die tenant uitzetten; er is
-  geen herstart nodig.
+- **Een module uitschakelen voor één tenant**: de flag van die tenant uitzetten. Dat is een rolling restart van
+  alleen zijn cel; een noodrem zonder herstart bestaat niet (ADR 0014 punt 7).
 
 ## Een module uitrollen in twee stappen
 
 1. Zet de configuratie van de module in het tenantbestand en rol uit via een rolling restart. De module blijft
    uit, want de flag staat nog uit. Zo zie je fouten voordat een burger iets merkt (een onvolledige tenant
    start niet, en de oude pods blijven draaien).
-2. Zet de flag voor die tenant aan. Dit werkt direct.
+2. Zet de flag voor die tenant aan, opnieuw via een rolling restart van de cel.
 
 ## Waarom geen URL of secret in een flag
 
 Een flag-systeem is bedoeld voor schakelaars. Een URL is zonder secret niet bruikbaar en secrets horen
-nooit in een flag-systeem. Daarom bevat een flag alleen aan of uit. Flagwijzigingen werken live (het
-flagbestand wordt periodiek herladen); dat is de enige bewuste uitzondering op "elke wijziging is een rolling
-restart" en geldt alleen voor aan/uit-schakelaars.
+nooit in een flag-systeem. Daarom bevat een flag alleen aan of uit. Ook flagwijzigingen landen via een
+rolling restart van de eigen cel; er is geen uitzondering op "elke wijziging is een rolling restart". Het
+flagbestand wordt wel periodiek herladen, maar het ontwerp rekent daar niet op.
 
 ## Controles
 
@@ -60,6 +60,6 @@ restart" en geldt alleen voor aan/uit-schakelaars.
 
 ## Zie ook
 
-- [ADR 0017](../development/adr/0017-gedeelde-multi-tenant-runtime-met-cellen.md), de beslissing en de afweging.
+- [ADR 0021](../development/adr/0021-gedeelde-multi-tenant-runtime-met-cellen.md), de beslissing en de afweging.
 - [ADR 0016](../development/adr/0016-stateless-configuratie-en-thema-via-bestanden.md), configuratie via bestanden.
 - [Deployment guide](./deployment-guide.md#feature-flags), hoe flags vandaag werken.

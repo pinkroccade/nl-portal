@@ -20,7 +20,7 @@ alternatief serieus is overwogen.
 
 ## Voorgestelde ADR's
 
-- [ADR 0017: gedeelde multi-tenant runtime met cellen](./0017-gedeelde-multi-tenant-runtime-met-cellen.md)
+- [ADR 0021: gedeelde multi-tenant runtime met cellen](./0021-gedeelde-multi-tenant-runtime-met-cellen.md)
   (voorgesteld, ter review): gedeelde runtime met logische tenantscheiding, ingedeeld in cellen.
 - [ADR 0016: stateless configuratie en thema via bestanden](./0016-stateless-configuratie-en-thema-via-bestanden.md)
   (voorgesteld).

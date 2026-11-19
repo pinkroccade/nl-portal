@@ -25,7 +25,6 @@ dependencies {
     api(project(":graphql"))
     api(project(":portal-authentication"))
     api(project(":zgw:common-ground-authentication"))
-    api(project(":zgw:idtoken-authentication"))
 
     implementation(Dependencies.springBootStarter)
     implementation(Dependencies.clamAv)
@@ -54,5 +53,3 @@ val jar: Jar by tasks
 val bootJar: org.springframework.boot.gradle.tasks.bundling.BootJar by tasks
 bootJar.enabled = false
 jar.enabled = true
-
-apply(from = "gradle/publishing.gradle.kts")

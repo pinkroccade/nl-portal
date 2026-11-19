@@ -1,0 +1,29 @@
+{
+  "profiel": "load",
+  "piekVus": 10,
+  "runs": 3,
+  "gemetenOp": "2026-11-18",
+  "omgeving": "lokaal, Windows 11 + Docker Desktop",
+  "operaties": {
+    "getZaken": {
+      "p95Ms": 308.8,
+      "foutpercentage": 0,
+      "doorvoerPerSeconde": 2.02
+    },
+    "getZaak": {
+      "p95Ms": 319.4,
+      "foutpercentage": 0,
+      "doorvoerPerSeconde": 2.02
+    },
+    "getTakenV2": {
+      "p95Ms": 39.6,
+      "foutpercentage": 0,
+      "doorvoerPerSeconde": 2.02
+    },
+    "getPersoonV2": {
+      "p95Ms": 33.3,
+      "foutpercentage": 0,
+      "doorvoerPerSeconde": 2.02
+    }
+  }
+}

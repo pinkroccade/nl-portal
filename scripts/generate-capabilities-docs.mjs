@@ -24,9 +24,8 @@ const MODULE_ELEMENTS = {
   "backend/payment-direct": `${BACKEND}.payment`,
   "backend/product": `${BACKEND}.product`,
   "backend/portal-authentication": `${BACKEND}.portalAuthentication`,
-  "backend/haalcentraal2": `${BACKEND}.haalCentraalIntegrations.haalcentraal2`,
-  "backend/haalcentraal-hr": `${BACKEND}.haalCentraalIntegrations.haalcentraalHr`,
-  "backend/zgw/idtoken-authentication": `${ZGW}.idtokenAuthentication`,
+  "backend/haalcentraal-brp": `${BACKEND}.haalCentraalIntegrations.haalcentraalBrp`,
+  "backend/kvk": `${BACKEND}.haalCentraalIntegrations.kvk`,
   "backend/zgw/common-ground-authentication": `${ZGW}.commonGroundAuthentication`,
   "backend/zgw/objectenapi": `${ZGW}.objectenapi`,
   "backend/zgw/catalogi-api": `${ZGW}.catalogiApi`,
@@ -42,7 +41,7 @@ const MODULE_ELEMENTS = {
 };
 
 const GENERATED_NOTE =
-  "_Gegenereerd uit [`docs/capabilities.yaml`](https://github.com/jypma-prlg/nl-portal/blob/main/docs/capabilities.yaml) via `mise run docs:capabilities`. " +
+  "_Gegenereerd uit [`docs/capabilities.yaml`](https://github.com/pinkroccade/nl-portal/blob/main/docs/capabilities.yaml) via `mise run docs:capabilities`. " +
   "Wijzig de YAML, niet dit blok; CI faalt als dit blok niet actueel is._";
 
 const cell = (s) => String(s ?? "").replace(/\|/g, "\\|").replace(/\r?\n/g, " ");

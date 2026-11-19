@@ -1,0 +1,38 @@
+#!/usr/bin/env bash
+#MISE description="Wacht tot de checks van een PR groen zijn en squash-merge hem (auto-merge staat uit in deze repo). Stopt bij een falende check, een conflict of na PR_WACHT_SECONDEN (standaard 3600). Gebruik: mise run pr:merge <PR-nummer>"
+set -euo pipefail
+
+nr="${1:?Gebruik: mise run pr:merge <PR-nummer>}"
+limiet="${PR_WACHT_SECONDEN:-3600}"
+start=$SECONDS
+
+while true; do
+  state=$(gh pr view "$nr" --json state --jq .state)
+  if [ "$state" = MERGED ]; then echo "PR #$nr is gemerged"; exit 0; fi
+  if [ "$state" = CLOSED ]; then echo "PR #$nr is gesloten zonder merge" >&2; exit 1; fi
+
+  falend=$(gh pr view "$nr" --json statusCheckRollup \
+    --jq '[.statusCheckRollup[]? | select(.conclusion=="FAILURE" or .conclusion=="CANCELLED" or .conclusion=="TIMED_OUT") | .name] | join(", ")')
+  if [ -n "$falend" ]; then echo "PR #$nr heeft falende checks: $falend" >&2; exit 1; fi
+
+  aantal=$(gh pr view "$nr" --json statusCheckRollup --jq '.statusCheckRollup | length')
+  status=$(gh pr view "$nr" --json mergeStateStatus --jq .mergeStateStatus)
+  case "$status" in
+    CLEAN)
+      # Direct na het aanmaken zijn de checks nog niet geregistreerd: dan is er niets om op te vertrouwen.
+      if [ "$aantal" -gt 0 ]; then
+        gh pr merge "$nr" --squash
+        echo "PR #$nr is gemerged"
+        exit 0
+      fi ;;
+    DIRTY|BEHIND)
+      echo "PR #$nr kan niet gemerged worden (status $status): los het conflict op of werk de branch bij" >&2
+      exit 1 ;;
+  esac
+
+  if [ $((SECONDS - start)) -ge "$limiet" ]; then
+    echo "PR #$nr is na $limiet s nog niet klaar (status $status, $aantal checks)" >&2
+    exit 1
+  fi
+  sleep 30
+done

@@ -1,67 +1,102 @@
 [tools]
 # Keep in sync with frontend/package.json's "packageManager" field.
-pnpm = "11.28.8"
+pnpm = "11.28.11"
 # javaVersion in backend/gradle.properties is leading; `mise run java:check-version` (CI) fails on a mismatch.
 java = "temurin-25"
-syft = "1.55.0"
-grype = "0.121.0"
+syft = "1.57.0"
+grype = "0.121.2"
 gitleaks = "8.30.1"
+k6 = "2.3.0"
+# Controleert .github/workflows (syntax, expressies, acties); `mise run workflows:lint`.
+actionlint = "1.7.11"
+# actionlint controleert de `run:`-scripts met shellcheck als dat beschikbaar is; vastgepind zodat lokaal en CI hetzelfde zien.
+shellcheck = "0.11.0"
 
-[tasks."docs:test"]
-description = "Run the docs site's navigation-structure tests (ADR 0006)"
-dir = "site"
-run = "pnpm install && pnpm run test"
+# Taken heten <domein>:<actie>. De aggregaten zonder prefix (build, test, lint, arch-check) roepen via
+# `depends` de domeintaken aan. Taken van meer dan een regel staan als bestand onder mise-tasks/.
+# Er is bewust geen `e2e`-aggregaat: de repo heeft nog geen e2e-tests.
+# Inline taken met bash-syntaxis (VAR=x cmd, ${VAR:-x}, $(...), [ ], ./gradlew) hebben `shell = "bash -c"` nodig: onder
+# Windows draait mise anders cmd, en de instelling om dat te wijzigen negeert mise in een projectconfig.
+# `mise run mise:check-shell` (lint en CI) faalt op een taak die dat vergeet.
 
-[tasks."docs:build"]
-description = "Build the docs site, failing on any broken internal link or anchor"
-dir = "site"
-depends = ["docs:test"]
-run = "pnpm install && pnpm run build"
+# --- Aggregaten ---
 
-[tasks."docs:dev"]
-description = "Preview the docs site locally"
-dir = "site"
-run = "pnpm install && pnpm run dev"
+[tasks.build]
+description = "Bouw backend en frontend"
+depends = ["backend:build", "frontend:build"]
 
-[tasks."likec4:validate"]
-description = "Validate the LikeC4 architecture model (site/likec4)"
-run = "npx --yes likec4@1.60.0 validate site/likec4"
+[tasks.test]
+description = "Draai de unit-tests van backend, frontend en scripts (integratietests: backend:integration-test)"
+depends = ["backend:test", "frontend:test", "scripts:test", "perf:test"]
 
-[tasks."likec4:start"]
-description = "Preview the LikeC4 architecture model in a local dev server"
-run = "npx --yes likec4@1.60.0 start site/likec4"
+[tasks.lint]
+description = "Lint, typecheck en formatteringscontrole van backend en frontend"
+depends = ["backend:lint", "frontend:lint", "frontend:typecheck", "frontend:prettier", "perf:check", "workflows:lint", "mise:check-shell"]
 
-[tasks."likec4:export"]
-description = "Export the LikeC4 views to PNG under site/architectuur/img/likec4 (shown on the C4-model page; re-run and commit after changing the model)"
-run = "npx --yes likec4@1.60.0 export png site/likec4 --output site/architectuur/img/likec4"
+[tasks.arch-check]
+description = "Bewaak de architectuurregels (backend: ArchUnit; frontend: package-boundaries valt onder frontend:lint)"
+depends = ["backend:arch-check"]
 
-[tasks."java:check-version"]
-description = "Fail when mise, Dockerfile, README or workflows name another Java version than javaVersion in backend/gradle.properties"
-run = "node scripts/check-java-version.mjs"
+# --- Backend ---
 
-[tasks."backend:pitest"]
-description = "Mutation testing op backend/core (ADR 0011); HTML-rapport in backend/core/build/reports/pitest"
-dir = "backend"
-run = "./gradlew :core:pitest"
-
-[tasks."backend:pitest-changed"]
-description = "Pitest op core-klassen die t.o.v. origin/main gewijzigd zijn, met de PR-drempel van 80% (zoals CI, ADR 0011)"
+[tasks."backend:build"]
+description = "Compileer en assembleer de backend (zonder tests)"
 dir = "backend"
 shell = "bash -c"
-run = '''
-set -euo pipefail
-git fetch -q origin main
-changed=$(git diff --name-only --diff-filter=AMR origin/main...HEAD -- 'core/src/main/kotlin/**/*.kt' \
-  | sed -E 's#^backend/core/src/main/kotlin/##; s#\.kt$#*#; s#/#.#g' | paste -sd, -)
-if [ -z "$changed" ]; then echo "Geen gewijzigde core-klassen."; exit 0; fi
-./gradlew :core:pitest -PpitestTargetClasses="$changed" -PpitestThreshold=80 --console=plain
-'''
+run = "./gradlew assemble --console=plain"
 
-[tasks."backend:module-layer-changes"]
-description = "Toon nieuwe backend-modules en laagwijzigingen in ModuleLayers t.o.v. origin/main (zoals de PR-opmerking uit CI, #177)"
+[tasks."backend:test"]
+description = "Draai de backend-unit-tests (zonder integratietests)"
 dir = "backend"
 shell = "bash -c"
-run = "./gradlew :architecture-test:moduleLayerChanges -q"
+run = "./gradlew test --console=plain"
+
+[tasks."backend:lint"]
+description = "Controleer opmaak en kopregels van de backend (Spotless/ktlint)"
+dir = "backend"
+shell = "bash -c"
+run = "./gradlew spotlessCheck --console=plain"
+
+[tasks."backend:check"]
+description = "Bouw, test en lint de backend in een Gradle-aanroep (./gradlew build; wat CI als backend-poort draait)"
+dir = "backend"
+shell = "bash -c"
+run = "./gradlew build --console=plain"
+
+[tasks."backend:dependency-report"]
+description = "Genereer het HTML-dependencyrapport van de backend (release-artefact)"
+dir = "backend"
+shell = "bash -c"
+run = "./gradlew htmlDependencyReport"
+
+[tasks."backend:arch-check"]
+description = "Draai de ArchUnit-architectuurtests van de backend"
+dir = "backend"
+shell = "bash -c"
+run = "./gradlew :architecture-test:test --console=plain"
+
+[tasks."arch:diagram:backend"]
+description = "Genereer het PlantUML-diagram van backend-modules, lagen en regeldekking (site/architectuur/img/plantuml/modules.puml) (#386)"
+dir = "backend"
+shell = "bash -c"
+run = "./gradlew :architecture-test:architectureDiagram --console=plain"
+
+[tasks."arch:diagram:frontend"]
+description = "Genereer het PlantUML-diagram van de frontend-packages (site/architectuur/img/plantuml/frontend.puml) (#386)"
+run = "node scripts/generate-frontend-diagram.mjs"
+
+[tasks."arch:diagram"]
+description = "Genereer de PlantUML-diagrammen van backend en frontend; commit het resultaat, en draai arch:diagram:render voor de SVG (#386)"
+depends = ["arch:diagram:backend", "arch:diagram:frontend"]
+
+[tasks."arch:diagram:render"]
+description = "Render beide PlantUML-diagrammen naar SVG via Docker (site/architectuur/img/plantuml/*.svg); draai eerst arch:diagram (#386)"
+shell = "bash -c"
+run = """
+for name in modules frontend; do
+  docker run --rm -i plantuml/plantuml:1.2025.4 -tsvg -pipe < site/architectuur/img/plantuml/$name.puml > site/architectuur/img/plantuml/$name.svg
+done
+"""
 
 [tasks."backend:integration-test"]
 description = "Backend-integratietests over alle modules (vereist Docker voor de OpenKlant-container in zgw:openklant)"
@@ -75,107 +110,287 @@ dir = "backend"
 shell = "bash -c"
 run = "./gradlew :app:integrationTest"
 
-[tasks."deps:check-backend"]
-description = "List available backend dependency updates (does not apply them)"
+[tasks."backend:module-layer-changes"]
+description = "Toon nieuwe backend-modules en laagwijzigingen in ModuleLayers t.o.v. origin/main, of t.o.v. MODULE_LAYERS_BASE_REF als die gezet is (zoals de PR-opmerking uit CI, #177)"
+dir = "backend"
+shell = "bash -c"
+run = 'if [ -n "${MODULE_LAYERS_BASE_REF:-}" ]; then ./gradlew :architecture-test:moduleLayerChanges -q -PmoduleLayersBaseRef="$MODULE_LAYERS_BASE_REF"; else ./gradlew :architecture-test:moduleLayerChanges -q; fi'
+
+[tasks."backend:pitest"]
+description = "Mutation testing op backend/core (ADR 0011); HTML-rapport in backend/core/build/reports/pitest"
+dir = "backend"
+shell = "bash -c"
+run = "./gradlew :core:pitest"
+
+# backend:pitest-changed staat in mise-tasks/backend/pitest-changed
+
+# --- Frontend ---
+
+[tasks."frontend:install"]
+description = "Installeer de frontend-dependencies volgens pnpm-lock.yaml"
+dir = "frontend"
+sources = ["pnpm-lock.yaml", "package.json", "packages/*/package.json"]
+run = "pnpm install --frozen-lockfile"
+
+[tasks."frontend:check"]
+description = "Bouw, lint, typecheck, test en prettier-controle van de frontend (wat CI als frontend-poort draait)"
+depends = ["frontend:build", "frontend:lint", "frontend:typecheck", "frontend:test", "frontend:prettier"]
+
+[tasks."frontend:build"]
+description = "Bouw alle frontend-packages"
+dir = "frontend"
+depends = ["frontend:install"]
+run = "pnpm -r build"
+
+[tasks."frontend:lint"]
+description = "ESLint (incl. package-boundaries) en Stylelint op de frontend"
+dir = "frontend"
+depends = ["frontend:install"]
+run = ["pnpm lint", "pnpm lint:css"]
+
+[tasks."frontend:typecheck"]
+description = "TypeScript-typecheck van alle frontend-packages (na de build: packages lezen elkaars dist)"
+dir = "frontend"
+depends = ["frontend:build"]
+run = "pnpm typecheck"
+
+[tasks."frontend:test"]
+description = "Draai de frontend-tests (Vitest; na de build: packages lezen elkaars dist)"
+dir = "frontend"
+depends = ["frontend:build"]
+run = "pnpm test"
+
+[tasks."frontend:prettier"]
+description = "Controleer de frontend-opmaak met Prettier (zonder te wijzigen)"
+dir = "frontend"
+depends = ["frontend:install"]
+run = "pnpm prettier"
+
+# --- Performance (k6, ADR 0018) ---
+
+[tasks."perf:test"]
+description = "Draai de unit-tests van de k6-helpers (performance/lib/*.test.ts, performance/seed/*.test.ts)"
+run = 'node --test "performance/lib/*.test.ts" "performance/seed/*.test.ts"'
+
+[tasks."perf:check"]
+description = "Controleer dat de k6-scripts laden (syntax en imports), zonder stack"
+run = "k6 inspect -e PERF_USERNAME=check -e PERF_PASSWORD=check performance/scenarios/smoke.ts && k6 inspect -e PERF_PROFILE=smoke -e PERF_PASSWORD=check performance/scenarios/journeys.ts && k6 inspect -e PERF_PROFILE=load -e PERF_PASSWORD=check performance/scenarios/journeys.ts && k6 inspect -e PERF_PROFILE=stress -e PERF_PASSWORD=check performance/scenarios/journeys.ts"
+
+[tasks."perf:seed"]
+description = "Seed de draaiende compose-stack met deterministische perf-data: testgebruikers burger-001.., de perf-only Keycloak-client, zaken, documenten en taken (zie performance/README.md)"
+run = "node --env-file-if-exists=docker-compose/.env performance/seed/seed.ts"
+
+[tasks."perf:brp-data"]
+description = "Genereer het BRP-testdatabestand voor de perf-overlay (docker-compose/imports/haalcentraal-perf/test-data.json) uit het seed-plan"
+run = "node performance/seed/brp.ts"
+
+[tasks."perf:smoke"]
+description = "Draai de k6-smoke-test (1 gebruiker) tegen de draaiende compose-stack; faalt bij een fout of gemiste threshold. Vereist PERF_USERNAME en PERF_PASSWORD"
+run = "k6 run performance/scenarios/smoke.ts"
+
+[tasks."perf:journeys"]
+description = "Draai de read-only journeys (inloggen, zakenlijst, zaakdetail, taken, profiel) met profiel PERF_PROFILE (standaard smoke). Vereist PERF_PASSWORD en geseede gebruikers"
+run = "k6 run performance/scenarios/journeys.ts"
+
+[tasks."perf:load"]
+description = "Draai de journeys onder gemiddelde belasting (profiel load, piek PERF_PEAK_VUS, standaard 10); thresholds signaleren alleen. Vereist PERF_PASSWORD"
+env = { PERF_PROFILE = "load" }
+run = "k6 run performance/scenarios/journeys.ts"
+
+[tasks."perf:stress"]
+description = "Draai de journeys in oplopende stappen tot het piekaantal (profiel stress, PERF_PEAK_VUS, standaard 100); thresholds signaleren alleen. Vereist PERF_PASSWORD"
+env = { PERF_PROFILE = "stress" }
+run = "k6 run performance/scenarios/journeys.ts"
+
+[tasks."perf:meet"]
+description = "Draai de journeys PERF_RUNS keer (standaard 3) met profiel PERF_PROFILE (standaard load) en bewaar de k6-summaries in performance/resultaten/. Vereist PERF_PASSWORD"
+run = "node performance/baseline/meet.ts"
+
+[tasks."perf:baseline"]
+description = "Leg de mediaan van de runs uit perf:meet vast als baseline (performance/baseline/<profiel>.json); alleen via een PR wijzigen (ADR 0018)"
+run = "node performance/baseline/vastleggen.ts"
+
+[tasks."perf:vergelijk"]
+description = "Vergelijk de runs uit perf:meet met de baseline; delta als Markdown en een waarschuwing bij verslechtering (signalerend, exitcode 0)"
+run = "node performance/baseline/vergelijken.ts"
+
+[tasks."perf:omslagpunt"]
+description = "Stel het omslagpunt per GraphQL-operation vast: de journeys per aantal gelijktijdige gebruikers uit PERF_STAPPEN (standaard 5,10,15,20,30,40,60,80), elk PERF_STAP_SECONDEN (standaard 90); legt performance/baseline/omslagpunt.json vast. Vereist PERF_PASSWORD"
+run = "node performance/baseline/omslagpunt.ts"
+
+# --- Scripts, docs, architectuurmodel, compliance ---
+
+[tasks."workflows:lint"]
+description = "Controleer de GitHub-workflows met actionlint (syntax, expressies, verwijzingen naar acties en secrets)"
+run = "actionlint"
+
+[tasks."scripts:test"]
+description = "Draai de tests van de repo-scripts (scripts/*.test.mjs)"
+run = 'node --test "scripts/**/*.test.mjs"'
+
+[tasks."dev:setup"]
+description = "Genereer de lokale dev-omgeving met willekeurige secrets (Keycloak-realms, docker-compose/.env, backend/app/.env.properties); opnieuw draaien geeft een verse omgeving"
+run = "node scripts/dev-setup.mjs"
+
+[tasks."docs:install"]
+description = "Installeer de dependencies van de docs-site"
+dir = "site"
+sources = ["pnpm-lock.yaml", "package.json"]
+run = "pnpm install"
+
+[tasks."docs:test"]
+description = "Draai de navigatiestructuurtests van de docs-site (ADR 0006)"
+dir = "site"
+depends = ["docs:install"]
+run = "pnpm run test"
+
+[tasks."docs:build"]
+description = "Bouw de docs-site; faalt op elke kapotte interne link of anchor"
+dir = "site"
+depends = ["docs:install", "docs:test"]
+run = "pnpm run build"
+
+[tasks."docs:dev"]
+description = "Bekijk de docs-site lokaal"
+dir = "site"
+depends = ["docs:install"]
+run = "pnpm run dev"
+
+[tasks."docs:capabilities"]
+description = "Genereer arc42-hoofdstuk 5/11 en site/likec4/capabilities.generated.c4 opnieuw uit docs/capabilities.yaml"
+run = "node scripts/generate-capabilities-docs.mjs"
+
+# docs:capabilities-check staat in mise-tasks/docs/capabilities-check
+# fixtures:check staat in mise-tasks/fixtures/check (laadt de demo-fixtures op een schone compose-stack)
+
+[tasks."compliance:check"]
+description = "Faal als een bron-ID onbekend is of een normatieve bron geen check of afwijkingsbesluit heeft (site/compliance/normatieve-bronnen.md)"
+run = "node scripts/check-compliance.mjs"
+
+[tasks."likec4:validate"]
+description = "Valideer het LikeC4-architectuurmodel (site/likec4)"
+run = "npx --yes likec4@1.60.0 validate site/likec4"
+
+[tasks."likec4:start"]
+description = "Bekijk het LikeC4-architectuurmodel in een lokale dev-server"
+run = "npx --yes likec4@1.60.0 start site/likec4"
+
+[tasks."likec4:export"]
+description = "Exporteer de LikeC4-views naar PNG onder site/architectuur/img/likec4 (getoond op de C4-pagina; na een modelwijziging opnieuw draaien en committen)"
+sources = ["site/likec4/**/*.c4"]
+outputs = ["site/architectuur/img/likec4/**/*.png"]
+run = "npx --yes likec4@1.60.0 export png site/likec4 --output site/architectuur/img/likec4"
+
+[tasks."mise:check-shell"]
+description = "Faal als een inline mise-taak bash-syntaxis gebruikt zonder shell = \"bash -c\" (faalt onder Windows)"
+run = "node scripts/check-mise-shell.mjs"
+
+[tasks."java:check-version"]
+description = "Faal als mise, Dockerfile, README of workflows een andere Java-versie noemen dan javaVersion in backend/gradle.properties"
+run = "node scripts/check-java-version.mjs"
+
+# --- Dependencies ---
+
+[tasks."deps:outdated-backend"]
+description = "Toon beschikbare backend-dependency-updates (past niets aan; versies staan vast in Dependencies.kt/Versions.kt, bijwerken is handwerk of Renovate)"
 dir = "backend"
 shell = "bash -c"
 run = "./gradlew dependencyUpdates -Drevision=release"
 
-[tasks."deps:check-frontend"]
-description = "List available frontend dependency updates (does not apply them)"
+[tasks."deps:outdated-frontend"]
+description = "Toon beschikbare frontend-dependency-updates (past niets aan)"
 dir = "frontend"
 run = "pnpm outdated -r"
 
-[tasks."deps:check"]
-description = "List available backend + frontend dependency updates"
-depends = ["deps:check-backend", "deps:check-frontend"]
-
-[tasks."deps:update-backend"]
-description = "List available backend dependency updates (backend has no dependency locking - versions are pinned in Dependencies.kt/Versions.kt, so bumping them is a manual edit or left to Renovate; this is an alias for deps:check-backend)"
-dir = "backend"
-shell = "bash -c"
-run = "./gradlew dependencyUpdates -Drevision=release"
+[tasks."deps:outdated"]
+description = "Toon beschikbare backend- en frontend-dependency-updates"
+depends = ["deps:outdated-backend", "deps:outdated-frontend"]
 
 [tasks."deps:update-frontend"]
-description = "Update frontend dependencies within their existing semver range and refresh pnpm-lock.yaml (does not bump past declared ranges; for that, edit package.json or wait for Renovate)"
+description = "Werk frontend-dependencies bij binnen hun semver-range en ververs pnpm-lock.yaml (gaat niet voorbij de gedeclareerde ranges; pas daarvoor package.json aan of wacht op Renovate)"
 dir = "frontend"
 run = "pnpm update -r"
 
-[tasks."deps:update"]
-description = "Update frontend dependencies in-range; list backend updates for manual review (see deps:update-backend, deps:update-frontend)"
-depends = ["deps:update-backend", "deps:update-frontend"]
+# --- SBOM en beveiliging ---
 
 [tasks."sbom:backend"]
-description = "Generate a CycloneDX SBOM for the backend (builds first, dependencies must be resolved)"
+description = "Genereer een CycloneDX-SBOM voor de backend (bouwt eerst; dependencies moeten kunnen worden opgelost)"
 dir = "backend"
 shell = "bash -c"
 run = ["./gradlew assemble", "syft dir:. -o cyclonedx-json=sbom.cyclonedx.json"]
 
 [tasks."sbom:frontend"]
-description = "Generate a CycloneDX SBOM for the frontend (reads pnpm-lock.yaml, no build needed)"
+description = "Genereer een CycloneDX-SBOM voor de frontend (leest pnpm-lock.yaml, geen build nodig)"
 dir = "frontend"
 run = "syft dir:. -o cyclonedx-json=sbom.cyclonedx.json"
 
 [tasks."sbom:all"]
-description = "Generate CycloneDX SBOMs for both backend and frontend"
+description = "Genereer CycloneDX-SBOM's voor backend en frontend"
 depends = ["sbom:backend", "sbom:frontend"]
 
 [tasks."security:secrets-scan"]
-description = "Scan the working tree for secrets (not git history; see .gitleaks.toml for the allowlist)"
+description = "Scan de werkmap op secrets (niet de git-historie; allowlist in .gitleaks.toml)"
 run = "gitleaks detect --source . --no-banner --no-git --config .gitleaks.toml"
 
 [tasks."security:frontend-vuln-scan"]
-description = "Generate the frontend SBOM and scan it for known vulnerabilities (fails on high/critical)"
+description = "Genereer de frontend-SBOM en scan die op bekende kwetsbaarheden (faalt op high/critical)"
 depends = ["sbom:frontend"]
 run = "grype sbom:frontend/sbom.cyclonedx.json --fail-on high"
 
 [tasks."security:backend-vuln-scan"]
-description = "Generate the backend SBOM and scan it for known vulnerabilities (fails on high/critical)"
+description = "Genereer de backend-SBOM en scan die op bekende kwetsbaarheden (faalt op high/critical)"
 depends = ["sbom:backend"]
 run = "grype sbom:backend/sbom.cyclonedx.json --fail-on high"
 
-[tasks."sonar:issues"]
-description = "List open SonarCloud Bug issues for both projects, grouped by rule (pass BUG/CODE_SMELL/VULNERABILITY as an arg to change the type)"
-run = "node scripts/sonar-issues.mjs"
-
-[tasks."release:cut-rc"]
-description = "Compute the next SemVer version from Conventional Commits since the last tag, update version.txt + CHANGELOG.md, and commit both on a new rc/<version> branch (does not push; see ADR 0004)"
-run = "node scripts/release-cut-rc.mjs"
-
 [tasks."security:verify-dependencies"]
-description = "Regenerate backend/gradle/verification-metadata.xml (sha256 checksums for every resolved dependency) - run after any dependency bump, including the weekly Renovate PR, and commit the result"
+description = "Genereer backend/gradle/verification-metadata.xml opnieuw (sha256 van elke opgeloste dependency); draai na elke dependency-bump, ook de wekelijkse Renovate-PR, en commit het resultaat"
 dir = "backend"
 shell = "bash -c"
 run = "./gradlew --write-verification-metadata sha256 build -x integrationTest --continue"
 
 [tasks."security:license-report"]
-description = "Generate the backend dependency-license report (does not fail the build; see site/development/workflows/dependency-updates.md §3)"
+description = "Genereer het licentierapport van de backend-dependencies (laat de build niet falen; zie site/development/workflows/dependency-updates.md §3)"
 dir = "backend"
 shell = "bash -c"
 run = "./gradlew generateLicenseReport"
 
-[tasks."security:strix-scan"]
-description = "Run the Strix agentic security scan locally (quick mode, scoped to the diff against main); requires the strix CLI (see https://docs.strix.ai/quickstart), Docker running, and STRIX_LLM/LLM_API_KEY set"
-shell = "bash -c"
-run = """
-command -v strix >/dev/null || { echo "strix CLI not found - install it first: https://docs.strix.ai/quickstart (e.g. 'pipx install strix-agent')" >&2; exit 1; }
-: "${STRIX_LLM:?Set STRIX_LLM}"
-: "${LLM_API_KEY:?Set LLM_API_KEY}"
-strix --target ./ --scan-mode quick --scope-mode diff --fail-on high
-"""
-
 [tasks."security:check-license"]
-description = "Check backend dependency licenses against the allowlist (backend/gradle/license-report/allowed-licenses.json) - known broken on main, see site/development/workflows/periodic-checks.md"
+description = "Toets de licenties van backend-dependencies aan de allowlist (backend/gradle/license-report/allowed-licenses.json)"
 dir = "backend"
 shell = "bash -c"
 run = "./gradlew checkLicense"
 
-[tasks."docs:capabilities"]
-description = "Regenerate arc42 chapters 5/11 and site/likec4/capabilities.generated.c4 from docs/capabilities.yaml"
-run = "node scripts/generate-capabilities-docs.mjs"
+# security:strix-scan staat in mise-tasks/security/strix-scan
 
-[tasks."docs:capabilities-check"]
-description = "Regenerate capability docs and fail if that changes anything (CI freshness check)"
-depends = ["docs:capabilities"]
+# --- Onderhoud en release ---
+
+[tasks."sonar:issues"]
+description = "Toon open SonarCloud-Bug-issues van beide projecten, gegroepeerd per regel (geef BUG/CODE_SMELL/VULNERABILITY mee om het type te wijzigen)"
+run = "node scripts/sonar-issues.mjs"
+
+[tasks."release:cut-rc"]
+description = "Bepaal de volgende SemVer-versie uit Conventional Commits sinds de laatste tag, werk version.txt + CHANGELOG.md bij en commit beide op een nieuwe rc/<versie>-branch (pusht niet; zie ADR 0004)"
+run = "node scripts/release-cut-rc.mjs"
+
+# --- Performance-stack (overlay docker-compose/compose.perf.yaml) ---
+# De perf-taken draaien onder een eigen compose-projectnaam (nl-portal-perf): `perf:stack-down` raakt zo de gewone
+# dev-stack niet, en andersom. De containernamen zijn vast, dus beide stacks tegelijk draaien kan niet; dat geeft een
+# duidelijke fout in plaats van een stack die onder je vandaan wordt vervangen.
+
+[tasks."perf:stack-up"]
+description = "Start de compose-stack met de perf-overlay zonder tracing (baseline; RUN_MODE standaard local)"
+dir = "docker-compose"
 shell = "bash -c"
-run = "git diff --ignore-cr-at-eol --exit-code -- site/architectuur/arc42 site/likec4 && test -z \"$(git ls-files --others --exclude-standard -- site/architectuur/arc42 site/likec4)\" || { echo 'Capability-docs niet actueel: draai `mise run docs:capabilities` en commit het resultaat.'; exit 1; }"
+run = 'RUN_MODE="${RUN_MODE:-local}" docker compose -p nl-portal-perf -f docker-compose.yaml -f compose.perf.yaml --profile zgw --profile haalcentraal up -d --build'
+
+[tasks."perf:stack-up-tracing"]
+description = "Start de compose-stack met de perf-overlay, OTel-agent en Tempo (100% tracing, diagnose; RUN_MODE standaard local)"
+dir = "docker-compose"
+shell = "bash -c"
+run = 'RUN_MODE="${RUN_MODE:-local}" PERF_JAVA_AGENT=true PERF_OTEL_SDK_DISABLED=false COMPOSE_PROFILES=zgw,haalcentraal,tracing docker compose -p nl-portal-perf -f docker-compose.yaml -f compose.perf.yaml up -d --build'
+
+[tasks."perf:stack-down"]
+description = "Stop de perf-stack en verwijder de volumes"
+dir = "docker-compose"
+shell = "bash -c"
+run = 'RUN_MODE="${RUN_MODE:-local}" COMPOSE_PROFILES=zgw,haalcentraal,tracing docker compose -p nl-portal-perf -f docker-compose.yaml -f compose.perf.yaml down -v'

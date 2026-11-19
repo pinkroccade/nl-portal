@@ -28,6 +28,8 @@ De koppeling met de backend verloopt via de volgende environment variabelen van 
 | Variabele | Betekenis |
 | --------- | --------- |
 | `JWKS_URI` | Wijst de backend naar het realm waarmee hij tokens valideert: `<keycloak-url>/realms/<realm>/protocol/openid-connect/certs`. Draait je Keycloak onder een pad (zoals de demo-omgeving, met `KC_HTTP_RELATIVE_PATH=/auth`), neem dat pad dan mee: `<keycloak-url>/auth/realms/<realm>/protocol/openid-connect/certs`. |
+| `KEYCLOAK_ISSUER_URI` | Verplicht. De publieke URL van de realm, gelijk aan de `iss`-claim: `<keycloak-url>/realms/<realm>` (met `/auth` ervoor als Keycloak onder dat pad draait). Tokens met een andere issuer worden geweigerd. |
+| `KEYCLOAK_TOKEN_URI` | Optioneel. Token-endpoint voor de token exchange, bijvoorbeeld het interne adres van Keycloak. Leeg: `<KEYCLOAK_ISSUER_URI>/protocol/openid-connect/token`. Zie [Keycloak-koppeling](./deployment-guide.md#backend-keycloak-koppeling). |
 | `KEYCLOAK_CLIENT_ID` | Client id van de m2m (backend) client |
 | `KEYCLOAK_CLIENT_SECRET` | Secret van de m2m (backend) client |
 | `KEYCLOAK_TOKEN_EXCHANGE_AUDIENCE` | Optioneel. Filter op de `aud` van de uitgewisselde token. Laat leeg, tenzij de m2m client deze audience mag uitgeven. |
@@ -89,7 +91,7 @@ De attributen `bsn` en `authenticationMethod` zijn **user attributes op de Keycl
 
 ## Audience validatie
 
-De app image configureert alleen een `jwk-set-uri` en verder geen validatie op de ontvangen token. Daardoor wordt **elke** token die door hetzelfde realm is ondertekend geaccepteerd, ongeacht welke client die heeft uitgegeven. Een andere applicatie in hetzelfde realm kan een token van een gebruiker dus doorspelen naar de portal API.
+De app image controleert van de ontvangen token de handtekening (`JWKS_URI`) en de issuer (`KEYCLOAK_ISSUER_URI`), maar niet de audience. Daardoor wordt **elke** token die door hetzelfde realm is ondertekend geaccepteerd, ongeacht welke client die heeft uitgegeven. Een andere applicatie in hetzelfde realm kan een token van een gebruiker dus doorspelen naar de portal API.
 
 Je sluit dat af door de backend alleen tokens te laten accepteren met een bepaalde audience:
 
@@ -122,7 +124,7 @@ De [audience mappers](./keycloak-token-exchange.md#stap-2-audience-mappers) zett
 De docker-compose demo-omgeving in de monorepo bevat een volledig werkend voorbeeld van alle bovenstaande configuratie, ingericht op de standard token exchange. Gebruik deze als referentie bij het inrichten van een eigen Keycloak:
 
 * `docker-compose/docker-compose.yaml` — de Keycloak service. Let op dat hier géén `KC_FEATURES` staat: dat is precies wat de standard token exchange oplevert.
-* `docker-compose/imports/keycloak/nlportal-realm.json` — een volledig realm met de twee clients, de `aanvrager` client scope, de audience mappers, de `middel` mapper en testgebruikers (`burger` met BSN attribuut en `authenticationMethod` `digid`, `bedrijf` met KVK attribuut en `authenticationMethod` `eherkenning`).
+* `docker-compose/templates/keycloak/nlportal-realm.json` — een template (secrets als placeholders; `mise run dev:setup` rendert het naar het gitignored `docker-compose/.generated/keycloak/`) voor een volledig realm met de twee clients, de `aanvrager` client scope, de audience mappers, de `middel` mapper en testgebruikers (`burger` met BSN attribuut en `authenticationMethod` `digid`, `bedrijf` met KVK attribuut en `authenticationMethod` `eherkenning`).
 
 De bestandsnamen van de realm-imports eindigen op `-realm.json`. Dat is geen vormvoorkeur: Keycloak gebruikt die naamgeving om de importvolgorde te bepalen, en zonder die naamgeving start Keycloak 26 niet op.
 

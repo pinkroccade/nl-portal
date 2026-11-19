@@ -35,11 +35,15 @@ lopen, niet als hardcoded string.
 
 ## 8.5 Testen
 
-- **Backend**: `./gradlew build` draait unit- en integratietests; integratietests hebben geen
-  database nodig; alleen de `zgw:openklant`-tests starten via de Gradle docker-compose-plugin een
-  OpenKlant-container (Docker moet dan draaien). Zie `CONTRIBUTING.md`.
-- **Frontend**: `pnpm test` (vitest, workspace-breed via `vitest.workspace.ts`), `pnpm lint`,
-  `pnpm prettier`.
+- **Ingang**: `mise run test`, `mise run lint` en `mise run arch-check` vanaf de repo-root dekken
+  backend en frontend tegelijk; `mise tasks` toont de taken per kant. Zie `CONTRIBUTING.md`.
+- **Backend**: `mise run backend:test` draait de unit-tests, `mise run backend:integration-test` de
+  integratietests; die hebben geen database nodig; alleen de `zgw:openklant`-tests starten via de
+  Gradle docker-compose-plugin een OpenKlant-container (Docker moet dan draaien). De CI-poort
+  `mise run backend:check` draait beide via `./gradlew build`.
+- **Frontend**: `mise run frontend:test` (vitest, workspace-breed via `vitest.workspace.ts`) en
+  `mise run frontend:lint` (ESLint en Stylelint); de CI-poort `mise run frontend:check` voegt
+  build, typecheck en Prettier toe.
 - **Observatie uit de architectuurreview**: de ZGW-HTTP-clients hebben vandaag geen test-dubbel
   (geen tweede adapter), dus geen unit test die een foutscenario simuleert zonder een live ZGW-API.
   Dit is zowel een hoofdstuk-10-testbaarheidsrisico als hoofdstuk-11-technische-schuld.
@@ -52,7 +56,7 @@ lopen, niet als hardcoded string.
   `backend/cve-exclusions.xml`) — bekende kwetsbaarheden in dependencies.
 - **Renovate** (`.github/renovate.json`) — geautomatiseerde dependency-updates (zie deliverable 4).
 - **SBOM-generatie** bestaat al voor de backend-release (`anchore/sbom-action` in
-  `_stage-be.yml`/`_publish-be-native.yml`, CycloneDX-JSON naar S3) maar is backend- en
+  `_stage-be.yml`, CycloneDX-JSON als GitHub-Release-asset) maar is backend- en
   release-only, en nergens gedocumenteerd als ontwikkelaarsworkflow (zie deliverable 5).
 
 ## 8.7 Copyright-headers
@@ -69,7 +73,7 @@ Gedrag dat per omgeving of tenant moet kunnen verschillen, wordt gestuurd met fe
 ([ADR 0014](../../development/adr/0014-feature-flags-via-openfeature.md)). De backend evalueert flags
 via de open standaard OpenFeature; `FeatureGate` (module `core`) is het enige aanspreekpunt voor
 featurecode. Zonder aparte flag-voorziening gebruikt NL Portal een flagbestand (flagd-formaat) dat
-periodiek wordt herladen; een andere OpenFeature-provider sluit je aan met een eigen bean.
+via een rolling update wordt uitgerold, niet via hot reload; een andere OpenFeature-provider sluit je aan met een eigen bean.
 
 - **Typen**: ops (runtime-gedrag), permission (toegang; bij twijfel geweigerd), experiment en release
   (kortlevend). Flagsleutels hebben het formaat `<type>.<module>.<naam>`.
@@ -79,14 +83,18 @@ periodiek wordt herladen; een andere OpenFeature-provider sluit je aan met een e
   thread-gebonden opgeslagen, en bevat nooit persoonsgegevens.
 - **Frontend**: de uitkomst voor de frontend komt via `GET /api/public/frontend`; de browser praat
   nooit met een flag-systeem.
-- **Nu flag-gedreven**: alleen de toggle `messageCountEnabled` (`ops.frontend.message-count`). De
-  overige toggles en de module-activatie volgen (#143).
+- **Nu flag-gedreven**: alle frontend-toggles (`ops.frontend.*`), de vrije custom-toggles en de module
+  berichten (`ops.berichten.enabled`): `ModuleGate` (module `core`) beslist per request of een query of
+  resource beschikbaar is en de `modules`-lijst volgt dezelfde flag. Een module-flag declareert de flags die hij
+  vereist (berichten vereist documentenapis); een uitgeschakelde afhankelijkheid maakt de module fail-closed
+  niet beschikbaar; zie
+  [het patroon](../../development/workflows/module-gate-patroon.md). De andere modules volgen (#143).
 - **Grens**: credentials en andere secrets horen niet in een flag-systeem.
 
 ## 8.9 Tenantscheiding en configuratiemodel (voorgesteld)
 
 > **Voorgesteld, nog niet gebouwd.** Uitgewerkt in
-> [ADR 0017](../../development/adr/0017-gedeelde-multi-tenant-runtime-met-cellen.md). Vandaag is NL Portal één
+> [ADR 0021](../../development/adr/0021-gedeelde-multi-tenant-runtime-met-cellen.md). Vandaag is NL Portal één
 > tenant per deployment en geldt het beeld uit 8.1 en 8.8 ongewijzigd; dit is het doelbeeld voor een gedeelde
 > runtime.
 
@@ -97,15 +105,18 @@ periodiek wordt herladen; een andere OpenFeature-provider sluit je aan met een e
 - **Identiteit.** Een realm per tenant op de publieke ID-broker, gegenereerd uit één template. De runtime
   vertrouwt alleen issuers uit de tenantconfiguratie en nooit de private ID-broker (zie ook 8.1).
 - **Per-tenant clientregister.** Een onveranderlijk register `OIN naar client`, bij opstarten gebouwd uit het
-  tenantbestand en ingebouwd in de `zgw-client`-seam van [ADR 0002](../../development/adr/0002-zgw-client-consolidation.md).
+  tenantbestand en ingebouwd in `core.koppeling` (de gedeelde `WebClient`-fabriek voor benoemde koppelingen), met limieten en
+  een circuit breaker per tenant en koppeling.
   Architectuurchecks (`backend/architecture-test`) bewaken dat services het register gebruiken en geen
   losse clients, globale stores of nieuwe coroutine-scopes.
 - **Drie lagen configuratie.** Het *tenantbestand* (Git: domeinen, URL's, thema, verwijzingen naar secrets;
-  rolling restart), de *flag* (alleen aan/uit per module en tenant; live) en de *secret store* (de secrets
+  rolling restart), de *flag* (alleen aan/uit per module en tenant; `ops.<module>.enabled`, ook via een rolling restart) en de *secret store* (de secrets
   zelf, via ESO). Een module is bruikbaar als configuratie aanwezig is én de flag aanstaat. Zie
   [Tenantbestand, flag en secret store](../../hosting-en-configuratie/tenantbestand-flag-en-secret-store.md).
-- **Geen hot reload, één uitzondering.** Wijzigingen in tenantconfiguratie en secrets gaan altijd via een
-  rolling restart van de eigen cel. De enige live wijziging is de flagd-polling van het flagbestand
-  (8.8), uitsluitend voor aan/uit-schakelaars; flags dragen geen configuratie en geen beveiligingsbesluiten.
+- **Geen hot reload, geen uitzondering.** Wijzigingen in tenantconfiguratie, secrets en flags gaan altijd via
+  een rolling restart van de eigen cel (ADR 0014 punt 7). Flags dragen alleen aan/uit, geen configuratie en
+  geen beveiligingsbesluiten.
+- **Gedeelde publieke ID-broker.** Een gedeelde afhankelijkheid van alle cellen en een geaccepteerd risico,
+  met eigen HA en een herstelplan; een cel belooft geen hogere beschikbaarheid dan de broker.
 - **Logging.** De tenant (OIN) hoort in elke logregel (BIO 8.15.01, ASVS 16.2.1); de uitwerking van
   observability per tenant is nog niet besloten.

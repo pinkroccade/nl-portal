@@ -20,6 +20,7 @@ jobs:
             backend: ${{ steps.filter.outputs.backend }}
             frontend: ${{ steps.filter.outputs.frontend }}
             scripts: ${{ steps.filter.outputs.scripts }}
+            mise: ${{ steps.filter.outputs.mise }}
             workflows: ${{ steps.filter.outputs.workflows }}
             docs: ${{ steps.filter.outputs.docs }}
             docsOnly: ${{ steps.filter.outputs.backend == 'false' && steps.filter.outputs.frontend == 'false' && steps.filter.outputs.scripts == 'false' && steps.filter.outputs.workflows == 'false' && steps.filter.outputs.docs == 'true' }}
@@ -35,6 +36,8 @@ jobs:
                             - 'frontend/**'
                         scripts:
                             - 'scripts/**'
+                        mise:
+                            - 'mise.toml'
                         workflows:
                             - '.github/workflows/**'
                         docs:
@@ -99,8 +102,12 @@ jobs:
                 uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6.5.0
                 with:
                     node-version: "24"
+            -   name: Set up mise
+                uses: jdx/mise-action@b44d12e7d0d8ee7461bb893e1b1993500433185b # v5.2.7
+                with:
+                    install: false
             -   name: Run scripts tests
-                run: node --test "scripts/**/*.test.mjs"
+                run: mise run scripts:test
 
     java-version-consistent:
         needs: changes
@@ -112,8 +119,46 @@ jobs:
                 uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6.5.0
                 with:
                     node-version: "24"
+            -   name: Set up mise
+                uses: jdx/mise-action@b44d12e7d0d8ee7461bb893e1b1993500433185b # v5.2.7
+                with:
+                    install: false
             -   name: Check that the Java version is consistent
-                run: node scripts/check-java-version.mjs
+                run: mise run java:check-version
+
+    mise-shell-consistent:
+        needs: changes
+        if: ${{ needs.changes.outputs.mise == 'true' || needs.changes.outputs.scripts == 'true' }}
+        runs-on: ubuntu-latest
+        steps:
+            -   uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+            -   name: Set up Node.js
+                uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6.5.0
+                with:
+                    node-version: "24"
+            -   name: Set up mise
+                uses: jdx/mise-action@b44d12e7d0d8ee7461bb893e1b1993500433185b # v5.2.7
+                with:
+                    install: false
+            -   name: Check that inline mise tasks with bash syntax set a shell
+                run: mise run mise:check-shell
+
+    compliance-register-consistent:
+        needs: changes
+        if: ${{ needs.changes.outputs.backend == 'true' || needs.changes.outputs.workflows == 'true' || needs.changes.outputs.scripts == 'true' || needs.changes.outputs.docs == 'true' }}
+        runs-on: ubuntu-latest
+        steps:
+            -   uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+            -   name: Set up Node.js
+                uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6.5.0
+                with:
+                    node-version: "24"
+            -   name: Set up mise
+                uses: jdx/mise-action@b44d12e7d0d8ee7461bb893e1b1993500433185b # v5.2.7
+                with:
+                    install: false
+            -   name: Check the register of normative sources (N-CG-5LAGEN, N-ASVS-5.0, ...)
+                run: mise run compliance:check
 
     capabilities-docs-fresh:
         needs: changes
@@ -122,7 +167,7 @@ jobs:
         steps:
             -   uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
             -   name: Set up mise
-                uses: jdx/mise-action@82a612c5ab8bcda7cc5db6b7e81a8e7584c3dc6e # v5.2.3
+                uses: jdx/mise-action@b44d12e7d0d8ee7461bb893e1b1993500433185b # v5.2.7
             -   name: Regenerate capability docs and fail on diff
                 run: mise run docs:capabilities-check
             -   name: Validate LikeC4 model incl. generated capabilities
@@ -135,12 +180,25 @@ jobs:
         steps:
             -   uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
             -   name: Set up mise
-                uses: jdx/mise-action@82a612c5ab8bcda7cc5db6b7e81a8e7584c3dc6e # v5.2.3
+                uses: jdx/mise-action@b44d12e7d0d8ee7461bb893e1b1993500433185b # v5.2.7
             -   name: Build docs site (navigation tests, dead-link and anchor check)
                 run: mise run docs:build
 
+    workflows-lint:
+        needs: changes
+        if: ${{ needs.changes.outputs.workflows == 'true' }}
+        runs-on: ubuntu-latest
+        steps:
+            -   uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+            -   name: Set up mise (alleen actionlint en shellcheck)
+                uses: jdx/mise-action@b44d12e7d0d8ee7461bb893e1b1993500433185b # v5.2.7
+                with:
+                    install_args: actionlint shellcheck
+            -   name: Lint de workflows
+                run: mise run workflows:lint
+
     ci-required:
-        needs: [changes, validate, test-scripts, java-version-consistent, capabilities-docs-fresh, docs-site]
+        needs: [changes, validate, test-scripts, java-version-consistent, mise-shell-consistent, capabilities-docs-fresh, compliance-register-consistent, docs-site, workflows-lint]
         if: always()
         runs-on: ubuntu-latest
         steps:
@@ -149,14 +207,20 @@ jobs:
                     VALIDATE_RESULT: ${{ needs.validate.result }}
                     SCRIPTS_RESULT: ${{ needs.test-scripts.result }}
                     JAVA_VERSION_RESULT: ${{ needs.java-version-consistent.result }}
+                    MISE_SHELL_RESULT: ${{ needs.mise-shell-consistent.result }}
                     CAPABILITIES_RESULT: ${{ needs.capabilities-docs-fresh.result }}
+                    COMPLIANCE_RESULT: ${{ needs.compliance-register-consistent.result }}
                     DOCS_SITE_RESULT: ${{ needs.docs-site.result }}
+                    WORKFLOWS_LINT_RESULT: ${{ needs.workflows-lint.result }}
                 run: |
                     echo "::notice::validate result = ${VALIDATE_RESULT}"
                     echo "::notice::test-scripts result = ${SCRIPTS_RESULT}"
                     echo "::notice::java-version-consistent result = ${JAVA_VERSION_RESULT}"
+                    echo "::notice::mise-shell-consistent result = ${MISE_SHELL_RESULT}"
                     echo "::notice::capabilities-docs-fresh result = ${CAPABILITIES_RESULT}"
+                    echo "::notice::compliance-register-consistent result = ${COMPLIANCE_RESULT}"
                     echo "::notice::docs-site result = ${DOCS_SITE_RESULT}"
+                    echo "::notice::workflows-lint result = ${WORKFLOWS_LINT_RESULT}"
                     if [ "${VALIDATE_RESULT}" = "failure" ] || [ "${VALIDATE_RESULT}" = "cancelled" ]; then
                       exit 1
                     fi
@@ -166,10 +230,19 @@ jobs:
                     if [ "${JAVA_VERSION_RESULT}" = "failure" ] || [ "${JAVA_VERSION_RESULT}" = "cancelled" ]; then
                       exit 1
                     fi
+                    if [ "${MISE_SHELL_RESULT}" = "failure" ] || [ "${MISE_SHELL_RESULT}" = "cancelled" ]; then
+                      exit 1
+                    fi
                     if [ "${CAPABILITIES_RESULT}" = "failure" ] || [ "${CAPABILITIES_RESULT}" = "cancelled" ]; then
                       exit 1
                     fi
+                    if [ "${COMPLIANCE_RESULT}" = "failure" ] || [ "${COMPLIANCE_RESULT}" = "cancelled" ]; then
+                      exit 1
+                    fi
                     if [ "${DOCS_SITE_RESULT}" = "failure" ] || [ "${DOCS_SITE_RESULT}" = "cancelled" ]; then
+                      exit 1
+                    fi
+                    if [ "${WORKFLOWS_LINT_RESULT}" = "failure" ] || [ "${WORKFLOWS_LINT_RESULT}" = "cancelled" ]; then
                       exit 1
                     fi
 

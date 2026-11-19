@@ -126,9 +126,18 @@ nl-portal:
 Of via de environment variabelen van de app image:
 
 ```
+KEYCLOAK_ISSUER_URI=https://login.gemeente.nl/auth/realms/portal
 KEYCLOAK_CLIENT_ID=nl-portal-m2m
 KEYCLOAK_CLIENT_SECRET=<secret>
+# Optioneel: het interne adres van het token-endpoint
+KEYCLOAK_TOKEN_URI=
 ```
+
+De backend stuurt de exchange naar `KEYCLOAK_TOKEN_URI`, of zonder waarde naar
+`<KEYCLOAK_ISSUER_URI>/protocol/openid-connect/token`. Het adres komt nooit uit de `iss`-claim van het
+binnenkomende token: zo gaat het `client_secret` alleen naar een vooraf ingesteld endpoint. Een token
+met een andere issuer weigert de backend met een 401. Zie
+[Keycloak-koppeling](./deployment-guide.md#backend-keycloak-koppeling) voor intern versus publiek adres.
 
 Laat `KEYCLOAK_TOKEN_EXCHANGE_AUDIENCE` **leeg**, tenzij je de uitgewisselde token bewust wilt beperken tot een audience die de m2m client mag uitgeven. De waarde werkt als filter op de `aud` van de uitgewisselde token. Een audience die de m2m client niet mag uitgeven laat de exchange mislukken (zie [Foutmeldingen](#foutmeldingen)).
 

@@ -38,13 +38,11 @@ capabilities:
 
   - id: besluiten-inzien
     naam: Besluiten inzien
-    beschrijving: Toont besluiten bij een zaak (via veld Zaak.besluiten) en biedt download van besluitdocumenten.
+    beschrijving: Toont besluiten bij een zaak (via veld Zaak.besluiten).
     status: twijfel
-    bewijs: Alleen veldresolvers + REST-download; /api/besluiten/... nergens in frontend gevonden, wel actief onderhouden (17 commits).
+    bewijs: Alleen veldresolvers; geen eigen ingangen meer (REST-download van besluitdocumenten verwijderd, #105), wel actief onderhouden (17 commits).
     modules: [backend/zgw/besluiten]
     signalen: {in_assembly: true, tests: true, laatste_commit: 2026-11-04, commits_12m: 17, deprecated_markers: false}
-    ingangen:
-      - {type: rest, naam: "GET /api/besluiten/{besluitId}/document/{documentId}/content", frontend_gebruikt: false, status: kandidaat-verwijderen, voorwaarde: eerst bevestigen dat besluitdocumenten nergens getoond worden}
 
   - id: berichten-ontvangen
     naam: Berichten ontvangen
@@ -98,29 +96,18 @@ capabilities:
     naam: Persoonsgegevens (BRP)
     beschrijving: Toont de persoonsgegevens van de ingelogde burger uit Haal Centraal BRP.
     status: actief
-    bewijs: getPersoonV2 gebruikt; getBewonersAantalV2 niet (wel als veld bewonersAantal), 24 commits.
-    modules: [backend/haalcentraal2]
+    bewijs: getPersoonV2 gebruikt (bewonersAantal als veld), 24 commits.
+    modules: [backend/haalcentraal-brp]
     signalen: {in_assembly: true, tests: true, laatste_commit: 2026-08-31, commits_12m: 24, deprecated_markers: true}
     ingangen:
       - {type: graphql-query, naam: getPersoonV2, frontend_gebruikt: true}
-      - {type: graphql-query, naam: getBewonersAantalV2, frontend_gebruikt: false, status: kandidaat-verwijderen, voorwaarde: dubbel met veld bewonersAantal}
-
-  - id: machtigingen
-    naam: Machtigingen (gemachtigde)
-    beschrijving: Toont namens wie de gebruiker handelt (gemachtigde persoon of bedrijf).
-    status: actief
-    bewijs: getGemachtigdeV2 gebruikt in UserContext.
-    modules: [backend/haalcentraal2]
-    signalen: {in_assembly: true, tests: true, laatste_commit: 2026-08-31, commits_12m: 24, deprecated_markers: true}
-    ingangen:
-      - {type: graphql-query, naam: getGemachtigdeV2, frontend_gebruikt: true}
 
   - id: bedrijfsgegevens-hr
     naam: Bedrijfsgegevens (Handelsregister)
     beschrijving: Toont KvK-gegevens van de ingelogde ondernemer.
     status: actief
-    bewijs: getBedrijf gebruikt; module achter flag haalcentraal.hr.enabled.
-    modules: [backend/haalcentraal-hr]
+    bewijs: getBedrijf gebruikt; module achter flag kvk.enabled.
+    modules: [backend/kvk]
     signalen: {in_assembly: true, tests: true, laatste_commit: 2026-09-18, commits_12m: 5, deprecated_markers: false}
     ingangen:
       - {type: graphql-query, naam: getBedrijf, frontend_gebruikt: true}
@@ -142,43 +129,17 @@ capabilities:
     naam: Klantcontacten inzien
     beschrijving: Toont eerdere contactmomenten van de burger met de gemeente.
     status: actief
-    bewijs: getUserKlantContacten gebruikt; detail-operatie getUserKlantContact niet.
+    bewijs: getUserKlantContacten gebruikt.
     modules: [backend/zgw/openklant]
     signalen: {in_assembly: true, tests: true, laatste_commit: 2026-10-27, commits_12m: 43, deprecated_markers: true}
     ingangen:
       - {type: graphql-query, naam: getUserKlantContacten, frontend_gebruikt: true}
-      - {type: graphql-query, naam: getUserKlantContact, frontend_gebruikt: false, status: kandidaat-verwijderen}
-
-  - id: partij-beheren
-    naam: Klantprofiel (partij) beheren
-    beschrijving: Opvragen en aanmaken/bijwerken van de partij (klantprofiel) van de burger in OpenKlant 2.
-    status: kandidaat-verwijderen
-    bewijs: Geen van de 4 operaties in frontend; publieke GraphQL-ingangen kunnen weg (na check externe clients).
-    modules: [backend/zgw/openklant]
-    signalen: {in_assembly: true, tests: true, laatste_commit: 2026-10-27, commits_12m: 43, deprecated_markers: true}
-    ingangen:
-      - {type: graphql-query, naam: findUserPartij, frontend_gebruikt: false}
-      - {type: graphql-query, naam: getUserPartij, frontend_gebruikt: false}
-      - {type: graphql-mutation, naam: createUserPartij, frontend_gebruikt: false}
-      - {type: graphql-mutation, naam: updateUserPartij, frontend_gebruikt: false}
-
-  - id: verificatie
-    naam: Verificatie contactgegevens (los)
-    beschrijving: Losse API om een verificatiecode aan te maken/controleren en de verificatieconfig op te vragen.
-    status: kandidaat-verwijderen
-    bewijs: Geen frontend-gebruik; alleen de publieke GraphQL-ingangen gaan weg. De service blijft als interne afhankelijkheid van contactgegevens-beheren (DigitaleAdresMutation).
-    modules: [backend/zgw/verificatie]
-    signalen: {in_assembly: true, tests: true, laatste_commit: 2026-08-27, commits_12m: 15, deprecated_markers: false}
-    ingangen:
-      - {type: graphql-query, naam: verificatieConfig, frontend_gebruikt: false}
-      - {type: graphql-mutation, naam: createVerificatie, frontend_gebruikt: false}
-      - {type: graphql-mutation, naam: verifyVerificatie, frontend_gebruikt: false}
 
   - id: producten-inzien
     naam: Producten inzien
     beschrijving: Burger ziet zijn afgenomen producten (OpenProduct) met gekoppelde zaken, taken en documenten.
     status: in-ontwikkeling
-    bewijs: getOpenProducten/getOpenProduct gebruikt, rest nog niet; 48 commits in 12m.
+    bewijs: getOpenProducten/getOpenProduct gebruikt; 48 commits in 12m.
     modules: [backend/zgw/openproduct]
     signalen: {in_assembly: true, tests: true, laatste_commit: 2026-11-04, commits_12m: 48, deprecated_markers: false}
     ingangen:
@@ -187,7 +148,6 @@ capabilities:
       - {type: graphql-query, naam: getOpenProductenByThema, frontend_gebruikt: false}
       - {type: graphql-query, naam: getOpenProductTypes, frontend_gebruikt: false}
       - {type: graphql-query, naam: getOpenProductType, frontend_gebruikt: false}
-      - {type: rest, naam: "GET /api/product/{productId}/document/{documentId}/content", frontend_gebruikt: false, status: kandidaat-verwijderen}
 
   - id: product-themas
     naam: Productthema's
@@ -247,7 +207,6 @@ modules_zonder_ingang:
   - {module: backend/portal-authentication, rol: infra (authenticatie-basis)}
   - {module: backend/zgw/common-ground-authentication, rol: infra (Keycloak/OIDC)}
   - {module: backend/zgw/common-ground-authentication-test, rol: test-library}
-  - {module: backend/zgw/idtoken-authentication, rol: library (ZGW JWT naar API's)}
   - {module: backend/zgw/objectenapi, rol: library (client Objecten API)}
   - {module: backend/zgw/catalogi-api, rol: library (client Catalogi API)}
   - {module: backend/zgw/zaken-api, rol: library (client Zaken API)}

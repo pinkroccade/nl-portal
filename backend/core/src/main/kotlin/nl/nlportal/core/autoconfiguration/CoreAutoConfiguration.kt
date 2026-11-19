@@ -15,6 +15,7 @@
  */
 package nl.nlportal.core.autoconfiguration
 
+import nl.nlportal.core.koppeling.ZgwJwtGenerator
 import nl.nlportal.core.featureflag.FeatureContextFactory
 import nl.nlportal.core.featureflag.FeatureGate
 import nl.nlportal.core.frontend.configuration.FrontendConfigurationProperties
@@ -22,7 +23,11 @@ import nl.nlportal.core.frontend.configuration.FrontendModuleConfigurationProper
 import nl.nlportal.core.frontend.service.FrontendConfigurationService
 import nl.nlportal.core.frontend.web.rest.FrontendConfigurationResource
 import nl.nlportal.core.frontend.web.rest.PingResource
+import nl.nlportal.core.modulegate.ModuleFlag
+import nl.nlportal.core.modulegate.ModuleGate
+import nl.nlportal.core.modulegate.ModuleNotAvailableAdvice
 import nl.nlportal.core.util.Mapper
+import org.springframework.beans.factory.ObjectProvider
 import org.springframework.boot.autoconfigure.AutoConfiguration
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty
@@ -36,9 +41,25 @@ import tools.jackson.databind.json.JsonMapper
     FrontendConfigurationProperties::class,
 )
 class CoreAutoConfiguration {
+    @Bean
+    @ConditionalOnMissingBean(ZgwJwtGenerator::class)
+    fun zgwJwtGenerator(): ZgwJwtGenerator = ZgwJwtGenerator()
+
     @Bean("objectMapper")
     @ConditionalOnMissingBean(name = ["jsonMapper"])
     fun objectMapper(): JsonMapper = Mapper.get()
+
+    @Bean
+    @ConditionalOnMissingBean(ModuleGate::class)
+    fun moduleGate(
+        featureGate: FeatureGate,
+        featureContextFactory: FeatureContextFactory,
+        modules: ObjectProvider<ModuleFlag>,
+    ) = ModuleGate(featureGate, featureContextFactory, modules.orderedStream().toList())
+
+    @Bean
+    @ConditionalOnMissingBean(ModuleNotAvailableAdvice::class)
+    fun moduleNotAvailableAdvice() = ModuleNotAvailableAdvice()
 
     @Bean
     @ConditionalOnMissingBean(FrontendConfigurationService::class)
@@ -46,10 +67,12 @@ class CoreAutoConfiguration {
         frontendConfigurationProperties: FrontendConfigurationProperties,
         frontendModuleConfigurationProperties: FrontendModuleConfigurationProperties,
         featureGate: FeatureGate,
+        moduleGate: ModuleGate,
     ) = FrontendConfigurationService(
         frontendConfigurationProperties = frontendConfigurationProperties,
         frontendModuleConfigurationProperties = frontendModuleConfigurationProperties,
         featureGate = featureGate,
+        moduleGate = moduleGate,
     )
 
     @Bean

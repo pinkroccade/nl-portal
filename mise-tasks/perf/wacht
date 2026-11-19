@@ -1,0 +1,30 @@
+#!/usr/bin/env bash
+#MISE description="Wacht tot de perf-stack klaar is voor perf:seed: Keycloak-realm bereikbaar, imports van Open Zaak en Objecten klaar, backend bereikbaar (maximaal PERF_WACHT_SECONDEN, standaard 900)"
+set -euo pipefail
+
+limiet="${PERF_WACHT_SECONDEN:-900}"
+keycloak="${PERF_KEYCLOAK_URL:-http://localhost:8082/auth}/realms/${PERF_REALM:-nlportal}"
+backend="${PERF_BACKEND_URL:-http://localhost:8080}/graphql"
+
+import_klaar() {
+  [ "$(docker inspect -f '{{.State.Status}} {{.State.ExitCode}}' "$1" 2>/dev/null)" = "exited 0" ]
+}
+
+start=$SECONDS
+while true; do
+  kc=$(curl -s -o /dev/null -w '%{http_code}' "$keycloak" || true)
+  be=$(curl -s -o /dev/null -w '%{http_code}' "$backend" || true)
+  if [ "$kc" = 200 ] && [ "$be" != 000 ] && import_klaar nl-portal-openzaak-import && import_klaar nl-portal-open-object-import; then
+    echo "Perf-stack klaar na $((SECONDS - start)) s"
+    exit 0
+  fi
+  if [ $((SECONDS - start)) -ge "$limiet" ]; then
+    echo "Perf-stack na $limiet s niet klaar (keycloak=$kc, backend=$be)" >&2
+    docker ps -a --format '{{.Names}}\t{{.Status}}' >&2
+    docker logs --tail 20 nl-portal-openzaak-import >&2 || true
+    echo "--- nl-portal-backend ---" >&2
+    docker logs --tail 40 nl-portal-backend >&2 || true
+    exit 1
+  fi
+  sleep 10
+done

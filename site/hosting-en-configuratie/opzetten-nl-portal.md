@@ -14,7 +14,7 @@ Alle code en informatie is opensource en kan gevonden worden in deze GitHub-repo
 | Onderdeel                                                                         | Beschrijving                                                                                                    |
 | --------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------- |
 | Deze repository                                                                   | De monorepo: backend (`backend/`), frontend (`frontend/`), docker-compose demo (`docker-compose/`) en docs.    |
-| Helm Charts                                                                       | Nog niet ingericht voor pinkroccade; zie [issue #18](https://github.com/jypma-prlg/nl-portal/issues/18).       |
+| Helm Charts                                                                       | Nog niet ingericht voor pinkroccade; zie [epic #191](https://github.com/pinkroccade/nl-portal/issues/191).       |
 
 Voor de meeste implementaties gebruik je de gepubliceerde images (zie Route 1). Voor maatwerk dienen de app-directories (`backend/app`, `frontend/packages/app`) als startpunt.
 
@@ -22,7 +22,7 @@ Voor de meeste implementaties gebruik je de gepubliceerde images (zie Route 1). 
 
 De snelste manier om de NL Portal te bekijken is via de kant-en-klare demo-omgeving in de `docker-compose/` map van de monorepo. Die bevat alles wat nodig is:
 
-* De prebuilt NL Portal backend en frontend images (`ghcr.io/nl-portal/nl-portal-backend` en `ghcr.io/nl-portal/nl-portal-frontend`).
+* De prebuilt NL Portal backend en frontend images (`ghcr.io/pinkroccade/nl-portal-backend` en `ghcr.io/pinkroccade/nl-portal-frontend`). Zolang er nog geen release is gepubliceerd, zijn alleen snapshot-tags beschikbaar; kies de tag met `NL_PORTAL_IMAGE_TAG` (zie `docker-compose/README.md`).
 * De benodigde ZGW componenten (Open Zaak, Open Object, OpenKlant, OpenProduct) en Haal Centraal mocks, opgedeeld in docker-compose profielen zodat je zelf kiest welke onderdelen je start.
 * Een voorgeconfigureerde Keycloak met [standard token exchange](./keycloak-token-exchange.md) (zie ook de [Keycloak configuratie](./keycloak.md) pagina).
 
@@ -63,17 +63,11 @@ Voor actieve ontwikkeling draai je alleen de ondersteunende services in compose 
 docker compose --profile zgw up -d
 ```
 
-Start daarna de backend (`./gradlew :app:bootRun` vanuit `backend/`; vereist een `.env.properties`, zie `backend/app/README.md`) en de frontend (`pnpm install && pnpm dev` vanuit `frontend/`). Zie [`GETTING_STARTED.md`](https://github.com/jypma-prlg/nl-portal/blob/main/GETTING_STARTED.md) en `docker-compose/README.md` voor de details.
+Start daarna de backend (`./gradlew :app:bootRun` vanuit `backend/`; vereist een `.env.properties` (genereer die met `mise run dev:setup`), zie `backend/app/README.md`) en de frontend (`pnpm install && pnpm dev` vanuit `frontend/`). Zie [`GETTING_STARTED.md`](https://github.com/pinkroccade/nl-portal/blob/main/GETTING_STARTED.md) en `docker-compose/README.md` voor de details.
 
-### Configureren via het Configuration Panel
+### Configureren via bestanden
 
-Het [Configuration Panel](./configuration-panel.md) laat je backend modules, logo en huisstijl configureren zonder code en zonder eigen images te bouwen. Voeg het `config`-profiel toe aan de route die je draait, bijvoorbeeld:
-
-```shell
-RUN_MODE=remote docker compose --profile zgw --profile haalcentraal --profile config up -d
-```
-
-Het Configuration Panel is bereikbaar op `http://localhost:3001` met gebruikersnaam **admin** en wachtwoord **admin**. Zie de [Configuration Panel](./configuration-panel.md) pagina voor het aansluiten van een bestaande NL Portal instantie.
+NL Portal is stateless: module-instellingen, frontend-teksten en -URL's, het thema en de feature flags komen uit config-bestanden en omgevingsvariabelen die per deployment worden geladen, zonder database of beheerapplicatie. Een wijziging rolt je uit met een rolling restart. De achtergrond staat in [ADR 0016](../development/adr/0016-stateless-configuratie-en-thema-via-bestanden.md).
 
 ### Maatwerk
 
@@ -87,7 +81,6 @@ De NL Portal images kunnen ook volledig geconfigureerd worden via environment va
 
 Nu je eerste NL Portal draait kun je verder met:
 
-* [Configuration Panel](./configuration-panel.md) — configureer API-koppelingen en theming via een UI.
 * [Eigen vormgeving](../gebruik-en-inrichting/eigen-vormgeving.md) — meer informatie over design tokens en huisstijl.
 * [Deployment guide](./deployment-guide.md) — deploy de NL Portal naar je eigen omgeving (Azure, AWS of Kubernetes).
 * [Keycloak configuratie](./keycloak.md) — sluit de NL Portal aan op je eigen Keycloak.

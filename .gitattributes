@@ -1,0 +1,10 @@
+# Tekstbestanden staan in de index met LF en worden ook op Windows met LF uitgecheckt. Zonder dit geeft autocrlf bij
+# elk git-commando de waarschuwing "LF will be replaced by CRLF" en komen CRLF-regeleinden in scripts en edits terecht.
+* text=auto eol=lf
+
+# Windows-batchbestanden hebben CRLF nodig.
+*.bat text eol=crlf
+*.cmd text eol=crlf
+
+# Mise file tasks zijn bash-scripts: altijd LF, ook op Windows met autocrlf.
+mise-tasks/** text eol=lf

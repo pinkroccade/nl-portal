@@ -21,7 +21,7 @@ import nl.nlportal.besluiten.domain.Besluit
 import nl.nlportal.besluiten.domain.BesluitAuditTrail
 import nl.nlportal.besluiten.domain.BesluitDocument
 import nl.nlportal.besluiten.domain.ResultPage
-import nl.nlportal.idtokenauthentication.service.IdTokenGenerator
+import nl.nlportal.core.koppeling.ZgwJwtGenerator
 import org.springframework.http.HttpStatus
 import org.springframework.util.LinkedMultiValueMap
 import org.springframework.web.reactive.function.client.ClientRequest
@@ -77,14 +77,6 @@ class BesluitenApiClient(
             .results
     }
 
-    suspend fun getBesluit(besluitId: UUID): Besluit =
-        webClient
-            .get()
-            .uri("/besluiten/api/v1/besluiten/$besluitId")
-            .retrieve()
-            .handleStatus()
-            .awaitBody<Besluit>()
-
     suspend fun getBesluitAuditTrails(besluitId: UUID): List<BesluitAuditTrail> =
         webClient
             .get()
@@ -123,16 +115,8 @@ class BesluitenApiClient(
             .awaitBody<List<BesluitDocument>>()
     }
 
-    suspend fun getBesluitDocument(documentId: UUID): BesluitDocument =
-        webClient
-            .get()
-            .uri("/besluiten/api/v1/besluitinformatieobjecten/$documentId")
-            .retrieve()
-            .handleStatus()
-            .awaitBody<BesluitDocument>()
-
     private fun getToken(): String =
-        IdTokenGenerator().generateToken(
+        ZgwJwtGenerator().generateToken(
             besluitenApiConfig.secret.requireConfigured("besluitenapi", "secret"),
             besluitenApiConfig.clientId.requireConfigured("besluitenapi", "clientId"),
         )

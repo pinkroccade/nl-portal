@@ -2,21 +2,21 @@ server:
     port: 8080
 
 management:
+    # Beheerpoort apart zetten: MANAGEMENT_SERVER_PORT=8091 (zie site/hosting-en-configuratie/beheer-modulestatus.md)
+    # Beheerpoort apart zetten: MANAGEMENT_SERVER_PORT=8091 (zie site/hosting-en-configuratie/beheer-modulestatus.md)
     endpoint:
         health:
             access: read_only
             probes:
                 enabled: true
-        refresh:
-            access: unrestricted
-        restart:
-            access: unrestricted
+        modulestatus:
+            access: read_only
     endpoints:
         access:
             default: none
         web:
             exposure:
-                include: health, refresh, restart
+                include: health, modulestatus
 
 spring:
     application:
@@ -26,6 +26,7 @@ spring:
             resourceserver:
                 jwt:
                     jwk-set-uri: http://localhost:8082/auth/realms/nlportal/protocol/openid-connect/certs
+                    issuer-uri: http://localhost:8082/auth/realms/nlportal
     graphql:
         graphiql:
             enabled: true
@@ -50,7 +51,7 @@ nl-portal:
         keycloak:
             resource: nl-portal-m2m
             credentials:
-                secret: ookVRUAxmEWMcosfcGR5nxeoUC4Rgwbc
+                secret: ${KEYCLOAK_CLIENT_SECRET:}
     security:
         cors:
             -   path: "/**"
@@ -66,13 +67,13 @@ nl-portal:
             properties:
                 url: http://localhost:8001
                 clientId: nl-portal
-                secret: DGXJs3GKU84LFZWWfdb!nk6gpL6mL9@A
+                secret: ${OPENZAAK_NLPORTAL_SECRET}
         catalogiapi:
             enabled: true
             properties:
                 url: http://localhost:8001
                 clientId: nl-portal
-                secret: DGXJs3GKU84LFZWWfdb!nk6gpL6mL9@A
+                secret: ${OPENZAAK_NLPORTAL_SECRET}
         documentenapis:
             enabled: true
             properties:
@@ -95,7 +96,7 @@ nl-portal:
                     openzaak:
                         url: http://localhost:8001/documenten/api/v1
                         clientId: nl-portal
-                        secret: DGXJs3GKU84LFZWWfdb!nk6gpL6mL9@A
+                        secret: ${OPENZAAK_NLPORTAL_SECRET}
                         rsin: "051845623"
                         documentTypeUrl: http://localhost:8001/catalogi/api/v1/informatieobjecttypen/36e40d95-e411-4884-b08f-e5864ec8167f
         virusscan:
@@ -109,32 +110,30 @@ nl-portal:
             properties:
                 url: http://localhost:8001
                 clientId: nl-portal
-                secret: DGXJs3GKU84LFZWWfdb!nk6gpL6mL9@A
+                secret: ${OPENZAAK_NLPORTAL_SECRET}
         objectenapi:
             enabled: true
             properties:
                 url: http://localhost:8010
-                token: 182c13e2209161852c53cef53a879f7a2f923430
+                token: ${OBJECTS_API_TOKEN}
         openklant2:
             enabled: true
             properties:
                 contactgegevens-api-url: http://localhost:8014/contactgegevens/api/v1
                 klantinteracties-api-url: http://localhost:8014/klantinteracties/api/v1
-                token: ac045222c9e7cde8120b48735560f9b920bb58cd
-        haalcentraal2:
+                token: ${OPENKLANT_API_TOKEN}
+        haalcentraal-brp:
             enabled: true
             properties:
                 brp-api-url: http://localhost:5010/haalcentraal/api/brp/
                 bewoning-api-url: http://localhost:5011/haalcentraal/api/bewoning/
-        haalcentraal:
-            hr:
-                enabled: true
+        kvk:
+            enabled: true
         taak:
             enabled: true
             properties:
                 object-type-url: http://localhost:8010/api/v2/objecttypes/b4a617af-6969-45e8-9afd-d51e170716d5
         berichten:
-            enabled: true
             properties:
                 bericht-object-type-url: http://localhost:8010/api/v2/objecttypes/78731088-430f-49fd-9a4c-80ddd42ded28
         form:
@@ -143,7 +142,7 @@ nl-portal:
         openproduct:
             enabled: true
             properties:
-                token: ac045222c9e7cde8120b48735560f9b920bb58cd
+                token: ${OPENPRODUCT_API_TOKEN}
                 product-api-url: http://localhost:8015/producten/api/v1
                 product-type-api-url: http://localhost:8015/producttypen/api/v1
                 prefill:
@@ -192,18 +191,9 @@ nl-portal:
             overview-maintenance-alert-text-nl: Deze omgeving draait in ontwikkelmodus met testgegevens.
             overview-maintenance-alert-text-en: This environment is running in development mode with test data.
             overview-current-tasks-preview-length: 4
-        toggles:
-            message-count-enabled: true
-            cases-partial-search-enabled: true
-            my-inhabitant-count-enabled: true
-            open-product-enabled: true
-            cases-result-explanation-enabled: true
-            cases-contact-moments-enabled: true
-            overview-intro-enabled: true
-            overview-maintenance-alert-enabled: true
         modules-whitelist:
             - zakenapi
             - product
-            - haalcentraal2
+            - haalcentraal-brp
             - taak
             - openproduct

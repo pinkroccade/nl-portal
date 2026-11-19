@@ -24,7 +24,6 @@ dependencies {
     api(project(":graphql"))
     api(project(":portal-authentication"))
     api(project(":zgw:common-ground-authentication"))
-    api(project(":zgw:idtoken-authentication"))
 
     implementation(Dependencies.kotlinCoroutines)
     implementation(Dependencies.kotlinCoroutinesReactor)
@@ -47,5 +46,3 @@ val jar: Jar by tasks
 val bootJar: BootJar by tasks
 bootJar.enabled = false
 jar.enabled = true
-
-apply(from = "gradle/publishing.gradle.kts")

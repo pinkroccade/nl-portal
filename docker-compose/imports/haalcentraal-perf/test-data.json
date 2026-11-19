@@ -1,0 +1,6202 @@
+[
+  {
+    "aNummer": "1000000001",
+    "burgerservicenummer": "900000004",
+    "datumEersteInschrijvingGBA": "20000101",
+    "geslacht": {
+      "code": "M",
+      "omschrijving": "man"
+    },
+    "naam": {
+      "aanduidingNaamgebruik": {
+        "code": "E",
+        "omschrijving": "eigen geslachtsnaam"
+      },
+      "voornamen": "Perf",
+      "geslachtsnaam": "burger-001"
+    },
+    "nationaliteiten": [
+      {
+        "datumIngangGeldigheid": "20000101",
+        "nationaliteit": {
+          "code": "0001",
+          "omschrijving": "Nederlandse"
+        },
+        "redenOpname": {
+          "code": "001",
+          "omschrijving": "Wet op het Nederlanderschap 1892, art.1, lid 1a"
+        }
+      }
+    ],
+    "geboorte": {
+      "land": {
+        "code": "6030",
+        "omschrijving": "Nederland"
+      },
+      "plaats": {
+        "code": "0153",
+        "omschrijving": "Enschede"
+      },
+      "datum": "19800101"
+    },
+    "verblijfplaats": {
+      "functieAdres": {
+        "code": "W",
+        "omschrijving": "woonadres"
+      },
+      "datumIngangGeldigheid": "20000101",
+      "datumAanvangAdreshouding": "20000101",
+      "straat": "Perfstraat",
+      "huisnummer": "1",
+      "postcode": "7511AG"
+    },
+    "immigratie": {},
+    "gemeenteVanInschrijving": {
+      "code": "0153",
+      "omschrijving": "Enschede"
+    },
+    "datumInschrijvingInGemeente": "20000101",
+    "gezag": [],
+    "kinderen": [],
+    "ouders": [],
+    "partners": []
+  },
+  {
+    "aNummer": "1000000002",
+    "burgerservicenummer": "900000016",
+    "datumEersteInschrijvingGBA": "20000101",
+    "geslacht": {
+      "code": "M",
+      "omschrijving": "man"
+    },
+    "naam": {
+      "aanduidingNaamgebruik": {
+        "code": "E",
+        "omschrijving": "eigen geslachtsnaam"
+      },
+      "voornamen": "Perf",
+      "geslachtsnaam": "burger-002"
+    },
+    "nationaliteiten": [
+      {
+        "datumIngangGeldigheid": "20000101",
+        "nationaliteit": {
+          "code": "0001",
+          "omschrijving": "Nederlandse"
+        },
+        "redenOpname": {
+          "code": "001",
+          "omschrijving": "Wet op het Nederlanderschap 1892, art.1, lid 1a"
+        }
+      }
+    ],
+    "geboorte": {
+      "land": {
+        "code": "6030",
+        "omschrijving": "Nederland"
+      },
+      "plaats": {
+        "code": "0153",
+        "omschrijving": "Enschede"
+      },
+      "datum": "19800101"
+    },
+    "verblijfplaats": {
+      "functieAdres": {
+        "code": "W",
+        "omschrijving": "woonadres"
+      },
+      "datumIngangGeldigheid": "20000101",
+      "datumAanvangAdreshouding": "20000101",
+      "straat": "Perfstraat",
+      "huisnummer": "2",
+      "postcode": "7511AG"
+    },
+    "immigratie": {},
+    "gemeenteVanInschrijving": {
+      "code": "0153",
+      "omschrijving": "Enschede"
+    },
+    "datumInschrijvingInGemeente": "20000101",
+    "gezag": [],
+    "kinderen": [],
+    "ouders": [],
+    "partners": []
+  },
+  {
+    "aNummer": "1000000003",
+    "burgerservicenummer": "900000028",
+    "datumEersteInschrijvingGBA": "20000101",
+    "geslacht": {
+      "code": "M",
+      "omschrijving": "man"
+    },
+    "naam": {
+      "aanduidingNaamgebruik": {
+        "code": "E",
+        "omschrijving": "eigen geslachtsnaam"
+      },
+      "voornamen": "Perf",
+      "geslachtsnaam": "burger-003"
+    },
+    "nationaliteiten": [
+      {
+        "datumIngangGeldigheid": "20000101",
+        "nationaliteit": {
+          "code": "0001",
+          "omschrijving": "Nederlandse"
+        },
+        "redenOpname": {
+          "code": "001",
+          "omschrijving": "Wet op het Nederlanderschap 1892, art.1, lid 1a"
+        }
+      }
+    ],
+    "geboorte": {
+      "land": {
+        "code": "6030",
+        "omschrijving": "Nederland"
+      },
+      "plaats": {
+        "code": "0153",
+        "omschrijving": "Enschede"
+      },
+      "datum": "19800101"
+    },
+    "verblijfplaats": {
+      "functieAdres": {
+        "code": "W",
+        "omschrijving": "woonadres"
+      },
+      "datumIngangGeldigheid": "20000101",
+      "datumAanvangAdreshouding": "20000101",
+      "straat": "Perfstraat",
+      "huisnummer": "3",
+      "postcode": "7511AG"
+    },
+    "immigratie": {},
+    "gemeenteVanInschrijving": {
+      "code": "0153",
+      "omschrijving": "Enschede"
+    },
+    "datumInschrijvingInGemeente": "20000101",
+    "gezag": [],
+    "kinderen": [],
+    "ouders": [],
+    "partners": []
+  },
+  {
+    "aNummer": "1000000004",
+    "burgerservicenummer": "900000041",
+    "datumEersteInschrijvingGBA": "20000101",
+    "geslacht": {
+      "code": "M",
+      "omschrijving": "man"
+    },
+    "naam": {
+      "aanduidingNaamgebruik": {
+        "code": "E",
+        "omschrijving": "eigen geslachtsnaam"
+      },
+      "voornamen": "Perf",
+      "geslachtsnaam": "burger-004"
+    },
+    "nationaliteiten": [
+      {
+        "datumIngangGeldigheid": "20000101",
+        "nationaliteit": {
+          "code": "0001",
+          "omschrijving": "Nederlandse"
+        },
+        "redenOpname": {
+          "code": "001",
+          "omschrijving": "Wet op het Nederlanderschap 1892, art.1, lid 1a"
+        }
+      }
+    ],
+    "geboorte": {
+      "land": {
+        "code": "6030",
+        "omschrijving": "Nederland"
+      },
+      "plaats": {
+        "code": "0153",
+        "omschrijving": "Enschede"
+      },
+      "datum": "19800101"
+    },
+    "verblijfplaats": {
+      "functieAdres": {
+        "code": "W",
+        "omschrijving": "woonadres"
+      },
+      "datumIngangGeldigheid": "20000101",
+      "datumAanvangAdreshouding": "20000101",
+      "straat": "Perfstraat",
+      "huisnummer": "4",
+      "postcode": "7511AG"
+    },
+    "immigratie": {},
+    "gemeenteVanInschrijving": {
+      "code": "0153",
+      "omschrijving": "Enschede"
+    },
+    "datumInschrijvingInGemeente": "20000101",
+    "gezag": [],
+    "kinderen": [],
+    "ouders": [],
+    "partners": []
+  },
+  {
+    "aNummer": "1000000005",
+    "burgerservicenummer": "900000053",
+    "datumEersteInschrijvingGBA": "20000101",
+    "geslacht": {
+      "code": "M",
+      "omschrijving": "man"
+    },
+    "naam": {
+      "aanduidingNaamgebruik": {
+        "code": "E",
+        "omschrijving": "eigen geslachtsnaam"
+      },
+      "voornamen": "Perf",
+      "geslachtsnaam": "burger-005"
+    },
+    "nationaliteiten": [
+      {
+        "datumIngangGeldigheid": "20000101",
+        "nationaliteit": {
+          "code": "0001",
+          "omschrijving": "Nederlandse"
+        },
+        "redenOpname": {
+          "code": "001",
+          "omschrijving": "Wet op het Nederlanderschap 1892, art.1, lid 1a"
+        }
+      }
+    ],
+    "geboorte": {
+      "land": {
+        "code": "6030",
+        "omschrijving": "Nederland"
+      },
+      "plaats": {
+        "code": "0153",
+        "omschrijving": "Enschede"
+      },
+      "datum": "19800101"
+    },
+    "verblijfplaats": {
+      "functieAdres": {
+        "code": "W",
+        "omschrijving": "woonadres"
+      },
+      "datumIngangGeldigheid": "20000101",
+      "datumAanvangAdreshouding": "20000101",
+      "straat": "Perfstraat",
+      "huisnummer": "5",
+      "postcode": "7511AG"
+    },
+    "immigratie": {},
+    "gemeenteVanInschrijving": {
+      "code": "0153",
+      "omschrijving": "Enschede"
+    },
+    "datumInschrijvingInGemeente": "20000101",
+    "gezag": [],
+    "kinderen": [],
+    "ouders": [],
+    "partners": []
+  },
+  {
+    "aNummer": "1000000006",
+    "burgerservicenummer": "900000065",
+    "datumEersteInschrijvingGBA": "20000101",
+    "geslacht": {
+      "code": "M",
+      "omschrijving": "man"
+    },
+    "naam": {
+      "aanduidingNaamgebruik": {
+        "code": "E",
+        "omschrijving": "eigen geslachtsnaam"
+      },
+      "voornamen": "Perf",
+      "geslachtsnaam": "burger-006"
+    },
+    "nationaliteiten": [
+      {
+        "datumIngangGeldigheid": "20000101",
+        "nationaliteit": {
+          "code": "0001",
+          "omschrijving": "Nederlandse"
+        },
+        "redenOpname": {
+          "code": "001",
+          "omschrijving": "Wet op het Nederlanderschap 1892, art.1, lid 1a"
+        }
+      }
+    ],
+    "geboorte": {
+      "land": {
+        "code": "6030",
+        "omschrijving": "Nederland"
+      },
+      "plaats": {
+        "code": "0153",
+        "omschrijving": "Enschede"
+      },
+      "datum": "19800101"
+    },
+    "verblijfplaats": {
+      "functieAdres": {
+        "code": "W",
+        "omschrijving": "woonadres"
+      },
+      "datumIngangGeldigheid": "20000101",
+      "datumAanvangAdreshouding": "20000101",
+      "straat": "Perfstraat",
+      "huisnummer": "6",
+      "postcode": "7511AG"
+    },
+    "immigratie": {},
+    "gemeenteVanInschrijving": {
+      "code": "0153",
+      "omschrijving": "Enschede"
+    },
+    "datumInschrijvingInGemeente": "20000101",
+    "gezag": [],
+    "kinderen": [],
+    "ouders": [],
+    "partners": []
+  },
+  {
+    "aNummer": "1000000007",
+    "burgerservicenummer": "900000077",
+    "datumEersteInschrijvingGBA": "20000101",
+    "geslacht": {
+      "code": "M",
+      "omschrijving": "man"
+    },
+    "naam": {
+      "aanduidingNaamgebruik": {
+        "code": "E",
+        "omschrijving": "eigen geslachtsnaam"
+      },
+      "voornamen": "Perf",
+      "geslachtsnaam": "burger-007"
+    },
+    "nationaliteiten": [
+      {
+        "datumIngangGeldigheid": "20000101",
+        "nationaliteit": {
+          "code": "0001",
+          "omschrijving": "Nederlandse"
+        },
+        "redenOpname": {
+          "code": "001",
+          "omschrijving": "Wet op het Nederlanderschap 1892, art.1, lid 1a"
+        }
+      }
+    ],
+    "geboorte": {
+      "land": {
+        "code": "6030",
+        "omschrijving": "Nederland"
+      },
+      "plaats": {
+        "code": "0153",
+        "omschrijving": "Enschede"
+      },
+      "datum": "19800101"
+    },
+    "verblijfplaats": {
+      "functieAdres": {
+        "code": "W",
+        "omschrijving": "woonadres"
+      },
+      "datumIngangGeldigheid": "20000101",
+      "datumAanvangAdreshouding": "20000101",
+      "straat": "Perfstraat",
+      "huisnummer": "7",
+      "postcode": "7511AG"
+    },
+    "immigratie": {},
+    "gemeenteVanInschrijving": {
+      "code": "0153",
+      "omschrijving": "Enschede"
+    },
+    "datumInschrijvingInGemeente": "20000101",
+    "gezag": [],
+    "kinderen": [],
+    "ouders": [],
+    "partners": []
+  },
+  {
+    "aNummer": "1000000008",
+    "burgerservicenummer": "900000089",
+    "datumEersteInschrijvingGBA": "20000101",
+    "geslacht": {
+      "code": "M",
+      "omschrijving": "man"
+    },
+    "naam": {
+      "aanduidingNaamgebruik": {
+        "code": "E",
+        "omschrijving": "eigen geslachtsnaam"
+      },
+      "voornamen": "Perf",
+      "geslachtsnaam": "burger-008"
+    },
+    "nationaliteiten": [
+      {
+        "datumIngangGeldigheid": "20000101",
+        "nationaliteit": {
+          "code": "0001",
+          "omschrijving": "Nederlandse"
+        },
+        "redenOpname": {
+          "code": "001",
+          "omschrijving": "Wet op het Nederlanderschap 1892, art.1, lid 1a"
+        }
+      }
+    ],
+    "geboorte": {
+      "land": {
+        "code": "6030",
+        "omschrijving": "Nederland"
+      },
+      "plaats": {
+        "code": "0153",
+        "omschrijving": "Enschede"
+      },
+      "datum": "19800101"
+    },
+    "verblijfplaats": {
+      "functieAdres": {
+        "code": "W",
+        "omschrijving": "woonadres"
+      },
+      "datumIngangGeldigheid": "20000101",
+      "datumAanvangAdreshouding": "20000101",
+      "straat": "Perfstraat",
+      "huisnummer": "8",
+      "postcode": "7511AG"
+    },
+    "immigratie": {},
+    "gemeenteVanInschrijving": {
+      "code": "0153",
+      "omschrijving": "Enschede"
+    },
+    "datumInschrijvingInGemeente": "20000101",
+    "gezag": [],
+    "kinderen": [],
+    "ouders": [],
+    "partners": []
+  },
+  {
+    "aNummer": "1000000009",
+    "burgerservicenummer": "900000090",
+    "datumEersteInschrijvingGBA": "20000101",
+    "geslacht": {
+      "code": "M",
+      "omschrijving": "man"
+    },
+    "naam": {
+      "aanduidingNaamgebruik": {
+        "code": "E",
+        "omschrijving": "eigen geslachtsnaam"
+      },
+      "voornamen": "Perf",
+      "geslachtsnaam": "burger-009"
+    },
+    "nationaliteiten": [
+      {
+        "datumIngangGeldigheid": "20000101",
+        "nationaliteit": {
+          "code": "0001",
+          "omschrijving": "Nederlandse"
+        },
+        "redenOpname": {
+          "code": "001",
+          "omschrijving": "Wet op het Nederlanderschap 1892, art.1, lid 1a"
+        }
+      }
+    ],
+    "geboorte": {
+      "land": {
+        "code": "6030",
+        "omschrijving": "Nederland"
+      },
+      "plaats": {
+        "code": "0153",
+        "omschrijving": "Enschede"
+      },
+      "datum": "19800101"
+    },
+    "verblijfplaats": {
+      "functieAdres": {
+        "code": "W",
+        "omschrijving": "woonadres"
+      },
+      "datumIngangGeldigheid": "20000101",
+      "datumAanvangAdreshouding": "20000101",
+      "straat": "Perfstraat",
+      "huisnummer": "9",
+      "postcode": "7511AG"
+    },
+    "immigratie": {},
+    "gemeenteVanInschrijving": {
+      "code": "0153",
+      "omschrijving": "Enschede"
+    },
+    "datumInschrijvingInGemeente": "20000101",
+    "gezag": [],
+    "kinderen": [],
+    "ouders": [],
+    "partners": []
+  },
+  {
+    "aNummer": "1000000010",
+    "burgerservicenummer": "900000107",
+    "datumEersteInschrijvingGBA": "20000101",
+    "geslacht": {
+      "code": "M",
+      "omschrijving": "man"
+    },
+    "naam": {
+      "aanduidingNaamgebruik": {
+        "code": "E",
+        "omschrijving": "eigen geslachtsnaam"
+      },
+      "voornamen": "Perf",
+      "geslachtsnaam": "burger-010"
+    },
+    "nationaliteiten": [
+      {
+        "datumIngangGeldigheid": "20000101",
+        "nationaliteit": {
+          "code": "0001",
+          "omschrijving": "Nederlandse"
+        },
+        "redenOpname": {
+          "code": "001",
+          "omschrijving": "Wet op het Nederlanderschap 1892, art.1, lid 1a"
+        }
+      }
+    ],
+    "geboorte": {
+      "land": {
+        "code": "6030",
+        "omschrijving": "Nederland"
+      },
+      "plaats": {
+        "code": "0153",
+        "omschrijving": "Enschede"
+      },
+      "datum": "19800101"
+    },
+    "verblijfplaats": {
+      "functieAdres": {
+        "code": "W",
+        "omschrijving": "woonadres"
+      },
+      "datumIngangGeldigheid": "20000101",
+      "datumAanvangAdreshouding": "20000101",
+      "straat": "Perfstraat",
+      "huisnummer": "10",
+      "postcode": "7511AG"
+    },
+    "immigratie": {},
+    "gemeenteVanInschrijving": {
+      "code": "0153",
+      "omschrijving": "Enschede"
+    },
+    "datumInschrijvingInGemeente": "20000101",
+    "gezag": [],
+    "kinderen": [],
+    "ouders": [],
+    "partners": []
+  },
+  {
+    "aNummer": "1000000011",
+    "burgerservicenummer": "900000119",
+    "datumEersteInschrijvingGBA": "20000101",
+    "geslacht": {
+      "code": "M",
+      "omschrijving": "man"
+    },
+    "naam": {
+      "aanduidingNaamgebruik": {
+        "code": "E",
+        "omschrijving": "eigen geslachtsnaam"
+      },
+      "voornamen": "Perf",
+      "geslachtsnaam": "burger-011"
+    },
+    "nationaliteiten": [
+      {
+        "datumIngangGeldigheid": "20000101",
+        "nationaliteit": {
+          "code": "0001",
+          "omschrijving": "Nederlandse"
+        },
+        "redenOpname": {
+          "code": "001",
+          "omschrijving": "Wet op het Nederlanderschap 1892, art.1, lid 1a"
+        }
+      }
+    ],
+    "geboorte": {
+      "land": {
+        "code": "6030",
+        "omschrijving": "Nederland"
+      },
+      "plaats": {
+        "code": "0153",
+        "omschrijving": "Enschede"
+      },
+      "datum": "19800101"
+    },
+    "verblijfplaats": {
+      "functieAdres": {
+        "code": "W",
+        "omschrijving": "woonadres"
+      },
+      "datumIngangGeldigheid": "20000101",
+      "datumAanvangAdreshouding": "20000101",
+      "straat": "Perfstraat",
+      "huisnummer": "11",
+      "postcode": "7511AG"
+    },
+    "immigratie": {},
+    "gemeenteVanInschrijving": {
+      "code": "0153",
+      "omschrijving": "Enschede"
+    },
+    "datumInschrijvingInGemeente": "20000101",
+    "gezag": [],
+    "kinderen": [],
+    "ouders": [],
+    "partners": []
+  },
+  {
+    "aNummer": "1000000012",
+    "burgerservicenummer": "900000120",
+    "datumEersteInschrijvingGBA": "20000101",
+    "geslacht": {
+      "code": "M",
+      "omschrijving": "man"
+    },
+    "naam": {
+      "aanduidingNaamgebruik": {
+        "code": "E",
+        "omschrijving": "eigen geslachtsnaam"
+      },
+      "voornamen": "Perf",
+      "geslachtsnaam": "burger-012"
+    },
+    "nationaliteiten": [
+      {
+        "datumIngangGeldigheid": "20000101",
+        "nationaliteit": {
+          "code": "0001",
+          "omschrijving": "Nederlandse"
+        },
+        "redenOpname": {
+          "code": "001",
+          "omschrijving": "Wet op het Nederlanderschap 1892, art.1, lid 1a"
+        }
+      }
+    ],
+    "geboorte": {
+      "land": {
+        "code": "6030",
+        "omschrijving": "Nederland"
+      },
+      "plaats": {
+        "code": "0153",
+        "omschrijving": "Enschede"
+      },
+      "datum": "19800101"
+    },
+    "verblijfplaats": {
+      "functieAdres": {
+        "code": "W",
+        "omschrijving": "woonadres"
+      },
+      "datumIngangGeldigheid": "20000101",
+      "datumAanvangAdreshouding": "20000101",
+      "straat": "Perfstraat",
+      "huisnummer": "12",
+      "postcode": "7511AG"
+    },
+    "immigratie": {},
+    "gemeenteVanInschrijving": {
+      "code": "0153",
+      "omschrijving": "Enschede"
+    },
+    "datumInschrijvingInGemeente": "20000101",
+    "gezag": [],
+    "kinderen": [],
+    "ouders": [],
+    "partners": []
+  },
+  {
+    "aNummer": "1000000013",
+    "burgerservicenummer": "900000132",
+    "datumEersteInschrijvingGBA": "20000101",
+    "geslacht": {
+      "code": "M",
+      "omschrijving": "man"
+    },
+    "naam": {
+      "aanduidingNaamgebruik": {
+        "code": "E",
+        "omschrijving": "eigen geslachtsnaam"
+      },
+      "voornamen": "Perf",
+      "geslachtsnaam": "burger-013"
+    },
+    "nationaliteiten": [
+      {
+        "datumIngangGeldigheid": "20000101",
+        "nationaliteit": {
+          "code": "0001",
+          "omschrijving": "Nederlandse"
+        },
+        "redenOpname": {
+          "code": "001",
+          "omschrijving": "Wet op het Nederlanderschap 1892, art.1, lid 1a"
+        }
+      }
+    ],
+    "geboorte": {
+      "land": {
+        "code": "6030",
+        "omschrijving": "Nederland"
+      },
+      "plaats": {
+        "code": "0153",
+        "omschrijving": "Enschede"
+      },
+      "datum": "19800101"
+    },
+    "verblijfplaats": {
+      "functieAdres": {
+        "code": "W",
+        "omschrijving": "woonadres"
+      },
+      "datumIngangGeldigheid": "20000101",
+      "datumAanvangAdreshouding": "20000101",
+      "straat": "Perfstraat",
+      "huisnummer": "13",
+      "postcode": "7511AG"
+    },
+    "immigratie": {},
+    "gemeenteVanInschrijving": {
+      "code": "0153",
+      "omschrijving": "Enschede"
+    },
+    "datumInschrijvingInGemeente": "20000101",
+    "gezag": [],
+    "kinderen": [],
+    "ouders": [],
+    "partners": []
+  },
+  {
+    "aNummer": "1000000014",
+    "burgerservicenummer": "900000144",
+    "datumEersteInschrijvingGBA": "20000101",
+    "geslacht": {
+      "code": "M",
+      "omschrijving": "man"
+    },
+    "naam": {
+      "aanduidingNaamgebruik": {
+        "code": "E",
+        "omschrijving": "eigen geslachtsnaam"
+      },
+      "voornamen": "Perf",
+      "geslachtsnaam": "burger-014"
+    },
+    "nationaliteiten": [
+      {
+        "datumIngangGeldigheid": "20000101",
+        "nationaliteit": {
+          "code": "0001",
+          "omschrijving": "Nederlandse"
+        },
+        "redenOpname": {
+          "code": "001",
+          "omschrijving": "Wet op het Nederlanderschap 1892, art.1, lid 1a"
+        }
+      }
+    ],
+    "geboorte": {
+      "land": {
+        "code": "6030",
+        "omschrijving": "Nederland"
+      },
+      "plaats": {
+        "code": "0153",
+        "omschrijving": "Enschede"
+      },
+      "datum": "19800101"
+    },
+    "verblijfplaats": {
+      "functieAdres": {
+        "code": "W",
+        "omschrijving": "woonadres"
+      },
+      "datumIngangGeldigheid": "20000101",
+      "datumAanvangAdreshouding": "20000101",
+      "straat": "Perfstraat",
+      "huisnummer": "14",
+      "postcode": "7511AG"
+    },
+    "immigratie": {},
+    "gemeenteVanInschrijving": {
+      "code": "0153",
+      "omschrijving": "Enschede"
+    },
+    "datumInschrijvingInGemeente": "20000101",
+    "gezag": [],
+    "kinderen": [],
+    "ouders": [],
+    "partners": []
+  },
+  {
+    "aNummer": "1000000015",
+    "burgerservicenummer": "900000156",
+    "datumEersteInschrijvingGBA": "20000101",
+    "geslacht": {
+      "code": "M",
+      "omschrijving": "man"
+    },
+    "naam": {
+      "aanduidingNaamgebruik": {
+        "code": "E",
+        "omschrijving": "eigen geslachtsnaam"
+      },
+      "voornamen": "Perf",
+      "geslachtsnaam": "burger-015"
+    },
+    "nationaliteiten": [
+      {
+        "datumIngangGeldigheid": "20000101",
+        "nationaliteit": {
+          "code": "0001",
+          "omschrijving": "Nederlandse"
+        },
+        "redenOpname": {
+          "code": "001",
+          "omschrijving": "Wet op het Nederlanderschap 1892, art.1, lid 1a"
+        }
+      }
+    ],
+    "geboorte": {
+      "land": {
+        "code": "6030",
+        "omschrijving": "Nederland"
+      },
+      "plaats": {
+        "code": "0153",
+        "omschrijving": "Enschede"
+      },
+      "datum": "19800101"
+    },
+    "verblijfplaats": {
+      "functieAdres": {
+        "code": "W",
+        "omschrijving": "woonadres"
+      },
+      "datumIngangGeldigheid": "20000101",
+      "datumAanvangAdreshouding": "20000101",
+      "straat": "Perfstraat",
+      "huisnummer": "15",
+      "postcode": "7511AG"
+    },
+    "immigratie": {},
+    "gemeenteVanInschrijving": {
+      "code": "0153",
+      "omschrijving": "Enschede"
+    },
+    "datumInschrijvingInGemeente": "20000101",
+    "gezag": [],
+    "kinderen": [],
+    "ouders": [],
+    "partners": []
+  },
+  {
+    "aNummer": "1000000016",
+    "burgerservicenummer": "900000168",
+    "datumEersteInschrijvingGBA": "20000101",
+    "geslacht": {
+      "code": "M",
+      "omschrijving": "man"
+    },
+    "naam": {
+      "aanduidingNaamgebruik": {
+        "code": "E",
+        "omschrijving": "eigen geslachtsnaam"
+      },
+      "voornamen": "Perf",
+      "geslachtsnaam": "burger-016"
+    },
+    "nationaliteiten": [
+      {
+        "datumIngangGeldigheid": "20000101",
+        "nationaliteit": {
+          "code": "0001",
+          "omschrijving": "Nederlandse"
+        },
+        "redenOpname": {
+          "code": "001",
+          "omschrijving": "Wet op het Nederlanderschap 1892, art.1, lid 1a"
+        }
+      }
+    ],
+    "geboorte": {
+      "land": {
+        "code": "6030",
+        "omschrijving": "Nederland"
+      },
+      "plaats": {
+        "code": "0153",
+        "omschrijving": "Enschede"
+      },
+      "datum": "19800101"
+    },
+    "verblijfplaats": {
+      "functieAdres": {
+        "code": "W",
+        "omschrijving": "woonadres"
+      },
+      "datumIngangGeldigheid": "20000101",
+      "datumAanvangAdreshouding": "20000101",
+      "straat": "Perfstraat",
+      "huisnummer": "16",
+      "postcode": "7511AG"
+    },
+    "immigratie": {},
+    "gemeenteVanInschrijving": {
+      "code": "0153",
+      "omschrijving": "Enschede"
+    },
+    "datumInschrijvingInGemeente": "20000101",
+    "gezag": [],
+    "kinderen": [],
+    "ouders": [],
+    "partners": []
+  },
+  {
+    "aNummer": "1000000017",
+    "burgerservicenummer": "900000181",
+    "datumEersteInschrijvingGBA": "20000101",
+    "geslacht": {
+      "code": "M",
+      "omschrijving": "man"
+    },
+    "naam": {
+      "aanduidingNaamgebruik": {
+        "code": "E",
+        "omschrijving": "eigen geslachtsnaam"
+      },
+      "voornamen": "Perf",
+      "geslachtsnaam": "burger-017"
+    },
+    "nationaliteiten": [
+      {
+        "datumIngangGeldigheid": "20000101",
+        "nationaliteit": {
+          "code": "0001",
+          "omschrijving": "Nederlandse"
+        },
+        "redenOpname": {
+          "code": "001",
+          "omschrijving": "Wet op het Nederlanderschap 1892, art.1, lid 1a"
+        }
+      }
+    ],
+    "geboorte": {
+      "land": {
+        "code": "6030",
+        "omschrijving": "Nederland"
+      },
+      "plaats": {
+        "code": "0153",
+        "omschrijving": "Enschede"
+      },
+      "datum": "19800101"
+    },
+    "verblijfplaats": {
+      "functieAdres": {
+        "code": "W",
+        "omschrijving": "woonadres"
+      },
+      "datumIngangGeldigheid": "20000101",
+      "datumAanvangAdreshouding": "20000101",
+      "straat": "Perfstraat",
+      "huisnummer": "17",
+      "postcode": "7511AG"
+    },
+    "immigratie": {},
+    "gemeenteVanInschrijving": {
+      "code": "0153",
+      "omschrijving": "Enschede"
+    },
+    "datumInschrijvingInGemeente": "20000101",
+    "gezag": [],
+    "kinderen": [],
+    "ouders": [],
+    "partners": []
+  },
+  {
+    "aNummer": "1000000018",
+    "burgerservicenummer": "900000193",
+    "datumEersteInschrijvingGBA": "20000101",
+    "geslacht": {
+      "code": "M",
+      "omschrijving": "man"
+    },
+    "naam": {
+      "aanduidingNaamgebruik": {
+        "code": "E",
+        "omschrijving": "eigen geslachtsnaam"
+      },
+      "voornamen": "Perf",
+      "geslachtsnaam": "burger-018"
+    },
+    "nationaliteiten": [
+      {
+        "datumIngangGeldigheid": "20000101",
+        "nationaliteit": {
+          "code": "0001",
+          "omschrijving": "Nederlandse"
+        },
+        "redenOpname": {
+          "code": "001",
+          "omschrijving": "Wet op het Nederlanderschap 1892, art.1, lid 1a"
+        }
+      }
+    ],
+    "geboorte": {
+      "land": {
+        "code": "6030",
+        "omschrijving": "Nederland"
+      },
+      "plaats": {
+        "code": "0153",
+        "omschrijving": "Enschede"
+      },
+      "datum": "19800101"
+    },
+    "verblijfplaats": {
+      "functieAdres": {
+        "code": "W",
+        "omschrijving": "woonadres"
+      },
+      "datumIngangGeldigheid": "20000101",
+      "datumAanvangAdreshouding": "20000101",
+      "straat": "Perfstraat",
+      "huisnummer": "18",
+      "postcode": "7511AG"
+    },
+    "immigratie": {},
+    "gemeenteVanInschrijving": {
+      "code": "0153",
+      "omschrijving": "Enschede"
+    },
+    "datumInschrijvingInGemeente": "20000101",
+    "gezag": [],
+    "kinderen": [],
+    "ouders": [],
+    "partners": []
+  },
+  {
+    "aNummer": "1000000019",
+    "burgerservicenummer": "900000211",
+    "datumEersteInschrijvingGBA": "20000101",
+    "geslacht": {
+      "code": "M",
+      "omschrijving": "man"
+    },
+    "naam": {
+      "aanduidingNaamgebruik": {
+        "code": "E",
+        "omschrijving": "eigen geslachtsnaam"
+      },
+      "voornamen": "Perf",
+      "geslachtsnaam": "burger-019"
+    },
+    "nationaliteiten": [
+      {
+        "datumIngangGeldigheid": "20000101",
+        "nationaliteit": {
+          "code": "0001",
+          "omschrijving": "Nederlandse"
+        },
+        "redenOpname": {
+          "code": "001",
+          "omschrijving": "Wet op het Nederlanderschap 1892, art.1, lid 1a"
+        }
+      }
+    ],
+    "geboorte": {
+      "land": {
+        "code": "6030",
+        "omschrijving": "Nederland"
+      },
+      "plaats": {
+        "code": "0153",
+        "omschrijving": "Enschede"
+      },
+      "datum": "19800101"
+    },
+    "verblijfplaats": {
+      "functieAdres": {
+        "code": "W",
+        "omschrijving": "woonadres"
+      },
+      "datumIngangGeldigheid": "20000101",
+      "datumAanvangAdreshouding": "20000101",
+      "straat": "Perfstraat",
+      "huisnummer": "19",
+      "postcode": "7511AG"
+    },
+    "immigratie": {},
+    "gemeenteVanInschrijving": {
+      "code": "0153",
+      "omschrijving": "Enschede"
+    },
+    "datumInschrijvingInGemeente": "20000101",
+    "gezag": [],
+    "kinderen": [],
+    "ouders": [],
+    "partners": []
+  },
+  {
+    "aNummer": "1000000020",
+    "burgerservicenummer": "900000223",
+    "datumEersteInschrijvingGBA": "20000101",
+    "geslacht": {
+      "code": "M",
+      "omschrijving": "man"
+    },
+    "naam": {
+      "aanduidingNaamgebruik": {
+        "code": "E",
+        "omschrijving": "eigen geslachtsnaam"
+      },
+      "voornamen": "Perf",
+      "geslachtsnaam": "burger-020"
+    },
+    "nationaliteiten": [
+      {
+        "datumIngangGeldigheid": "20000101",
+        "nationaliteit": {
+          "code": "0001",
+          "omschrijving": "Nederlandse"
+        },
+        "redenOpname": {
+          "code": "001",
+          "omschrijving": "Wet op het Nederlanderschap 1892, art.1, lid 1a"
+        }
+      }
+    ],
+    "geboorte": {
+      "land": {
+        "code": "6030",
+        "omschrijving": "Nederland"
+      },
+      "plaats": {
+        "code": "0153",
+        "omschrijving": "Enschede"
+      },
+      "datum": "19800101"
+    },
+    "verblijfplaats": {
+      "functieAdres": {
+        "code": "W",
+        "omschrijving": "woonadres"
+      },
+      "datumIngangGeldigheid": "20000101",
+      "datumAanvangAdreshouding": "20000101",
+      "straat": "Perfstraat",
+      "huisnummer": "20",
+      "postcode": "7511AG"
+    },
+    "immigratie": {},
+    "gemeenteVanInschrijving": {
+      "code": "0153",
+      "omschrijving": "Enschede"
+    },
+    "datumInschrijvingInGemeente": "20000101",
+    "gezag": [],
+    "kinderen": [],
+    "ouders": [],
+    "partners": []
+  },
+  {
+    "aNummer": "1000000021",
+    "burgerservicenummer": "900000235",
+    "datumEersteInschrijvingGBA": "20000101",
+    "geslacht": {
+      "code": "M",
+      "omschrijving": "man"
+    },
+    "naam": {
+      "aanduidingNaamgebruik": {
+        "code": "E",
+        "omschrijving": "eigen geslachtsnaam"
+      },
+      "voornamen": "Perf",
+      "geslachtsnaam": "burger-021"
+    },
+    "nationaliteiten": [
+      {
+        "datumIngangGeldigheid": "20000101",
+        "nationaliteit": {
+          "code": "0001",
+          "omschrijving": "Nederlandse"
+        },
+        "redenOpname": {
+          "code": "001",
+          "omschrijving": "Wet op het Nederlanderschap 1892, art.1, lid 1a"
+        }
+      }
+    ],
+    "geboorte": {
+      "land": {
+        "code": "6030",
+        "omschrijving": "Nederland"
+      },
+      "plaats": {
+        "code": "0153",
+        "omschrijving": "Enschede"
+      },
+      "datum": "19800101"
+    },
+    "verblijfplaats": {
+      "functieAdres": {
+        "code": "W",
+        "omschrijving": "woonadres"
+      },
+      "datumIngangGeldigheid": "20000101",
+      "datumAanvangAdreshouding": "20000101",
+      "straat": "Perfstraat",
+      "huisnummer": "21",
+      "postcode": "7511AG"
+    },
+    "immigratie": {},
+    "gemeenteVanInschrijving": {
+      "code": "0153",
+      "omschrijving": "Enschede"
+    },
+    "datumInschrijvingInGemeente": "20000101",
+    "gezag": [],
+    "kinderen": [],
+    "ouders": [],
+    "partners": []
+  },
+  {
+    "aNummer": "1000000022",
+    "burgerservicenummer": "900000247",
+    "datumEersteInschrijvingGBA": "20000101",
+    "geslacht": {
+      "code": "M",
+      "omschrijving": "man"
+    },
+    "naam": {
+      "aanduidingNaamgebruik": {
+        "code": "E",
+        "omschrijving": "eigen geslachtsnaam"
+      },
+      "voornamen": "Perf",
+      "geslachtsnaam": "burger-022"
+    },
+    "nationaliteiten": [
+      {
+        "datumIngangGeldigheid": "20000101",
+        "nationaliteit": {
+          "code": "0001",
+          "omschrijving": "Nederlandse"
+        },
+        "redenOpname": {
+          "code": "001",
+          "omschrijving": "Wet op het Nederlanderschap 1892, art.1, lid 1a"
+        }
+      }
+    ],
+    "geboorte": {
+      "land": {
+        "code": "6030",
+        "omschrijving": "Nederland"
+      },
+      "plaats": {
+        "code": "0153",
+        "omschrijving": "Enschede"
+      },
+      "datum": "19800101"
+    },
+    "verblijfplaats": {
+      "functieAdres": {
+        "code": "W",
+        "omschrijving": "woonadres"
+      },
+      "datumIngangGeldigheid": "20000101",
+      "datumAanvangAdreshouding": "20000101",
+      "straat": "Perfstraat",
+      "huisnummer": "22",
+      "postcode": "7511AG"
+    },
+    "immigratie": {},
+    "gemeenteVanInschrijving": {
+      "code": "0153",
+      "omschrijving": "Enschede"
+    },
+    "datumInschrijvingInGemeente": "20000101",
+    "gezag": [],
+    "kinderen": [],
+    "ouders": [],
+    "partners": []
+  },
+  {
+    "aNummer": "1000000023",
+    "burgerservicenummer": "900000259",
+    "datumEersteInschrijvingGBA": "20000101",
+    "geslacht": {
+      "code": "M",
+      "omschrijving": "man"
+    },
+    "naam": {
+      "aanduidingNaamgebruik": {
+        "code": "E",
+        "omschrijving": "eigen geslachtsnaam"
+      },
+      "voornamen": "Perf",
+      "geslachtsnaam": "burger-023"
+    },
+    "nationaliteiten": [
+      {
+        "datumIngangGeldigheid": "20000101",
+        "nationaliteit": {
+          "code": "0001",
+          "omschrijving": "Nederlandse"
+        },
+        "redenOpname": {
+          "code": "001",
+          "omschrijving": "Wet op het Nederlanderschap 1892, art.1, lid 1a"
+        }
+      }
+    ],
+    "geboorte": {
+      "land": {
+        "code": "6030",
+        "omschrijving": "Nederland"
+      },
+      "plaats": {
+        "code": "0153",
+        "omschrijving": "Enschede"
+      },
+      "datum": "19800101"
+    },
+    "verblijfplaats": {
+      "functieAdres": {
+        "code": "W",
+        "omschrijving": "woonadres"
+      },
+      "datumIngangGeldigheid": "20000101",
+      "datumAanvangAdreshouding": "20000101",
+      "straat": "Perfstraat",
+      "huisnummer": "23",
+      "postcode": "7511AG"
+    },
+    "immigratie": {},
+    "gemeenteVanInschrijving": {
+      "code": "0153",
+      "omschrijving": "Enschede"
+    },
+    "datumInschrijvingInGemeente": "20000101",
+    "gezag": [],
+    "kinderen": [],
+    "ouders": [],
+    "partners": []
+  },
+  {
+    "aNummer": "1000000024",
+    "burgerservicenummer": "900000260",
+    "datumEersteInschrijvingGBA": "20000101",
+    "geslacht": {
+      "code": "M",
+      "omschrijving": "man"
+    },
+    "naam": {
+      "aanduidingNaamgebruik": {
+        "code": "E",
+        "omschrijving": "eigen geslachtsnaam"
+      },
+      "voornamen": "Perf",
+      "geslachtsnaam": "burger-024"
+    },
+    "nationaliteiten": [
+      {
+        "datumIngangGeldigheid": "20000101",
+        "nationaliteit": {
+          "code": "0001",
+          "omschrijving": "Nederlandse"
+        },
+        "redenOpname": {
+          "code": "001",
+          "omschrijving": "Wet op het Nederlanderschap 1892, art.1, lid 1a"
+        }
+      }
+    ],
+    "geboorte": {
+      "land": {
+        "code": "6030",
+        "omschrijving": "Nederland"
+      },
+      "plaats": {
+        "code": "0153",
+        "omschrijving": "Enschede"
+      },
+      "datum": "19800101"
+    },
+    "verblijfplaats": {
+      "functieAdres": {
+        "code": "W",
+        "omschrijving": "woonadres"
+      },
+      "datumIngangGeldigheid": "20000101",
+      "datumAanvangAdreshouding": "20000101",
+      "straat": "Perfstraat",
+      "huisnummer": "24",
+      "postcode": "7511AG"
+    },
+    "immigratie": {},
+    "gemeenteVanInschrijving": {
+      "code": "0153",
+      "omschrijving": "Enschede"
+    },
+    "datumInschrijvingInGemeente": "20000101",
+    "gezag": [],
+    "kinderen": [],
+    "ouders": [],
+    "partners": []
+  },
+  {
+    "aNummer": "1000000025",
+    "burgerservicenummer": "900000272",
+    "datumEersteInschrijvingGBA": "20000101",
+    "geslacht": {
+      "code": "M",
+      "omschrijving": "man"
+    },
+    "naam": {
+      "aanduidingNaamgebruik": {
+        "code": "E",
+        "omschrijving": "eigen geslachtsnaam"
+      },
+      "voornamen": "Perf",
+      "geslachtsnaam": "burger-025"
+    },
+    "nationaliteiten": [
+      {
+        "datumIngangGeldigheid": "20000101",
+        "nationaliteit": {
+          "code": "0001",
+          "omschrijving": "Nederlandse"
+        },
+        "redenOpname": {
+          "code": "001",
+          "omschrijving": "Wet op het Nederlanderschap 1892, art.1, lid 1a"
+        }
+      }
+    ],
+    "geboorte": {
+      "land": {
+        "code": "6030",
+        "omschrijving": "Nederland"
+      },
+      "plaats": {
+        "code": "0153",
+        "omschrijving": "Enschede"
+      },
+      "datum": "19800101"
+    },
+    "verblijfplaats": {
+      "functieAdres": {
+        "code": "W",
+        "omschrijving": "woonadres"
+      },
+      "datumIngangGeldigheid": "20000101",
+      "datumAanvangAdreshouding": "20000101",
+      "straat": "Perfstraat",
+      "huisnummer": "25",
+      "postcode": "7511AG"
+    },
+    "immigratie": {},
+    "gemeenteVanInschrijving": {
+      "code": "0153",
+      "omschrijving": "Enschede"
+    },
+    "datumInschrijvingInGemeente": "20000101",
+    "gezag": [],
+    "kinderen": [],
+    "ouders": [],
+    "partners": []
+  },
+  {
+    "aNummer": "1000000026",
+    "burgerservicenummer": "900000284",
+    "datumEersteInschrijvingGBA": "20000101",
+    "geslacht": {
+      "code": "M",
+      "omschrijving": "man"
+    },
+    "naam": {
+      "aanduidingNaamgebruik": {
+        "code": "E",
+        "omschrijving": "eigen geslachtsnaam"
+      },
+      "voornamen": "Perf",
+      "geslachtsnaam": "burger-026"
+    },
+    "nationaliteiten": [
+      {
+        "datumIngangGeldigheid": "20000101",
+        "nationaliteit": {
+          "code": "0001",
+          "omschrijving": "Nederlandse"
+        },
+        "redenOpname": {
+          "code": "001",
+          "omschrijving": "Wet op het Nederlanderschap 1892, art.1, lid 1a"
+        }
+      }
+    ],
+    "geboorte": {
+      "land": {
+        "code": "6030",
+        "omschrijving": "Nederland"
+      },
+      "plaats": {
+        "code": "0153",
+        "omschrijving": "Enschede"
+      },
+      "datum": "19800101"
+    },
+    "verblijfplaats": {
+      "functieAdres": {
+        "code": "W",
+        "omschrijving": "woonadres"
+      },
+      "datumIngangGeldigheid": "20000101",
+      "datumAanvangAdreshouding": "20000101",
+      "straat": "Perfstraat",
+      "huisnummer": "26",
+      "postcode": "7511AG"
+    },
+    "immigratie": {},
+    "gemeenteVanInschrijving": {
+      "code": "0153",
+      "omschrijving": "Enschede"
+    },
+    "datumInschrijvingInGemeente": "20000101",
+    "gezag": [],
+    "kinderen": [],
+    "ouders": [],
+    "partners": []
+  },
+  {
+    "aNummer": "1000000027",
+    "burgerservicenummer": "900000296",
+    "datumEersteInschrijvingGBA": "20000101",
+    "geslacht": {
+      "code": "M",
+      "omschrijving": "man"
+    },
+    "naam": {
+      "aanduidingNaamgebruik": {
+        "code": "E",
+        "omschrijving": "eigen geslachtsnaam"
+      },
+      "voornamen": "Perf",
+      "geslachtsnaam": "burger-027"
+    },
+    "nationaliteiten": [
+      {
+        "datumIngangGeldigheid": "20000101",
+        "nationaliteit": {
+          "code": "0001",
+          "omschrijving": "Nederlandse"
+        },
+        "redenOpname": {
+          "code": "001",
+          "omschrijving": "Wet op het Nederlanderschap 1892, art.1, lid 1a"
+        }
+      }
+    ],
+    "geboorte": {
+      "land": {
+        "code": "6030",
+        "omschrijving": "Nederland"
+      },
+      "plaats": {
+        "code": "0153",
+        "omschrijving": "Enschede"
+      },
+      "datum": "19800101"
+    },
+    "verblijfplaats": {
+      "functieAdres": {
+        "code": "W",
+        "omschrijving": "woonadres"
+      },
+      "datumIngangGeldigheid": "20000101",
+      "datumAanvangAdreshouding": "20000101",
+      "straat": "Perfstraat",
+      "huisnummer": "27",
+      "postcode": "7511AG"
+    },
+    "immigratie": {},
+    "gemeenteVanInschrijving": {
+      "code": "0153",
+      "omschrijving": "Enschede"
+    },
+    "datumInschrijvingInGemeente": "20000101",
+    "gezag": [],
+    "kinderen": [],
+    "ouders": [],
+    "partners": []
+  },
+  {
+    "aNummer": "1000000028",
+    "burgerservicenummer": "900000302",
+    "datumEersteInschrijvingGBA": "20000101",
+    "geslacht": {
+      "code": "M",
+      "omschrijving": "man"
+    },
+    "naam": {
+      "aanduidingNaamgebruik": {
+        "code": "E",
+        "omschrijving": "eigen geslachtsnaam"
+      },
+      "voornamen": "Perf",
+      "geslachtsnaam": "burger-028"
+    },
+    "nationaliteiten": [
+      {
+        "datumIngangGeldigheid": "20000101",
+        "nationaliteit": {
+          "code": "0001",
+          "omschrijving": "Nederlandse"
+        },
+        "redenOpname": {
+          "code": "001",
+          "omschrijving": "Wet op het Nederlanderschap 1892, art.1, lid 1a"
+        }
+      }
+    ],
+    "geboorte": {
+      "land": {
+        "code": "6030",
+        "omschrijving": "Nederland"
+      },
+      "plaats": {
+        "code": "0153",
+        "omschrijving": "Enschede"
+      },
+      "datum": "19800101"
+    },
+    "verblijfplaats": {
+      "functieAdres": {
+        "code": "W",
+        "omschrijving": "woonadres"
+      },
+      "datumIngangGeldigheid": "20000101",
+      "datumAanvangAdreshouding": "20000101",
+      "straat": "Perfstraat",
+      "huisnummer": "28",
+      "postcode": "7511AG"
+    },
+    "immigratie": {},
+    "gemeenteVanInschrijving": {
+      "code": "0153",
+      "omschrijving": "Enschede"
+    },
+    "datumInschrijvingInGemeente": "20000101",
+    "gezag": [],
+    "kinderen": [],
+    "ouders": [],
+    "partners": []
+  },
+  {
+    "aNummer": "1000000029",
+    "burgerservicenummer": "900000314",
+    "datumEersteInschrijvingGBA": "20000101",
+    "geslacht": {
+      "code": "M",
+      "omschrijving": "man"
+    },
+    "naam": {
+      "aanduidingNaamgebruik": {
+        "code": "E",
+        "omschrijving": "eigen geslachtsnaam"
+      },
+      "voornamen": "Perf",
+      "geslachtsnaam": "burger-029"
+    },
+    "nationaliteiten": [
+      {
+        "datumIngangGeldigheid": "20000101",
+        "nationaliteit": {
+          "code": "0001",
+          "omschrijving": "Nederlandse"
+        },
+        "redenOpname": {
+          "code": "001",
+          "omschrijving": "Wet op het Nederlanderschap 1892, art.1, lid 1a"
+        }
+      }
+    ],
+    "geboorte": {
+      "land": {
+        "code": "6030",
+        "omschrijving": "Nederland"
+      },
+      "plaats": {
+        "code": "0153",
+        "omschrijving": "Enschede"
+      },
+      "datum": "19800101"
+    },
+    "verblijfplaats": {
+      "functieAdres": {
+        "code": "W",
+        "omschrijving": "woonadres"
+      },
+      "datumIngangGeldigheid": "20000101",
+      "datumAanvangAdreshouding": "20000101",
+      "straat": "Perfstraat",
+      "huisnummer": "29",
+      "postcode": "7511AG"
+    },
+    "immigratie": {},
+    "gemeenteVanInschrijving": {
+      "code": "0153",
+      "omschrijving": "Enschede"
+    },
+    "datumInschrijvingInGemeente": "20000101",
+    "gezag": [],
+    "kinderen": [],
+    "ouders": [],
+    "partners": []
+  },
+  {
+    "aNummer": "1000000030",
+    "burgerservicenummer": "900000326",
+    "datumEersteInschrijvingGBA": "20000101",
+    "geslacht": {
+      "code": "M",
+      "omschrijving": "man"
+    },
+    "naam": {
+      "aanduidingNaamgebruik": {
+        "code": "E",
+        "omschrijving": "eigen geslachtsnaam"
+      },
+      "voornamen": "Perf",
+      "geslachtsnaam": "burger-030"
+    },
+    "nationaliteiten": [
+      {
+        "datumIngangGeldigheid": "20000101",
+        "nationaliteit": {
+          "code": "0001",
+          "omschrijving": "Nederlandse"
+        },
+        "redenOpname": {
+          "code": "001",
+          "omschrijving": "Wet op het Nederlanderschap 1892, art.1, lid 1a"
+        }
+      }
+    ],
+    "geboorte": {
+      "land": {
+        "code": "6030",
+        "omschrijving": "Nederland"
+      },
+      "plaats": {
+        "code": "0153",
+        "omschrijving": "Enschede"
+      },
+      "datum": "19800101"
+    },
+    "verblijfplaats": {
+      "functieAdres": {
+        "code": "W",
+        "omschrijving": "woonadres"
+      },
+      "datumIngangGeldigheid": "20000101",
+      "datumAanvangAdreshouding": "20000101",
+      "straat": "Perfstraat",
+      "huisnummer": "30",
+      "postcode": "7511AG"
+    },
+    "immigratie": {},
+    "gemeenteVanInschrijving": {
+      "code": "0153",
+      "omschrijving": "Enschede"
+    },
+    "datumInschrijvingInGemeente": "20000101",
+    "gezag": [],
+    "kinderen": [],
+    "ouders": [],
+    "partners": []
+  },
+  {
+    "aNummer": "1000000031",
+    "burgerservicenummer": "900000338",
+    "datumEersteInschrijvingGBA": "20000101",
+    "geslacht": {
+      "code": "M",
+      "omschrijving": "man"
+    },
+    "naam": {
+      "aanduidingNaamgebruik": {
+        "code": "E",
+        "omschrijving": "eigen geslachtsnaam"
+      },
+      "voornamen": "Perf",
+      "geslachtsnaam": "burger-031"
+    },
+    "nationaliteiten": [
+      {
+        "datumIngangGeldigheid": "20000101",
+        "nationaliteit": {
+          "code": "0001",
+          "omschrijving": "Nederlandse"
+        },
+        "redenOpname": {
+          "code": "001",
+          "omschrijving": "Wet op het Nederlanderschap 1892, art.1, lid 1a"
+        }
+      }
+    ],
+    "geboorte": {
+      "land": {
+        "code": "6030",
+        "omschrijving": "Nederland"
+      },
+      "plaats": {
+        "code": "0153",
+        "omschrijving": "Enschede"
+      },
+      "datum": "19800101"
+    },
+    "verblijfplaats": {
+      "functieAdres": {
+        "code": "W",
+        "omschrijving": "woonadres"
+      },
+      "datumIngangGeldigheid": "20000101",
+      "datumAanvangAdreshouding": "20000101",
+      "straat": "Perfstraat",
+      "huisnummer": "31",
+      "postcode": "7511AG"
+    },
+    "immigratie": {},
+    "gemeenteVanInschrijving": {
+      "code": "0153",
+      "omschrijving": "Enschede"
+    },
+    "datumInschrijvingInGemeente": "20000101",
+    "gezag": [],
+    "kinderen": [],
+    "ouders": [],
+    "partners": []
+  },
+  {
+    "aNummer": "1000000032",
+    "burgerservicenummer": "900000351",
+    "datumEersteInschrijvingGBA": "20000101",
+    "geslacht": {
+      "code": "M",
+      "omschrijving": "man"
+    },
+    "naam": {
+      "aanduidingNaamgebruik": {
+        "code": "E",
+        "omschrijving": "eigen geslachtsnaam"
+      },
+      "voornamen": "Perf",
+      "geslachtsnaam": "burger-032"
+    },
+    "nationaliteiten": [
+      {
+        "datumIngangGeldigheid": "20000101",
+        "nationaliteit": {
+          "code": "0001",
+          "omschrijving": "Nederlandse"
+        },
+        "redenOpname": {
+          "code": "001",
+          "omschrijving": "Wet op het Nederlanderschap 1892, art.1, lid 1a"
+        }
+      }
+    ],
+    "geboorte": {
+      "land": {
+        "code": "6030",
+        "omschrijving": "Nederland"
+      },
+      "plaats": {
+        "code": "0153",
+        "omschrijving": "Enschede"
+      },
+      "datum": "19800101"
+    },
+    "verblijfplaats": {
+      "functieAdres": {
+        "code": "W",
+        "omschrijving": "woonadres"
+      },
+      "datumIngangGeldigheid": "20000101",
+      "datumAanvangAdreshouding": "20000101",
+      "straat": "Perfstraat",
+      "huisnummer": "32",
+      "postcode": "7511AG"
+    },
+    "immigratie": {},
+    "gemeenteVanInschrijving": {
+      "code": "0153",
+      "omschrijving": "Enschede"
+    },
+    "datumInschrijvingInGemeente": "20000101",
+    "gezag": [],
+    "kinderen": [],
+    "ouders": [],
+    "partners": []
+  },
+  {
+    "aNummer": "1000000033",
+    "burgerservicenummer": "900000363",
+    "datumEersteInschrijvingGBA": "20000101",
+    "geslacht": {
+      "code": "M",
+      "omschrijving": "man"
+    },
+    "naam": {
+      "aanduidingNaamgebruik": {
+        "code": "E",
+        "omschrijving": "eigen geslachtsnaam"
+      },
+      "voornamen": "Perf",
+      "geslachtsnaam": "burger-033"
+    },
+    "nationaliteiten": [
+      {
+        "datumIngangGeldigheid": "20000101",
+        "nationaliteit": {
+          "code": "0001",
+          "omschrijving": "Nederlandse"
+        },
+        "redenOpname": {
+          "code": "001",
+          "omschrijving": "Wet op het Nederlanderschap 1892, art.1, lid 1a"
+        }
+      }
+    ],
+    "geboorte": {
+      "land": {
+        "code": "6030",
+        "omschrijving": "Nederland"
+      },
+      "plaats": {
+        "code": "0153",
+        "omschrijving": "Enschede"
+      },
+      "datum": "19800101"
+    },
+    "verblijfplaats": {
+      "functieAdres": {
+        "code": "W",
+        "omschrijving": "woonadres"
+      },
+      "datumIngangGeldigheid": "20000101",
+      "datumAanvangAdreshouding": "20000101",
+      "straat": "Perfstraat",
+      "huisnummer": "33",
+      "postcode": "7511AG"
+    },
+    "immigratie": {},
+    "gemeenteVanInschrijving": {
+      "code": "0153",
+      "omschrijving": "Enschede"
+    },
+    "datumInschrijvingInGemeente": "20000101",
+    "gezag": [],
+    "kinderen": [],
+    "ouders": [],
+    "partners": []
+  },
+  {
+    "aNummer": "1000000034",
+    "burgerservicenummer": "900000375",
+    "datumEersteInschrijvingGBA": "20000101",
+    "geslacht": {
+      "code": "M",
+      "omschrijving": "man"
+    },
+    "naam": {
+      "aanduidingNaamgebruik": {
+        "code": "E",
+        "omschrijving": "eigen geslachtsnaam"
+      },
+      "voornamen": "Perf",
+      "geslachtsnaam": "burger-034"
+    },
+    "nationaliteiten": [
+      {
+        "datumIngangGeldigheid": "20000101",
+        "nationaliteit": {
+          "code": "0001",
+          "omschrijving": "Nederlandse"
+        },
+        "redenOpname": {
+          "code": "001",
+          "omschrijving": "Wet op het Nederlanderschap 1892, art.1, lid 1a"
+        }
+      }
+    ],
+    "geboorte": {
+      "land": {
+        "code": "6030",
+        "omschrijving": "Nederland"
+      },
+      "plaats": {
+        "code": "0153",
+        "omschrijving": "Enschede"
+      },
+      "datum": "19800101"
+    },
+    "verblijfplaats": {
+      "functieAdres": {
+        "code": "W",
+        "omschrijving": "woonadres"
+      },
+      "datumIngangGeldigheid": "20000101",
+      "datumAanvangAdreshouding": "20000101",
+      "straat": "Perfstraat",
+      "huisnummer": "34",
+      "postcode": "7511AG"
+    },
+    "immigratie": {},
+    "gemeenteVanInschrijving": {
+      "code": "0153",
+      "omschrijving": "Enschede"
+    },
+    "datumInschrijvingInGemeente": "20000101",
+    "gezag": [],
+    "kinderen": [],
+    "ouders": [],
+    "partners": []
+  },
+  {
+    "aNummer": "1000000035",
+    "burgerservicenummer": "900000387",
+    "datumEersteInschrijvingGBA": "20000101",
+    "geslacht": {
+      "code": "M",
+      "omschrijving": "man"
+    },
+    "naam": {
+      "aanduidingNaamgebruik": {
+        "code": "E",
+        "omschrijving": "eigen geslachtsnaam"
+      },
+      "voornamen": "Perf",
+      "geslachtsnaam": "burger-035"
+    },
+    "nationaliteiten": [
+      {
+        "datumIngangGeldigheid": "20000101",
+        "nationaliteit": {
+          "code": "0001",
+          "omschrijving": "Nederlandse"
+        },
+        "redenOpname": {
+          "code": "001",
+          "omschrijving": "Wet op het Nederlanderschap 1892, art.1, lid 1a"
+        }
+      }
+    ],
+    "geboorte": {
+      "land": {
+        "code": "6030",
+        "omschrijving": "Nederland"
+      },
+      "plaats": {
+        "code": "0153",
+        "omschrijving": "Enschede"
+      },
+      "datum": "19800101"
+    },
+    "verblijfplaats": {
+      "functieAdres": {
+        "code": "W",
+        "omschrijving": "woonadres"
+      },
+      "datumIngangGeldigheid": "20000101",
+      "datumAanvangAdreshouding": "20000101",
+      "straat": "Perfstraat",
+      "huisnummer": "35",
+      "postcode": "7511AG"
+    },
+    "immigratie": {},
+    "gemeenteVanInschrijving": {
+      "code": "0153",
+      "omschrijving": "Enschede"
+    },
+    "datumInschrijvingInGemeente": "20000101",
+    "gezag": [],
+    "kinderen": [],
+    "ouders": [],
+    "partners": []
+  },
+  {
+    "aNummer": "1000000036",
+    "burgerservicenummer": "900000399",
+    "datumEersteInschrijvingGBA": "20000101",
+    "geslacht": {
+      "code": "M",
+      "omschrijving": "man"
+    },
+    "naam": {
+      "aanduidingNaamgebruik": {
+        "code": "E",
+        "omschrijving": "eigen geslachtsnaam"
+      },
+      "voornamen": "Perf",
+      "geslachtsnaam": "burger-036"
+    },
+    "nationaliteiten": [
+      {
+        "datumIngangGeldigheid": "20000101",
+        "nationaliteit": {
+          "code": "0001",
+          "omschrijving": "Nederlandse"
+        },
+        "redenOpname": {
+          "code": "001",
+          "omschrijving": "Wet op het Nederlanderschap 1892, art.1, lid 1a"
+        }
+      }
+    ],
+    "geboorte": {
+      "land": {
+        "code": "6030",
+        "omschrijving": "Nederland"
+      },
+      "plaats": {
+        "code": "0153",
+        "omschrijving": "Enschede"
+      },
+      "datum": "19800101"
+    },
+    "verblijfplaats": {
+      "functieAdres": {
+        "code": "W",
+        "omschrijving": "woonadres"
+      },
+      "datumIngangGeldigheid": "20000101",
+      "datumAanvangAdreshouding": "20000101",
+      "straat": "Perfstraat",
+      "huisnummer": "36",
+      "postcode": "7511AG"
+    },
+    "immigratie": {},
+    "gemeenteVanInschrijving": {
+      "code": "0153",
+      "omschrijving": "Enschede"
+    },
+    "datumInschrijvingInGemeente": "20000101",
+    "gezag": [],
+    "kinderen": [],
+    "ouders": [],
+    "partners": []
+  },
+  {
+    "aNummer": "1000000037",
+    "burgerservicenummer": "900000405",
+    "datumEersteInschrijvingGBA": "20000101",
+    "geslacht": {
+      "code": "M",
+      "omschrijving": "man"
+    },
+    "naam": {
+      "aanduidingNaamgebruik": {
+        "code": "E",
+        "omschrijving": "eigen geslachtsnaam"
+      },
+      "voornamen": "Perf",
+      "geslachtsnaam": "burger-037"
+    },
+    "nationaliteiten": [
+      {
+        "datumIngangGeldigheid": "20000101",
+        "nationaliteit": {
+          "code": "0001",
+          "omschrijving": "Nederlandse"
+        },
+        "redenOpname": {
+          "code": "001",
+          "omschrijving": "Wet op het Nederlanderschap 1892, art.1, lid 1a"
+        }
+      }
+    ],
+    "geboorte": {
+      "land": {
+        "code": "6030",
+        "omschrijving": "Nederland"
+      },
+      "plaats": {
+        "code": "0153",
+        "omschrijving": "Enschede"
+      },
+      "datum": "19800101"
+    },
+    "verblijfplaats": {
+      "functieAdres": {
+        "code": "W",
+        "omschrijving": "woonadres"
+      },
+      "datumIngangGeldigheid": "20000101",
+      "datumAanvangAdreshouding": "20000101",
+      "straat": "Perfstraat",
+      "huisnummer": "37",
+      "postcode": "7511AG"
+    },
+    "immigratie": {},
+    "gemeenteVanInschrijving": {
+      "code": "0153",
+      "omschrijving": "Enschede"
+    },
+    "datumInschrijvingInGemeente": "20000101",
+    "gezag": [],
+    "kinderen": [],
+    "ouders": [],
+    "partners": []
+  },
+  {
+    "aNummer": "1000000038",
+    "burgerservicenummer": "900000417",
+    "datumEersteInschrijvingGBA": "20000101",
+    "geslacht": {
+      "code": "M",
+      "omschrijving": "man"
+    },
+    "naam": {
+      "aanduidingNaamgebruik": {
+        "code": "E",
+        "omschrijving": "eigen geslachtsnaam"
+      },
+      "voornamen": "Perf",
+      "geslachtsnaam": "burger-038"
+    },
+    "nationaliteiten": [
+      {
+        "datumIngangGeldigheid": "20000101",
+        "nationaliteit": {
+          "code": "0001",
+          "omschrijving": "Nederlandse"
+        },
+        "redenOpname": {
+          "code": "001",
+          "omschrijving": "Wet op het Nederlanderschap 1892, art.1, lid 1a"
+        }
+      }
+    ],
+    "geboorte": {
+      "land": {
+        "code": "6030",
+        "omschrijving": "Nederland"
+      },
+      "plaats": {
+        "code": "0153",
+        "omschrijving": "Enschede"
+      },
+      "datum": "19800101"
+    },
+    "verblijfplaats": {
+      "functieAdres": {
+        "code": "W",
+        "omschrijving": "woonadres"
+      },
+      "datumIngangGeldigheid": "20000101",
+      "datumAanvangAdreshouding": "20000101",
+      "straat": "Perfstraat",
+      "huisnummer": "38",
+      "postcode": "7511AG"
+    },
+    "immigratie": {},
+    "gemeenteVanInschrijving": {
+      "code": "0153",
+      "omschrijving": "Enschede"
+    },
+    "datumInschrijvingInGemeente": "20000101",
+    "gezag": [],
+    "kinderen": [],
+    "ouders": [],
+    "partners": []
+  },
+  {
+    "aNummer": "1000000039",
+    "burgerservicenummer": "900000429",
+    "datumEersteInschrijvingGBA": "20000101",
+    "geslacht": {
+      "code": "M",
+      "omschrijving": "man"
+    },
+    "naam": {
+      "aanduidingNaamgebruik": {
+        "code": "E",
+        "omschrijving": "eigen geslachtsnaam"
+      },
+      "voornamen": "Perf",
+      "geslachtsnaam": "burger-039"
+    },
+    "nationaliteiten": [
+      {
+        "datumIngangGeldigheid": "20000101",
+        "nationaliteit": {
+          "code": "0001",
+          "omschrijving": "Nederlandse"
+        },
+        "redenOpname": {
+          "code": "001",
+          "omschrijving": "Wet op het Nederlanderschap 1892, art.1, lid 1a"
+        }
+      }
+    ],
+    "geboorte": {
+      "land": {
+        "code": "6030",
+        "omschrijving": "Nederland"
+      },
+      "plaats": {
+        "code": "0153",
+        "omschrijving": "Enschede"
+      },
+      "datum": "19800101"
+    },
+    "verblijfplaats": {
+      "functieAdres": {
+        "code": "W",
+        "omschrijving": "woonadres"
+      },
+      "datumIngangGeldigheid": "20000101",
+      "datumAanvangAdreshouding": "20000101",
+      "straat": "Perfstraat",
+      "huisnummer": "39",
+      "postcode": "7511AG"
+    },
+    "immigratie": {},
+    "gemeenteVanInschrijving": {
+      "code": "0153",
+      "omschrijving": "Enschede"
+    },
+    "datumInschrijvingInGemeente": "20000101",
+    "gezag": [],
+    "kinderen": [],
+    "ouders": [],
+    "partners": []
+  },
+  {
+    "aNummer": "1000000040",
+    "burgerservicenummer": "900000430",
+    "datumEersteInschrijvingGBA": "20000101",
+    "geslacht": {
+      "code": "M",
+      "omschrijving": "man"
+    },
+    "naam": {
+      "aanduidingNaamgebruik": {
+        "code": "E",
+        "omschrijving": "eigen geslachtsnaam"
+      },
+      "voornamen": "Perf",
+      "geslachtsnaam": "burger-040"
+    },
+    "nationaliteiten": [
+      {
+        "datumIngangGeldigheid": "20000101",
+        "nationaliteit": {
+          "code": "0001",
+          "omschrijving": "Nederlandse"
+        },
+        "redenOpname": {
+          "code": "001",
+          "omschrijving": "Wet op het Nederlanderschap 1892, art.1, lid 1a"
+        }
+      }
+    ],
+    "geboorte": {
+      "land": {
+        "code": "6030",
+        "omschrijving": "Nederland"
+      },
+      "plaats": {
+        "code": "0153",
+        "omschrijving": "Enschede"
+      },
+      "datum": "19800101"
+    },
+    "verblijfplaats": {
+      "functieAdres": {
+        "code": "W",
+        "omschrijving": "woonadres"
+      },
+      "datumIngangGeldigheid": "20000101",
+      "datumAanvangAdreshouding": "20000101",
+      "straat": "Perfstraat",
+      "huisnummer": "40",
+      "postcode": "7511AG"
+    },
+    "immigratie": {},
+    "gemeenteVanInschrijving": {
+      "code": "0153",
+      "omschrijving": "Enschede"
+    },
+    "datumInschrijvingInGemeente": "20000101",
+    "gezag": [],
+    "kinderen": [],
+    "ouders": [],
+    "partners": []
+  },
+  {
+    "aNummer": "1000000041",
+    "burgerservicenummer": "900000442",
+    "datumEersteInschrijvingGBA": "20000101",
+    "geslacht": {
+      "code": "M",
+      "omschrijving": "man"
+    },
+    "naam": {
+      "aanduidingNaamgebruik": {
+        "code": "E",
+        "omschrijving": "eigen geslachtsnaam"
+      },
+      "voornamen": "Perf",
+      "geslachtsnaam": "burger-041"
+    },
+    "nationaliteiten": [
+      {
+        "datumIngangGeldigheid": "20000101",
+        "nationaliteit": {
+          "code": "0001",
+          "omschrijving": "Nederlandse"
+        },
+        "redenOpname": {
+          "code": "001",
+          "omschrijving": "Wet op het Nederlanderschap 1892, art.1, lid 1a"
+        }
+      }
+    ],
+    "geboorte": {
+      "land": {
+        "code": "6030",
+        "omschrijving": "Nederland"
+      },
+      "plaats": {
+        "code": "0153",
+        "omschrijving": "Enschede"
+      },
+      "datum": "19800101"
+    },
+    "verblijfplaats": {
+      "functieAdres": {
+        "code": "W",
+        "omschrijving": "woonadres"
+      },
+      "datumIngangGeldigheid": "20000101",
+      "datumAanvangAdreshouding": "20000101",
+      "straat": "Perfstraat",
+      "huisnummer": "41",
+      "postcode": "7511AG"
+    },
+    "immigratie": {},
+    "gemeenteVanInschrijving": {
+      "code": "0153",
+      "omschrijving": "Enschede"
+    },
+    "datumInschrijvingInGemeente": "20000101",
+    "gezag": [],
+    "kinderen": [],
+    "ouders": [],
+    "partners": []
+  },
+  {
+    "aNummer": "1000000042",
+    "burgerservicenummer": "900000454",
+    "datumEersteInschrijvingGBA": "20000101",
+    "geslacht": {
+      "code": "M",
+      "omschrijving": "man"
+    },
+    "naam": {
+      "aanduidingNaamgebruik": {
+        "code": "E",
+        "omschrijving": "eigen geslachtsnaam"
+      },
+      "voornamen": "Perf",
+      "geslachtsnaam": "burger-042"
+    },
+    "nationaliteiten": [
+      {
+        "datumIngangGeldigheid": "20000101",
+        "nationaliteit": {
+          "code": "0001",
+          "omschrijving": "Nederlandse"
+        },
+        "redenOpname": {
+          "code": "001",
+          "omschrijving": "Wet op het Nederlanderschap 1892, art.1, lid 1a"
+        }
+      }
+    ],
+    "geboorte": {
+      "land": {
+        "code": "6030",
+        "omschrijving": "Nederland"
+      },
+      "plaats": {
+        "code": "0153",
+        "omschrijving": "Enschede"
+      },
+      "datum": "19800101"
+    },
+    "verblijfplaats": {
+      "functieAdres": {
+        "code": "W",
+        "omschrijving": "woonadres"
+      },
+      "datumIngangGeldigheid": "20000101",
+      "datumAanvangAdreshouding": "20000101",
+      "straat": "Perfstraat",
+      "huisnummer": "42",
+      "postcode": "7511AG"
+    },
+    "immigratie": {},
+    "gemeenteVanInschrijving": {
+      "code": "0153",
+      "omschrijving": "Enschede"
+    },
+    "datumInschrijvingInGemeente": "20000101",
+    "gezag": [],
+    "kinderen": [],
+    "ouders": [],
+    "partners": []
+  },
+  {
+    "aNummer": "1000000043",
+    "burgerservicenummer": "900000466",
+    "datumEersteInschrijvingGBA": "20000101",
+    "geslacht": {
+      "code": "M",
+      "omschrijving": "man"
+    },
+    "naam": {
+      "aanduidingNaamgebruik": {
+        "code": "E",
+        "omschrijving": "eigen geslachtsnaam"
+      },
+      "voornamen": "Perf",
+      "geslachtsnaam": "burger-043"
+    },
+    "nationaliteiten": [
+      {
+        "datumIngangGeldigheid": "20000101",
+        "nationaliteit": {
+          "code": "0001",
+          "omschrijving": "Nederlandse"
+        },
+        "redenOpname": {
+          "code": "001",
+          "omschrijving": "Wet op het Nederlanderschap 1892, art.1, lid 1a"
+        }
+      }
+    ],
+    "geboorte": {
+      "land": {
+        "code": "6030",
+        "omschrijving": "Nederland"
+      },
+      "plaats": {
+        "code": "0153",
+        "omschrijving": "Enschede"
+      },
+      "datum": "19800101"
+    },
+    "verblijfplaats": {
+      "functieAdres": {
+        "code": "W",
+        "omschrijving": "woonadres"
+      },
+      "datumIngangGeldigheid": "20000101",
+      "datumAanvangAdreshouding": "20000101",
+      "straat": "Perfstraat",
+      "huisnummer": "43",
+      "postcode": "7511AG"
+    },
+    "immigratie": {},
+    "gemeenteVanInschrijving": {
+      "code": "0153",
+      "omschrijving": "Enschede"
+    },
+    "datumInschrijvingInGemeente": "20000101",
+    "gezag": [],
+    "kinderen": [],
+    "ouders": [],
+    "partners": []
+  },
+  {
+    "aNummer": "1000000044",
+    "burgerservicenummer": "900000478",
+    "datumEersteInschrijvingGBA": "20000101",
+    "geslacht": {
+      "code": "M",
+      "omschrijving": "man"
+    },
+    "naam": {
+      "aanduidingNaamgebruik": {
+        "code": "E",
+        "omschrijving": "eigen geslachtsnaam"
+      },
+      "voornamen": "Perf",
+      "geslachtsnaam": "burger-044"
+    },
+    "nationaliteiten": [
+      {
+        "datumIngangGeldigheid": "20000101",
+        "nationaliteit": {
+          "code": "0001",
+          "omschrijving": "Nederlandse"
+        },
+        "redenOpname": {
+          "code": "001",
+          "omschrijving": "Wet op het Nederlanderschap 1892, art.1, lid 1a"
+        }
+      }
+    ],
+    "geboorte": {
+      "land": {
+        "code": "6030",
+        "omschrijving": "Nederland"
+      },
+      "plaats": {
+        "code": "0153",
+        "omschrijving": "Enschede"
+      },
+      "datum": "19800101"
+    },
+    "verblijfplaats": {
+      "functieAdres": {
+        "code": "W",
+        "omschrijving": "woonadres"
+      },
+      "datumIngangGeldigheid": "20000101",
+      "datumAanvangAdreshouding": "20000101",
+      "straat": "Perfstraat",
+      "huisnummer": "44",
+      "postcode": "7511AG"
+    },
+    "immigratie": {},
+    "gemeenteVanInschrijving": {
+      "code": "0153",
+      "omschrijving": "Enschede"
+    },
+    "datumInschrijvingInGemeente": "20000101",
+    "gezag": [],
+    "kinderen": [],
+    "ouders": [],
+    "partners": []
+  },
+  {
+    "aNummer": "1000000045",
+    "burgerservicenummer": "900000491",
+    "datumEersteInschrijvingGBA": "20000101",
+    "geslacht": {
+      "code": "M",
+      "omschrijving": "man"
+    },
+    "naam": {
+      "aanduidingNaamgebruik": {
+        "code": "E",
+        "omschrijving": "eigen geslachtsnaam"
+      },
+      "voornamen": "Perf",
+      "geslachtsnaam": "burger-045"
+    },
+    "nationaliteiten": [
+      {
+        "datumIngangGeldigheid": "20000101",
+        "nationaliteit": {
+          "code": "0001",
+          "omschrijving": "Nederlandse"
+        },
+        "redenOpname": {
+          "code": "001",
+          "omschrijving": "Wet op het Nederlanderschap 1892, art.1, lid 1a"
+        }
+      }
+    ],
+    "geboorte": {
+      "land": {
+        "code": "6030",
+        "omschrijving": "Nederland"
+      },
+      "plaats": {
+        "code": "0153",
+        "omschrijving": "Enschede"
+      },
+      "datum": "19800101"
+    },
+    "verblijfplaats": {
+      "functieAdres": {
+        "code": "W",
+        "omschrijving": "woonadres"
+      },
+      "datumIngangGeldigheid": "20000101",
+      "datumAanvangAdreshouding": "20000101",
+      "straat": "Perfstraat",
+      "huisnummer": "45",
+      "postcode": "7511AG"
+    },
+    "immigratie": {},
+    "gemeenteVanInschrijving": {
+      "code": "0153",
+      "omschrijving": "Enschede"
+    },
+    "datumInschrijvingInGemeente": "20000101",
+    "gezag": [],
+    "kinderen": [],
+    "ouders": [],
+    "partners": []
+  },
+  {
+    "aNummer": "1000000046",
+    "burgerservicenummer": "900000508",
+    "datumEersteInschrijvingGBA": "20000101",
+    "geslacht": {
+      "code": "M",
+      "omschrijving": "man"
+    },
+    "naam": {
+      "aanduidingNaamgebruik": {
+        "code": "E",
+        "omschrijving": "eigen geslachtsnaam"
+      },
+      "voornamen": "Perf",
+      "geslachtsnaam": "burger-046"
+    },
+    "nationaliteiten": [
+      {
+        "datumIngangGeldigheid": "20000101",
+        "nationaliteit": {
+          "code": "0001",
+          "omschrijving": "Nederlandse"
+        },
+        "redenOpname": {
+          "code": "001",
+          "omschrijving": "Wet op het Nederlanderschap 1892, art.1, lid 1a"
+        }
+      }
+    ],
+    "geboorte": {
+      "land": {
+        "code": "6030",
+        "omschrijving": "Nederland"
+      },
+      "plaats": {
+        "code": "0153",
+        "omschrijving": "Enschede"
+      },
+      "datum": "19800101"
+    },
+    "verblijfplaats": {
+      "functieAdres": {
+        "code": "W",
+        "omschrijving": "woonadres"
+      },
+      "datumIngangGeldigheid": "20000101",
+      "datumAanvangAdreshouding": "20000101",
+      "straat": "Perfstraat",
+      "huisnummer": "46",
+      "postcode": "7511AG"
+    },
+    "immigratie": {},
+    "gemeenteVanInschrijving": {
+      "code": "0153",
+      "omschrijving": "Enschede"
+    },
+    "datumInschrijvingInGemeente": "20000101",
+    "gezag": [],
+    "kinderen": [],
+    "ouders": [],
+    "partners": []
+  },
+  {
+    "aNummer": "1000000047",
+    "burgerservicenummer": "900000521",
+    "datumEersteInschrijvingGBA": "20000101",
+    "geslacht": {
+      "code": "M",
+      "omschrijving": "man"
+    },
+    "naam": {
+      "aanduidingNaamgebruik": {
+        "code": "E",
+        "omschrijving": "eigen geslachtsnaam"
+      },
+      "voornamen": "Perf",
+      "geslachtsnaam": "burger-047"
+    },
+    "nationaliteiten": [
+      {
+        "datumIngangGeldigheid": "20000101",
+        "nationaliteit": {
+          "code": "0001",
+          "omschrijving": "Nederlandse"
+        },
+        "redenOpname": {
+          "code": "001",
+          "omschrijving": "Wet op het Nederlanderschap 1892, art.1, lid 1a"
+        }
+      }
+    ],
+    "geboorte": {
+      "land": {
+        "code": "6030",
+        "omschrijving": "Nederland"
+      },
+      "plaats": {
+        "code": "0153",
+        "omschrijving": "Enschede"
+      },
+      "datum": "19800101"
+    },
+    "verblijfplaats": {
+      "functieAdres": {
+        "code": "W",
+        "omschrijving": "woonadres"
+      },
+      "datumIngangGeldigheid": "20000101",
+      "datumAanvangAdreshouding": "20000101",
+      "straat": "Perfstraat",
+      "huisnummer": "47",
+      "postcode": "7511AG"
+    },
+    "immigratie": {},
+    "gemeenteVanInschrijving": {
+      "code": "0153",
+      "omschrijving": "Enschede"
+    },
+    "datumInschrijvingInGemeente": "20000101",
+    "gezag": [],
+    "kinderen": [],
+    "ouders": [],
+    "partners": []
+  },
+  {
+    "aNummer": "1000000048",
+    "burgerservicenummer": "900000533",
+    "datumEersteInschrijvingGBA": "20000101",
+    "geslacht": {
+      "code": "M",
+      "omschrijving": "man"
+    },
+    "naam": {
+      "aanduidingNaamgebruik": {
+        "code": "E",
+        "omschrijving": "eigen geslachtsnaam"
+      },
+      "voornamen": "Perf",
+      "geslachtsnaam": "burger-048"
+    },
+    "nationaliteiten": [
+      {
+        "datumIngangGeldigheid": "20000101",
+        "nationaliteit": {
+          "code": "0001",
+          "omschrijving": "Nederlandse"
+        },
+        "redenOpname": {
+          "code": "001",
+          "omschrijving": "Wet op het Nederlanderschap 1892, art.1, lid 1a"
+        }
+      }
+    ],
+    "geboorte": {
+      "land": {
+        "code": "6030",
+        "omschrijving": "Nederland"
+      },
+      "plaats": {
+        "code": "0153",
+        "omschrijving": "Enschede"
+      },
+      "datum": "19800101"
+    },
+    "verblijfplaats": {
+      "functieAdres": {
+        "code": "W",
+        "omschrijving": "woonadres"
+      },
+      "datumIngangGeldigheid": "20000101",
+      "datumAanvangAdreshouding": "20000101",
+      "straat": "Perfstraat",
+      "huisnummer": "48",
+      "postcode": "7511AG"
+    },
+    "immigratie": {},
+    "gemeenteVanInschrijving": {
+      "code": "0153",
+      "omschrijving": "Enschede"
+    },
+    "datumInschrijvingInGemeente": "20000101",
+    "gezag": [],
+    "kinderen": [],
+    "ouders": [],
+    "partners": []
+  },
+  {
+    "aNummer": "1000000049",
+    "burgerservicenummer": "900000545",
+    "datumEersteInschrijvingGBA": "20000101",
+    "geslacht": {
+      "code": "M",
+      "omschrijving": "man"
+    },
+    "naam": {
+      "aanduidingNaamgebruik": {
+        "code": "E",
+        "omschrijving": "eigen geslachtsnaam"
+      },
+      "voornamen": "Perf",
+      "geslachtsnaam": "burger-049"
+    },
+    "nationaliteiten": [
+      {
+        "datumIngangGeldigheid": "20000101",
+        "nationaliteit": {
+          "code": "0001",
+          "omschrijving": "Nederlandse"
+        },
+        "redenOpname": {
+          "code": "001",
+          "omschrijving": "Wet op het Nederlanderschap 1892, art.1, lid 1a"
+        }
+      }
+    ],
+    "geboorte": {
+      "land": {
+        "code": "6030",
+        "omschrijving": "Nederland"
+      },
+      "plaats": {
+        "code": "0153",
+        "omschrijving": "Enschede"
+      },
+      "datum": "19800101"
+    },
+    "verblijfplaats": {
+      "functieAdres": {
+        "code": "W",
+        "omschrijving": "woonadres"
+      },
+      "datumIngangGeldigheid": "20000101",
+      "datumAanvangAdreshouding": "20000101",
+      "straat": "Perfstraat",
+      "huisnummer": "49",
+      "postcode": "7511AG"
+    },
+    "immigratie": {},
+    "gemeenteVanInschrijving": {
+      "code": "0153",
+      "omschrijving": "Enschede"
+    },
+    "datumInschrijvingInGemeente": "20000101",
+    "gezag": [],
+    "kinderen": [],
+    "ouders": [],
+    "partners": []
+  },
+  {
+    "aNummer": "1000000050",
+    "burgerservicenummer": "900000557",
+    "datumEersteInschrijvingGBA": "20000101",
+    "geslacht": {
+      "code": "M",
+      "omschrijving": "man"
+    },
+    "naam": {
+      "aanduidingNaamgebruik": {
+        "code": "E",
+        "omschrijving": "eigen geslachtsnaam"
+      },
+      "voornamen": "Perf",
+      "geslachtsnaam": "burger-050"
+    },
+    "nationaliteiten": [
+      {
+        "datumIngangGeldigheid": "20000101",
+        "nationaliteit": {
+          "code": "0001",
+          "omschrijving": "Nederlandse"
+        },
+        "redenOpname": {
+          "code": "001",
+          "omschrijving": "Wet op het Nederlanderschap 1892, art.1, lid 1a"
+        }
+      }
+    ],
+    "geboorte": {
+      "land": {
+        "code": "6030",
+        "omschrijving": "Nederland"
+      },
+      "plaats": {
+        "code": "0153",
+        "omschrijving": "Enschede"
+      },
+      "datum": "19800101"
+    },
+    "verblijfplaats": {
+      "functieAdres": {
+        "code": "W",
+        "omschrijving": "woonadres"
+      },
+      "datumIngangGeldigheid": "20000101",
+      "datumAanvangAdreshouding": "20000101",
+      "straat": "Perfstraat",
+      "huisnummer": "50",
+      "postcode": "7511AG"
+    },
+    "immigratie": {},
+    "gemeenteVanInschrijving": {
+      "code": "0153",
+      "omschrijving": "Enschede"
+    },
+    "datumInschrijvingInGemeente": "20000101",
+    "gezag": [],
+    "kinderen": [],
+    "ouders": [],
+    "partners": []
+  },
+  {
+    "aNummer": "1000000051",
+    "burgerservicenummer": "900000569",
+    "datumEersteInschrijvingGBA": "20000101",
+    "geslacht": {
+      "code": "M",
+      "omschrijving": "man"
+    },
+    "naam": {
+      "aanduidingNaamgebruik": {
+        "code": "E",
+        "omschrijving": "eigen geslachtsnaam"
+      },
+      "voornamen": "Perf",
+      "geslachtsnaam": "burger-051"
+    },
+    "nationaliteiten": [
+      {
+        "datumIngangGeldigheid": "20000101",
+        "nationaliteit": {
+          "code": "0001",
+          "omschrijving": "Nederlandse"
+        },
+        "redenOpname": {
+          "code": "001",
+          "omschrijving": "Wet op het Nederlanderschap 1892, art.1, lid 1a"
+        }
+      }
+    ],
+    "geboorte": {
+      "land": {
+        "code": "6030",
+        "omschrijving": "Nederland"
+      },
+      "plaats": {
+        "code": "0153",
+        "omschrijving": "Enschede"
+      },
+      "datum": "19800101"
+    },
+    "verblijfplaats": {
+      "functieAdres": {
+        "code": "W",
+        "omschrijving": "woonadres"
+      },
+      "datumIngangGeldigheid": "20000101",
+      "datumAanvangAdreshouding": "20000101",
+      "straat": "Perfstraat",
+      "huisnummer": "51",
+      "postcode": "7511AG"
+    },
+    "immigratie": {},
+    "gemeenteVanInschrijving": {
+      "code": "0153",
+      "omschrijving": "Enschede"
+    },
+    "datumInschrijvingInGemeente": "20000101",
+    "gezag": [],
+    "kinderen": [],
+    "ouders": [],
+    "partners": []
+  },
+  {
+    "aNummer": "1000000052",
+    "burgerservicenummer": "900000570",
+    "datumEersteInschrijvingGBA": "20000101",
+    "geslacht": {
+      "code": "M",
+      "omschrijving": "man"
+    },
+    "naam": {
+      "aanduidingNaamgebruik": {
+        "code": "E",
+        "omschrijving": "eigen geslachtsnaam"
+      },
+      "voornamen": "Perf",
+      "geslachtsnaam": "burger-052"
+    },
+    "nationaliteiten": [
+      {
+        "datumIngangGeldigheid": "20000101",
+        "nationaliteit": {
+          "code": "0001",
+          "omschrijving": "Nederlandse"
+        },
+        "redenOpname": {
+          "code": "001",
+          "omschrijving": "Wet op het Nederlanderschap 1892, art.1, lid 1a"
+        }
+      }
+    ],
+    "geboorte": {
+      "land": {
+        "code": "6030",
+        "omschrijving": "Nederland"
+      },
+      "plaats": {
+        "code": "0153",
+        "omschrijving": "Enschede"
+      },
+      "datum": "19800101"
+    },
+    "verblijfplaats": {
+      "functieAdres": {
+        "code": "W",
+        "omschrijving": "woonadres"
+      },
+      "datumIngangGeldigheid": "20000101",
+      "datumAanvangAdreshouding": "20000101",
+      "straat": "Perfstraat",
+      "huisnummer": "52",
+      "postcode": "7511AG"
+    },
+    "immigratie": {},
+    "gemeenteVanInschrijving": {
+      "code": "0153",
+      "omschrijving": "Enschede"
+    },
+    "datumInschrijvingInGemeente": "20000101",
+    "gezag": [],
+    "kinderen": [],
+    "ouders": [],
+    "partners": []
+  },
+  {
+    "aNummer": "1000000053",
+    "burgerservicenummer": "900000582",
+    "datumEersteInschrijvingGBA": "20000101",
+    "geslacht": {
+      "code": "M",
+      "omschrijving": "man"
+    },
+    "naam": {
+      "aanduidingNaamgebruik": {
+        "code": "E",
+        "omschrijving": "eigen geslachtsnaam"
+      },
+      "voornamen": "Perf",
+      "geslachtsnaam": "burger-053"
+    },
+    "nationaliteiten": [
+      {
+        "datumIngangGeldigheid": "20000101",
+        "nationaliteit": {
+          "code": "0001",
+          "omschrijving": "Nederlandse"
+        },
+        "redenOpname": {
+          "code": "001",
+          "omschrijving": "Wet op het Nederlanderschap 1892, art.1, lid 1a"
+        }
+      }
+    ],
+    "geboorte": {
+      "land": {
+        "code": "6030",
+        "omschrijving": "Nederland"
+      },
+      "plaats": {
+        "code": "0153",
+        "omschrijving": "Enschede"
+      },
+      "datum": "19800101"
+    },
+    "verblijfplaats": {
+      "functieAdres": {
+        "code": "W",
+        "omschrijving": "woonadres"
+      },
+      "datumIngangGeldigheid": "20000101",
+      "datumAanvangAdreshouding": "20000101",
+      "straat": "Perfstraat",
+      "huisnummer": "53",
+      "postcode": "7511AG"
+    },
+    "immigratie": {},
+    "gemeenteVanInschrijving": {
+      "code": "0153",
+      "omschrijving": "Enschede"
+    },
+    "datumInschrijvingInGemeente": "20000101",
+    "gezag": [],
+    "kinderen": [],
+    "ouders": [],
+    "partners": []
+  },
+  {
+    "aNummer": "1000000054",
+    "burgerservicenummer": "900000594",
+    "datumEersteInschrijvingGBA": "20000101",
+    "geslacht": {
+      "code": "M",
+      "omschrijving": "man"
+    },
+    "naam": {
+      "aanduidingNaamgebruik": {
+        "code": "E",
+        "omschrijving": "eigen geslachtsnaam"
+      },
+      "voornamen": "Perf",
+      "geslachtsnaam": "burger-054"
+    },
+    "nationaliteiten": [
+      {
+        "datumIngangGeldigheid": "20000101",
+        "nationaliteit": {
+          "code": "0001",
+          "omschrijving": "Nederlandse"
+        },
+        "redenOpname": {
+          "code": "001",
+          "omschrijving": "Wet op het Nederlanderschap 1892, art.1, lid 1a"
+        }
+      }
+    ],
+    "geboorte": {
+      "land": {
+        "code": "6030",
+        "omschrijving": "Nederland"
+      },
+      "plaats": {
+        "code": "0153",
+        "omschrijving": "Enschede"
+      },
+      "datum": "19800101"
+    },
+    "verblijfplaats": {
+      "functieAdres": {
+        "code": "W",
+        "omschrijving": "woonadres"
+      },
+      "datumIngangGeldigheid": "20000101",
+      "datumAanvangAdreshouding": "20000101",
+      "straat": "Perfstraat",
+      "huisnummer": "54",
+      "postcode": "7511AG"
+    },
+    "immigratie": {},
+    "gemeenteVanInschrijving": {
+      "code": "0153",
+      "omschrijving": "Enschede"
+    },
+    "datumInschrijvingInGemeente": "20000101",
+    "gezag": [],
+    "kinderen": [],
+    "ouders": [],
+    "partners": []
+  },
+  {
+    "aNummer": "1000000055",
+    "burgerservicenummer": "900000600",
+    "datumEersteInschrijvingGBA": "20000101",
+    "geslacht": {
+      "code": "M",
+      "omschrijving": "man"
+    },
+    "naam": {
+      "aanduidingNaamgebruik": {
+        "code": "E",
+        "omschrijving": "eigen geslachtsnaam"
+      },
+      "voornamen": "Perf",
+      "geslachtsnaam": "burger-055"
+    },
+    "nationaliteiten": [
+      {
+        "datumIngangGeldigheid": "20000101",
+        "nationaliteit": {
+          "code": "0001",
+          "omschrijving": "Nederlandse"
+        },
+        "redenOpname": {
+          "code": "001",
+          "omschrijving": "Wet op het Nederlanderschap 1892, art.1, lid 1a"
+        }
+      }
+    ],
+    "geboorte": {
+      "land": {
+        "code": "6030",
+        "omschrijving": "Nederland"
+      },
+      "plaats": {
+        "code": "0153",
+        "omschrijving": "Enschede"
+      },
+      "datum": "19800101"
+    },
+    "verblijfplaats": {
+      "functieAdres": {
+        "code": "W",
+        "omschrijving": "woonadres"
+      },
+      "datumIngangGeldigheid": "20000101",
+      "datumAanvangAdreshouding": "20000101",
+      "straat": "Perfstraat",
+      "huisnummer": "55",
+      "postcode": "7511AG"
+    },
+    "immigratie": {},
+    "gemeenteVanInschrijving": {
+      "code": "0153",
+      "omschrijving": "Enschede"
+    },
+    "datumInschrijvingInGemeente": "20000101",
+    "gezag": [],
+    "kinderen": [],
+    "ouders": [],
+    "partners": []
+  },
+  {
+    "aNummer": "1000000056",
+    "burgerservicenummer": "900000612",
+    "datumEersteInschrijvingGBA": "20000101",
+    "geslacht": {
+      "code": "M",
+      "omschrijving": "man"
+    },
+    "naam": {
+      "aanduidingNaamgebruik": {
+        "code": "E",
+        "omschrijving": "eigen geslachtsnaam"
+      },
+      "voornamen": "Perf",
+      "geslachtsnaam": "burger-056"
+    },
+    "nationaliteiten": [
+      {
+        "datumIngangGeldigheid": "20000101",
+        "nationaliteit": {
+          "code": "0001",
+          "omschrijving": "Nederlandse"
+        },
+        "redenOpname": {
+          "code": "001",
+          "omschrijving": "Wet op het Nederlanderschap 1892, art.1, lid 1a"
+        }
+      }
+    ],
+    "geboorte": {
+      "land": {
+        "code": "6030",
+        "omschrijving": "Nederland"
+      },
+      "plaats": {
+        "code": "0153",
+        "omschrijving": "Enschede"
+      },
+      "datum": "19800101"
+    },
+    "verblijfplaats": {
+      "functieAdres": {
+        "code": "W",
+        "omschrijving": "woonadres"
+      },
+      "datumIngangGeldigheid": "20000101",
+      "datumAanvangAdreshouding": "20000101",
+      "straat": "Perfstraat",
+      "huisnummer": "56",
+      "postcode": "7511AG"
+    },
+    "immigratie": {},
+    "gemeenteVanInschrijving": {
+      "code": "0153",
+      "omschrijving": "Enschede"
+    },
+    "datumInschrijvingInGemeente": "20000101",
+    "gezag": [],
+    "kinderen": [],
+    "ouders": [],
+    "partners": []
+  },
+  {
+    "aNummer": "1000000057",
+    "burgerservicenummer": "900000624",
+    "datumEersteInschrijvingGBA": "20000101",
+    "geslacht": {
+      "code": "M",
+      "omschrijving": "man"
+    },
+    "naam": {
+      "aanduidingNaamgebruik": {
+        "code": "E",
+        "omschrijving": "eigen geslachtsnaam"
+      },
+      "voornamen": "Perf",
+      "geslachtsnaam": "burger-057"
+    },
+    "nationaliteiten": [
+      {
+        "datumIngangGeldigheid": "20000101",
+        "nationaliteit": {
+          "code": "0001",
+          "omschrijving": "Nederlandse"
+        },
+        "redenOpname": {
+          "code": "001",
+          "omschrijving": "Wet op het Nederlanderschap 1892, art.1, lid 1a"
+        }
+      }
+    ],
+    "geboorte": {
+      "land": {
+        "code": "6030",
+        "omschrijving": "Nederland"
+      },
+      "plaats": {
+        "code": "0153",
+        "omschrijving": "Enschede"
+      },
+      "datum": "19800101"
+    },
+    "verblijfplaats": {
+      "functieAdres": {
+        "code": "W",
+        "omschrijving": "woonadres"
+      },
+      "datumIngangGeldigheid": "20000101",
+      "datumAanvangAdreshouding": "20000101",
+      "straat": "Perfstraat",
+      "huisnummer": "57",
+      "postcode": "7511AG"
+    },
+    "immigratie": {},
+    "gemeenteVanInschrijving": {
+      "code": "0153",
+      "omschrijving": "Enschede"
+    },
+    "datumInschrijvingInGemeente": "20000101",
+    "gezag": [],
+    "kinderen": [],
+    "ouders": [],
+    "partners": []
+  },
+  {
+    "aNummer": "1000000058",
+    "burgerservicenummer": "900000636",
+    "datumEersteInschrijvingGBA": "20000101",
+    "geslacht": {
+      "code": "M",
+      "omschrijving": "man"
+    },
+    "naam": {
+      "aanduidingNaamgebruik": {
+        "code": "E",
+        "omschrijving": "eigen geslachtsnaam"
+      },
+      "voornamen": "Perf",
+      "geslachtsnaam": "burger-058"
+    },
+    "nationaliteiten": [
+      {
+        "datumIngangGeldigheid": "20000101",
+        "nationaliteit": {
+          "code": "0001",
+          "omschrijving": "Nederlandse"
+        },
+        "redenOpname": {
+          "code": "001",
+          "omschrijving": "Wet op het Nederlanderschap 1892, art.1, lid 1a"
+        }
+      }
+    ],
+    "geboorte": {
+      "land": {
+        "code": "6030",
+        "omschrijving": "Nederland"
+      },
+      "plaats": {
+        "code": "0153",
+        "omschrijving": "Enschede"
+      },
+      "datum": "19800101"
+    },
+    "verblijfplaats": {
+      "functieAdres": {
+        "code": "W",
+        "omschrijving": "woonadres"
+      },
+      "datumIngangGeldigheid": "20000101",
+      "datumAanvangAdreshouding": "20000101",
+      "straat": "Perfstraat",
+      "huisnummer": "58",
+      "postcode": "7511AG"
+    },
+    "immigratie": {},
+    "gemeenteVanInschrijving": {
+      "code": "0153",
+      "omschrijving": "Enschede"
+    },
+    "datumInschrijvingInGemeente": "20000101",
+    "gezag": [],
+    "kinderen": [],
+    "ouders": [],
+    "partners": []
+  },
+  {
+    "aNummer": "1000000059",
+    "burgerservicenummer": "900000648",
+    "datumEersteInschrijvingGBA": "20000101",
+    "geslacht": {
+      "code": "M",
+      "omschrijving": "man"
+    },
+    "naam": {
+      "aanduidingNaamgebruik": {
+        "code": "E",
+        "omschrijving": "eigen geslachtsnaam"
+      },
+      "voornamen": "Perf",
+      "geslachtsnaam": "burger-059"
+    },
+    "nationaliteiten": [
+      {
+        "datumIngangGeldigheid": "20000101",
+        "nationaliteit": {
+          "code": "0001",
+          "omschrijving": "Nederlandse"
+        },
+        "redenOpname": {
+          "code": "001",
+          "omschrijving": "Wet op het Nederlanderschap 1892, art.1, lid 1a"
+        }
+      }
+    ],
+    "geboorte": {
+      "land": {
+        "code": "6030",
+        "omschrijving": "Nederland"
+      },
+      "plaats": {
+        "code": "0153",
+        "omschrijving": "Enschede"
+      },
+      "datum": "19800101"
+    },
+    "verblijfplaats": {
+      "functieAdres": {
+        "code": "W",
+        "omschrijving": "woonadres"
+      },
+      "datumIngangGeldigheid": "20000101",
+      "datumAanvangAdreshouding": "20000101",
+      "straat": "Perfstraat",
+      "huisnummer": "59",
+      "postcode": "7511AG"
+    },
+    "immigratie": {},
+    "gemeenteVanInschrijving": {
+      "code": "0153",
+      "omschrijving": "Enschede"
+    },
+    "datumInschrijvingInGemeente": "20000101",
+    "gezag": [],
+    "kinderen": [],
+    "ouders": [],
+    "partners": []
+  },
+  {
+    "aNummer": "1000000060",
+    "burgerservicenummer": "900000661",
+    "datumEersteInschrijvingGBA": "20000101",
+    "geslacht": {
+      "code": "M",
+      "omschrijving": "man"
+    },
+    "naam": {
+      "aanduidingNaamgebruik": {
+        "code": "E",
+        "omschrijving": "eigen geslachtsnaam"
+      },
+      "voornamen": "Perf",
+      "geslachtsnaam": "burger-060"
+    },
+    "nationaliteiten": [
+      {
+        "datumIngangGeldigheid": "20000101",
+        "nationaliteit": {
+          "code": "0001",
+          "omschrijving": "Nederlandse"
+        },
+        "redenOpname": {
+          "code": "001",
+          "omschrijving": "Wet op het Nederlanderschap 1892, art.1, lid 1a"
+        }
+      }
+    ],
+    "geboorte": {
+      "land": {
+        "code": "6030",
+        "omschrijving": "Nederland"
+      },
+      "plaats": {
+        "code": "0153",
+        "omschrijving": "Enschede"
+      },
+      "datum": "19800101"
+    },
+    "verblijfplaats": {
+      "functieAdres": {
+        "code": "W",
+        "omschrijving": "woonadres"
+      },
+      "datumIngangGeldigheid": "20000101",
+      "datumAanvangAdreshouding": "20000101",
+      "straat": "Perfstraat",
+      "huisnummer": "60",
+      "postcode": "7511AG"
+    },
+    "immigratie": {},
+    "gemeenteVanInschrijving": {
+      "code": "0153",
+      "omschrijving": "Enschede"
+    },
+    "datumInschrijvingInGemeente": "20000101",
+    "gezag": [],
+    "kinderen": [],
+    "ouders": [],
+    "partners": []
+  },
+  {
+    "aNummer": "1000000061",
+    "burgerservicenummer": "900000673",
+    "datumEersteInschrijvingGBA": "20000101",
+    "geslacht": {
+      "code": "M",
+      "omschrijving": "man"
+    },
+    "naam": {
+      "aanduidingNaamgebruik": {
+        "code": "E",
+        "omschrijving": "eigen geslachtsnaam"
+      },
+      "voornamen": "Perf",
+      "geslachtsnaam": "burger-061"
+    },
+    "nationaliteiten": [
+      {
+        "datumIngangGeldigheid": "20000101",
+        "nationaliteit": {
+          "code": "0001",
+          "omschrijving": "Nederlandse"
+        },
+        "redenOpname": {
+          "code": "001",
+          "omschrijving": "Wet op het Nederlanderschap 1892, art.1, lid 1a"
+        }
+      }
+    ],
+    "geboorte": {
+      "land": {
+        "code": "6030",
+        "omschrijving": "Nederland"
+      },
+      "plaats": {
+        "code": "0153",
+        "omschrijving": "Enschede"
+      },
+      "datum": "19800101"
+    },
+    "verblijfplaats": {
+      "functieAdres": {
+        "code": "W",
+        "omschrijving": "woonadres"
+      },
+      "datumIngangGeldigheid": "20000101",
+      "datumAanvangAdreshouding": "20000101",
+      "straat": "Perfstraat",
+      "huisnummer": "61",
+      "postcode": "7511AG"
+    },
+    "immigratie": {},
+    "gemeenteVanInschrijving": {
+      "code": "0153",
+      "omschrijving": "Enschede"
+    },
+    "datumInschrijvingInGemeente": "20000101",
+    "gezag": [],
+    "kinderen": [],
+    "ouders": [],
+    "partners": []
+  },
+  {
+    "aNummer": "1000000062",
+    "burgerservicenummer": "900000685",
+    "datumEersteInschrijvingGBA": "20000101",
+    "geslacht": {
+      "code": "M",
+      "omschrijving": "man"
+    },
+    "naam": {
+      "aanduidingNaamgebruik": {
+        "code": "E",
+        "omschrijving": "eigen geslachtsnaam"
+      },
+      "voornamen": "Perf",
+      "geslachtsnaam": "burger-062"
+    },
+    "nationaliteiten": [
+      {
+        "datumIngangGeldigheid": "20000101",
+        "nationaliteit": {
+          "code": "0001",
+          "omschrijving": "Nederlandse"
+        },
+        "redenOpname": {
+          "code": "001",
+          "omschrijving": "Wet op het Nederlanderschap 1892, art.1, lid 1a"
+        }
+      }
+    ],
+    "geboorte": {
+      "land": {
+        "code": "6030",
+        "omschrijving": "Nederland"
+      },
+      "plaats": {
+        "code": "0153",
+        "omschrijving": "Enschede"
+      },
+      "datum": "19800101"
+    },
+    "verblijfplaats": {
+      "functieAdres": {
+        "code": "W",
+        "omschrijving": "woonadres"
+      },
+      "datumIngangGeldigheid": "20000101",
+      "datumAanvangAdreshouding": "20000101",
+      "straat": "Perfstraat",
+      "huisnummer": "62",
+      "postcode": "7511AG"
+    },
+    "immigratie": {},
+    "gemeenteVanInschrijving": {
+      "code": "0153",
+      "omschrijving": "Enschede"
+    },
+    "datumInschrijvingInGemeente": "20000101",
+    "gezag": [],
+    "kinderen": [],
+    "ouders": [],
+    "partners": []
+  },
+  {
+    "aNummer": "1000000063",
+    "burgerservicenummer": "900000697",
+    "datumEersteInschrijvingGBA": "20000101",
+    "geslacht": {
+      "code": "M",
+      "omschrijving": "man"
+    },
+    "naam": {
+      "aanduidingNaamgebruik": {
+        "code": "E",
+        "omschrijving": "eigen geslachtsnaam"
+      },
+      "voornamen": "Perf",
+      "geslachtsnaam": "burger-063"
+    },
+    "nationaliteiten": [
+      {
+        "datumIngangGeldigheid": "20000101",
+        "nationaliteit": {
+          "code": "0001",
+          "omschrijving": "Nederlandse"
+        },
+        "redenOpname": {
+          "code": "001",
+          "omschrijving": "Wet op het Nederlanderschap 1892, art.1, lid 1a"
+        }
+      }
+    ],
+    "geboorte": {
+      "land": {
+        "code": "6030",
+        "omschrijving": "Nederland"
+      },
+      "plaats": {
+        "code": "0153",
+        "omschrijving": "Enschede"
+      },
+      "datum": "19800101"
+    },
+    "verblijfplaats": {
+      "functieAdres": {
+        "code": "W",
+        "omschrijving": "woonadres"
+      },
+      "datumIngangGeldigheid": "20000101",
+      "datumAanvangAdreshouding": "20000101",
+      "straat": "Perfstraat",
+      "huisnummer": "63",
+      "postcode": "7511AG"
+    },
+    "immigratie": {},
+    "gemeenteVanInschrijving": {
+      "code": "0153",
+      "omschrijving": "Enschede"
+    },
+    "datumInschrijvingInGemeente": "20000101",
+    "gezag": [],
+    "kinderen": [],
+    "ouders": [],
+    "partners": []
+  },
+  {
+    "aNummer": "1000000064",
+    "burgerservicenummer": "900000703",
+    "datumEersteInschrijvingGBA": "20000101",
+    "geslacht": {
+      "code": "M",
+      "omschrijving": "man"
+    },
+    "naam": {
+      "aanduidingNaamgebruik": {
+        "code": "E",
+        "omschrijving": "eigen geslachtsnaam"
+      },
+      "voornamen": "Perf",
+      "geslachtsnaam": "burger-064"
+    },
+    "nationaliteiten": [
+      {
+        "datumIngangGeldigheid": "20000101",
+        "nationaliteit": {
+          "code": "0001",
+          "omschrijving": "Nederlandse"
+        },
+        "redenOpname": {
+          "code": "001",
+          "omschrijving": "Wet op het Nederlanderschap 1892, art.1, lid 1a"
+        }
+      }
+    ],
+    "geboorte": {
+      "land": {
+        "code": "6030",
+        "omschrijving": "Nederland"
+      },
+      "plaats": {
+        "code": "0153",
+        "omschrijving": "Enschede"
+      },
+      "datum": "19800101"
+    },
+    "verblijfplaats": {
+      "functieAdres": {
+        "code": "W",
+        "omschrijving": "woonadres"
+      },
+      "datumIngangGeldigheid": "20000101",
+      "datumAanvangAdreshouding": "20000101",
+      "straat": "Perfstraat",
+      "huisnummer": "64",
+      "postcode": "7511AG"
+    },
+    "immigratie": {},
+    "gemeenteVanInschrijving": {
+      "code": "0153",
+      "omschrijving": "Enschede"
+    },
+    "datumInschrijvingInGemeente": "20000101",
+    "gezag": [],
+    "kinderen": [],
+    "ouders": [],
+    "partners": []
+  },
+  {
+    "aNummer": "1000000065",
+    "burgerservicenummer": "900000715",
+    "datumEersteInschrijvingGBA": "20000101",
+    "geslacht": {
+      "code": "M",
+      "omschrijving": "man"
+    },
+    "naam": {
+      "aanduidingNaamgebruik": {
+        "code": "E",
+        "omschrijving": "eigen geslachtsnaam"
+      },
+      "voornamen": "Perf",
+      "geslachtsnaam": "burger-065"
+    },
+    "nationaliteiten": [
+      {
+        "datumIngangGeldigheid": "20000101",
+        "nationaliteit": {
+          "code": "0001",
+          "omschrijving": "Nederlandse"
+        },
+        "redenOpname": {
+          "code": "001",
+          "omschrijving": "Wet op het Nederlanderschap 1892, art.1, lid 1a"
+        }
+      }
+    ],
+    "geboorte": {
+      "land": {
+        "code": "6030",
+        "omschrijving": "Nederland"
+      },
+      "plaats": {
+        "code": "0153",
+        "omschrijving": "Enschede"
+      },
+      "datum": "19800101"
+    },
+    "verblijfplaats": {
+      "functieAdres": {
+        "code": "W",
+        "omschrijving": "woonadres"
+      },
+      "datumIngangGeldigheid": "20000101",
+      "datumAanvangAdreshouding": "20000101",
+      "straat": "Perfstraat",
+      "huisnummer": "65",
+      "postcode": "7511AG"
+    },
+    "immigratie": {},
+    "gemeenteVanInschrijving": {
+      "code": "0153",
+      "omschrijving": "Enschede"
+    },
+    "datumInschrijvingInGemeente": "20000101",
+    "gezag": [],
+    "kinderen": [],
+    "ouders": [],
+    "partners": []
+  },
+  {
+    "aNummer": "1000000066",
+    "burgerservicenummer": "900000727",
+    "datumEersteInschrijvingGBA": "20000101",
+    "geslacht": {
+      "code": "M",
+      "omschrijving": "man"
+    },
+    "naam": {
+      "aanduidingNaamgebruik": {
+        "code": "E",
+        "omschrijving": "eigen geslachtsnaam"
+      },
+      "voornamen": "Perf",
+      "geslachtsnaam": "burger-066"
+    },
+    "nationaliteiten": [
+      {
+        "datumIngangGeldigheid": "20000101",
+        "nationaliteit": {
+          "code": "0001",
+          "omschrijving": "Nederlandse"
+        },
+        "redenOpname": {
+          "code": "001",
+          "omschrijving": "Wet op het Nederlanderschap 1892, art.1, lid 1a"
+        }
+      }
+    ],
+    "geboorte": {
+      "land": {
+        "code": "6030",
+        "omschrijving": "Nederland"
+      },
+      "plaats": {
+        "code": "0153",
+        "omschrijving": "Enschede"
+      },
+      "datum": "19800101"
+    },
+    "verblijfplaats": {
+      "functieAdres": {
+        "code": "W",
+        "omschrijving": "woonadres"
+      },
+      "datumIngangGeldigheid": "20000101",
+      "datumAanvangAdreshouding": "20000101",
+      "straat": "Perfstraat",
+      "huisnummer": "66",
+      "postcode": "7511AG"
+    },
+    "immigratie": {},
+    "gemeenteVanInschrijving": {
+      "code": "0153",
+      "omschrijving": "Enschede"
+    },
+    "datumInschrijvingInGemeente": "20000101",
+    "gezag": [],
+    "kinderen": [],
+    "ouders": [],
+    "partners": []
+  },
+  {
+    "aNummer": "1000000067",
+    "burgerservicenummer": "900000739",
+    "datumEersteInschrijvingGBA": "20000101",
+    "geslacht": {
+      "code": "M",
+      "omschrijving": "man"
+    },
+    "naam": {
+      "aanduidingNaamgebruik": {
+        "code": "E",
+        "omschrijving": "eigen geslachtsnaam"
+      },
+      "voornamen": "Perf",
+      "geslachtsnaam": "burger-067"
+    },
+    "nationaliteiten": [
+      {
+        "datumIngangGeldigheid": "20000101",
+        "nationaliteit": {
+          "code": "0001",
+          "omschrijving": "Nederlandse"
+        },
+        "redenOpname": {
+          "code": "001",
+          "omschrijving": "Wet op het Nederlanderschap 1892, art.1, lid 1a"
+        }
+      }
+    ],
+    "geboorte": {
+      "land": {
+        "code": "6030",
+        "omschrijving": "Nederland"
+      },
+      "plaats": {
+        "code": "0153",
+        "omschrijving": "Enschede"
+      },
+      "datum": "19800101"
+    },
+    "verblijfplaats": {
+      "functieAdres": {
+        "code": "W",
+        "omschrijving": "woonadres"
+      },
+      "datumIngangGeldigheid": "20000101",
+      "datumAanvangAdreshouding": "20000101",
+      "straat": "Perfstraat",
+      "huisnummer": "67",
+      "postcode": "7511AG"
+    },
+    "immigratie": {},
+    "gemeenteVanInschrijving": {
+      "code": "0153",
+      "omschrijving": "Enschede"
+    },
+    "datumInschrijvingInGemeente": "20000101",
+    "gezag": [],
+    "kinderen": [],
+    "ouders": [],
+    "partners": []
+  },
+  {
+    "aNummer": "1000000068",
+    "burgerservicenummer": "900000740",
+    "datumEersteInschrijvingGBA": "20000101",
+    "geslacht": {
+      "code": "M",
+      "omschrijving": "man"
+    },
+    "naam": {
+      "aanduidingNaamgebruik": {
+        "code": "E",
+        "omschrijving": "eigen geslachtsnaam"
+      },
+      "voornamen": "Perf",
+      "geslachtsnaam": "burger-068"
+    },
+    "nationaliteiten": [
+      {
+        "datumIngangGeldigheid": "20000101",
+        "nationaliteit": {
+          "code": "0001",
+          "omschrijving": "Nederlandse"
+        },
+        "redenOpname": {
+          "code": "001",
+          "omschrijving": "Wet op het Nederlanderschap 1892, art.1, lid 1a"
+        }
+      }
+    ],
+    "geboorte": {
+      "land": {
+        "code": "6030",
+        "omschrijving": "Nederland"
+      },
+      "plaats": {
+        "code": "0153",
+        "omschrijving": "Enschede"
+      },
+      "datum": "19800101"
+    },
+    "verblijfplaats": {
+      "functieAdres": {
+        "code": "W",
+        "omschrijving": "woonadres"
+      },
+      "datumIngangGeldigheid": "20000101",
+      "datumAanvangAdreshouding": "20000101",
+      "straat": "Perfstraat",
+      "huisnummer": "68",
+      "postcode": "7511AG"
+    },
+    "immigratie": {},
+    "gemeenteVanInschrijving": {
+      "code": "0153",
+      "omschrijving": "Enschede"
+    },
+    "datumInschrijvingInGemeente": "20000101",
+    "gezag": [],
+    "kinderen": [],
+    "ouders": [],
+    "partners": []
+  },
+  {
+    "aNummer": "1000000069",
+    "burgerservicenummer": "900000752",
+    "datumEersteInschrijvingGBA": "20000101",
+    "geslacht": {
+      "code": "M",
+      "omschrijving": "man"
+    },
+    "naam": {
+      "aanduidingNaamgebruik": {
+        "code": "E",
+        "omschrijving": "eigen geslachtsnaam"
+      },
+      "voornamen": "Perf",
+      "geslachtsnaam": "burger-069"
+    },
+    "nationaliteiten": [
+      {
+        "datumIngangGeldigheid": "20000101",
+        "nationaliteit": {
+          "code": "0001",
+          "omschrijving": "Nederlandse"
+        },
+        "redenOpname": {
+          "code": "001",
+          "omschrijving": "Wet op het Nederlanderschap 1892, art.1, lid 1a"
+        }
+      }
+    ],
+    "geboorte": {
+      "land": {
+        "code": "6030",
+        "omschrijving": "Nederland"
+      },
+      "plaats": {
+        "code": "0153",
+        "omschrijving": "Enschede"
+      },
+      "datum": "19800101"
+    },
+    "verblijfplaats": {
+      "functieAdres": {
+        "code": "W",
+        "omschrijving": "woonadres"
+      },
+      "datumIngangGeldigheid": "20000101",
+      "datumAanvangAdreshouding": "20000101",
+      "straat": "Perfstraat",
+      "huisnummer": "69",
+      "postcode": "7511AG"
+    },
+    "immigratie": {},
+    "gemeenteVanInschrijving": {
+      "code": "0153",
+      "omschrijving": "Enschede"
+    },
+    "datumInschrijvingInGemeente": "20000101",
+    "gezag": [],
+    "kinderen": [],
+    "ouders": [],
+    "partners": []
+  },
+  {
+    "aNummer": "1000000070",
+    "burgerservicenummer": "900000764",
+    "datumEersteInschrijvingGBA": "20000101",
+    "geslacht": {
+      "code": "M",
+      "omschrijving": "man"
+    },
+    "naam": {
+      "aanduidingNaamgebruik": {
+        "code": "E",
+        "omschrijving": "eigen geslachtsnaam"
+      },
+      "voornamen": "Perf",
+      "geslachtsnaam": "burger-070"
+    },
+    "nationaliteiten": [
+      {
+        "datumIngangGeldigheid": "20000101",
+        "nationaliteit": {
+          "code": "0001",
+          "omschrijving": "Nederlandse"
+        },
+        "redenOpname": {
+          "code": "001",
+          "omschrijving": "Wet op het Nederlanderschap 1892, art.1, lid 1a"
+        }
+      }
+    ],
+    "geboorte": {
+      "land": {
+        "code": "6030",
+        "omschrijving": "Nederland"
+      },
+      "plaats": {
+        "code": "0153",
+        "omschrijving": "Enschede"
+      },
+      "datum": "19800101"
+    },
+    "verblijfplaats": {
+      "functieAdres": {
+        "code": "W",
+        "omschrijving": "woonadres"
+      },
+      "datumIngangGeldigheid": "20000101",
+      "datumAanvangAdreshouding": "20000101",
+      "straat": "Perfstraat",
+      "huisnummer": "70",
+      "postcode": "7511AG"
+    },
+    "immigratie": {},
+    "gemeenteVanInschrijving": {
+      "code": "0153",
+      "omschrijving": "Enschede"
+    },
+    "datumInschrijvingInGemeente": "20000101",
+    "gezag": [],
+    "kinderen": [],
+    "ouders": [],
+    "partners": []
+  },
+  {
+    "aNummer": "1000000071",
+    "burgerservicenummer": "900000776",
+    "datumEersteInschrijvingGBA": "20000101",
+    "geslacht": {
+      "code": "M",
+      "omschrijving": "man"
+    },
+    "naam": {
+      "aanduidingNaamgebruik": {
+        "code": "E",
+        "omschrijving": "eigen geslachtsnaam"
+      },
+      "voornamen": "Perf",
+      "geslachtsnaam": "burger-071"
+    },
+    "nationaliteiten": [
+      {
+        "datumIngangGeldigheid": "20000101",
+        "nationaliteit": {
+          "code": "0001",
+          "omschrijving": "Nederlandse"
+        },
+        "redenOpname": {
+          "code": "001",
+          "omschrijving": "Wet op het Nederlanderschap 1892, art.1, lid 1a"
+        }
+      }
+    ],
+    "geboorte": {
+      "land": {
+        "code": "6030",
+        "omschrijving": "Nederland"
+      },
+      "plaats": {
+        "code": "0153",
+        "omschrijving": "Enschede"
+      },
+      "datum": "19800101"
+    },
+    "verblijfplaats": {
+      "functieAdres": {
+        "code": "W",
+        "omschrijving": "woonadres"
+      },
+      "datumIngangGeldigheid": "20000101",
+      "datumAanvangAdreshouding": "20000101",
+      "straat": "Perfstraat",
+      "huisnummer": "71",
+      "postcode": "7511AG"
+    },
+    "immigratie": {},
+    "gemeenteVanInschrijving": {
+      "code": "0153",
+      "omschrijving": "Enschede"
+    },
+    "datumInschrijvingInGemeente": "20000101",
+    "gezag": [],
+    "kinderen": [],
+    "ouders": [],
+    "partners": []
+  },
+  {
+    "aNummer": "1000000072",
+    "burgerservicenummer": "900000788",
+    "datumEersteInschrijvingGBA": "20000101",
+    "geslacht": {
+      "code": "M",
+      "omschrijving": "man"
+    },
+    "naam": {
+      "aanduidingNaamgebruik": {
+        "code": "E",
+        "omschrijving": "eigen geslachtsnaam"
+      },
+      "voornamen": "Perf",
+      "geslachtsnaam": "burger-072"
+    },
+    "nationaliteiten": [
+      {
+        "datumIngangGeldigheid": "20000101",
+        "nationaliteit": {
+          "code": "0001",
+          "omschrijving": "Nederlandse"
+        },
+        "redenOpname": {
+          "code": "001",
+          "omschrijving": "Wet op het Nederlanderschap 1892, art.1, lid 1a"
+        }
+      }
+    ],
+    "geboorte": {
+      "land": {
+        "code": "6030",
+        "omschrijving": "Nederland"
+      },
+      "plaats": {
+        "code": "0153",
+        "omschrijving": "Enschede"
+      },
+      "datum": "19800101"
+    },
+    "verblijfplaats": {
+      "functieAdres": {
+        "code": "W",
+        "omschrijving": "woonadres"
+      },
+      "datumIngangGeldigheid": "20000101",
+      "datumAanvangAdreshouding": "20000101",
+      "straat": "Perfstraat",
+      "huisnummer": "72",
+      "postcode": "7511AG"
+    },
+    "immigratie": {},
+    "gemeenteVanInschrijving": {
+      "code": "0153",
+      "omschrijving": "Enschede"
+    },
+    "datumInschrijvingInGemeente": "20000101",
+    "gezag": [],
+    "kinderen": [],
+    "ouders": [],
+    "partners": []
+  },
+  {
+    "aNummer": "1000000073",
+    "burgerservicenummer": "900000806",
+    "datumEersteInschrijvingGBA": "20000101",
+    "geslacht": {
+      "code": "M",
+      "omschrijving": "man"
+    },
+    "naam": {
+      "aanduidingNaamgebruik": {
+        "code": "E",
+        "omschrijving": "eigen geslachtsnaam"
+      },
+      "voornamen": "Perf",
+      "geslachtsnaam": "burger-073"
+    },
+    "nationaliteiten": [
+      {
+        "datumIngangGeldigheid": "20000101",
+        "nationaliteit": {
+          "code": "0001",
+          "omschrijving": "Nederlandse"
+        },
+        "redenOpname": {
+          "code": "001",
+          "omschrijving": "Wet op het Nederlanderschap 1892, art.1, lid 1a"
+        }
+      }
+    ],
+    "geboorte": {
+      "land": {
+        "code": "6030",
+        "omschrijving": "Nederland"
+      },
+      "plaats": {
+        "code": "0153",
+        "omschrijving": "Enschede"
+      },
+      "datum": "19800101"
+    },
+    "verblijfplaats": {
+      "functieAdres": {
+        "code": "W",
+        "omschrijving": "woonadres"
+      },
+      "datumIngangGeldigheid": "20000101",
+      "datumAanvangAdreshouding": "20000101",
+      "straat": "Perfstraat",
+      "huisnummer": "73",
+      "postcode": "7511AG"
+    },
+    "immigratie": {},
+    "gemeenteVanInschrijving": {
+      "code": "0153",
+      "omschrijving": "Enschede"
+    },
+    "datumInschrijvingInGemeente": "20000101",
+    "gezag": [],
+    "kinderen": [],
+    "ouders": [],
+    "partners": []
+  },
+  {
+    "aNummer": "1000000074",
+    "burgerservicenummer": "900000818",
+    "datumEersteInschrijvingGBA": "20000101",
+    "geslacht": {
+      "code": "M",
+      "omschrijving": "man"
+    },
+    "naam": {
+      "aanduidingNaamgebruik": {
+        "code": "E",
+        "omschrijving": "eigen geslachtsnaam"
+      },
+      "voornamen": "Perf",
+      "geslachtsnaam": "burger-074"
+    },
+    "nationaliteiten": [
+      {
+        "datumIngangGeldigheid": "20000101",
+        "nationaliteit": {
+          "code": "0001",
+          "omschrijving": "Nederlandse"
+        },
+        "redenOpname": {
+          "code": "001",
+          "omschrijving": "Wet op het Nederlanderschap 1892, art.1, lid 1a"
+        }
+      }
+    ],
+    "geboorte": {
+      "land": {
+        "code": "6030",
+        "omschrijving": "Nederland"
+      },
+      "plaats": {
+        "code": "0153",
+        "omschrijving": "Enschede"
+      },
+      "datum": "19800101"
+    },
+    "verblijfplaats": {
+      "functieAdres": {
+        "code": "W",
+        "omschrijving": "woonadres"
+      },
+      "datumIngangGeldigheid": "20000101",
+      "datumAanvangAdreshouding": "20000101",
+      "straat": "Perfstraat",
+      "huisnummer": "74",
+      "postcode": "7511AG"
+    },
+    "immigratie": {},
+    "gemeenteVanInschrijving": {
+      "code": "0153",
+      "omschrijving": "Enschede"
+    },
+    "datumInschrijvingInGemeente": "20000101",
+    "gezag": [],
+    "kinderen": [],
+    "ouders": [],
+    "partners": []
+  },
+  {
+    "aNummer": "1000000075",
+    "burgerservicenummer": "900000831",
+    "datumEersteInschrijvingGBA": "20000101",
+    "geslacht": {
+      "code": "M",
+      "omschrijving": "man"
+    },
+    "naam": {
+      "aanduidingNaamgebruik": {
+        "code": "E",
+        "omschrijving": "eigen geslachtsnaam"
+      },
+      "voornamen": "Perf",
+      "geslachtsnaam": "burger-075"
+    },
+    "nationaliteiten": [
+      {
+        "datumIngangGeldigheid": "20000101",
+        "nationaliteit": {
+          "code": "0001",
+          "omschrijving": "Nederlandse"
+        },
+        "redenOpname": {
+          "code": "001",
+          "omschrijving": "Wet op het Nederlanderschap 1892, art.1, lid 1a"
+        }
+      }
+    ],
+    "geboorte": {
+      "land": {
+        "code": "6030",
+        "omschrijving": "Nederland"
+      },
+      "plaats": {
+        "code": "0153",
+        "omschrijving": "Enschede"
+      },
+      "datum": "19800101"
+    },
+    "verblijfplaats": {
+      "functieAdres": {
+        "code": "W",
+        "omschrijving": "woonadres"
+      },
+      "datumIngangGeldigheid": "20000101",
+      "datumAanvangAdreshouding": "20000101",
+      "straat": "Perfstraat",
+      "huisnummer": "75",
+      "postcode": "7511AG"
+    },
+    "immigratie": {},
+    "gemeenteVanInschrijving": {
+      "code": "0153",
+      "omschrijving": "Enschede"
+    },
+    "datumInschrijvingInGemeente": "20000101",
+    "gezag": [],
+    "kinderen": [],
+    "ouders": [],
+    "partners": []
+  },
+  {
+    "aNummer": "1000000076",
+    "burgerservicenummer": "900000843",
+    "datumEersteInschrijvingGBA": "20000101",
+    "geslacht": {
+      "code": "M",
+      "omschrijving": "man"
+    },
+    "naam": {
+      "aanduidingNaamgebruik": {
+        "code": "E",
+        "omschrijving": "eigen geslachtsnaam"
+      },
+      "voornamen": "Perf",
+      "geslachtsnaam": "burger-076"
+    },
+    "nationaliteiten": [
+      {
+        "datumIngangGeldigheid": "20000101",
+        "nationaliteit": {
+          "code": "0001",
+          "omschrijving": "Nederlandse"
+        },
+        "redenOpname": {
+          "code": "001",
+          "omschrijving": "Wet op het Nederlanderschap 1892, art.1, lid 1a"
+        }
+      }
+    ],
+    "geboorte": {
+      "land": {
+        "code": "6030",
+        "omschrijving": "Nederland"
+      },
+      "plaats": {
+        "code": "0153",
+        "omschrijving": "Enschede"
+      },
+      "datum": "19800101"
+    },
+    "verblijfplaats": {
+      "functieAdres": {
+        "code": "W",
+        "omschrijving": "woonadres"
+      },
+      "datumIngangGeldigheid": "20000101",
+      "datumAanvangAdreshouding": "20000101",
+      "straat": "Perfstraat",
+      "huisnummer": "76",
+      "postcode": "7511AG"
+    },
+    "immigratie": {},
+    "gemeenteVanInschrijving": {
+      "code": "0153",
+      "omschrijving": "Enschede"
+    },
+    "datumInschrijvingInGemeente": "20000101",
+    "gezag": [],
+    "kinderen": [],
+    "ouders": [],
+    "partners": []
+  },
+  {
+    "aNummer": "1000000077",
+    "burgerservicenummer": "900000855",
+    "datumEersteInschrijvingGBA": "20000101",
+    "geslacht": {
+      "code": "M",
+      "omschrijving": "man"
+    },
+    "naam": {
+      "aanduidingNaamgebruik": {
+        "code": "E",
+        "omschrijving": "eigen geslachtsnaam"
+      },
+      "voornamen": "Perf",
+      "geslachtsnaam": "burger-077"
+    },
+    "nationaliteiten": [
+      {
+        "datumIngangGeldigheid": "20000101",
+        "nationaliteit": {
+          "code": "0001",
+          "omschrijving": "Nederlandse"
+        },
+        "redenOpname": {
+          "code": "001",
+          "omschrijving": "Wet op het Nederlanderschap 1892, art.1, lid 1a"
+        }
+      }
+    ],
+    "geboorte": {
+      "land": {
+        "code": "6030",
+        "omschrijving": "Nederland"
+      },
+      "plaats": {
+        "code": "0153",
+        "omschrijving": "Enschede"
+      },
+      "datum": "19800101"
+    },
+    "verblijfplaats": {
+      "functieAdres": {
+        "code": "W",
+        "omschrijving": "woonadres"
+      },
+      "datumIngangGeldigheid": "20000101",
+      "datumAanvangAdreshouding": "20000101",
+      "straat": "Perfstraat",
+      "huisnummer": "77",
+      "postcode": "7511AG"
+    },
+    "immigratie": {},
+    "gemeenteVanInschrijving": {
+      "code": "0153",
+      "omschrijving": "Enschede"
+    },
+    "datumInschrijvingInGemeente": "20000101",
+    "gezag": [],
+    "kinderen": [],
+    "ouders": [],
+    "partners": []
+  },
+  {
+    "aNummer": "1000000078",
+    "burgerservicenummer": "900000867",
+    "datumEersteInschrijvingGBA": "20000101",
+    "geslacht": {
+      "code": "M",
+      "omschrijving": "man"
+    },
+    "naam": {
+      "aanduidingNaamgebruik": {
+        "code": "E",
+        "omschrijving": "eigen geslachtsnaam"
+      },
+      "voornamen": "Perf",
+      "geslachtsnaam": "burger-078"
+    },
+    "nationaliteiten": [
+      {
+        "datumIngangGeldigheid": "20000101",
+        "nationaliteit": {
+          "code": "0001",
+          "omschrijving": "Nederlandse"
+        },
+        "redenOpname": {
+          "code": "001",
+          "omschrijving": "Wet op het Nederlanderschap 1892, art.1, lid 1a"
+        }
+      }
+    ],
+    "geboorte": {
+      "land": {
+        "code": "6030",
+        "omschrijving": "Nederland"
+      },
+      "plaats": {
+        "code": "0153",
+        "omschrijving": "Enschede"
+      },
+      "datum": "19800101"
+    },
+    "verblijfplaats": {
+      "functieAdres": {
+        "code": "W",
+        "omschrijving": "woonadres"
+      },
+      "datumIngangGeldigheid": "20000101",
+      "datumAanvangAdreshouding": "20000101",
+      "straat": "Perfstraat",
+      "huisnummer": "78",
+      "postcode": "7511AG"
+    },
+    "immigratie": {},
+    "gemeenteVanInschrijving": {
+      "code": "0153",
+      "omschrijving": "Enschede"
+    },
+    "datumInschrijvingInGemeente": "20000101",
+    "gezag": [],
+    "kinderen": [],
+    "ouders": [],
+    "partners": []
+  },
+  {
+    "aNummer": "1000000079",
+    "burgerservicenummer": "900000879",
+    "datumEersteInschrijvingGBA": "20000101",
+    "geslacht": {
+      "code": "M",
+      "omschrijving": "man"
+    },
+    "naam": {
+      "aanduidingNaamgebruik": {
+        "code": "E",
+        "omschrijving": "eigen geslachtsnaam"
+      },
+      "voornamen": "Perf",
+      "geslachtsnaam": "burger-079"
+    },
+    "nationaliteiten": [
+      {
+        "datumIngangGeldigheid": "20000101",
+        "nationaliteit": {
+          "code": "0001",
+          "omschrijving": "Nederlandse"
+        },
+        "redenOpname": {
+          "code": "001",
+          "omschrijving": "Wet op het Nederlanderschap 1892, art.1, lid 1a"
+        }
+      }
+    ],
+    "geboorte": {
+      "land": {
+        "code": "6030",
+        "omschrijving": "Nederland"
+      },
+      "plaats": {
+        "code": "0153",
+        "omschrijving": "Enschede"
+      },
+      "datum": "19800101"
+    },
+    "verblijfplaats": {
+      "functieAdres": {
+        "code": "W",
+        "omschrijving": "woonadres"
+      },
+      "datumIngangGeldigheid": "20000101",
+      "datumAanvangAdreshouding": "20000101",
+      "straat": "Perfstraat",
+      "huisnummer": "79",
+      "postcode": "7511AG"
+    },
+    "immigratie": {},
+    "gemeenteVanInschrijving": {
+      "code": "0153",
+      "omschrijving": "Enschede"
+    },
+    "datumInschrijvingInGemeente": "20000101",
+    "gezag": [],
+    "kinderen": [],
+    "ouders": [],
+    "partners": []
+  },
+  {
+    "aNummer": "1000000080",
+    "burgerservicenummer": "900000880",
+    "datumEersteInschrijvingGBA": "20000101",
+    "geslacht": {
+      "code": "M",
+      "omschrijving": "man"
+    },
+    "naam": {
+      "aanduidingNaamgebruik": {
+        "code": "E",
+        "omschrijving": "eigen geslachtsnaam"
+      },
+      "voornamen": "Perf",
+      "geslachtsnaam": "burger-080"
+    },
+    "nationaliteiten": [
+      {
+        "datumIngangGeldigheid": "20000101",
+        "nationaliteit": {
+          "code": "0001",
+          "omschrijving": "Nederlandse"
+        },
+        "redenOpname": {
+          "code": "001",
+          "omschrijving": "Wet op het Nederlanderschap 1892, art.1, lid 1a"
+        }
+      }
+    ],
+    "geboorte": {
+      "land": {
+        "code": "6030",
+        "omschrijving": "Nederland"
+      },
+      "plaats": {
+        "code": "0153",
+        "omschrijving": "Enschede"
+      },
+      "datum": "19800101"
+    },
+    "verblijfplaats": {
+      "functieAdres": {
+        "code": "W",
+        "omschrijving": "woonadres"
+      },
+      "datumIngangGeldigheid": "20000101",
+      "datumAanvangAdreshouding": "20000101",
+      "straat": "Perfstraat",
+      "huisnummer": "80",
+      "postcode": "7511AG"
+    },
+    "immigratie": {},
+    "gemeenteVanInschrijving": {
+      "code": "0153",
+      "omschrijving": "Enschede"
+    },
+    "datumInschrijvingInGemeente": "20000101",
+    "gezag": [],
+    "kinderen": [],
+    "ouders": [],
+    "partners": []
+  },
+  {
+    "aNummer": "1000000081",
+    "burgerservicenummer": "900000892",
+    "datumEersteInschrijvingGBA": "20000101",
+    "geslacht": {
+      "code": "M",
+      "omschrijving": "man"
+    },
+    "naam": {
+      "aanduidingNaamgebruik": {
+        "code": "E",
+        "omschrijving": "eigen geslachtsnaam"
+      },
+      "voornamen": "Perf",
+      "geslachtsnaam": "burger-081"
+    },
+    "nationaliteiten": [
+      {
+        "datumIngangGeldigheid": "20000101",
+        "nationaliteit": {
+          "code": "0001",
+          "omschrijving": "Nederlandse"
+        },
+        "redenOpname": {
+          "code": "001",
+          "omschrijving": "Wet op het Nederlanderschap 1892, art.1, lid 1a"
+        }
+      }
+    ],
+    "geboorte": {
+      "land": {
+        "code": "6030",
+        "omschrijving": "Nederland"
+      },
+      "plaats": {
+        "code": "0153",
+        "omschrijving": "Enschede"
+      },
+      "datum": "19800101"
+    },
+    "verblijfplaats": {
+      "functieAdres": {
+        "code": "W",
+        "omschrijving": "woonadres"
+      },
+      "datumIngangGeldigheid": "20000101",
+      "datumAanvangAdreshouding": "20000101",
+      "straat": "Perfstraat",
+      "huisnummer": "81",
+      "postcode": "7511AG"
+    },
+    "immigratie": {},
+    "gemeenteVanInschrijving": {
+      "code": "0153",
+      "omschrijving": "Enschede"
+    },
+    "datumInschrijvingInGemeente": "20000101",
+    "gezag": [],
+    "kinderen": [],
+    "ouders": [],
+    "partners": []
+  },
+  {
+    "aNummer": "1000000082",
+    "burgerservicenummer": "900000909",
+    "datumEersteInschrijvingGBA": "20000101",
+    "geslacht": {
+      "code": "M",
+      "omschrijving": "man"
+    },
+    "naam": {
+      "aanduidingNaamgebruik": {
+        "code": "E",
+        "omschrijving": "eigen geslachtsnaam"
+      },
+      "voornamen": "Perf",
+      "geslachtsnaam": "burger-082"
+    },
+    "nationaliteiten": [
+      {
+        "datumIngangGeldigheid": "20000101",
+        "nationaliteit": {
+          "code": "0001",
+          "omschrijving": "Nederlandse"
+        },
+        "redenOpname": {
+          "code": "001",
+          "omschrijving": "Wet op het Nederlanderschap 1892, art.1, lid 1a"
+        }
+      }
+    ],
+    "geboorte": {
+      "land": {
+        "code": "6030",
+        "omschrijving": "Nederland"
+      },
+      "plaats": {
+        "code": "0153",
+        "omschrijving": "Enschede"
+      },
+      "datum": "19800101"
+    },
+    "verblijfplaats": {
+      "functieAdres": {
+        "code": "W",
+        "omschrijving": "woonadres"
+      },
+      "datumIngangGeldigheid": "20000101",
+      "datumAanvangAdreshouding": "20000101",
+      "straat": "Perfstraat",
+      "huisnummer": "82",
+      "postcode": "7511AG"
+    },
+    "immigratie": {},
+    "gemeenteVanInschrijving": {
+      "code": "0153",
+      "omschrijving": "Enschede"
+    },
+    "datumInschrijvingInGemeente": "20000101",
+    "gezag": [],
+    "kinderen": [],
+    "ouders": [],
+    "partners": []
+  },
+  {
+    "aNummer": "1000000083",
+    "burgerservicenummer": "900000910",
+    "datumEersteInschrijvingGBA": "20000101",
+    "geslacht": {
+      "code": "M",
+      "omschrijving": "man"
+    },
+    "naam": {
+      "aanduidingNaamgebruik": {
+        "code": "E",
+        "omschrijving": "eigen geslachtsnaam"
+      },
+      "voornamen": "Perf",
+      "geslachtsnaam": "burger-083"
+    },
+    "nationaliteiten": [
+      {
+        "datumIngangGeldigheid": "20000101",
+        "nationaliteit": {
+          "code": "0001",
+          "omschrijving": "Nederlandse"
+        },
+        "redenOpname": {
+          "code": "001",
+          "omschrijving": "Wet op het Nederlanderschap 1892, art.1, lid 1a"
+        }
+      }
+    ],
+    "geboorte": {
+      "land": {
+        "code": "6030",
+        "omschrijving": "Nederland"
+      },
+      "plaats": {
+        "code": "0153",
+        "omschrijving": "Enschede"
+      },
+      "datum": "19800101"
+    },
+    "verblijfplaats": {
+      "functieAdres": {
+        "code": "W",
+        "omschrijving": "woonadres"
+      },
+      "datumIngangGeldigheid": "20000101",
+      "datumAanvangAdreshouding": "20000101",
+      "straat": "Perfstraat",
+      "huisnummer": "83",
+      "postcode": "7511AG"
+    },
+    "immigratie": {},
+    "gemeenteVanInschrijving": {
+      "code": "0153",
+      "omschrijving": "Enschede"
+    },
+    "datumInschrijvingInGemeente": "20000101",
+    "gezag": [],
+    "kinderen": [],
+    "ouders": [],
+    "partners": []
+  },
+  {
+    "aNummer": "1000000084",
+    "burgerservicenummer": "900000922",
+    "datumEersteInschrijvingGBA": "20000101",
+    "geslacht": {
+      "code": "M",
+      "omschrijving": "man"
+    },
+    "naam": {
+      "aanduidingNaamgebruik": {
+        "code": "E",
+        "omschrijving": "eigen geslachtsnaam"
+      },
+      "voornamen": "Perf",
+      "geslachtsnaam": "burger-084"
+    },
+    "nationaliteiten": [
+      {
+        "datumIngangGeldigheid": "20000101",
+        "nationaliteit": {
+          "code": "0001",
+          "omschrijving": "Nederlandse"
+        },
+        "redenOpname": {
+          "code": "001",
+          "omschrijving": "Wet op het Nederlanderschap 1892, art.1, lid 1a"
+        }
+      }
+    ],
+    "geboorte": {
+      "land": {
+        "code": "6030",
+        "omschrijving": "Nederland"
+      },
+      "plaats": {
+        "code": "0153",
+        "omschrijving": "Enschede"
+      },
+      "datum": "19800101"
+    },
+    "verblijfplaats": {
+      "functieAdres": {
+        "code": "W",
+        "omschrijving": "woonadres"
+      },
+      "datumIngangGeldigheid": "20000101",
+      "datumAanvangAdreshouding": "20000101",
+      "straat": "Perfstraat",
+      "huisnummer": "84",
+      "postcode": "7511AG"
+    },
+    "immigratie": {},
+    "gemeenteVanInschrijving": {
+      "code": "0153",
+      "omschrijving": "Enschede"
+    },
+    "datumInschrijvingInGemeente": "20000101",
+    "gezag": [],
+    "kinderen": [],
+    "ouders": [],
+    "partners": []
+  },
+  {
+    "aNummer": "1000000085",
+    "burgerservicenummer": "900000934",
+    "datumEersteInschrijvingGBA": "20000101",
+    "geslacht": {
+      "code": "M",
+      "omschrijving": "man"
+    },
+    "naam": {
+      "aanduidingNaamgebruik": {
+        "code": "E",
+        "omschrijving": "eigen geslachtsnaam"
+      },
+      "voornamen": "Perf",
+      "geslachtsnaam": "burger-085"
+    },
+    "nationaliteiten": [
+      {
+        "datumIngangGeldigheid": "20000101",
+        "nationaliteit": {
+          "code": "0001",
+          "omschrijving": "Nederlandse"
+        },
+        "redenOpname": {
+          "code": "001",
+          "omschrijving": "Wet op het Nederlanderschap 1892, art.1, lid 1a"
+        }
+      }
+    ],
+    "geboorte": {
+      "land": {
+        "code": "6030",
+        "omschrijving": "Nederland"
+      },
+      "plaats": {
+        "code": "0153",
+        "omschrijving": "Enschede"
+      },
+      "datum": "19800101"
+    },
+    "verblijfplaats": {
+      "functieAdres": {
+        "code": "W",
+        "omschrijving": "woonadres"
+      },
+      "datumIngangGeldigheid": "20000101",
+      "datumAanvangAdreshouding": "20000101",
+      "straat": "Perfstraat",
+      "huisnummer": "85",
+      "postcode": "7511AG"
+    },
+    "immigratie": {},
+    "gemeenteVanInschrijving": {
+      "code": "0153",
+      "omschrijving": "Enschede"
+    },
+    "datumInschrijvingInGemeente": "20000101",
+    "gezag": [],
+    "kinderen": [],
+    "ouders": [],
+    "partners": []
+  },
+  {
+    "aNummer": "1000000086",
+    "burgerservicenummer": "900000946",
+    "datumEersteInschrijvingGBA": "20000101",
+    "geslacht": {
+      "code": "M",
+      "omschrijving": "man"
+    },
+    "naam": {
+      "aanduidingNaamgebruik": {
+        "code": "E",
+        "omschrijving": "eigen geslachtsnaam"
+      },
+      "voornamen": "Perf",
+      "geslachtsnaam": "burger-086"
+    },
+    "nationaliteiten": [
+      {
+        "datumIngangGeldigheid": "20000101",
+        "nationaliteit": {
+          "code": "0001",
+          "omschrijving": "Nederlandse"
+        },
+        "redenOpname": {
+          "code": "001",
+          "omschrijving": "Wet op het Nederlanderschap 1892, art.1, lid 1a"
+        }
+      }
+    ],
+    "geboorte": {
+      "land": {
+        "code": "6030",
+        "omschrijving": "Nederland"
+      },
+      "plaats": {
+        "code": "0153",
+        "omschrijving": "Enschede"
+      },
+      "datum": "19800101"
+    },
+    "verblijfplaats": {
+      "functieAdres": {
+        "code": "W",
+        "omschrijving": "woonadres"
+      },
+      "datumIngangGeldigheid": "20000101",
+      "datumAanvangAdreshouding": "20000101",
+      "straat": "Perfstraat",
+      "huisnummer": "86",
+      "postcode": "7511AG"
+    },
+    "immigratie": {},
+    "gemeenteVanInschrijving": {
+      "code": "0153",
+      "omschrijving": "Enschede"
+    },
+    "datumInschrijvingInGemeente": "20000101",
+    "gezag": [],
+    "kinderen": [],
+    "ouders": [],
+    "partners": []
+  },
+  {
+    "aNummer": "1000000087",
+    "burgerservicenummer": "900000958",
+    "datumEersteInschrijvingGBA": "20000101",
+    "geslacht": {
+      "code": "M",
+      "omschrijving": "man"
+    },
+    "naam": {
+      "aanduidingNaamgebruik": {
+        "code": "E",
+        "omschrijving": "eigen geslachtsnaam"
+      },
+      "voornamen": "Perf",
+      "geslachtsnaam": "burger-087"
+    },
+    "nationaliteiten": [
+      {
+        "datumIngangGeldigheid": "20000101",
+        "nationaliteit": {
+          "code": "0001",
+          "omschrijving": "Nederlandse"
+        },
+        "redenOpname": {
+          "code": "001",
+          "omschrijving": "Wet op het Nederlanderschap 1892, art.1, lid 1a"
+        }
+      }
+    ],
+    "geboorte": {
+      "land": {
+        "code": "6030",
+        "omschrijving": "Nederland"
+      },
+      "plaats": {
+        "code": "0153",
+        "omschrijving": "Enschede"
+      },
+      "datum": "19800101"
+    },
+    "verblijfplaats": {
+      "functieAdres": {
+        "code": "W",
+        "omschrijving": "woonadres"
+      },
+      "datumIngangGeldigheid": "20000101",
+      "datumAanvangAdreshouding": "20000101",
+      "straat": "Perfstraat",
+      "huisnummer": "87",
+      "postcode": "7511AG"
+    },
+    "immigratie": {},
+    "gemeenteVanInschrijving": {
+      "code": "0153",
+      "omschrijving": "Enschede"
+    },
+    "datumInschrijvingInGemeente": "20000101",
+    "gezag": [],
+    "kinderen": [],
+    "ouders": [],
+    "partners": []
+  },
+  {
+    "aNummer": "1000000088",
+    "burgerservicenummer": "900000971",
+    "datumEersteInschrijvingGBA": "20000101",
+    "geslacht": {
+      "code": "M",
+      "omschrijving": "man"
+    },
+    "naam": {
+      "aanduidingNaamgebruik": {
+        "code": "E",
+        "omschrijving": "eigen geslachtsnaam"
+      },
+      "voornamen": "Perf",
+      "geslachtsnaam": "burger-088"
+    },
+    "nationaliteiten": [
+      {
+        "datumIngangGeldigheid": "20000101",
+        "nationaliteit": {
+          "code": "0001",
+          "omschrijving": "Nederlandse"
+        },
+        "redenOpname": {
+          "code": "001",
+          "omschrijving": "Wet op het Nederlanderschap 1892, art.1, lid 1a"
+        }
+      }
+    ],
+    "geboorte": {
+      "land": {
+        "code": "6030",
+        "omschrijving": "Nederland"
+      },
+      "plaats": {
+        "code": "0153",
+        "omschrijving": "Enschede"
+      },
+      "datum": "19800101"
+    },
+    "verblijfplaats": {
+      "functieAdres": {
+        "code": "W",
+        "omschrijving": "woonadres"
+      },
+      "datumIngangGeldigheid": "20000101",
+      "datumAanvangAdreshouding": "20000101",
+      "straat": "Perfstraat",
+      "huisnummer": "88",
+      "postcode": "7511AG"
+    },
+    "immigratie": {},
+    "gemeenteVanInschrijving": {
+      "code": "0153",
+      "omschrijving": "Enschede"
+    },
+    "datumInschrijvingInGemeente": "20000101",
+    "gezag": [],
+    "kinderen": [],
+    "ouders": [],
+    "partners": []
+  },
+  {
+    "aNummer": "1000000089",
+    "burgerservicenummer": "900000983",
+    "datumEersteInschrijvingGBA": "20000101",
+    "geslacht": {
+      "code": "M",
+      "omschrijving": "man"
+    },
+    "naam": {
+      "aanduidingNaamgebruik": {
+        "code": "E",
+        "omschrijving": "eigen geslachtsnaam"
+      },
+      "voornamen": "Perf",
+      "geslachtsnaam": "burger-089"
+    },
+    "nationaliteiten": [
+      {
+        "datumIngangGeldigheid": "20000101",
+        "nationaliteit": {
+          "code": "0001",
+          "omschrijving": "Nederlandse"
+        },
+        "redenOpname": {
+          "code": "001",
+          "omschrijving": "Wet op het Nederlanderschap 1892, art.1, lid 1a"
+        }
+      }
+    ],
+    "geboorte": {
+      "land": {
+        "code": "6030",
+        "omschrijving": "Nederland"
+      },
+      "plaats": {
+        "code": "0153",
+        "omschrijving": "Enschede"
+      },
+      "datum": "19800101"
+    },
+    "verblijfplaats": {
+      "functieAdres": {
+        "code": "W",
+        "omschrijving": "woonadres"
+      },
+      "datumIngangGeldigheid": "20000101",
+      "datumAanvangAdreshouding": "20000101",
+      "straat": "Perfstraat",
+      "huisnummer": "89",
+      "postcode": "7511AG"
+    },
+    "immigratie": {},
+    "gemeenteVanInschrijving": {
+      "code": "0153",
+      "omschrijving": "Enschede"
+    },
+    "datumInschrijvingInGemeente": "20000101",
+    "gezag": [],
+    "kinderen": [],
+    "ouders": [],
+    "partners": []
+  },
+  {
+    "aNummer": "1000000090",
+    "burgerservicenummer": "900000995",
+    "datumEersteInschrijvingGBA": "20000101",
+    "geslacht": {
+      "code": "M",
+      "omschrijving": "man"
+    },
+    "naam": {
+      "aanduidingNaamgebruik": {
+        "code": "E",
+        "omschrijving": "eigen geslachtsnaam"
+      },
+      "voornamen": "Perf",
+      "geslachtsnaam": "burger-090"
+    },
+    "nationaliteiten": [
+      {
+        "datumIngangGeldigheid": "20000101",
+        "nationaliteit": {
+          "code": "0001",
+          "omschrijving": "Nederlandse"
+        },
+        "redenOpname": {
+          "code": "001",
+          "omschrijving": "Wet op het Nederlanderschap 1892, art.1, lid 1a"
+        }
+      }
+    ],
+    "geboorte": {
+      "land": {
+        "code": "6030",
+        "omschrijving": "Nederland"
+      },
+      "plaats": {
+        "code": "0153",
+        "omschrijving": "Enschede"
+      },
+      "datum": "19800101"
+    },
+    "verblijfplaats": {
+      "functieAdres": {
+        "code": "W",
+        "omschrijving": "woonadres"
+      },
+      "datumIngangGeldigheid": "20000101",
+      "datumAanvangAdreshouding": "20000101",
+      "straat": "Perfstraat",
+      "huisnummer": "90",
+      "postcode": "7511AG"
+    },
+    "immigratie": {},
+    "gemeenteVanInschrijving": {
+      "code": "0153",
+      "omschrijving": "Enschede"
+    },
+    "datumInschrijvingInGemeente": "20000101",
+    "gezag": [],
+    "kinderen": [],
+    "ouders": [],
+    "partners": []
+  },
+  {
+    "aNummer": "1000000091",
+    "burgerservicenummer": "900001008",
+    "datumEersteInschrijvingGBA": "20000101",
+    "geslacht": {
+      "code": "M",
+      "omschrijving": "man"
+    },
+    "naam": {
+      "aanduidingNaamgebruik": {
+        "code": "E",
+        "omschrijving": "eigen geslachtsnaam"
+      },
+      "voornamen": "Perf",
+      "geslachtsnaam": "burger-091"
+    },
+    "nationaliteiten": [
+      {
+        "datumIngangGeldigheid": "20000101",
+        "nationaliteit": {
+          "code": "0001",
+          "omschrijving": "Nederlandse"
+        },
+        "redenOpname": {
+          "code": "001",
+          "omschrijving": "Wet op het Nederlanderschap 1892, art.1, lid 1a"
+        }
+      }
+    ],
+    "geboorte": {
+      "land": {
+        "code": "6030",
+        "omschrijving": "Nederland"
+      },
+      "plaats": {
+        "code": "0153",
+        "omschrijving": "Enschede"
+      },
+      "datum": "19800101"
+    },
+    "verblijfplaats": {
+      "functieAdres": {
+        "code": "W",
+        "omschrijving": "woonadres"
+      },
+      "datumIngangGeldigheid": "20000101",
+      "datumAanvangAdreshouding": "20000101",
+      "straat": "Perfstraat",
+      "huisnummer": "91",
+      "postcode": "7511AG"
+    },
+    "immigratie": {},
+    "gemeenteVanInschrijving": {
+      "code": "0153",
+      "omschrijving": "Enschede"
+    },
+    "datumInschrijvingInGemeente": "20000101",
+    "gezag": [],
+    "kinderen": [],
+    "ouders": [],
+    "partners": []
+  },
+  {
+    "aNummer": "1000000092",
+    "burgerservicenummer": "900001021",
+    "datumEersteInschrijvingGBA": "20000101",
+    "geslacht": {
+      "code": "M",
+      "omschrijving": "man"
+    },
+    "naam": {
+      "aanduidingNaamgebruik": {
+        "code": "E",
+        "omschrijving": "eigen geslachtsnaam"
+      },
+      "voornamen": "Perf",
+      "geslachtsnaam": "burger-092"
+    },
+    "nationaliteiten": [
+      {
+        "datumIngangGeldigheid": "20000101",
+        "nationaliteit": {
+          "code": "0001",
+          "omschrijving": "Nederlandse"
+        },
+        "redenOpname": {
+          "code": "001",
+          "omschrijving": "Wet op het Nederlanderschap 1892, art.1, lid 1a"
+        }
+      }
+    ],
+    "geboorte": {
+      "land": {
+        "code": "6030",
+        "omschrijving": "Nederland"
+      },
+      "plaats": {
+        "code": "0153",
+        "omschrijving": "Enschede"
+      },
+      "datum": "19800101"
+    },
+    "verblijfplaats": {
+      "functieAdres": {
+        "code": "W",
+        "omschrijving": "woonadres"
+      },
+      "datumIngangGeldigheid": "20000101",
+      "datumAanvangAdreshouding": "20000101",
+      "straat": "Perfstraat",
+      "huisnummer": "92",
+      "postcode": "7511AG"
+    },
+    "immigratie": {},
+    "gemeenteVanInschrijving": {
+      "code": "0153",
+      "omschrijving": "Enschede"
+    },
+    "datumInschrijvingInGemeente": "20000101",
+    "gezag": [],
+    "kinderen": [],
+    "ouders": [],
+    "partners": []
+  },
+  {
+    "aNummer": "1000000093",
+    "burgerservicenummer": "900001033",
+    "datumEersteInschrijvingGBA": "20000101",
+    "geslacht": {
+      "code": "M",
+      "omschrijving": "man"
+    },
+    "naam": {
+      "aanduidingNaamgebruik": {
+        "code": "E",
+        "omschrijving": "eigen geslachtsnaam"
+      },
+      "voornamen": "Perf",
+      "geslachtsnaam": "burger-093"
+    },
+    "nationaliteiten": [
+      {
+        "datumIngangGeldigheid": "20000101",
+        "nationaliteit": {
+          "code": "0001",
+          "omschrijving": "Nederlandse"
+        },
+        "redenOpname": {
+          "code": "001",
+          "omschrijving": "Wet op het Nederlanderschap 1892, art.1, lid 1a"
+        }
+      }
+    ],
+    "geboorte": {
+      "land": {
+        "code": "6030",
+        "omschrijving": "Nederland"
+      },
+      "plaats": {
+        "code": "0153",
+        "omschrijving": "Enschede"
+      },
+      "datum": "19800101"
+    },
+    "verblijfplaats": {
+      "functieAdres": {
+        "code": "W",
+        "omschrijving": "woonadres"
+      },
+      "datumIngangGeldigheid": "20000101",
+      "datumAanvangAdreshouding": "20000101",
+      "straat": "Perfstraat",
+      "huisnummer": "93",
+      "postcode": "7511AG"
+    },
+    "immigratie": {},
+    "gemeenteVanInschrijving": {
+      "code": "0153",
+      "omschrijving": "Enschede"
+    },
+    "datumInschrijvingInGemeente": "20000101",
+    "gezag": [],
+    "kinderen": [],
+    "ouders": [],
+    "partners": []
+  },
+  {
+    "aNummer": "1000000094",
+    "burgerservicenummer": "900001045",
+    "datumEersteInschrijvingGBA": "20000101",
+    "geslacht": {
+      "code": "M",
+      "omschrijving": "man"
+    },
+    "naam": {
+      "aanduidingNaamgebruik": {
+        "code": "E",
+        "omschrijving": "eigen geslachtsnaam"
+      },
+      "voornamen": "Perf",
+      "geslachtsnaam": "burger-094"
+    },
+    "nationaliteiten": [
+      {
+        "datumIngangGeldigheid": "20000101",
+        "nationaliteit": {
+          "code": "0001",
+          "omschrijving": "Nederlandse"
+        },
+        "redenOpname": {
+          "code": "001",
+          "omschrijving": "Wet op het Nederlanderschap 1892, art.1, lid 1a"
+        }
+      }
+    ],
+    "geboorte": {
+      "land": {
+        "code": "6030",
+        "omschrijving": "Nederland"
+      },
+      "plaats": {
+        "code": "0153",
+        "omschrijving": "Enschede"
+      },
+      "datum": "19800101"
+    },
+    "verblijfplaats": {
+      "functieAdres": {
+        "code": "W",
+        "omschrijving": "woonadres"
+      },
+      "datumIngangGeldigheid": "20000101",
+      "datumAanvangAdreshouding": "20000101",
+      "straat": "Perfstraat",
+      "huisnummer": "94",
+      "postcode": "7511AG"
+    },
+    "immigratie": {},
+    "gemeenteVanInschrijving": {
+      "code": "0153",
+      "omschrijving": "Enschede"
+    },
+    "datumInschrijvingInGemeente": "20000101",
+    "gezag": [],
+    "kinderen": [],
+    "ouders": [],
+    "partners": []
+  },
+  {
+    "aNummer": "1000000095",
+    "burgerservicenummer": "900001057",
+    "datumEersteInschrijvingGBA": "20000101",
+    "geslacht": {
+      "code": "M",
+      "omschrijving": "man"
+    },
+    "naam": {
+      "aanduidingNaamgebruik": {
+        "code": "E",
+        "omschrijving": "eigen geslachtsnaam"
+      },
+      "voornamen": "Perf",
+      "geslachtsnaam": "burger-095"
+    },
+    "nationaliteiten": [
+      {
+        "datumIngangGeldigheid": "20000101",
+        "nationaliteit": {
+          "code": "0001",
+          "omschrijving": "Nederlandse"
+        },
+        "redenOpname": {
+          "code": "001",
+          "omschrijving": "Wet op het Nederlanderschap 1892, art.1, lid 1a"
+        }
+      }
+    ],
+    "geboorte": {
+      "land": {
+        "code": "6030",
+        "omschrijving": "Nederland"
+      },
+      "plaats": {
+        "code": "0153",
+        "omschrijving": "Enschede"
+      },
+      "datum": "19800101"
+    },
+    "verblijfplaats": {
+      "functieAdres": {
+        "code": "W",
+        "omschrijving": "woonadres"
+      },
+      "datumIngangGeldigheid": "20000101",
+      "datumAanvangAdreshouding": "20000101",
+      "straat": "Perfstraat",
+      "huisnummer": "95",
+      "postcode": "7511AG"
+    },
+    "immigratie": {},
+    "gemeenteVanInschrijving": {
+      "code": "0153",
+      "omschrijving": "Enschede"
+    },
+    "datumInschrijvingInGemeente": "20000101",
+    "gezag": [],
+    "kinderen": [],
+    "ouders": [],
+    "partners": []
+  },
+  {
+    "aNummer": "1000000096",
+    "burgerservicenummer": "900001069",
+    "datumEersteInschrijvingGBA": "20000101",
+    "geslacht": {
+      "code": "M",
+      "omschrijving": "man"
+    },
+    "naam": {
+      "aanduidingNaamgebruik": {
+        "code": "E",
+        "omschrijving": "eigen geslachtsnaam"
+      },
+      "voornamen": "Perf",
+      "geslachtsnaam": "burger-096"
+    },
+    "nationaliteiten": [
+      {
+        "datumIngangGeldigheid": "20000101",
+        "nationaliteit": {
+          "code": "0001",
+          "omschrijving": "Nederlandse"
+        },
+        "redenOpname": {
+          "code": "001",
+          "omschrijving": "Wet op het Nederlanderschap 1892, art.1, lid 1a"
+        }
+      }
+    ],
+    "geboorte": {
+      "land": {
+        "code": "6030",
+        "omschrijving": "Nederland"
+      },
+      "plaats": {
+        "code": "0153",
+        "omschrijving": "Enschede"
+      },
+      "datum": "19800101"
+    },
+    "verblijfplaats": {
+      "functieAdres": {
+        "code": "W",
+        "omschrijving": "woonadres"
+      },
+      "datumIngangGeldigheid": "20000101",
+      "datumAanvangAdreshouding": "20000101",
+      "straat": "Perfstraat",
+      "huisnummer": "96",
+      "postcode": "7511AG"
+    },
+    "immigratie": {},
+    "gemeenteVanInschrijving": {
+      "code": "0153",
+      "omschrijving": "Enschede"
+    },
+    "datumInschrijvingInGemeente": "20000101",
+    "gezag": [],
+    "kinderen": [],
+    "ouders": [],
+    "partners": []
+  },
+  {
+    "aNummer": "1000000097",
+    "burgerservicenummer": "900001070",
+    "datumEersteInschrijvingGBA": "20000101",
+    "geslacht": {
+      "code": "M",
+      "omschrijving": "man"
+    },
+    "naam": {
+      "aanduidingNaamgebruik": {
+        "code": "E",
+        "omschrijving": "eigen geslachtsnaam"
+      },
+      "voornamen": "Perf",
+      "geslachtsnaam": "burger-097"
+    },
+    "nationaliteiten": [
+      {
+        "datumIngangGeldigheid": "20000101",
+        "nationaliteit": {
+          "code": "0001",
+          "omschrijving": "Nederlandse"
+        },
+        "redenOpname": {
+          "code": "001",
+          "omschrijving": "Wet op het Nederlanderschap 1892, art.1, lid 1a"
+        }
+      }
+    ],
+    "geboorte": {
+      "land": {
+        "code": "6030",
+        "omschrijving": "Nederland"
+      },
+      "plaats": {
+        "code": "0153",
+        "omschrijving": "Enschede"
+      },
+      "datum": "19800101"
+    },
+    "verblijfplaats": {
+      "functieAdres": {
+        "code": "W",
+        "omschrijving": "woonadres"
+      },
+      "datumIngangGeldigheid": "20000101",
+      "datumAanvangAdreshouding": "20000101",
+      "straat": "Perfstraat",
+      "huisnummer": "97",
+      "postcode": "7511AG"
+    },
+    "immigratie": {},
+    "gemeenteVanInschrijving": {
+      "code": "0153",
+      "omschrijving": "Enschede"
+    },
+    "datumInschrijvingInGemeente": "20000101",
+    "gezag": [],
+    "kinderen": [],
+    "ouders": [],
+    "partners": []
+  },
+  {
+    "aNummer": "1000000098",
+    "burgerservicenummer": "900001082",
+    "datumEersteInschrijvingGBA": "20000101",
+    "geslacht": {
+      "code": "M",
+      "omschrijving": "man"
+    },
+    "naam": {
+      "aanduidingNaamgebruik": {
+        "code": "E",
+        "omschrijving": "eigen geslachtsnaam"
+      },
+      "voornamen": "Perf",
+      "geslachtsnaam": "burger-098"
+    },
+    "nationaliteiten": [
+      {
+        "datumIngangGeldigheid": "20000101",
+        "nationaliteit": {
+          "code": "0001",
+          "omschrijving": "Nederlandse"
+        },
+        "redenOpname": {
+          "code": "001",
+          "omschrijving": "Wet op het Nederlanderschap 1892, art.1, lid 1a"
+        }
+      }
+    ],
+    "geboorte": {
+      "land": {
+        "code": "6030",
+        "omschrijving": "Nederland"
+      },
+      "plaats": {
+        "code": "0153",
+        "omschrijving": "Enschede"
+      },
+      "datum": "19800101"
+    },
+    "verblijfplaats": {
+      "functieAdres": {
+        "code": "W",
+        "omschrijving": "woonadres"
+      },
+      "datumIngangGeldigheid": "20000101",
+      "datumAanvangAdreshouding": "20000101",
+      "straat": "Perfstraat",
+      "huisnummer": "98",
+      "postcode": "7511AG"
+    },
+    "immigratie": {},
+    "gemeenteVanInschrijving": {
+      "code": "0153",
+      "omschrijving": "Enschede"
+    },
+    "datumInschrijvingInGemeente": "20000101",
+    "gezag": [],
+    "kinderen": [],
+    "ouders": [],
+    "partners": []
+  },
+  {
+    "aNummer": "1000000099",
+    "burgerservicenummer": "900001094",
+    "datumEersteInschrijvingGBA": "20000101",
+    "geslacht": {
+      "code": "M",
+      "omschrijving": "man"
+    },
+    "naam": {
+      "aanduidingNaamgebruik": {
+        "code": "E",
+        "omschrijving": "eigen geslachtsnaam"
+      },
+      "voornamen": "Perf",
+      "geslachtsnaam": "burger-099"
+    },
+    "nationaliteiten": [
+      {
+        "datumIngangGeldigheid": "20000101",
+        "nationaliteit": {
+          "code": "0001",
+          "omschrijving": "Nederlandse"
+        },
+        "redenOpname": {
+          "code": "001",
+          "omschrijving": "Wet op het Nederlanderschap 1892, art.1, lid 1a"
+        }
+      }
+    ],
+    "geboorte": {
+      "land": {
+        "code": "6030",
+        "omschrijving": "Nederland"
+      },
+      "plaats": {
+        "code": "0153",
+        "omschrijving": "Enschede"
+      },
+      "datum": "19800101"
+    },
+    "verblijfplaats": {
+      "functieAdres": {
+        "code": "W",
+        "omschrijving": "woonadres"
+      },
+      "datumIngangGeldigheid": "20000101",
+      "datumAanvangAdreshouding": "20000101",
+      "straat": "Perfstraat",
+      "huisnummer": "99",
+      "postcode": "7511AG"
+    },
+    "immigratie": {},
+    "gemeenteVanInschrijving": {
+      "code": "0153",
+      "omschrijving": "Enschede"
+    },
+    "datumInschrijvingInGemeente": "20000101",
+    "gezag": [],
+    "kinderen": [],
+    "ouders": [],
+    "partners": []
+  },
+  {
+    "aNummer": "1000000100",
+    "burgerservicenummer": "900001100",
+    "datumEersteInschrijvingGBA": "20000101",
+    "geslacht": {
+      "code": "M",
+      "omschrijving": "man"
+    },
+    "naam": {
+      "aanduidingNaamgebruik": {
+        "code": "E",
+        "omschrijving": "eigen geslachtsnaam"
+      },
+      "voornamen": "Perf",
+      "geslachtsnaam": "burger-100"
+    },
+    "nationaliteiten": [
+      {
+        "datumIngangGeldigheid": "20000101",
+        "nationaliteit": {
+          "code": "0001",
+          "omschrijving": "Nederlandse"
+        },
+        "redenOpname": {
+          "code": "001",
+          "omschrijving": "Wet op het Nederlanderschap 1892, art.1, lid 1a"
+        }
+      }
+    ],
+    "geboorte": {
+      "land": {
+        "code": "6030",
+        "omschrijving": "Nederland"
+      },
+      "plaats": {
+        "code": "0153",
+        "omschrijving": "Enschede"
+      },
+      "datum": "19800101"
+    },
+    "verblijfplaats": {
+      "functieAdres": {
+        "code": "W",
+        "omschrijving": "woonadres"
+      },
+      "datumIngangGeldigheid": "20000101",
+      "datumAanvangAdreshouding": "20000101",
+      "straat": "Perfstraat",
+      "huisnummer": "100",
+      "postcode": "7511AG"
+    },
+    "immigratie": {},
+    "gemeenteVanInschrijving": {
+      "code": "0153",
+      "omschrijving": "Enschede"
+    },
+    "datumInschrijvingInGemeente": "20000101",
+    "gezag": [],
+    "kinderen": [],
+    "ouders": [],
+    "partners": []
+  }
+]

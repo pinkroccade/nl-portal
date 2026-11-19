@@ -39,10 +39,11 @@ dan gelden SemVer en een deprecation-periode voor breuken (zie
 | `backend/`        | Kotlin/Spring Boot backend libraries + the shippable backend application. One Gradle build. See [backend/README.md](./backend/README.md). |
 | `frontend/`       | pnpm workspace of `@nl-portal/*` React libraries + the shippable frontend application. See [frontend/README.md](./frontend/README.md). |
 | `docker-compose/` | Local development stack (Keycloak, ZGW services) + fixtures. See [docker-compose/README.md](./docker-compose/README.md). |
+| `performance/` | k6 performance tests (smoke now; see [performance/README.md](./performance/README.md)). |
 | `site/`           | Documentation site (VitePress): architecture, usage, hosting, development. See [site/index.md](./site/index.md). |
 
 Helm charts previously lived in Ritense's separate `nl-portal/helm-charts` repository; pinkroccade's
-own equivalent is tracked in [issue #18](https://github.com/jypma-prlg/nl-portal/issues/18).
+own equivalent is tracked in [epic #191](https://github.com/pinkroccade/nl-portal/issues/191).
 
 ## Running NL Portal
 
@@ -52,7 +53,7 @@ Three ways, by purpose - see [GETTING_STARTED.md](./GETTING_STARTED.md) for the 
 - **Local** - build and run your changes as they'd ship.
 - **From sources** - run the backend/frontend from your IDE for fast development.
 
-For deployment, see [Hosting & configuratie](./site/hosting-en-configuratie/index.md) (see [issue #18](https://github.com/jypma-prlg/nl-portal/issues/18) for the helm-charts follow-up).
+For deployment, see [Hosting & configuratie](./site/hosting-en-configuratie/index.md) (see [epic #191](https://github.com/pinkroccade/nl-portal/issues/191) for the helm-charts follow-up).
 
 ## Developing
 
@@ -69,8 +70,8 @@ also read the [Code of Conduct](./CODE_OF_CONDUCT.md). Report vulnerabilities pr
 ## Documentation
 
 All documentation - architecture, configuration, feature/theme guides, ADRs and workflows - lives in
-one VitePress site under [`site/`](./site) (`mise run docs:dev` to preview it). It is not currently
-published anywhere outside this repository; see [issue #18](https://github.com/jypma-prlg/nl-portal/issues/18).
+one VitePress site under [`site/`](./site) (`mise run docs:dev` to preview it). It is published at
+<https://pinkroccade.github.io/nl-portal/> (GitHub Pages, via `.github/workflows/publish-docs.yml`).
 Sections: [Architectuur](./site/architectuur/index.md), [Gebruik & inrichting](./site/gebruik-en-inrichting/index.md),
 [Hosting & configuratie](./site/hosting-en-configuratie/index.md), [Development](./site/development/index.md).
 

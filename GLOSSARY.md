@@ -37,11 +37,30 @@ staat; voeg een nieuwe term toe zodra een module ernaar vernoemd wordt (zie de
   configuratie in plaats van uit de code. Vier typen: *ops* (runtime-gedrag), *permission* (toegang;
   bij twijfel geweigerd), *experiment* en *release* (kortlevend). NL Portal werkt ook zonder
   aparte flag-voorziening (zie issue #143).
+- **Module** — een afgebakend, aan of uit te zetten onderdeel van NL Portal dat een koppeling of
+  functie levert, bijvoorbeeld Open Product of Zaken. Een module staat per omgeving aan of uit.
+- **Harde afhankelijkheid** — een andere module of externe API zonder welke een module zinloos is.
+  Staat de module aan terwijl een harde afhankelijkheid uit staat, dan is dat een configuratiefout die
+  bij het opstarten wordt gemeld.
+- **Optionele afhankelijkheid** — een andere module of externe API die een module extra functies geeft,
+  maar waarzonder de module nog werkt. Zonder de afhankelijkheid ontbreken alleen die functies.
+- **Uitbreiding** — een voor de gebruiker zichtbare functie van een module die alleen bestaat als een
+  optionele afhankelijkheid beschikbaar is, bijvoorbeeld de zaken bij een product. Een uitbreiding heeft
+  een eigen feature flag en wordt uitgeleverd uitgeschakeld.
 - **Omgevingsconfiguratie** — de set config-files die één deployment aan één gemeente bindt: thema,
   koppelingen en teksten. Wijzigen betekent een nieuwe uitrol, geen aanpassing in een draaiende
   omgeving. _Avoid_: configuration panel, instellingenbeheer.
 - **Thema** — het uiterlijk van één gemeente in NL Portal: logo, stijl, favicon en paginatitel, zodat de
   portal herkenbaar is als die van de gemeente. _Avoid_: skin, branding.
+- **Persistente state** — gegevens die bewaard blijven na een herstart en waarvoor een back-up of herstel
+  nodig is: applicatieconfiguratie en gebruikersdata. _Avoid_: state (zonder bijvoeglijk
+  naamwoord).
+- **Vluchtige state** — gegevens die verloren mogen gaan zonder dataverlies, zoals een sessie of cache;
+  uitval betekent hooguit opnieuw inloggen of een tragere respons. Geen back-up of herstel nodig.
+  _Avoid_: state (zonder bijvoeglijk naamwoord).
+- **Normatieve bron** — een extern of intern document (bijvoorbeeld OWASP ASVS 5.0, een RFC of het
+  5-lagenmodel) waaraan NL Portal zich bewust toetst en waarvan per eis vastligt hoe die wordt afgedwongen
+  of waarom niet. _Avoid_: standaard, richtlijn.
 
 - **Tenant** — één overheidsorganisatie (meestal een gemeente; ook een gemeenschappelijke regeling,
   waterschap of provincie) als afnemer van de NL Portal-SaaS-dienst, met precies één portaal voor
@@ -63,3 +82,8 @@ staat; voeg een nieuwe term toe zodra een module ernaar vernoemd wordt (zie de
 Zie ook `site/architectuur/arc42/12-glossarium.md` voor architectuurspecifieke
 afkortingen (C1/C2/C3, ADR, SBOM, ...), en de `/codebase-design`-skill voor de architectuurvocabulaire
 (module, interface, seam, ...) die in de architectuurreview wordt gebruikt.
+- **Beheerpoort** — het afgeschermde beheerdeel van NL Portal, apart van wat burgers en ondernemers
+  bereiken. Alleen voor beheerders; toont onder meer de modulestatus.
+- **Modulestatus** — de laatst waargenomen werking van een module en de bijbehorende API's: werkend,
+  verstoord, niet geconfigureerd of nog niet gebruikt. Afgeleid van echt verkeer en alleen zichtbaar
+  voor beheerders.

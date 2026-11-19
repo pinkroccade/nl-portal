@@ -5,8 +5,7 @@
 The backend stack of the [NL Portal monorepo](../README.md). It is a single Kotlin/Spring Boot
 multi-module Gradle project containing:
 
-- the **backend libraries** - the backend-for-frontend (BFF) that the NL Portal frontend talks to,
-  published as `nl.nl-portal:*` Maven artifacts; and
+- the **backend libraries** - the backend-for-frontend (BFF) that the NL Portal frontend talks to; and
 - **`app/`** - the shippable backend application that assembles those modules into a runnable
   service and is packaged as the `nl-portal-backend` image (see [app/README.md](./app/README.md)).
 
@@ -55,32 +54,10 @@ See [app/README.md](./app/README.md) for configuration details.
 Modules are configured centrally (`build.gradle.kts` + `buildSrc/`); shared dependency versions live
 in `buildSrc`.
 
-## Consuming snapshot builds
+## Consuming the libraries
 
-Every push to `main` publishes the library modules as **snapshots** to a public S3 Maven repository.
-(Tagged releases are published to Maven Central; that is the primary channel and uses standard
-`mavenCentral()` resolution.) To consume a snapshot, add the repository and scope it to the
-`nl.nl-portal` group so only NL Portal artifacts resolve from it:
-
-```kotlin
-// build.gradle.kts
-repositories {
-    mavenCentral()
-    maven {
-        url = uri("https://nl-portal-backend-snapshots.s3.eu-central-1.amazonaws.com/")
-        content { includeGroup("nl.nl-portal") }
-    }
-}
-```
-
-Pin an exact snapshot version (each build publishes a unique version; there is no floating `latest`):
-
-```kotlin
-implementation("nl.nl-portal:core:<version>-SNAPSHOT")
-```
-
-The bucket is public-read, so no credentials are required. Each version has a
-`.../<version>-SNAPSHOT/maven-metadata.xml` listing its artifacts.
+The library modules are not published to a Maven repository; the project ships only the application. Deploy
+it through the published container image `ghcr.io/pinkroccade/nl-portal-backend`.
 
 ## Known issues
 

@@ -25,7 +25,6 @@ dependencies {
     api(project(":zgw:zaken-api"))
     api(project(":zgw:common-ground-authentication"))
     api(project(":zgw:documenten-api"))
-    api(project(":zgw:idtoken-authentication"))
     api(project(":zgw:objectenapi"))
     api(project(":zgw:besluiten"))
 
@@ -53,5 +52,3 @@ val jar: Jar by tasks
 val bootJar: org.springframework.boot.gradle.tasks.bundling.BootJar by tasks
 bootJar.enabled = false
 jar.enabled = true
-
-apply(from = "gradle/publishing.gradle.kts")

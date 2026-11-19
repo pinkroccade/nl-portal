@@ -4,9 +4,8 @@ A developer-only sandbox clone of [`backend/app`](../app). It lets developers ru
 work (currently the producten / thema demo) against a fully-enabled backend without touching the
 shippable `:app` module.
 
-It is **run from sources only**. It is never built into an image, staged, or published (no GHCR, Maven,
-or JReleaser). PR CI compiles it (`./gradlew build`, including its integration tests), but nothing ships
-it.
+It is **run from sources only**. It is never built into an image, staged, or published (no GHCR). PR CI
+compiles it (`./gradlew build`, including its integration tests), but nothing ships it.
 
 ## Running
 
@@ -15,9 +14,11 @@ cd ../../docker-compose && docker compose --profile zgw --profile haalcentraal u
 cd ../backend && ./gradlew :app-dev:bootRun
 ```
 
-No `.env.properties` is needed. Unlike `:app`, this module is configured entirely from its own
+Only a generated `.env.properties` is read (`mise run dev:setup`): the Keycloak client secret and the
+secrets and tokens of the ZGW components, which `application.yml` references as placeholders. Unlike `:app`,
+this module is configured otherwise entirely from its own
 [`src/main/resources/config/application.yml`](src/main/resources/config/application.yml), which inlines
-concrete local-stack values for the whole `nl-portal.config.*` tree, so `bootRun` needs no environment
+concrete local-stack values for the whole `nl-portal.config.*` tree, so `bootRun` needs no further environment
 setup.
 
 GraphQL is at http://localhost:8080/graphql (GraphiQL and introspection are on). Log in with the test

@@ -2,13 +2,6 @@ extend type Query {
     # Get DigitaleAdressen of authenticated user.
     getUserDigitaleAdressen(isStandaardAdres: Boolean): [DigitaleAdresResponse!]
 
-    # Get KlantContact by id of authenticated user.
-    getUserKlantContact(
-        klantContactId: UUID!
-        identificatorType: OnderwerpObjectIndentificatorType
-        identificatorId: UUID
-    ): OpenKlant2Klantcontact
-
     #
     #         Get KlantContacten of authenticated user and optional filter on .
     #         identificatorType, like zaak or product
@@ -18,12 +11,6 @@ extend type Query {
         identificatorType: OnderwerpObjectIndentificatorType
         identificatorId: UUID
     ): [OpenKlant2Klantcontact!]!
-
-    # Find the Partij of the authenticated user.
-    findUserPartij: OpenKlant2Partij
-
-    # Get Partij by Id for authenticated user.
-    getUserPartij(partijId: UUID!): OpenKlant2Partij
 
 }
 
@@ -40,12 +27,6 @@ extend type Mutation {
     updateUserDigitaleAdres(
         digitaleAdresRequest: DigitaleAdresRequestInput!
     ): DigitaleAdresResponse
-
-    # Create Partij for user
-    createUserPartij(partijRequest: PartijRequestInput!): PartijResponse
-
-    # Update user Partij
-    updateUserPartij(partijRequest: PartijRequestInput!): PartijResponse
 }
 
 type Betrokkene {
@@ -677,32 +658,6 @@ union PartijIdentificatie =
     ContactpersoonIdentificatie
     | OrganisatieIdentificatie
     | PersoonsIdentificatie
-
-input PartijRequestInput {
-    contactpersoonIdentificatie: ContactpersoonIdentificatieInput
-    indicatieActief: Boolean!
-    indicatieGeheimhouding: Boolean!
-    organisatieIdentificatie: OrganisatieIdentificatieInput
-    persoonsIdentificatie: PersoonsIdentificatieInput
-    type: PartijType!
-}
-
-type PartijResponse {
-    contactpersoonIdentificatie: ContactpersoonIdentificatie
-    digitaleAdressen: [OpenKlant2DigitaleAdres!]
-    indicatieActief: Boolean!
-    indicatieGeheimhouding: Boolean
-    klantcontacten: [HadKlantcontact!]
-    organisatieIdentificatie: OrganisatieIdentificatie
-    persoonsIdentificatie: PersoonsIdentificatie
-    type: PartijType!
-}
-
-enum PartijType {
-    PERSOON
-    ORGANISATIE
-    CONTACTPERSOON
-}
 
 type PersoonsIdentificatie {
     contactnaam: Contactnaam

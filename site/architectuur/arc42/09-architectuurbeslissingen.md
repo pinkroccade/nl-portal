@@ -59,7 +59,11 @@ legt vast *dat* en *hoe* beslissingen worden vastgelegd.
   Configuratie en thema per omgeving uit config-files, zonder configuration panel; rolling restart in
   plaats van hot reload; validatie (incl. contrast) in CI en bij opstart.
 
-- [`0017-gedeelde-multi-tenant-runtime-met-cellen.md`](../../development/adr/0017-gedeelde-multi-tenant-runtime-met-cellen.md) — **voorgesteld**.
+- [`0020-levenscyclus-feature-flags-en-privacy-evaluatiecontext.md`](../../development/adr/0020-levenscyclus-feature-flags-en-privacy-evaluatiecontext.md) — **geaccepteerd**.
+  Aanvulling op ADR 0014: toggle-typen en foutgedrag, naamgeving, eigenaar en vervaldatum, en een
+  evaluatiecontext zonder persoonsgegevens (opaque id of HMAC, nooit BSN of naam).
+
+- [`0021-gedeelde-multi-tenant-runtime-met-cellen.md`](../../development/adr/0021-gedeelde-multi-tenant-runtime-met-cellen.md) — **voorgesteld**.
   Eén gedeelde multi-tenant runtime met logische tenantscheiding, ingedeeld in cellen (canarycel en
   hoofdcel); tenant uit het hostdomein, issuer als binding, realm per tenant, tenantbestand/flag/secret store,
   core-seam met architectuurchecks. Wijzigt bij acceptatie ADR 0016 punt 2 en 6.
@@ -72,3 +76,13 @@ Nog niet als ADR vastgelegd:
    `berichten`, `verificatie`, `besluiten`, `openproduct` — buiten de scope van ADR 0002):
    `MockWebServer` is het precedent dat ADR 0002 volgt voor de vier modules die het wél meeneemt;
    relevant zodra die overige modules aan de beurt zijn.
+
+- [`0017-vluchtige-state-toegestaan.md`](../../development/adr/0017-vluchtige-state-toegestaan.md) — **geaccepteerd**.
+  Verfijnt ADR 0013: geen *persistente* state; vluchtige state (sessies, cache) mag. Redis als
+  sessieopslag is verplicht bij een BFF, als cache optioneel.
+- [`0018-performancetesten-met-k6-en-otel-agent-in-overlay.md`](../../development/adr/0018-performancetesten-met-k6-en-otel-agent-in-overlay.md) — **voorgesteld**.
+  k6 als loadtool op de volledige compose-stack; tracing via een OTel-agent alleen in de perf-overlay,
+  Micrometer in de app uitgesteld.
+- [`0019-trunk-based-continuous-delivery.md`](../../development/adr/0019-trunk-based-continuous-delivery.md) — **voorgesteld**.
+  `main` als enige lijn, één build per commit, promotie van dezelfde digest naar `x.y.z` en `latest`;
+  vervangt `rc/*` en `release/<major>.x`.

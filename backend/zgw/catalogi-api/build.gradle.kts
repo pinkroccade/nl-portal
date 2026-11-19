@@ -22,7 +22,6 @@ val isLib = true
 dependencies {
 
     api(project(":graphql"))
-    api(project(":zgw:idtoken-authentication"))
 
     implementation(Dependencies.springBootStarter)
 
@@ -43,5 +42,3 @@ val jar: Jar by tasks
 val bootJar: org.springframework.boot.gradle.tasks.bundling.BootJar by tasks
 bootJar.enabled = false
 jar.enabled = true
-
-apply(from = "gradle/publishing.gradle.kts")
