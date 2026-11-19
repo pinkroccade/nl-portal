@@ -29,6 +29,9 @@ services:
                   mode: 01777
 
     nl-portal-backend:
+        # De backend heeft Keycloak nodig bij het opstarten en stopt zonder dat; compose start hem niet opnieuw.
+        # Op een trage (CI-)runner kan hij daardoor eenmalig mislukken, dus herstart hem een paar keer.
+        restart: on-failure:5
         environment:
             # Leeg zonder tracing: dan wordt geen agent geladen.
             JAVA_TOOL_OPTIONS: ${PERF_JAVA_AGENT:+-javaagent:/otel/javaagent.jar}
