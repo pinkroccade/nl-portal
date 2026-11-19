@@ -2,7 +2,7 @@
 
 ## Status
 
-Voorgesteld (#428)
+Geaccepteerd (#428)
 
 ## Context
 
