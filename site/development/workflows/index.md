@@ -12,6 +12,7 @@ zit) en `site/likec4` (het diagrammodel).
 | [Threat-model werkblad](./threat-model-template.md) | STRIDE per nieuwe externe integratie |
 | [Spec-driven development](./spec-driven-development.md) | Hoe je nieuwe functionaliteit toevoegt, van issue tot PR |
 | [Module-flag](./module-gate-patroon.md) | Een backendmodule per request aan of uit zetten met een feature flag |
+| [Performancetesten](./performance-testing.md) | Lokaal meten met k6, baseline bijwerken en de nachtelijke resultaten lezen |
 | [Feature-spec sjabloon](./feature-spec-template.md) | Kopieer dit in een issue van deze repository |
 
 Begin bij [spec-driven-development.md](./spec-driven-development.md) als je nieuwe functionaliteit
