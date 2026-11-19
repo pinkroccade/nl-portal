@@ -1,0 +1,56 @@
+name: Performance (k6)
+
+# Nachtelijk op main en per release-candidate (push naar rc/*): de read-only journeys onder gemiddelde
+# belasting, 3 runs, mediaan vergeleken met performance/baseline/load.json. Signalerend, niet blokkerend
+# (ADR 0018): een verslechtering wordt een waarschuwing in de workflow-summary. De baseline verandert
+# alleen via een PR (mise run perf:baseline, zie site/development/workflows/performance-testing.md).
+on:
+    schedule:
+        -   cron: "0 2 * * *"
+    push:
+        branches:
+            - "rc/**"
+    workflow_dispatch:
+
+permissions:
+    contents: read
+
+concurrency:
+    group: performance-${{ github.ref }}
+    cancel-in-progress: true
+
+jobs:
+    k6:
+        runs-on: ubuntu-latest
+        timeout-minutes: 75
+        env:
+            PERF_PASSWORD: perf-wachtwoord
+            PERF_CLIENT_ID: nl-portal-perf
+            PERF_PROFILE: load
+        steps:
+            -   name: Checkout
+                uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+            -   name: Set up mise (k6, node en java uit mise.toml)
+                uses: jdx/mise-action@b44d12e7d0d8ee7461bb893e1b1993500433185b # v5.2.7
+            -   name: Genereer de dev-omgeving (willekeurige secrets)
+                run: mise run dev:setup
+            -   name: Start de perf-stack (zonder tracing)
+                run: mise run perf:stack-up
+            -   name: Wacht tot de stack klaar is
+                run: mise run perf:wacht
+            -   name: Seed de perf-data
+                run: mise run perf:seed
+            -   name: Meet (3 runs, profiel load)
+                run: mise run perf:meet
+            -   name: Vergelijk met de baseline
+                run: mise run perf:vergelijk
+            -   name: Upload de k6-summaries
+                if: always()
+                uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+                with:
+                    name: k6-summaries
+                    path: performance/resultaten
+                    if-no-files-found: ignore
+            -   name: Stop de perf-stack
+                if: always()
+                run: mise run perf:stack-down
