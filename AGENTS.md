@@ -106,7 +106,7 @@ Before the first edit or commit of any task, run `git branch --show-current` and
 Cut a branch for the task from `main` (`git switch -c <type>/<short-name>-<issue>`, e.g.
 `chore/remove-case-module-103`). Staat de huidige branch voor een ander ticket, of bevat de werkboom
 wijzigingen die niet van jou zijn (bijvoorbeeld van een andere sessie), werk dan in een worktree:
-`git worktree add -b <branch> ../<map> main`. Stage alleen je eigen paden (nooit `git add <map>` op
+`git worktree add -b <branch> ../<map> main`; ruim hem op met `mise run worktree:opruimen ../<map>` (onder Windows krijgt `git worktree remove` diepe `node_modules`-paden niet weg: `Filename too long`). Stage alleen je eigen paden (nooit `git add <map>` op
 een vuile werkboom) en controleer `git diff --cached --stat` vóór het commit. Types: `feat`, `fix`, `docs`, `refactor`, `test`, `build`, `ci` and
 `chore`; maintenance tasks (removals, cleanup, dependency and tooling upkeep) use `chore/`.
 Never commit to or push `main` directly, also not "just locally":

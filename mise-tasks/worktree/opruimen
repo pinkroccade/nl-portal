@@ -1,0 +1,35 @@
+#!/usr/bin/env bash
+#MISE description="Verwijder een worktree, ook met diepe node_modules-paden die Git onder Windows niet weg krijgt (Filename too long), en zijn lokale branch als de PR gemerged is. Gebruik: mise run worktree:opruimen <map>"
+set -euo pipefail
+
+map="${1:?Gebruik: mise run worktree:opruimen <map van de worktree>}"
+[ -d "$map" ] || { echo "Map $map bestaat niet" >&2; exit 1; }
+abs=$(cd "$map" && pwd)
+branch=$(git -C "$abs" branch --show-current 2>/dev/null || true)
+
+if [ "${FORCE:-}" != 1 ] && [ -n "$(git -C "$abs" status --porcelain 2>/dev/null)" ]; then
+  echo "$abs heeft niet-gecommitte wijzigingen; commit of verwijder ze, of draai met FORCE=1" >&2
+  exit 1
+fi
+
+# core.longpaths helpt Git zelf. Lukt het toch niet (Git schrijft de worktree soms al uit en laat de map staan), dan
+# verwijdert node de map met het \\?\-voorvoegsel, waar Windows geen limiet van 260 tekens op zet.
+if ! git -c core.longpaths=true worktree remove --force "$abs" 2>/dev/null && [ -d "$abs" ]; then
+  case "$(uname -s)" in
+    MINGW* | MSYS* | CYGWIN*)
+      PAD="$(cygpath -w "$abs")" node -e 'require("fs").rmSync("\\\\?\\" + process.env.PAD, { recursive: true, force: true })' ;;
+    *) rm -rf "$abs" ;;
+  esac
+fi
+git worktree prune
+echo "Worktree $abs verwijderd"
+
+if [ -n "$branch" ]; then
+  gemerged=$(gh pr list --state merged --head "$branch" --json number --jq length 2>/dev/null || echo 0)
+  if [ "$gemerged" -gt 0 ]; then
+    git branch -D "$branch" > /dev/null
+    echo "Branch $branch verwijderd (PR gemerged)"
+  else
+    echo "Branch $branch bewaard: geen gemergede PR gevonden"
+  fi
+fi

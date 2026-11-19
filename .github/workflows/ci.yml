@@ -20,6 +20,7 @@ jobs:
             backend: ${{ steps.filter.outputs.backend }}
             frontend: ${{ steps.filter.outputs.frontend }}
             scripts: ${{ steps.filter.outputs.scripts }}
+            mise: ${{ steps.filter.outputs.mise }}
             workflows: ${{ steps.filter.outputs.workflows }}
             docs: ${{ steps.filter.outputs.docs }}
             docsOnly: ${{ steps.filter.outputs.backend == 'false' && steps.filter.outputs.frontend == 'false' && steps.filter.outputs.scripts == 'false' && steps.filter.outputs.workflows == 'false' && steps.filter.outputs.docs == 'true' }}
@@ -35,6 +36,8 @@ jobs:
                             - 'frontend/**'
                         scripts:
                             - 'scripts/**'
+                        mise:
+                            - 'mise.toml'
                         workflows:
                             - '.github/workflows/**'
                         docs:
@@ -123,6 +126,23 @@ jobs:
             -   name: Check that the Java version is consistent
                 run: mise run java:check-version
 
+    mise-shell-consistent:
+        needs: changes
+        if: ${{ needs.changes.outputs.mise == 'true' || needs.changes.outputs.scripts == 'true' }}
+        runs-on: ubuntu-latest
+        steps:
+            -   uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+            -   name: Set up Node.js
+                uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6.5.0
+                with:
+                    node-version: "24"
+            -   name: Set up mise
+                uses: jdx/mise-action@b44d12e7d0d8ee7461bb893e1b1993500433185b # v5.2.7
+                with:
+                    install: false
+            -   name: Check that inline mise tasks with bash syntax set a shell
+                run: mise run mise:check-shell
+
     compliance-register-consistent:
         needs: changes
         if: ${{ needs.changes.outputs.backend == 'true' || needs.changes.outputs.workflows == 'true' || needs.changes.outputs.scripts == 'true' || needs.changes.outputs.docs == 'true' }}
@@ -178,7 +198,7 @@ jobs:
                 run: mise run workflows:lint
 
     ci-required:
-        needs: [changes, validate, test-scripts, java-version-consistent, capabilities-docs-fresh, compliance-register-consistent, docs-site, workflows-lint]
+        needs: [changes, validate, test-scripts, java-version-consistent, mise-shell-consistent, capabilities-docs-fresh, compliance-register-consistent, docs-site, workflows-lint]
         if: always()
         runs-on: ubuntu-latest
         steps:
@@ -187,6 +207,7 @@ jobs:
                     VALIDATE_RESULT: ${{ needs.validate.result }}
                     SCRIPTS_RESULT: ${{ needs.test-scripts.result }}
                     JAVA_VERSION_RESULT: ${{ needs.java-version-consistent.result }}
+                    MISE_SHELL_RESULT: ${{ needs.mise-shell-consistent.result }}
                     CAPABILITIES_RESULT: ${{ needs.capabilities-docs-fresh.result }}
                     COMPLIANCE_RESULT: ${{ needs.compliance-register-consistent.result }}
                     DOCS_SITE_RESULT: ${{ needs.docs-site.result }}
@@ -195,6 +216,7 @@ jobs:
                     echo "::notice::validate result = ${VALIDATE_RESULT}"
                     echo "::notice::test-scripts result = ${SCRIPTS_RESULT}"
                     echo "::notice::java-version-consistent result = ${JAVA_VERSION_RESULT}"
+                    echo "::notice::mise-shell-consistent result = ${MISE_SHELL_RESULT}"
                     echo "::notice::capabilities-docs-fresh result = ${CAPABILITIES_RESULT}"
                     echo "::notice::compliance-register-consistent result = ${COMPLIANCE_RESULT}"
                     echo "::notice::docs-site result = ${DOCS_SITE_RESULT}"
@@ -206,6 +228,9 @@ jobs:
                       exit 1
                     fi
                     if [ "${JAVA_VERSION_RESULT}" = "failure" ] || [ "${JAVA_VERSION_RESULT}" = "cancelled" ]; then
+                      exit 1
+                    fi
+                    if [ "${MISE_SHELL_RESULT}" = "failure" ] || [ "${MISE_SHELL_RESULT}" = "cancelled" ]; then
                       exit 1
                     fi
                     if [ "${CAPABILITIES_RESULT}" = "failure" ] || [ "${CAPABILITIES_RESULT}" = "cancelled" ]; then
