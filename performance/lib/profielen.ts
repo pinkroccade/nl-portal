@@ -3,7 +3,7 @@ import { OPERATIES, journeyThresholds } from "./thresholds.ts";
 
 type Env = Record<string, string | undefined>;
 
-const PROFIELEN = ["smoke", "load", "stress"] as const;
+const PROFIELEN = ["smoke", "load", "stress", "stap"] as const;
 export type ProfielNaam = (typeof PROFIELEN)[number];
 
 function piek(env: Env, standaard: number): number {
@@ -35,7 +35,18 @@ function stressStages(peak: number): Stage[] {
   ];
 }
 
-/** k6-opties voor een profiel: smoke (1 gebruiker, 1 iteratie), load (gemiddelde belasting) of stress. */
+function stapSeconden(env: Env): number {
+  const waarde = Number(env.PERF_STAP_SECONDEN ?? 90);
+  if (!Number.isInteger(waarde) || waarde < 1) {
+    throw new Error(`PERF_STAP_SECONDEN moet een geheel getal van minimaal 1 zijn, kreeg ${env.PERF_STAP_SECONDEN}`);
+  }
+  return waarde;
+}
+
+/**
+ * k6-opties voor een profiel: smoke (1 gebruiker, 1 iteratie), load (gemiddelde belasting), stress (oplopend) of
+ * stap (een vast aantal gebruikers, een vaste duur: één meetpunt voor het omslagpunt, zie `omslagpunt.ts`).
+ */
 export function kiesProfiel(naam: string, env: Env): Options {
   const thresholds = journeyThresholds(OPERATIES);
   switch (naam) {
@@ -45,6 +56,8 @@ export function kiesProfiel(naam: string, env: Env): Options {
       return { stages: loadStages(piek(env, 10)), thresholds };
     case "stress":
       return { stages: stressStages(piek(env, 100)), thresholds };
+    case "stap":
+      return { vus: piek(env, 10), duration: `${stapSeconden(env)}s`, thresholds };
     default:
       throw new Error(`Onbekend profiel "${naam}"; kies uit ${PROFIELEN.join(", ")}`);
   }
