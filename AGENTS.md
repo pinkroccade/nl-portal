@@ -82,7 +82,7 @@ From the repo root:
 ```shell
 mise run build                    # compile and assemble backend and frontend
 mise run test                     # unit tests of backend, frontend and scripts, ArchUnit included; no integration tests (those need Docker)
-mise run lint                     # ktlint/Spotless, ESLint, Stylelint, typecheck, Prettier
+mise run lint                     # ktlint/Spotless, ESLint, Stylelint, typecheck, Prettier, actionlint (workflows), bash-syntaxis in mise-taken
 mise run backend:pitest-changed   # only when backend/core changed: CI's 80% mutation gate
 ```
 
@@ -131,6 +131,8 @@ pnpm-workspace) leeft onder `frontend/`. Backend-tooling (Gradle, Spotless/ktlin
 
 - [site/architectuur/arc42](site/architectuur/arc42) — arc42 architecture (Dutch); [site/likec4](site/likec4) — the C1/C2/C3
   model (`mise run likec4:start` to preview it).
+- [site/development/workflows/performance-testing.md](site/development/workflows/performance-testing.md) — k6-performancetesten:
+  lokaal meten, baseline bijwerken, omslagpunt vaststellen, nachtelijke run lezen (`mise tasks` toont de `perf:*`-taken).
 - [GLOSSARY.md](GLOSSARY.md) — canonical domain terminology (Dutch), kept free of implementation
   details. Use `domain-modeling` to sharpen a term when its usage drifts from this, or to add one
   when a module gets named after it.
@@ -158,3 +160,4 @@ pnpm-workspace) leeft onder `frontend/`. Backend-tooling (Gradle, Spotless/ktlin
 Open an issue before a non-trivial PR, and give the PR title a valid
 [Conventional Commit](https://www.conventionalcommits.org/) form — it becomes the squash-merge
 message. See [CONTRIBUTING.md](CONTRIBUTING.md) for the full branch model and review process.
+Auto-merge staat uit: `mise run pr:merge <nr>` wacht op groene checks en squash-merget (stopt bij een falende check of een conflict).

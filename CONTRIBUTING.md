@@ -31,7 +31,8 @@ independently.
    template is mandatory, and the title must be a valid
    [Conventional Commit](https://www.conventionalcommits.org/) because it becomes the
    squash-merge commit. Link the issue in the `Closes #` line.
-5. A maintainer reviews. Once approved and green, it is squash-merged.
+5. A maintainer reviews. Once approved and green, it is squash-merged. Auto-merge is off;
+   `mise run pr:merge <number>` waits for green checks and squash-merges.
 
 ## Branch model
 
@@ -102,7 +103,8 @@ and pnpm. The aggregates cover backend and frontend at once:
 
 - `mise run build` compiles and assembles everything.
 - `mise run test` runs the unit tests of backend, frontend and scripts.
-- `mise run lint` runs ktlint/Spotless, ESLint, Stylelint, the typecheck and Prettier.
+- `mise run lint` runs ktlint/Spotless, ESLint, Stylelint, the typecheck, Prettier, actionlint on the
+  GitHub workflows and a check that inline mise tasks with bash syntax set `shell = "bash -c"`.
 - `mise run arch-check` checks the ArchUnit layer rules.
 
 Integration tests run with `mise run backend:integration-test`. No database is needed; only the
