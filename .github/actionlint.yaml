@@ -1,0 +1,11 @@
+# Configuratie voor actionlint (mise run workflows:lint).
+# Drie bestaande meldingen van shellcheck zijn bewust niet opgelost in de PR die actionlint invoert: het zijn
+# release-workflows, en SC2046 is hier gewenst (de ontbrekende map moet als niets uitgebreid worden, niet als lege
+# tar-parameter). Nieuwe meldingen elders breken de lint wel.
+paths:
+  .github/workflows/_stage-be.yml:
+    ignore:
+      - 'shellcheck reported issue in this script: SC2046:warning'
+  .github/workflows/build-and-publish-release.yml:
+    ignore:
+      - 'shellcheck reported issue in this script: SC2129:style'

@@ -7,6 +7,10 @@ syft = "1.57.0"
 grype = "0.121.2"
 gitleaks = "8.30.1"
 k6 = "2.3.0"
+# Controleert .github/workflows (syntax, expressies, acties); `mise run workflows:lint`.
+actionlint = "1.7.11"
+# actionlint controleert de `run:`-scripts met shellcheck als dat beschikbaar is; vastgepind zodat lokaal en CI hetzelfde zien.
+shellcheck = "0.11.0"
 
 # Taken heten <domein>:<actie>. De aggregaten zonder prefix (build, test, lint, arch-check) roepen via
 # `depends` de domeintaken aan. Taken van meer dan een regel staan als bestand onder mise-tasks/.
@@ -25,7 +29,7 @@ depends = ["backend:test", "frontend:test", "scripts:test", "perf:test"]
 
 [tasks.lint]
 description = "Lint, typecheck en formatteringscontrole van backend en frontend"
-depends = ["backend:lint", "frontend:lint", "frontend:typecheck", "frontend:prettier", "perf:check"]
+depends = ["backend:lint", "frontend:lint", "frontend:typecheck", "frontend:prettier", "perf:check", "workflows:lint"]
 
 [tasks.arch-check]
 description = "Bewaak de architectuurregels (backend: ArchUnit; frontend: package-boundaries valt onder frontend:lint)"
@@ -213,6 +217,10 @@ description = "Stel het omslagpunt per GraphQL-operation vast: de journeys per a
 run = "node performance/baseline/omslagpunt.ts"
 
 # --- Scripts, docs, architectuurmodel, compliance ---
+
+[tasks."workflows:lint"]
+description = "Controleer de GitHub-workflows met actionlint (syntax, expressies, verwijzingen naar acties en secrets)"
+run = "actionlint"
 
 [tasks."scripts:test"]
 description = "Draai de tests van de repo-scripts (scripts/*.test.mjs)"
