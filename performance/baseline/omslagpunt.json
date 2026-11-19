@@ -1,0 +1,240 @@
+{
+  "gemetenOp": "2026-11-19",
+  "omgeving": "lokaal, Windows 11 + Docker Desktop",
+  "stapSeconden": 90,
+  "seedGebruikers": 50,
+  "drempels": {
+    "p95Ms": 2000,
+    "foutpercentage": 1
+  },
+  "stappen": [
+    {
+      "vus": 5,
+      "metingen": {
+        "getZaken": {
+          "p95Ms": 498.8,
+          "foutpercentage": 0,
+          "doorvoerPerSeconde": 1.09
+        },
+        "getZaak": {
+          "p95Ms": 388.4,
+          "foutpercentage": 0,
+          "doorvoerPerSeconde": 1.09
+        },
+        "getTakenV2": {
+          "p95Ms": 59.8,
+          "foutpercentage": 0,
+          "doorvoerPerSeconde": 1.09
+        },
+        "getPersoonV2": {
+          "p95Ms": 79,
+          "foutpercentage": 0,
+          "doorvoerPerSeconde": 1.09
+        }
+      }
+    },
+    {
+      "vus": 10,
+      "metingen": {
+        "getZaken": {
+          "p95Ms": 429.1,
+          "foutpercentage": 0,
+          "doorvoerPerSeconde": 2.13
+        },
+        "getZaak": {
+          "p95Ms": 456.7,
+          "foutpercentage": 0,
+          "doorvoerPerSeconde": 2.13
+        },
+        "getTakenV2": {
+          "p95Ms": 41.5,
+          "foutpercentage": 0,
+          "doorvoerPerSeconde": 2.13
+        },
+        "getPersoonV2": {
+          "p95Ms": 34.1,
+          "foutpercentage": 0,
+          "doorvoerPerSeconde": 2.13
+        }
+      }
+    },
+    {
+      "vus": 15,
+      "metingen": {
+        "getZaken": {
+          "p95Ms": 508.9,
+          "foutpercentage": 0,
+          "doorvoerPerSeconde": 3.2
+        },
+        "getZaak": {
+          "p95Ms": 542.1,
+          "foutpercentage": 0,
+          "doorvoerPerSeconde": 3.2
+        },
+        "getTakenV2": {
+          "p95Ms": 42.8,
+          "foutpercentage": 0,
+          "doorvoerPerSeconde": 3.2
+        },
+        "getPersoonV2": {
+          "p95Ms": 32.8,
+          "foutpercentage": 0,
+          "doorvoerPerSeconde": 3.2
+        }
+      }
+    },
+    {
+      "vus": 20,
+      "metingen": {
+        "getZaken": {
+          "p95Ms": 809.3,
+          "foutpercentage": 0,
+          "doorvoerPerSeconde": 4.08
+        },
+        "getZaak": {
+          "p95Ms": 773.8,
+          "foutpercentage": 0,
+          "doorvoerPerSeconde": 4.08
+        },
+        "getTakenV2": {
+          "p95Ms": 39.3,
+          "foutpercentage": 0,
+          "doorvoerPerSeconde": 4.08
+        },
+        "getPersoonV2": {
+          "p95Ms": 31.1,
+          "foutpercentage": 0,
+          "doorvoerPerSeconde": 4.08
+        }
+      }
+    },
+    {
+      "vus": 30,
+      "metingen": {
+        "getZaken": {
+          "p95Ms": 1261.1,
+          "foutpercentage": 0,
+          "doorvoerPerSeconde": 5.65
+        },
+        "getZaak": {
+          "p95Ms": 1351.3,
+          "foutpercentage": 0,
+          "doorvoerPerSeconde": 5.65
+        },
+        "getTakenV2": {
+          "p95Ms": 59.2,
+          "foutpercentage": 0,
+          "doorvoerPerSeconde": 5.65
+        },
+        "getPersoonV2": {
+          "p95Ms": 48,
+          "foutpercentage": 0,
+          "doorvoerPerSeconde": 5.65
+        }
+      }
+    },
+    {
+      "vus": 40,
+      "metingen": {
+        "getZaken": {
+          "p95Ms": 2262.9,
+          "foutpercentage": 0,
+          "doorvoerPerSeconde": 6.28
+        },
+        "getZaak": {
+          "p95Ms": 2606.5,
+          "foutpercentage": 0,
+          "doorvoerPerSeconde": 6.28
+        },
+        "getTakenV2": {
+          "p95Ms": 54.8,
+          "foutpercentage": 0,
+          "doorvoerPerSeconde": 6.28
+        },
+        "getPersoonV2": {
+          "p95Ms": 39.1,
+          "foutpercentage": 0,
+          "doorvoerPerSeconde": 6.28
+        }
+      }
+    },
+    {
+      "vus": 60,
+      "metingen": {
+        "getZaken": {
+          "p95Ms": 3491.5,
+          "foutpercentage": 0,
+          "doorvoerPerSeconde": 7.01
+        },
+        "getZaak": {
+          "p95Ms": 4202.1,
+          "foutpercentage": 0,
+          "doorvoerPerSeconde": 7.01
+        },
+        "getTakenV2": {
+          "p95Ms": 62.7,
+          "foutpercentage": 0,
+          "doorvoerPerSeconde": 7.01
+        },
+        "getPersoonV2": {
+          "p95Ms": 58.9,
+          "foutpercentage": 0,
+          "doorvoerPerSeconde": 7.01
+        }
+      }
+    },
+    {
+      "vus": 80,
+      "metingen": {
+        "getZaken": {
+          "p95Ms": 5699.3,
+          "foutpercentage": 0,
+          "doorvoerPerSeconde": 6.86
+        },
+        "getZaak": {
+          "p95Ms": 6282.8,
+          "foutpercentage": 0,
+          "doorvoerPerSeconde": 6.86
+        },
+        "getTakenV2": {
+          "p95Ms": 72.5,
+          "foutpercentage": 0,
+          "doorvoerPerSeconde": 6.86
+        },
+        "getPersoonV2": {
+          "p95Ms": 49.9,
+          "foutpercentage": 0,
+          "doorvoerPerSeconde": 6.86
+        }
+      }
+    }
+  ],
+  "omslagpunten": [
+    {
+      "operatie": "getZaken",
+      "omslagVus": 40,
+      "redenen": [
+        "p95"
+      ],
+      "hoogsteGoedeVus": 30
+    },
+    {
+      "operatie": "getZaak",
+      "omslagVus": 40,
+      "redenen": [
+        "p95"
+      ],
+      "hoogsteGoedeVus": 30
+    },
+    {
+      "operatie": "getTakenV2",
+      "redenen": [],
+      "hoogsteGoedeVus": 80
+    },
+    {
+      "operatie": "getPersoonV2",
+      "redenen": [],
+      "hoogsteGoedeVus": 80
+    }
+  ]
+}

@@ -15,6 +15,7 @@ inloggen (Keycloak), zakenlijst (`getZaken`), zaakdetail (`getZaak`), taken (`ge
 | smoke | 1 gebruiker, 1 iteratie | `mise run perf:journeys` |
 | load | oplopend naar `PERF_PEAK_VUS` (standaard 10), 5 minuten vasthouden | `mise run perf:load` |
 | stress | in stappen naar `PERF_PEAK_VUS` (standaard 100) | `mise run perf:stress` |
+| stap | vast aantal gebruikers (`PERF_PEAK_VUS`), `PERF_STAP_SECONDEN` lang | `mise run perf:omslagpunt` (alle stappen) |
 
 ## Lokaal draaien
 
@@ -34,6 +35,22 @@ mise run perf:vergelijk       # delta t.o.v. performance/baseline/load.json
 operation de mediaan van de runs naast de baseline, met een waarschuwing bij een p95 die meer dan 30% stijgt,
 een doorvoer die meer dan 30% daalt of een foutpercentage dat meer dan 1 procentpunt stijgt. Die marges
 liggen boven de ruis van gedeelde runners (±20–30%).
+
+## Het omslagpunt vaststellen
+
+Het omslagpunt is het aantal gelijktijdige gebruikers waarbij een operation de drempel overschrijdt (p95 boven 2 s of meer dan 1% fouten). `mise run perf:omslagpunt` draait de journeys per stap als aparte run met profiel `stap` (vast aantal gebruikers, standaard 90 seconden) en legt de metingen en het omslagpunt per operation vast in `performance/baseline/omslagpunt.json`.
+
+```shell
+PERF_SEED_GEBRUIKERS=50 mise run perf:seed          # minstens zoveel gebruikers als de hoogste stap
+PERF_USERS=50 PERF_PASSWORD=perf-wachtwoord PERF_CLIENT_ID=nl-portal-perf mise run perf:omslagpunt
+```
+
+| Variabele | Standaard |
+|---|---|
+| `PERF_STAPPEN` | `5,10,15,20,30,40,60,80` (aantal gelijktijdige gebruikers per stap) |
+| `PERF_STAP_SECONDEN` | 90 |
+
+Seed minstens zoveel gebruikers als de hoogste stap en zet `PERF_USERS` op datzelfde aantal. Delen gebruikers een account, dan wordt de uitkomst slechter: bij 40 gebruikers op 10 accounts was de p95 van `getZaak` 4,5 s, tegen 2,6 s op 50 accounts.
 
 ## Een scenario toevoegen
 

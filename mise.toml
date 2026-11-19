@@ -208,6 +208,10 @@ run = "node performance/baseline/vastleggen.ts"
 description = "Vergelijk de runs uit perf:meet met de baseline; delta als Markdown en een waarschuwing bij verslechtering (signalerend, exitcode 0)"
 run = "node performance/baseline/vergelijken.ts"
 
+[tasks."perf:omslagpunt"]
+description = "Stel het omslagpunt per GraphQL-operation vast: de journeys per aantal gelijktijdige gebruikers uit PERF_STAPPEN (standaard 5,10,15,20,30,40,60,80), elk PERF_STAP_SECONDEN (standaard 90); legt performance/baseline/omslagpunt.json vast. Vereist PERF_PASSWORD"
+run = "node performance/baseline/omslagpunt.ts"
+
 # --- Scripts, docs, architectuurmodel, compliance ---
 
 [tasks."scripts:test"]

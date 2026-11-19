@@ -45,3 +45,18 @@ test("elk profiel begrenst de latency per GraphQL-operation en meet fouten", () 
     }
   }
 });
+
+test("stap houdt een vast aantal gebruikers vast (PERF_PEAK_VUS) gedurende 90 seconden", () => {
+  const opties = kiesProfiel("stap", { PERF_PEAK_VUS: "20" });
+  assert.equal(opties.vus, 20);
+  assert.equal(opties.duration, "90s");
+  assert.equal(opties.stages, undefined);
+});
+
+test("de duur van een stap is instelbaar met PERF_STAP_SECONDEN", () => {
+  assert.equal(kiesProfiel("stap", { PERF_PEAK_VUS: "20", PERF_STAP_SECONDEN: "45" }).duration, "45s");
+});
+
+test("PERF_STAP_SECONDEN moet een geheel getal van minimaal 1 zijn", () => {
+  assert.throws(() => kiesProfiel("stap", { PERF_STAP_SECONDEN: "snel" }), /PERF_STAP_SECONDEN/);
+});
