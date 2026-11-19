@@ -57,6 +57,16 @@ services:
             - OTEL_SERVICE_NAME=open-zaak
             - OTEL_EXPORTER_OTLP_ENDPOINT=http://localhost:4317
             - OTEL_EXPORTER_OTLP_PROTOCOL=grpc
+        # De bestandsopslag is hier een named volume in plaats van de bind mount uit docker-compose.yaml. Die bind mount is op
+        # een Linux-runner van de runner-gebruiker, waardoor de container er geen map in mag aanmaken (PermissionError bij het
+        # seeden), en elke seed liet nieuwe bestanden in de werkboom achter. Een named volume neemt de rechten van de image
+        # over en verdwijnt met `perf:stack-down`.
+        volumes:
+            - openzaak-private-media:/app/private-media
+
+    nl-portal-openzaak-import:
+        volumes:
+            - openzaak-private-media:/app/private-media
 
     nl-portal-open-object:
         environment:
@@ -72,3 +82,4 @@ services:
 
 volumes:
     otel-agent:
+    openzaak-private-media:
