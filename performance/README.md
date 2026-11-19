@@ -96,6 +96,7 @@ De thresholds van de journeys (ook per operation op fouten en aantal verzoeken, 
 - `mise run perf:meet`: draait de journeys `PERF_RUNS` keer (standaard 3) en bewaart de k6-summaries in `performance/resultaten/`.
 - `mise run perf:baseline`: legt de mediaan vast in `baseline/<profiel>.json` (alleen via een PR).
 - `mise run perf:vergelijk`: delta t.o.v. de baseline, met een waarschuwing bij verslechtering.
+- `mise run perf:omslagpunt`: stelt per GraphQL-operation het omslagpunt vast (profiel `stap` per aantal gebruikers uit `PERF_STAPPEN`) en legt `baseline/omslagpunt.json` vast.
 
 De werkwijze (baseline bijwerken, nachtelijke run lezen) staat in [Performancetesten](../site/development/workflows/performance-testing.md).
 
