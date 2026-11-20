@@ -25,3 +25,11 @@ paths = [
   '''backend/.*/build/.*''',
   '''.*\.example$''',
 ]
+
+# Sleutels van de T-Systems LLM Hub (`gen-` gevolgd door 40+ tekens) worden door de standaardregel
+# generic-api-key niet herkend; zo kwam er een in strix_config.json in de historie terecht.
+[[rules]]
+id = "llm-hub-api-key"
+description = "T-Systems LLM Hub API-sleutel"
+regex = '''\bgen-[A-Za-z0-9]{40,}\b'''
+keywords = ["gen-"]

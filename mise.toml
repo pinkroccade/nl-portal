@@ -332,6 +332,10 @@ depends = ["sbom:backend", "sbom:frontend"]
 description = "Scan de werkmap op secrets (niet de git-historie; allowlist in .gitleaks.toml)"
 run = "gitleaks detect --source . --no-banner --no-git --config .gitleaks.toml"
 
+[tasks."security:secrets-scan-history"]
+description = "Scan de git-historie van HEAD op secrets; bestaande bevindingen staan in .gitleaks-baseline.json, alleen nieuwe laten falen"
+run = "gitleaks git --no-banner --config .gitleaks.toml --baseline-path .gitleaks-baseline.json --redact --log-opts=HEAD"
+
 [tasks."security:frontend-vuln-scan"]
 description = "Genereer de frontend-SBOM en scan die op bekende kwetsbaarheden (faalt op high/critical)"
 depends = ["sbom:frontend"]
