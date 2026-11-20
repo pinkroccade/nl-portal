@@ -29,7 +29,7 @@ een verwijzing. De onderbouwing staat in de ADR's en in
 | Q5 | Type moduleflag | Permission-flag `permission.<module>.enabled`, fail-closed | ADR 0020, ADR 0021 aanvulling 5 |
 | Q6 | #165 | Gaat op in tenancy; met de BFF wordt het `iss`/`aud`-validatie tegen de client-registratie per tenant | ADR 0021 besluit 2.6, ADR 0022 |
 | Q7/Q11 | #166 | Het terugvalpad en de uid-flow verdwijnen; met de BFF vervalt de converter helemaal. Het organisatiepad blijft in de code maar is per tenant onbereikbaar zolang eHerkenning uit staat | ADR 0022 besluit 7 en 11 |
-| Q8/Q13/Q24 | Domeintaal | Burger, Organisatie, Gebruiker, Vertegenwoordigde, Gemachtigde, Machtiging, Ketenmachtiging, Intermediair, Inlogmiddel, Betrouwbaarheidsniveau; code-term `aanvrager` wordt `vertegenwoordigde` | `GLOSSARY.md` |
+| Q8/Q13/Q24 | Domeintaal | Burger, Bedrijf (eHerkenning: dienstafnemer), Gebruiker, Vertegenwoordigde, Gemachtigde, Machtiging, Ketenmachtiging, Intermediair, Inlogmiddel, Betrouwbaarheidsniveau; code-term `aanvrager` wordt `vertegenwoordigde` | `GLOSSARY.md` |
 | Q9 | Reikwijdte livegang | Alleen de burger voor zichzelf via DigiD of wallet; organisaties en machtigen later, het model is erop voorbereid | ADR 0021 aanvulling 8 |
 | Q14 | Gebruikerssleutel | Datatoegang: (tenant, BSN van de vertegenwoordigde) = `LegalSubjectID`, anders `ActingSubjectID`; actor in logs: (`iss`, `sub`), geen BSN in logs; token met `LegalSubjectID` geweigerd zolang machtigen uit staat | ADR 0022 besluit 11 |
 | Q15 | ID-token als Bearer | Opgelost doordat er geen Bearer-pad meer is; `at+jwt` (RFC 9068) staat wel aan in het realm-template | ADR 0022 besluit 8 |
@@ -39,7 +39,7 @@ een verwijzing. De onderbouwing staat in de ADR's en in
 | Q19 | Token exchange | Vervalt, net als de client `nl-portal-m2m` | ADR 0022 besluit 7 |
 | Q20 | Clientauthenticatie | `private_key_jwt` vóór livegang, sleutel per tenant uit de secret store | ADR 0022 besluit 9, ADR 0021 aanvulling 4 |
 | Q21 | Bearer-pad van buiten | Vervalt | ADR 0022 besluit 8 |
-| Q22 | Keycloak-versie | Minimum 26.4; productieversie nog onbekend (open punt) | ADR 0022 besluit 13, ADR 0021 aanvulling 9 |
+| Q22 | Keycloak-versie | Laatste stabiele release, nu 26.8 (minimaal 26.4) | ADR 0022 besluit 13, ADR 0021 aanvulling 9 |
 | Q23 | Sessietijden | 15 minuten inactief, maximaal 8 uur, nieuwe sessie-ID bij inloggen, uitloggen beëindigt ook de Keycloak-sessie | ADR 0022 besluit 5 en 6 |
 | — | Clientnaam | `nl-portal-backend` (was `nl-portal-m2m`) | ADR 0022 besluit 1 |
 
@@ -50,3 +50,16 @@ een verwijzing. De onderbouwing staat in de ADR's en in
 - Of de DigiD-koppeling het betrouwbaarheidsniveau als claim doorgeeft.
 - Of de DigiD-aansluitvoorwaarden een andere sessieduur eisen.
 - De Keycloak-versie van de broker in productie.
+
+## Aanvullingen na ronde 4 (2026-11-21)
+
+| Nr | Onderwerp | Besluit | Vastgelegd in |
+|---|---|---|---|
+| Q19-borging | Eén authenticatiepad | BFF-login is het enige pad; geborgd in arc42 §8 en met ArchUnit-regels | ADR 0022 besluit 14 |
+| Q22-bijstelling | Keycloak-versie | Laatste stabiele release (nu 26.8), minimaal 26.4 | ADR 0022 besluit 13 |
+| Q23-bron | DigiD-sessie-eis | Maximaal 15 min inactiviteit (koppelvlakspecificatie 3.7, checklist T15); 8 uur absoluut is eigen keuze | ADR 0022 besluit 5 |
+| Q24-bijstelling | Domeintaal | **Bedrijf** in plaats van Organisatie (gangbare domeintaal) | `GLOSSARY.md` |
+| Q25 | Specscope | Eén spec voor ADR 0021 en 0022 | Spec-issue |
+| Q26 | Backend-seams | De app via HTTP (twee tenants, test-OIDC-provider, nep-koppelingen), `KoppelingClient`, ArchUnit; 80%-mutatiegate op `core` | Spec-issue |
+| Q27 | Frontend-seams | Vitest plus een Playwright-suite tegen docker-compose met twee realms | Spec-issue |
+| Q28 | Lokale hosts | `debosrand.localhost`, `hetwijdeveld.localhost`, `keycloak.localhost` | Spec-issue |

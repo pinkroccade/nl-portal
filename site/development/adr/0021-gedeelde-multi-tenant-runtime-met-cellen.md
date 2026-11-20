@@ -36,11 +36,11 @@ Deze aanvullingen gaan voor waar de tekst hieronder iets anders zegt.
 7. **Gebruikerssleutel.** Datatoegang gebruikt (tenant, BSN van de vertegenwoordigde). Logs en
    securityevents gebruiken (`iss`, `sub`) als actor, nooit het BSN. Zie ADR 0022.
 8. **Reikwijdte van de livegang.** Alleen de burger die voor zichzelf inlogt, via DigiD of een wallet.
-   Organisaties (eHerkenning) en machtigen volgen later; het identiteitsmodel is erop voorbereid. Een
+   Bedrijven (eHerkenning) en machtigen volgen later; het identiteitsmodel is erop voorbereid. Een
    uitgeschakeld inlogmiddel, en machtigen zolang het uit staat, is per tenant technisch onmogelijk, niet
    alleen verborgen.
-9. **Keycloak-minimum 26.4** (`at+jwt` en de ondersteunde DPoP-functies). De versie van de broker in productie
-   is nog niet bekend en is een open punt.
+9. **Keycloak: laatste stabiele release**, nu 26.8 (minimaal 26.4 vanwege `at+jwt` en DPoP-ondersteuning); zie
+   ADR 0022 besluit 13.
 
 Raakt eerdere ADR's:
 
@@ -721,8 +721,8 @@ Overige openstaande punten:
 
 - ~~**Locatie van de tenantbestanden**~~ *Besloten 2026-11-21*: schema publiek, echte tenantbestanden nooit
   in de publieke repository, demo-tenants wel (aanvulling 2).
-- **Keycloak-versie van de broker in productie**: minimum 26.4 (aanvulling 9); de feitelijke versie navragen
-  bij devops.
+- **Keycloak-versie van de broker in productie**: nu 26.8, laatste stabiele release volgen (aanvulling 9); vastgesteld.
+  
 - **Gitops-uitrol in volgorde**: met welk mechanisme van de tooling de volgorde en de vaste wachttijd in de
   canary worden afgedwongen (eis aan de tooling, niet aan de chart).
 - **Het aantal tenants per cel**, de grootte van de cellen en de belastingtests: een k6-scenario met meerdere

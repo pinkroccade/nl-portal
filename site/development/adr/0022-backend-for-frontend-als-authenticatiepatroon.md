@@ -67,8 +67,10 @@ en wie de OAuth-client is.
    `GET`.
 5. **Sessietijden** (ASVS 7.2 en 7.3): een nieuwe sessie-ID bij elke (her)authenticatie, een
    inactiviteitstimeout van 15 minuten en een absoluut maximum van 8 uur. Een tenant mag dit binnen grenzen
-   strenger instellen. Of de DigiD-aansluitvoorwaarden een andere grens stellen, wordt bij de spec-validatie
-   nagekeken.
+   strenger instellen. Dit volgt de DigiD-eis van maximaal 15 minuten inactiviteit voor de lokale sessie
+   (Koppelvlakspecificatie DigiD SAML Authenticatie 3.7, "Lokale sessie"; checklist T15); DigiD stelt geen
+   absoluut maximum voor de lokale sessie, de 8 uur is een eigen keuze. Uitloggen moet de lopende sessie
+   beëindigen (checklist T14).
 6. **Uitloggen beëindigt alle sessies** (ASVS 7.4.1, 7.6.1): de backend maakt zijn sessie ongeldig en doet
    RP-initiated logout bij Keycloak. Back-channel logout van Keycloak naar de backend maakt de sessie ook
    ongeldig als de Keycloak-sessie eindigt.
@@ -98,9 +100,19 @@ en wie de OAuth-client is.
 12. **Minimum betrouwbaarheidsniveau per tenant.** Het tenantbestand legt het minimum vast (standaard
     DigiD Substantieel). De backend weigert een login met een lager niveau. Dat DigiD Substantieel niet
     voldoet aan de L3-eis van hardwaregebonden, phishingbestendige authenticatie (ASVS 6.3.3), is een
-    vastgelegde afwijking. Of de DigiD-koppeling het niveau als claim doorgeeft, toetst een prototype.
-13. **Keycloak minimaal 26.4** (`at+jwt` sinds 26.2, DPoP-ondersteuning sinds 26.4). Docker-compose wordt
-    daarop vastgezet; de versie van de broker in productie is een open punt.
+    vastgelegde afwijking. DigiD geeft het niveau terug als `AuthnContextClassRef` (Basis
+    `PasswordProtectedTransport`, Midden `MobileTwoFactorContract`, Substantieel `Smartcard`, Hoog
+    `SmartcardPKI`) en eist dat een inlogpoging met een te laag niveau wordt afgebroken. Of de
+    DigiD-koppeling in Keycloak dit niveau als claim doorgeeft, toetst een prototype.
+13. **Keycloak: laatste stabiele release** (nu 26.8; minimaal 26.4 vanwege `at+jwt` sinds 26.2 en
+    DPoP-ondersteuning sinds 26.4). Docker-compose en de documentatie volgen de laatste stabiele release; een
+    upgrade gaat eerst via dev, en keycloak-config-cli moet die versie ondersteunen (zie ADR 0021 besluit 6).
+
+14. **Eén authenticatiepad, architectonisch geborgd.** De BFF-login is het enige authenticatiepad. Dit staat
+    in arc42 §8 en wordt met architectuurregels (ArchUnit) afgedwongen: geen resource-server- of
+    `Bearer`-configuratie, geen `JwtDecoder` en geen token exchange in de code; de identiteit wordt alleen
+    via de sessie gelezen, via één leesroute in de authenticatiemodule; geen module bouwt zelf een
+    `Authentication`.
 
 ## Gevolgen
 

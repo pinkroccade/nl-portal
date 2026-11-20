@@ -8,13 +8,13 @@ staat; voeg een nieuwe term toe zodra een module ernaar vernoemd wordt (zie de
 - **Burger** — een natuurlijk persoon die als klant een verzoek indient of heeft ingediend en inzicht
   krijgt via NL Portal; geïdentificeerd met zijn BSN en inloggend met DigiD of een wallet.
   _Vermijd_: inwoner (als rol), aanvrager.
-- **Organisatie** — een bedrijf, stichting, vereniging of andere niet-natuurlijke partij die als klant
+- **Bedrijf** — een onderneming, stichting, vereniging of andere niet-natuurlijke partij die als klant
   diensten afneemt; geïdentificeerd met een KvK-nummer (eventueel met vestigingsnummer) en inloggend met
-  eHerkenning. In het eHerkenning-afsprakenstelsel heet zij *dienstafnemer*. _Vermijd_: bedrijf,
-  ondernemer. Niet te verwarren met de overheidsorganisatie die tenant is.
+  eHerkenning. In het eHerkenning-afsprakenstelsel heet zij *dienstafnemer*. _Vermijd_: organisatie (als
+  klantrol), ondernemer. Niet te verwarren met de overheidsorganisatie die tenant is.
 - **Gebruiker** — de natuurlijk persoon die feitelijk inlogt en handelt. Handelt namens zichzelf of, als
   gemachtigde, namens een vertegenwoordigde. _Vermijd_: eindgebruiker, account.
-- **Vertegenwoordigde** — de burger of organisatie namens wie gehandeld wordt en wiens zaken, taken en
+- **Vertegenwoordigde** — de burger of het bedrijf namens wie gehandeld wordt en wiens zaken, taken en
   gegevens het portaal toont. Wie voor zichzelf inlogt, is zijn eigen vertegenwoordigde.
   _Vermijd_: aanvrager, belanghebbende, machtiginggever.
 - **Gemachtigde** — een gebruiker die op grond van een machtiging of van de wet bevoegd is namens een
@@ -45,16 +45,16 @@ staat; voeg een nieuwe term toe zodra een module ernaar vernoemd wordt (zie de
 - **BRP (Basisregistratie Personen)** — de landelijke persoonsregistratie; ontsloten via Haal Centraal
   BRP.
 - **DigiD / eHerkenning** — respectievelijk de identiteitsvoorziening voor burgers en voor
-  organisaties; gefedereerd via Keycloak in de huidige stack (zie
+  bedrijven; gefedereerd via Keycloak in de huidige stack (zie
   `site/architectuur/arc42/08-dwarsdoorsnede-concepten.md`).
 - **Machtiging** — de relatie waarin een vertegenwoordigde een gemachtigde de bevoegdheid geeft namens
-  haar te handelen: een burger namens een burger, of een organisatie namens een burger of een andere
-  organisatie. Bewindvoering en curatele zijn vormen met een wettelijke basis in plaats van een
+  haar te handelen: een burger namens een burger, of een bedrijf namens een burger of een ander
+  bedrijf. Bewindvoering en curatele zijn vormen met een wettelijke basis in plaats van een
   vrijwillige machtiging. Relevant voor onder meer Haal Centraal Bewoning-gegevens. _Vermijd_:
   vertegenwoordiging als synoniem, volmacht.
-- **Ketenmachtiging** — een machtiging van een organisatie aan een intermediair, die op zijn beurt een
-  medewerker aanwijst die namens de organisatie handelt.
-- **Intermediair** — een tussenpartij die bij ketenmachtiging namens een organisatie optreedt, zoals een
+- **Ketenmachtiging** — een machtiging van een bedrijf aan een intermediair, die op zijn beurt een
+  medewerker aanwijst die namens het bedrijf handelt.
+- **Intermediair** — een tussenpartij die bij ketenmachtiging namens een bedrijf optreedt, zoals een
   boekhoudkantoor. _Vermijd_: tussenpersoon.
 - **Mijn Omgeving** — de productcategorie waartoe NL Portal behoort: een persoonlijk
   overheids-portaal voor klanten.
@@ -90,7 +90,7 @@ staat; voeg een nieuwe term toe zodra een module ernaar vernoemd wordt (zie de
 - **Tenant** — één overheidsorganisatie (meestal een gemeente; ook een gemeenschappelijke regeling,
   waterschap of provincie) als afnemer van de NL Portal-SaaS-dienst, met precies één portaal voor
   haar burgers en organisaties. Gegevens en configuratie van tenants zijn logisch van elkaar
-  gescheiden. _Vermijd_: klant (dat is de burger of organisatie), organisatie, instantie.
+  gescheiden. _Vermijd_: klant (dat is de burger of het bedrijf), organisatie, instantie.
 - **OIN (Organisatie-identificatienummer)** — het twintigcijferige nummer uit het OIN-register van
   Logius dat een tenant uniek identificeert. Bij een herindeling ontstaat een nieuwe organisatie met
   een nieuw OIN, en dus een nieuwe tenant. _Vermijd_: gemeentecode of CBS-code als tenantsleutel.
