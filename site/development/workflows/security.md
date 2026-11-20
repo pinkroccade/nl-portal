@@ -59,7 +59,7 @@ Lokaal draaien, zonder op CI te wachten:
 mise run security:secrets-scan          # werkt met .gitleaks.toml als allowlist
 mise run security:frontend-vuln-scan    # SBOM + grype, fail-on high
 mise run security:backend-vuln-scan     # idem voor backend (vult dependency-check.yml aan met CVE-data van ná de laatste Dependency-Check-database-sync)
-strix -t ./ --scan-mode quick --scope-mode diff --fail-on high   # zelfde agentic DAST-scan als strix-scan.yml; vereist STRIX_LLM/LLM_API_KEY/LLM_API_BASE in de omgeving
+mise run security:strix-scan   # zelfde agentic DAST-scan als strix-scan.yml; leest de LLM-gegevens uit .env of de omgeving (zie .env.example; de gecommitte strix_config.json verwijst naar die variabelen)
 ```
 
 ### Defend — hardening die niet in een scan-rapport staat
