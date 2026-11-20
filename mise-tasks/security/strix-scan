@@ -1,8 +1,27 @@
 #!/usr/bin/env bash
-#MISE description="Strix-beveiligingsscan lokaal (quick, alleen de diff t.o.v. main); vereist strix-CLI, Docker en STRIX_LLM/LLM_API_KEY"
+#MISE description="Strix-beveiligingsscan lokaal (quick, alleen de diff t.o.v. main); vereist strix-CLI, Docker en LLM-gegevens (strix_config.json, .env of omgeving)"
 set -euo pipefail
 
 command -v strix >/dev/null || { echo "strix CLI niet gevonden - installeer eerst: https://docs.strix.ai/quickstart (bijv. pipx install strix-agent)" >&2; exit 1; }
-: "${STRIX_LLM:?Zet STRIX_LLM}"
-: "${LLM_API_KEY:?Zet LLM_API_KEY}"
-strix --target ./ --scan-mode quick --scope-mode diff --fail-on high
+
+args=(--target ./ --scan-mode quick --scope-mode diff --fail-on high)
+
+# De LLM-gegevens komen uit een van de volgende bronnen (eerste die bestaat wint). Alle drie zijn
+# gitignored; commit nooit echte waarden.
+#   1. strix_config.json in de repo-root (formaat: zie strix_config.json.example)
+#   2. .env in de repo-root (zie .env.example)
+#   3. STRIX_LLM/LLM_API_KEY in de omgeving
+if [ -f strix_config.json ]; then
+  args+=(--config strix_config.json)
+else
+  if [ -f .env ]; then
+    set -a
+    # `tr` haalt de CRLF van een onder Windows bewerkt bestand weg, anders hangt er een \r aan elke waarde.
+    # shellcheck disable=SC1090
+    . <(tr -d '\r' < .env)
+    set +a
+  fi
+  : "${STRIX_LLM:?Zet STRIX_LLM (strix_config.json, .env of omgeving)}"
+  : "${LLM_API_KEY:?Zet LLM_API_KEY (strix_config.json, .env of omgeving)}"
+fi
+strix "${args[@]}"
