@@ -6,6 +6,13 @@ In uitvoering. Vastgelegd vóór de eerste implementatiestap (zie de bijbehorend
 [`0002-zgw-client-consolidation-spec.md`](./0002-zgw-client-consolidation-spec.md)), zodat het besluit
 vaststaat voordat er code verandert — niet achteraf gereconstrueerd.
 
+**Aanvulling 2026-11-21** ([ADR 0021](./0021-gedeelde-multi-tenant-runtime-met-cellen.md), aanvulling 6): dit
+besluit wordt uitgevoerd binnen de multitenancy-epic, met twee wijzigingen. (1) De diepe client komt niet in
+een losse module `backend/zgw/zgw-client`, maar in `core.koppeling` als `KoppelingClient`, die een module
+per tenant via het tenantregister krijgt (`registry.current()`). `WebClient` komt niet buiten `core`.
+(2) De scope is niet vier ZGW-modules maar alle koppelingen, ook BRP, KvK en OpenProduct. Punt 2 (RFC
+9457), punt 3 (één `ResultPage`) en punt 4 (publieke interface van de modules ongewijzigd) blijven gelden.
+
 ## Context
 
 De architectuurreview van 2026-10-20 (zie het bijgeleverde HTML-rapport, kandidaat 1 — de

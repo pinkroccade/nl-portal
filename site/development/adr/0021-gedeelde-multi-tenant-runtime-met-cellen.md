@@ -2,18 +2,54 @@
 
 ## Status
 
-Voorgesteld, ter review bij senior devs. Voortgekomen uit wayfinder-kaart #197, ticket #205. Nog niets
-hiervan is gebouwd; er draait nog niets in PRD, dus wijzigingen zijn nu goedkoop. Bijgewerkt op 2026-11-20
-na een vergelijking met `main` (nummer 0017 was inmiddels bezet; deze ADR is 0021) en een toets aan
+Geaccepteerd op 2026-11-21, met de aanvullingen hieronder. Voortgekomen uit wayfinder-kaart #197, ticket
+#205; de open punten zijn op 2026-11-21 in een grilling-sessie beslist (zie het
+[besluitenlog fase 0](../research/fase0-besluiten-multitenancy-bff.md)). Nog niets hiervan is gebouwd; er
+draait nog niets in PRD, dus wijzigingen zijn nu goedkoop. Eerder bijgewerkt op 2026-11-20 na een
+vergelijking met `main` (nummer 0017 was inmiddels bezet; deze ADR is 0021) en een toets aan
 multitenancy-patronen.
+
+### Aanvullingen bij acceptatie (2026-11-21)
+
+Deze aanvullingen gaan voor waar de tekst hieronder iets anders zegt.
+
+1. **Altijd multitenant, één configuratiepad.** Ook één gemeente draait als cel met één tenant en een
+   tenantbestand. Er is geen aparte single-tenant-modus op de oude `nl-portal.*`-properties.
+2. **Tenantbestanden.** Het JSON-schema en de validator zijn publiek en staan in deze repository. Echte
+   tenantbestanden staan nooit in de publieke repository: voorlopig een bestand per omgeving buiten de repo,
+   mogelijk later in een private config-repository. Voor lokale ontwikkeling staan twee fictieve
+   demo-tenants in de repository: *Gemeente De Bosrand* en *Gemeente Het Wijde Veld*, met fictieve, gequote
+   OIN's.
+3. **Authenticatie via een backend-for-frontend.** [ADR 0022](./0022-backend-for-frontend-als-authenticatiepatroon.md)
+   vervangt de publieke SPA-client en de token exchange. De issuerbinding (besluit 2) blijft, maar loopt via
+   een client-registratie per tenant in de backend (vertrouwelijke client `nl-portal-backend` per
+   tenant-realm), gekozen op het hostdomein, in plaats van een resource-server-decoder per issuer. Besluit 2.6
+   en de toetsbare punten zijn daarop aangepast.
+4. **`private_key_jwt` vóór livegang.** De NL GOV-profielen staan geen `client_secret` toe; de clientsleutel
+   per tenant komt uit de secret store (ADR 0022). Dit verschuift van "na livegang" naar "vóór livegang".
+5. **De moduleflag is een permission-flag**, `permission.<module>.enabled` (fail-closed), vastgelegd in
+   [ADR 0020](./0020-levenscyclus-feature-flags-en-privacy-evaluatiecontext.md). Besluit 4.3 leest zo.
+6. **Register en ADR 0002.** Het register in `core.koppeling` levert per tenant een diepe `KoppelingClient`
+   (generieke aanroepen, uniforme foutafhandeling volgens RFC 9457, één `ResultPage`); `WebClient` komt niet
+   buiten `core`. Daarmee is [ADR 0002](./0002-zgw-client-consolidation.md) hierin opgenomen, voor alle
+   koppelingen in plaats van vier ZGW-modules. De losse `KoppelingWebClientFactory` gaat op in het register.
+7. **Gebruikerssleutel.** Datatoegang gebruikt (tenant, BSN van de vertegenwoordigde). Logs en
+   securityevents gebruiken (`iss`, `sub`) als actor, nooit het BSN. Zie ADR 0022.
+8. **Reikwijdte van de livegang.** Alleen de burger die voor zichzelf inlogt, via DigiD of een wallet.
+   Organisaties (eHerkenning) en machtigen volgen later; het identiteitsmodel is erop voorbereid. Een
+   uitgeschakeld inlogmiddel, en machtigen zolang het uit staat, is per tenant technisch onmogelijk, niet
+   alleen verborgen.
+9. **Keycloak-minimum 26.4** (`at+jwt` en de ondersteunde DPoP-functies). De versie van de broker in productie
+   is nog niet bekend en is een open punt.
 
 Raakt eerdere ADR's:
 
-- [ADR 0016](./0016-stateless-configuratie-en-thema-via-bestanden.md) (ook voorgesteld): punt 2 ("één
-  deployment is één gemeente, geen tenantresolutie per request") en punt 6 ("module aan/uit blijft een
-  opstart-keuze", "geen Reloader") worden bij acceptatie van deze ADR gewijzigd. Het overige van 0016
-  (config-files, fail-fast, geen hot reload, thema als bestand) blijft staan en wordt hier per tenant
-  toegepast.
+- [ADR 0016](./0016-stateless-configuratie-en-thema-via-bestanden.md) (tegelijk geaccepteerd): punt 2 ("één
+  deployment is één gemeente, geen tenantresolutie per request") is vervangen door deze ADR, en in punt 6
+  vervalt "geen Reloader". Het overige van 0016 (config-files, fail-fast, geen hot reload, thema als
+  bestand) blijft staan en wordt hier per tenant toegepast.
+- [ADR 0022](./0022-backend-for-frontend-als-authenticatiepatroon.md): het authenticatiepatroon waarop de
+  issuerbinding en de gebruikerssleutel steunen.
 - [ADR 0013](./0013-stateless-backend-zonder-database.md) en [ADR 0017](./0017-vluchtige-state-toegestaan.md):
   ongewijzigd. Deze keuze steunt erop; "schema per tenant" bestaat niet. Vluchtige state (sessies, cache) die
   later komt, krijgt de tenant in de sleutel.
@@ -178,13 +214,16 @@ beproefd (open punt).
 5. **Postsale-webhook:** de tenant komt uit het hostdomein van de `webhookUrl`; de tenant van de `keyId` moet
    gelijk zijn, anders weigeren. Een dubbele `keyId` over tenants weigert het opstarten (zelfde
    kanttekening over cellen als hierboven).
-6. **Token exchange uit tenantconfiguratie.** `iss` wordt eerst tegen een allowlist gevalideerd;
-   token-endpoint, client-id en secret komen uit de tenantconfiguratie, niet uit `jwt.issuer`. Voor één
-   tenant is dit al gedaan (#484): `issuer-uri` is verplicht en het token-endpoint komt uit
-   `nl-portal.authentication.keycloak.token-uri`. Wat voor meerdere tenants nog ontbreekt, is een issuer per
-   tenant in plaats van één vaste issuer (een resolver per issuer, met de allowlist uit de tenantbestanden).
-   Audience-validatie staat aan met een unieke `aud` per tenant. Basis: de Spring Security-waarschuwing
-   over het vertrouwen van willekeurige issuers en ASVS 5.0 9.2.3, 9.2.4 en 10.3.1.
+6. **Client-registratie per tenant uit tenantconfiguratie** *(aangepast bij acceptatie, zie ADR 0022)*. De
+   backend is de vertrouwelijke OIDC-client `nl-portal-backend` in het realm van elke tenant. De
+   client-registratie (issuer, endpoints, client-id, verwijzing naar de clientsleutel voor
+   `private_key_jwt`) komt uit het tenantbestand en wordt gekozen op de host-tenant, nooit op een waarde uit
+   een request of token. De backend valideert `iss` en `aud` van de ontvangen tokens tegen die registratie;
+   een andere issuer of audience wordt geweigerd. Er is geen token exchange en geen resource-server-pad meer
+   voor tokens van buiten. #484 regelde dit al voor één vaste issuer; dit besluit maakt er een registratie
+   per tenant van. Basis: de Spring Security-waarschuwing over het vertrouwen van willekeurige issuers en
+   ASVS 5.0 9.2.3, 9.2.4 en 10.3.1. *Oorspronkelijk:* `iss` tegen een allowlist en een token exchange met
+   token-endpoint en secret uit de tenantconfiguratie.
 7. **De private broker is structureel uitgesloten.** De issuer-allowlist komt alleen uit tenantconfiguratie
    en het opstarten faalt als een issuer niet onder de basis-URL van de publieke broker valt. Een
    architectuur- of fitness-test borgt dit. Een egress-NetworkPolicy naar de private broker is
@@ -210,12 +249,14 @@ geen extra veld dat verkeerd ingesteld kan worden. Het besluit hangt af van **re
 later toch voor één gedeeld realm, dan is een claim nodig (en een unieke `aud`) en moet deze afweging
 opnieuw. Dat is de herzieningsvoorwaarde.
 
-*Toetsbaar:* (a) een geldig token van de realm van tenant A op het domein van tenant B geeft 403 en een
-securityevent; (b) een token met een issuer buiten de allowlist wordt geweigerd vóór de handtekening;
-(c) een token met een issuer onder de private broker wordt geweigerd, en een configuratie met zo'n issuer
-laat de runtime niet opstarten; (d) bij een verloren Reactor Context is het resultaat een fout, geen
-standaardtenant. (a), (b) en (d) zijn in het prototype aangetoond *(prototype)*; (b) en (c) tegen de echte
-`OauthSecurityAutoConfiguration` en JWT-decoder zijn niet getest.
+*Toetsbaar* *(aangepast bij acceptatie voor de BFF, ADR 0022)*: (a) een sessie die op het domein van
+tenant A is opgebouwd, wordt op het domein van tenant B niet geaccepteerd (403 of opnieuw inloggen, plus een
+securityevent); een login-callback met een token van het realm van tenant A op het domein van tenant B wordt
+geweigerd; (b) een token met een andere issuer of audience dan de client-registratie van de host-tenant
+wordt geweigerd; (c) een configuratie met een issuer onder de private broker laat de runtime niet opstarten;
+(d) bij een verloren Reactor Context is het resultaat een fout, geen standaardtenant; (e) een
+`Authorization: Bearer`-header van buiten geeft geen toegang. (a) en (d) zijn voor het resource-server-pad in
+het prototype aangetoond *(prototype)*; voor de BFF zijn ze nog niet getest.
 
 *Lezing van ASVS 8.3.1.* *(redactie)* Het onderzoek leest 8.3.1 (L1) als "tenant niet alleen uit `Host` of
 een door de gebruiker zetbare header, maar uit het gevalideerde token (`iss`/`aud`) controleren tegen het
@@ -504,8 +545,9 @@ wijzigingen op `main`, de module-voor-module-inschatting staat in `docs/tenancy-
   "geïnstalleerd in de runtime" (de unie over tenants).
 - **Anonieme en server-to-server paden:** `/api/public/frontend`, de postsale-webhook en `/graphql` (op
   filterniveau `permitAll`) krijgen de tenant uit de host, vóór de resolvers.
-- **Gebruikerssleutel:** met meerdere realms is `sub` alleen niet uniek; de gebruikerssleutel is (`iss`, `sub`) of
-  (OIN, BSN/KVK) (ASVS 10.3.3).
+- **Gebruikerssleutel:** met meerdere realms is `sub` alleen niet uniek. *Besloten bij acceptatie:* datatoegang
+  gebruikt (tenant, BSN van de vertegenwoordigde); logs en securityevents gebruiken (`iss`, `sub`) als actor,
+  nooit het BSN (ASVS 10.3.3, ADR 0022).
 - Er zijn in productiecode geen `ThreadLocal`, `GlobalScope`, `runBlocking`, `@Scheduled`, `@Cacheable` of
   `ConcurrentHashMap` gevonden *(onderzoek)*; er zijn dus nu geen caches die tenantdata kunnen mengen. Een
   toekomstige cache moet de tenant in de sleutel hebben (ASVS 14.2.2).
@@ -515,8 +557,9 @@ wijzigingen op `main`, de module-voor-module-inschatting staat in `docs/tenancy-
 ### Voor de frontend
 
 Zie besluit 7: same-origin API's, afgeleide redirect-URI's, per tenant gegenereerde bestanden, nginx-allowlist,
-exacte redirect-URI's per tenant in Keycloak (geen wildcards, ASVS 10.4.1). De frontend gebruikt
-`oidc-client-ts`/`react-oidc-context`, geen keycloak-js *(onderzoek)*. Branding vóór login (foutpagina,
+exacte redirect-URI's per tenant in Keycloak (geen wildcards, ASVS 10.4.1). De frontend gebruikte
+`oidc-client-ts`/`react-oidc-context` *(onderzoek)*; met de BFF (ADR 0022) vervalt dat en doet de backend de
+login, dus de redirect-URI's wijzen naar de backend op het gemeentedomein. Branding vóór login (foutpagina,
 landingspagina) komt uit de nginx-bestanden, niet uit `/api/public/frontend` (dat laadt na inloggen).
 
 Vrije thema-CSS is een vertrouwensgrens (CSS kan via attribuutselectors data lekken): alleen door Pink
@@ -634,8 +677,8 @@ Dit is het overgangspad voor de eerste tenants; het scherpt aan zodra de impleme
    tenant afschermen, bewaartermijnen).
 2. Rate limiting op inkomend verkeer, fair use en quota per tenant, en het fijn afstellen van de limieten
    per tenant en bron (de basislimieten en circuit breakers staan vóór livegang).
-3. Het plan voor ASVS 13.3.3 (crypto in vault of HSM) en sterkere clientauthenticatie voor `nl-portal-m2m`
-   (`private_key_jwt`; ASVS 10.4.16).
+3. Het plan voor ASVS 13.3.3 (crypto in vault of HSM). *(Bij acceptatie:)* de sterkere clientauthenticatie
+   (`private_key_jwt`, ASVS 10.4.16) is naar vóór livegang verschoven, zie ADR 0022.
 4. Een tenant-onboardingproces van OIN tot draaiend portaal, en een beheer-UI (apart onderzoek).
 5. Heroverweging van Crossplane voor realm-as-code, extra cellen per SLA of risicobereidheid, het aantal
    tenants per cel op basis van belastingtests.
@@ -676,9 +719,10 @@ van circa 600 clients, en mutatietests (de CI-gate van 80% op de echte implement
 
 Overige openstaande punten:
 
-- **Locatie van de tenantbestanden** *(redactie)*: in deze open-source repository of in een aparte
-  config-repository? Tenantbestanden bevatten OIN's, domeinen en API-URL's van gemeenten; ADR 0016 spreekt
-  van een "config-repository". Dit is niet besloten.
+- ~~**Locatie van de tenantbestanden**~~ *Besloten 2026-11-21*: schema publiek, echte tenantbestanden nooit
+  in de publieke repository, demo-tenants wel (aanvulling 2).
+- **Keycloak-versie van de broker in productie**: minimum 26.4 (aanvulling 9); de feitelijke versie navragen
+  bij devops.
 - **Gitops-uitrol in volgorde**: met welk mechanisme van de tooling de volgorde en de vaste wachttijd in de
   canary worden afgedwongen (eis aan de tooling, niet aan de chart).
 - **Het aantal tenants per cel**, de grootte van de cellen en de belastingtests: een k6-scenario met meerdere
@@ -687,11 +731,12 @@ Overige openstaande punten:
 - **Rate limiting en fair use per tenant**, **observability en audit per tenant** en het
   **tenant-onboardingproces**: nog niet gespecificeerd op de kaart (de verhuisprocedure staat in besluit 1.8).
 - **Eigen broker per cel** als een tenant dat eist: herzieningsvoorwaarde bij besluit 3.
-- **Type van de moduleflag** (OPS of permission) en de afstemming met ADR 0020.
-- **Afstemming met ADR 0002**: het register landt in `core.koppeling`; wat dat betekent voor de
-  `zgw-client`-module uit ADR 0002 (die ook een client-seam beoogt) wordt bij de implementatie beslist.
-- **Wijzigingen in ADR 0016**: bij acceptatie van deze ADR worden de punten 2 en 6 (inclusief "geen
-  Reloader") en het alternatief "Tenant-resolutie per request" aangepast.
+- ~~**Type van de moduleflag**~~ *Besloten 2026-11-21*: permission-flag (aanvulling 5, ADR 0020).
+- ~~**Afstemming met ADR 0002**~~ *Besloten 2026-11-21*: diepe `KoppelingClient` in `core.koppeling` via het
+  register (aanvulling 6, ADR 0002).
+- ~~**Wijzigingen in ADR 0016**~~ *Verwerkt 2026-11-21*: punt 2 vervangen, punt 6 aangepast.
+- **Reloader of eigen mechanisme** voor de rolling restart bij ESO-rotatie (besluit 5): keuze bij de
+  Helm-chart (#191).
 
 ## Buiten scope
 

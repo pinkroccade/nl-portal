@@ -6,6 +6,12 @@ Geaccepteerd (#148, onderdeel van [#143](https://github.com/pinkroccade/nl-porta
 [ADR 0014](./0014-feature-flags-via-openfeature.md) aan; die legt het mechanisme vast, deze ADR de
 afspraken eromheen. De CI-controle op vervaldatums en de eigenaar-controle zijn nog niet gebouwd.
 
+**Aanvulling 2026-11-21** ([ADR 0021](./0021-gedeelde-multi-tenant-runtime-met-cellen.md)): de moduleflag, die
+bepaalt of een module voor een tenant beschikbaar is, is een *permission*-flag:
+`permission.<module>.enabled`, fail-closed. De oudere naam `ops.<module>.enabled` vervalt (breaking change
+onder ADR 0012). Reden: "mag deze tenant deze module gebruiken" is een toegangsbeslissing; een storing van
+het flag-systeem mag nooit een module bij een tenant aanzetten.
+
 ## Context
 
 ADR 0014 kiest OpenFeature met een flagd-bestand als standaard. Zonder afspraken groeit een flagbestand

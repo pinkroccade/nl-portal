@@ -55,7 +55,7 @@ legt vast *dat* en *hoe* beslissingen worden vastgelegd.
   Bestanden uit NL Portal houden de Ritense-header (jaartal bevroren); nieuwe bestanden krijgen
   `Copyright <jaar> PinkRoccade Local Government B.V.`, alles onder EUPL 1.2.
 
-- [`0016-stateless-configuratie-en-thema-via-bestanden.md`](../../development/adr/0016-stateless-configuratie-en-thema-via-bestanden.md) — **voorgesteld**.
+- [`0016-stateless-configuratie-en-thema-via-bestanden.md`](../../development/adr/0016-stateless-configuratie-en-thema-via-bestanden.md) — **geaccepteerd** (2026-11-21; punt 2 vervangen door ADR 0021, punt 6 aangepast).
   Configuratie en thema per omgeving uit config-files, zonder configuration panel; rolling restart in
   plaats van hot reload; validatie (incl. contrast) in CI en bij opstart.
 
@@ -63,10 +63,14 @@ legt vast *dat* en *hoe* beslissingen worden vastgelegd.
   Aanvulling op ADR 0014: toggle-typen en foutgedrag, naamgeving, eigenaar en vervaldatum, en een
   evaluatiecontext zonder persoonsgegevens (opaque id of HMAC, nooit BSN of naam).
 
-- [`0021-gedeelde-multi-tenant-runtime-met-cellen.md`](../../development/adr/0021-gedeelde-multi-tenant-runtime-met-cellen.md) — **voorgesteld**.
+- [`0021-gedeelde-multi-tenant-runtime-met-cellen.md`](../../development/adr/0021-gedeelde-multi-tenant-runtime-met-cellen.md) — **geaccepteerd** (2026-11-21, met aanvullingen; nog niet gebouwd).
   Eén gedeelde multi-tenant runtime met logische tenantscheiding, ingedeeld in cellen (canarycel en
   hoofdcel); tenant uit het hostdomein, issuer als binding, realm per tenant, tenantbestand/flag/secret store,
-  core-seam met architectuurchecks. Wijzigt bij acceptatie ADR 0016 punt 2 en 6.
+  core-seam met architectuurchecks. Wijzigt ADR 0016 punt 2 en 6.
+
+- [`0022-backend-for-frontend-als-authenticatiepatroon.md`](../../development/adr/0022-backend-for-frontend-als-authenticatiepatroon.md) — **geaccepteerd** (2026-11-21, nog niet gebouwd).
+  De backend is per tenant de vertrouwelijke OIDC-client `nl-portal-backend` (BFF, RFC 10017); tokens blijven op
+  de server, de browser heeft een sessiecookie; token exchange en `nl-portal-m2m` vervallen; `private_key_jwt`.
 
 ## Overige kandidaten
 

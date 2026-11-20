@@ -5,6 +5,10 @@ Concepten die meerdere bouwblokken overstijgen en dus niet in één bouwblok thu
 ## 8.1 Authenticatie en autorisatie
 
 Zie [`site/architectuur/authentication-en-authorization.md`](../authentication-en-authorization.md).
+
+> **Besloten, nog niet gebouwd:** [ADR 0022](../../development/adr/0022-backend-for-frontend-als-authenticatiepatroon.md)
+> vervangt het patroon hieronder door een backend-for-frontend. Tot de bouw klaar is, beschrijft deze paragraaf de
+> huidige werking.
 Samengevat: DigiD (burgers) en eHerkenning (ondernemers/ketenpartners), gefedereerd via een OIDC-
 broker (Keycloak in de huidige stack). De backend valideert het token op elke GraphQL-aanroep; de
 frontend bewaart geen eigen sessie-state buiten wat de OIDC-flow vereist
@@ -93,7 +97,7 @@ via een rolling update wordt uitgerold, niet via hot reload; een andere OpenFeat
 
 ## 8.9 Tenantscheiding en configuratiemodel (voorgesteld)
 
-> **Voorgesteld, nog niet gebouwd.** Uitgewerkt in
+> **Geaccepteerd (2026-11-21), nog niet gebouwd.** Uitgewerkt in
 > [ADR 0021](../../development/adr/0021-gedeelde-multi-tenant-runtime-met-cellen.md). Vandaag is NL Portal één
 > tenant per deployment en geldt het beeld uit 8.1 en 8.8 ongewijzigd; dit is het doelbeeld voor een gedeelde
 > runtime.
