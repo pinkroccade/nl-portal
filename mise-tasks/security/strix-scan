@@ -1,27 +1,33 @@
 #!/usr/bin/env bash
-#MISE description="Strix-beveiligingsscan lokaal (quick, alleen de diff t.o.v. main); vereist strix-CLI, Docker en LLM-gegevens (strix_config.json, .env of omgeving)"
+#MISE description="Strix-beveiligingsscan lokaal (quick, alleen de diff t.o.v. main); vereist strix-CLI, Docker en STRIX_LLM/LLM_API_KEY (uit .env of de omgeving)"
 set -euo pipefail
 
 command -v strix >/dev/null || { echo "strix CLI niet gevonden - installeer eerst: https://docs.strix.ai/quickstart (bijv. pipx install strix-agent)" >&2; exit 1; }
 
+# De LLM-gegevens komen uit het (gitignored) .env in de repo-root (zie .env.example) of uit de omgeving.
+if [ -f .env ]; then
+  set -a
+  # `tr` haalt de CRLF van een onder Windows bewerkt bestand weg, anders hangt er een \r aan elke waarde.
+  # shellcheck disable=SC1090
+  . <(tr -d '\r' < .env)
+  set +a
+fi
+: "${STRIX_LLM:?Zet STRIX_LLM (.env of omgeving, zie .env.example)}"
+: "${LLM_API_KEY:?Zet LLM_API_KEY (.env of omgeving, zie .env.example)}"
+
 args=(--target ./ --scan-mode quick --scope-mode diff --fail-on high)
 
-# De LLM-gegevens komen uit een van de volgende bronnen (eerste die bestaat wint). Alle drie zijn
-# gitignored; commit nooit echte waarden.
-#   1. strix_config.json in de repo-root (formaat: zie strix_config.json.example)
-#   2. .env in de repo-root (zie .env.example)
-#   3. STRIX_LLM/LLM_API_KEY in de omgeving
+# Optioneel: een strix_config.json (gitignored) met ${VARIABELE}-verwijzingen, zie strix_config.json.example.
+# De verwijzingen worden hier ingevuld in een tijdelijk bestand, zodat er nooit een sleutel in de config staat.
 if [ -f strix_config.json ]; then
-  args+=(--config strix_config.json)
-else
-  if [ -f .env ]; then
-    set -a
-    # `tr` haalt de CRLF van een onder Windows bewerkt bestand weg, anders hangt er een \r aan elke waarde.
-    # shellcheck disable=SC1090
-    . <(tr -d '\r' < .env)
-    set +a
-  fi
-  : "${STRIX_LLM:?Zet STRIX_LLM (strix_config.json, .env of omgeving)}"
-  : "${LLM_API_KEY:?Zet LLM_API_KEY (strix_config.json, .env of omgeving)}"
+  config="$(mktemp)"
+  trap 'rm -f "$config"' EXIT
+  content="$(cat strix_config.json)"
+  for name in STRIX_LLM LLM_API_KEY LLM_API_BASE; do
+    value="${!name:-}"
+    content="${content//\$\{$name\}/"$value"}"
+  done
+  printf '%s\n' "$content" > "$config"
+  args+=(--config "$config")
 fi
 strix "${args[@]}"
