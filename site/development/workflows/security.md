@@ -31,7 +31,7 @@ betekent*. Voor NL Portal:
 | SAST (codekwaliteit + een deel beveiligingsregels) | Backend + frontend | ✅ SonarCloud (`sonarcloud.yml`) |
 | Dependency-kwetsbaarheden | **Alleen backend** | ✅ OWASP Dependency-Check (`dependency-check.yml`), ❌ frontend |
 | Dependency-kwetsbaarheden | Frontend | **✅ nieuw**: `frontend-vulnerability-scan.yml` (grype tegen het SBOM uit `site/development/workflows/sbom.md`) |
-| Secret-scanning | Beide | **✅ nieuw**: `secret-scan.yml` (gitleaks, elke push/PR) |
+| Secret-scanning | Beide | **✅ nieuw**: `secret-scan.yml` (gitleaks, elke push/PR: werkmap en git-historie; bekende historische bevindingen staan in `.gitleaks-baseline.json`) |
 | SBOM | Beide | ✅ backend (release-only, zie `site/development/workflows/sbom.md`), **✅ nieuw**: frontend on-demand |
 | Dependency-updates | Beide | ✅ Renovate, zie `site/development/workflows/dependency-updates.md` |
 | Dependency-integriteit (supply-chain) | **Alleen backend** | **✅ nieuw**: Gradle dependency-verificatie (`backend/gradle/verification-metadata.xml`, sha256 per artefact) - zie `site/development/workflows/dependency-updates.md`, sectie 5 |
@@ -57,6 +57,7 @@ Lokaal draaien, zonder op CI te wachten:
 
 ```bash
 mise run security:secrets-scan          # werkt met .gitleaks.toml als allowlist
+mise run security:secrets-scan-history  # scant de historie van HEAD; alleen bevindingen buiten .gitleaks-baseline.json laten falen
 mise run security:frontend-vuln-scan    # SBOM + grype, fail-on high
 mise run security:backend-vuln-scan     # idem voor backend (vult dependency-check.yml aan met CVE-data van ná de laatste Dependency-Check-database-sync)
 mise run security:strix-scan   # zelfde agentic DAST-scan als strix-scan.yml; leest de LLM-gegevens uit .env of de omgeving (zie .env.example; de gecommitte strix_config.json verwijst naar die variabelen)
