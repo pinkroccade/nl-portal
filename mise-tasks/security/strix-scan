@@ -17,7 +17,7 @@ fi
 
 args=(--target ./ --scan-mode quick --scope-mode diff --fail-on high)
 
-# Optioneel: een strix_config.json (gitignored) met ${VARIABELE}-verwijzingen, zie strix_config.json.example.
+# Optioneel: strix_config.json (gecommit, alleen ${VARIABELE}-verwijzingen; zet er nooit een echte waarde in).
 # De verwijzingen worden hier ingevuld in een tijdelijk bestand, zodat er nooit een sleutel in de config staat.
 if [ -f strix_config.json ]; then
   config="$(mktemp)"
