@@ -63,6 +63,11 @@ legt vast *dat* en *hoe* beslissingen worden vastgelegd.
   Aanvulling op ADR 0014: toggle-typen en foutgedrag, naamgeving, eigenaar en vervaldatum, en een
   evaluatiecontext zonder persoonsgegevens (opaque id of HMAC, nooit BSN of naam).
 
+- [`0021-gedeelde-multi-tenant-runtime-met-cellen.md`](../../development/adr/0021-gedeelde-multi-tenant-runtime-met-cellen.md) — **voorgesteld**.
+  Eén gedeelde multi-tenant runtime met logische tenantscheiding, ingedeeld in cellen (canarycel en
+  hoofdcel); tenant uit het hostdomein, issuer als binding, realm per tenant, tenantbestand/flag/secret store,
+  core-seam met architectuurchecks. Wijzigt bij acceptatie ADR 0016 punt 2 en 6.
+
 ## Overige kandidaten
 
 Nog niet als ADR vastgelegd:

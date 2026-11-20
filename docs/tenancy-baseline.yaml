@@ -1,6 +1,6 @@
 # Tenancy-baseline backend NL Portal (#386): wat staat een gedeelde multi-tenant runtime in de weg?
 # VOORLOPIG: omvang en risico zijn overgenomen uit onderzoek #146 (multitenancy-backend-impact) en nog niet
-# door de maintainer beoordeeld. Pas ze aan zodra #146 en ADR 0017 op main staan.
+# door de maintainer beoordeeld. Pas ze aan zodra #146 en ADR 0021 op main staan.
 #
 # Alleen het oordeel staat hier; de signalen worden bij elke run uit de bytecode afgeleid.
 #   omvang:  S = één klasse of autoconfig, M = autoconfig + client + service, L = nieuw mechanisme of beveiligingskritisch
