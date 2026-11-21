@@ -372,6 +372,7 @@ class TenantFileLoaderModulesTest {
                 "zgw-jwt" to listOf("clientId", "secret"),
                 "oauth2-client-credentials" to listOf("tokenUrl", "clientId", "secret"),
                 "oauth2-private-key-jwt" to listOf("tokenUrl", "clientId", "privateKeyBestand"),
+                "gcs-v1-hmac" to listOf("clientId", "secret"),
             )
         verwacht.forEach { (type, velden) ->
             schrijf("$bosrand.yaml", tenant(extra = "koppelingen:\n  zaken:\n    url: https://zaken.example.nl\n    auth:\n      type: $type"))
@@ -393,6 +394,7 @@ class TenantFileLoaderModulesTest {
                 "type: zgw-jwt\n      clientId: client\n      secret: $bosrand.zgw-secret",
                 "type: oauth2-client-credentials\n      tokenUrl: https://idp.example.nl/token\n      clientId: client\n      secret: $bosrand.oauth-secret",
                 "type: oauth2-private-key-jwt\n      tokenUrl: https://idp.example.nl/token\n      clientId: client\n      privateKeyBestand: /geheimen/$bosrand/sleutel.pem",
+                "type: gcs-v1-hmac\n      clientId: client\n      secret: $bosrand.hmac-secret",
             )
         auths.forEach { auth ->
             schrijf("$bosrand.yaml", tenant(extra = "koppelingen:\n  zaken:\n    url: https://zaken.example.nl\n    auth:\n      $auth"))
@@ -575,7 +577,7 @@ class TenantFileLoaderModulesTest {
         assertThat(schema["properties"]["koppelingen"]["additionalProperties"]["properties"]["auth"]["properties"]["secret"]["pattern"].asString())
             .isEqualTo(GeheimVerwijzing.PATROON)
         assertThat(schema["properties"]["koppelingen"]["additionalProperties"]["properties"]["auth"]["properties"]["type"]["enum"].teksten())
-            .containsExactly("api-key", "bearer", "zgw-jwt", "oauth2-client-credentials", "oauth2-private-key-jwt")
+            .containsExactly("api-key", "bearer", "zgw-jwt", "oauth2-client-credentials", "oauth2-private-key-jwt", "gcs-v1-hmac")
     }
 
     @Test

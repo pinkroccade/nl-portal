@@ -27,13 +27,22 @@ import org.springframework.web.reactive.function.client.ExchangeFilterFunction
 import org.springframework.web.reactive.function.client.WebClient
 import reactor.core.publisher.Mono
 import reactor.netty.http.client.HttpClient
+import java.net.URI
+import java.time.Clock
 import java.time.Duration
 import java.time.Instant
+import java.time.ZoneOffset
+import java.time.ZonedDateTime
+import java.time.format.DateTimeFormatter
+import java.util.Base64
+import javax.crypto.Mac
+import javax.crypto.spec.SecretKeySpec
 
 /** Bouwt uit een [Koppeling] een [WebClient] met de authenticatie van die koppeling; alleen het register gebruikt hem (epic #499, #507). */
 internal class KoppelingWebClientFactory(
     private val webClientBuilder: WebClient.Builder,
     private val zgwJwtGenerator: ZgwJwtGenerator = ZgwJwtGenerator(),
+    private val klok: Clock = Clock.systemUTC(),
 ) {
     /**
      * Elke client van een koppeling krijgt een eigen connector die redirects nooit volgt. Dat staat hier in code, niet in
@@ -103,8 +112,38 @@ internal class KoppelingWebClientFactory(
                     ),
                 )
             }
+
+            KoppelingAuthType.GCS_V1_HMAC -> {
+                val sleutelId = auth.clientId.requireConfigured(modulenaam, "auth.client-id")
+                val secret = auth.secret.requireConfigured(modulenaam, "auth.secret")
+                builder.filter(gcsHmac(sleutelId, secret, URI(koppeling.url!!).rawPath.orEmpty().trimEnd('/')))
+            }
         }
         return builder.build()
+    }
+
+    /**
+     * Ondertekent elk verzoek volgens Worldline Direct (`GCS v1HMAC`): HMAC-SHA256 over methode, content-type, datum en pad (met query)
+     * relatief aan de basis-URL, gezet in `Authorization` naast een `Date`-header. Het content-type is dat van het verzoek, leeg als het ontbreekt.
+     */
+    private fun gcsHmac(
+        sleutelId: String,
+        secret: String,
+        basisPad: String,
+    ) = ExchangeFilterFunction.ofRequestProcessor { verzoek ->
+        val datum = DateTimeFormatter.RFC_1123_DATE_TIME.format(ZonedDateTime.now(klok).withZoneSameInstant(ZoneOffset.UTC))
+        val pad = verzoek.url().rawPath.removePrefix(basisPad) + (verzoek.url().rawQuery?.let { "?$it" } ?: "")
+        val contentType = verzoek.headers().contentType?.toString().orEmpty()
+        val teOndertekenen = listOf(verzoek.method().name(), contentType, datum, pad).joinToString("\n", postfix = "\n")
+        val mac = Mac.getInstance("HmacSHA256").apply { init(SecretKeySpec(secret.toByteArray(), "HmacSHA256")) }
+        val handtekening = Base64.getEncoder().encodeToString(mac.doFinal(teOndertekenen.toByteArray()))
+        Mono.just(
+            ClientRequest
+                .from(verzoek)
+                .header(HttpHeaders.DATE, datum)
+                .header(HttpHeaders.AUTHORIZATION, "GCS v1HMAC:$sleutelId:$handtekening")
+                .build(),
+        )
     }
 
     private fun bearer(token: () -> Mono<String>) =

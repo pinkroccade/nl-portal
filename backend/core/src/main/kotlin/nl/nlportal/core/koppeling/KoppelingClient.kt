@@ -134,7 +134,8 @@ class KoppelingClient internal constructor(
                 .method(methode)
                 .uri(doel)
                 .headers { koppen -> headers.forEach { (naam, waarde) -> koppen.set(naam, waarde) } }
-                .let { if (body != null) it.bodyValue(body) else it }
+                // Json, en vooraf gezet: een koppeling die verzoeken ondertekent (gcs-v1-hmac) tekent het content-type mee.
+                .let { if (body != null) it.contentType(MediaType.APPLICATION_JSON).bodyValue(body) else it }
                 .exchangeToMono { antwoord -> if (antwoord.statusCode().is2xxSuccessful) succes(antwoord) else foutAntwoord(antwoord) }
                 .timeout(bewaker.timeout)
                 .onErrorMap { zetOm(it) }

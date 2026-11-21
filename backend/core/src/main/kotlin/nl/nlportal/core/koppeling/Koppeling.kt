@@ -43,6 +43,7 @@ enum class KoppelingAuthType {
     ZGW_JWT,
     OAUTH2_CLIENT_CREDENTIALS,
     OAUTH2_PRIVATE_KEY_JWT,
+    GCS_V1_HMAC,
 }
 
 class KoppelingAuth {

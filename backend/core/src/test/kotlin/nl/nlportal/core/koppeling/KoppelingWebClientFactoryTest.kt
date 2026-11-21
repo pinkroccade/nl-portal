@@ -34,6 +34,9 @@ import org.springframework.web.reactive.function.client.ExchangeStrategies
 import org.springframework.web.reactive.function.client.WebClient
 import reactor.core.publisher.Mono
 import java.nio.file.Path
+import java.time.Clock
+import java.time.Instant
+import java.time.ZoneOffset
 import java.security.KeyPairGenerator
 import java.security.interfaces.RSAPublicKey
 import java.util.Base64
@@ -56,7 +59,8 @@ class KoppelingWebClientFactoryTest {
                 antwoord.body("{}")
             }.let { Mono.just(it.build()) }
         }
-    private val factory = KoppelingWebClientFactory(WebClient.builder().exchangeFunction(netwerk))
+    private val vasteKlok = Clock.fixed(Instant.parse("2026-11-17T10:00:00Z"), ZoneOffset.UTC)
+    private val factory = KoppelingWebClientFactory(WebClient.builder().exchangeFunction(netwerk), klok = vasteKlok)
 
     private fun koppeling(configure: Koppeling.() -> Unit): Koppeling =
         Koppeling().apply {
@@ -111,6 +115,58 @@ class KoppelingWebClientFactoryTest {
 
         assertEquals("geheime-waarde", verzoek.headers().getFirst("X-Api-Key"))
         assertEquals("https://api.example.nl/ping", verzoek.url().toString())
+    }
+
+    @Test
+    fun `gcs-v1-hmac tekent elk verzoek met datum en handtekening over methode, content-type, datum en pad`() {
+        val verzoek =
+            aanroep(
+                koppeling {
+                    auth.type = KoppelingAuthType.GCS_V1_HMAC
+                    auth.clientId = "sleutel-id"
+                    auth.secret = "geheime-sleutel"
+                },
+            )
+
+        assertEquals("Tue, 17 Nov 2026 10:00:00 GMT", verzoek.headers().getFirst("Date"))
+        assertEquals("GCS v1HMAC:sleutel-id:uTl0tLOaD2j468udkpHhcvZxeGIe/NYIFZUMRcW4qIk=", verzoek.headers().getFirst("Authorization"))
+    }
+
+    @Test
+    fun `gcs-v1-hmac neemt het content-type van het verzoek op in de handtekening`() {
+        val koppeling =
+            koppeling {
+                auth.type = KoppelingAuthType.GCS_V1_HMAC
+                auth.clientId = "sleutel-id"
+                auth.secret = "geheime-sleutel"
+            }
+
+        factory
+            .webClient("testmodule", koppeling)
+            .post()
+            .uri("/v2/TAX/hostedcheckouts")
+            .contentType(MediaType.APPLICATION_JSON)
+            .bodyValue("{}")
+            .retrieve()
+            .bodyToMono(String::class.java)
+            .block()
+
+        assertEquals("GCS v1HMAC:sleutel-id:8QQ4FfxhoS0/FRTrdcuwusNZ75Nu8cSx+WJiAmtxiVs=", verzoeken.last().headers().getFirst("Authorization"))
+    }
+
+    @Test
+    fun `gcs-v1-hmac ondertekent het pad zonder het pad van de basis-url`() {
+        val koppeling =
+            koppeling {
+                url = "https://api.example.nl/worldline"
+                auth.type = KoppelingAuthType.GCS_V1_HMAC
+                auth.clientId = "sleutel-id"
+                auth.secret = "geheime-sleutel"
+            }
+
+        roep(koppeling)
+
+        assertEquals("GCS v1HMAC:sleutel-id:uTl0tLOaD2j468udkpHhcvZxeGIe/NYIFZUMRcW4qIk=", verzoeken.last().headers().getFirst("Authorization"))
     }
 
     @Test
