@@ -16,24 +16,30 @@
 package nl.nlportal.keycloak;
 
 import static nl.nlportal.keycloak.MapperTestSupport.mapperModel;
-import static nl.nlportal.keycloak.MapperTestSupport.newContext;
+import static nl.nlportal.keycloak.MapperTestSupport.samlContext;
 import static nl.nlportal.keycloak.MapperTestSupport.sessionNotes;
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import java.net.URI;
 import org.junit.jupiter.api.Test;
+import org.keycloak.broker.provider.AbstractIdentityProviderMapper;
 import org.keycloak.broker.provider.BrokeredIdentityContext;
+import org.keycloak.broker.provider.IdentityBrokerException;
 import org.keycloak.broker.saml.SAMLEndpoint;
+import org.keycloak.dom.saml.v2.assertion.AssertionType;
 import org.keycloak.dom.saml.v2.assertion.AuthnContextClassRefType;
 import org.keycloak.dom.saml.v2.assertion.AuthnContextType;
 import org.keycloak.dom.saml.v2.assertion.AuthnContextType.AuthnContextTypeSequence;
 import org.keycloak.dom.saml.v2.assertion.AuthnStatementType;
 import org.keycloak.models.IdentityProviderMapperModel;
+import org.keycloak.models.IdentityProviderSyncMode;
 import org.keycloak.saml.processing.core.saml.v2.util.XMLTimeUtil;
 
 class SamlAuthnContextClassRefMapperTest {
     private static final String BASIS = "urn:oasis:names:tc:SAML:2.0:ac:classes:PasswordProtectedTransport";
     private static final String SUBSTANTIEEL = "urn:oasis:names:tc:SAML:2.0:ac:classes:MobileTwoFactorContract";
+    private static final String HOOG = "urn:oasis:names:tc:SAML:2.0:ac:classes:SmartcardPKI";
     private final SamlAuthnContextClassRefMapper mapper = new SamlAuthnContextClassRefMapper();
     private final IdentityProviderMapperModel model = mapperModel("note", "acr");
 
@@ -49,9 +55,17 @@ class SamlAuthnContextClassRefMapperTest {
         return statement;
     }
 
-    private BrokeredIdentityContext loginMet(Object statement) {
-        BrokeredIdentityContext context = newContext();
-        if (statement != null) context.getContextData().put(SAMLEndpoint.SAML_AUTHN_STATEMENT, statement);
+    /** Zet een login met een assertion met precies deze AuthnStatements; Keycloak zet de eerste ook los in de context. */
+    static void zetAssertion(BrokeredIdentityContext context, AuthnStatementType... statements) {
+        AssertionType assertion = new AssertionType("id", XMLTimeUtil.getIssueInstant());
+        for (AuthnStatementType statement : statements) assertion.addStatement(statement);
+        context.getContextData().put(SAMLEndpoint.SAML_ASSERTION, assertion);
+        if (statements.length > 0) context.getContextData().put(SAMLEndpoint.SAML_AUTHN_STATEMENT, statements[0]);
+    }
+
+    private static BrokeredIdentityContext loginMet(AuthnStatementType... statements) {
+        BrokeredIdentityContext context = samlContext();
+        zetAssertion(context, statements);
         return context;
     }
 
@@ -83,8 +97,8 @@ class SamlAuthnContextClassRefMapperTest {
     }
 
     @Test
-    void zetEenLegeNotitieAlsDeAssertionGeenAuthnStatementHeeft() {
-        BrokeredIdentityContext context = loginMet(null);
+    void zetEenLegeNotitieAlsDeAuthnStatementGeenAuthnContextHeeft() {
+        BrokeredIdentityContext context = loginMet(new AuthnStatementType(XMLTimeUtil.getIssueInstant()));
 
         mapper.preprocessFederatedIdentity(null, null, model, context);
 
@@ -92,13 +106,40 @@ class SamlAuthnContextClassRefMapperTest {
     }
 
     @Test
-    void zetEenLegeNotitieAlsDeAuthnStatementGeenAuthnContextHeeft() {
-        AuthnStatementType zonderContext = new AuthnStatementType(XMLTimeUtil.getIssueInstant());
-        BrokeredIdentityContext context = loginMet(zonderContext);
+    void laatDeLoginFalenAlsDeAssertionGeenAuthnStatementHeeft() {
+        BrokeredIdentityContext context = loginMet();
 
-        mapper.preprocessFederatedIdentity(null, null, model, context);
+        assertThatThrownBy(() -> mapper.preprocessFederatedIdentity(null, null, model, context))
+                .isInstanceOf(IdentityBrokerException.class)
+                .hasMessageContaining("AuthnStatement");
+    }
 
-        assertThat(sessionNotes(context)).containsEntry("acr", "");
+    @Test
+    void laatDeLoginFalenBijMeerdereAuthnStatementsMetVerschillendNiveau() {
+        // Keycloak zet alleen het eerste los in de context; een tweede met een hoger niveau mag niet stil verdwijnen.
+        BrokeredIdentityContext context = loginMet(statement(BASIS), statement(HOOG));
+
+        assertThatThrownBy(() -> mapper.preprocessFederatedIdentity(null, null, model, context))
+                .isInstanceOf(IdentityBrokerException.class)
+                .hasMessageContaining("AuthnStatement");
+        assertThat(sessionNotes(context)).isEmpty();
+    }
+
+    @Test
+    void laatDeLoginFalenAlsHetLosseAuthnStatementNietUitDezelfdeAssertionKomt() {
+        BrokeredIdentityContext context = loginMet(statement(BASIS));
+        context.getContextData().put(SAMLEndpoint.SAML_AUTHN_STATEMENT, statement(HOOG));
+
+        assertThatThrownBy(() -> mapper.preprocessFederatedIdentity(null, null, model, context))
+                .isInstanceOf(IdentityBrokerException.class);
+    }
+
+    @Test
+    void laatDeLoginFalenZonderAssertionEnZonderEerderGezetteWaarde() {
+        BrokeredIdentityContext context = samlContext();
+
+        assertThatThrownBy(() -> mapper.preprocessFederatedIdentity(null, null, model, context))
+                .isInstanceOf(IdentityBrokerException.class);
     }
 
     @Test
@@ -113,24 +154,12 @@ class SamlAuthnContextClassRefMapperTest {
     }
 
     @Test
-    void eenLatereLoginZonderAuthnStatementLaatHetNiveauVanEenEerdereLoginNietStaan() {
-        // Dezelfde context (first-broker-login-flow): de assertion is weg, de waarde in de contextdata blijft. Een nieuwe
-        // context heeft die waarde niet: de notitie is dan leeg, niet de waarde van de login ervoor.
-        BrokeredIdentityContext eerste = loginMet(statement(SUBSTANTIEEL));
-        mapper.preprocessFederatedIdentity(null, null, model, eerste);
-        BrokeredIdentityContext tweede = loginMet(null);
-
-        mapper.preprocessFederatedIdentity(null, null, model, tweede);
-
-        assertThat(sessionNotes(tweede)).containsEntry("acr", "");
-    }
-
-    @Test
     void eersteLoginHoudtDeWaardeNaDeSerialisatieVanDeContextVast() {
         // Bij de eerste login serialiseert Keycloak de context tussen de assertion en de first-broker-login-flow: de
-        // AuthnStatement is dan weg, een tekstwaarde in de contextdata niet. De latere haakjes zetten de notitie opnieuw.
+        // assertion is dan weg, een tekstwaarde in de contextdata niet. De latere haakjes zetten de notitie opnieuw.
         BrokeredIdentityContext context = loginMet(statement(SUBSTANTIEEL));
         mapper.preprocessFederatedIdentity(null, null, model, context);
+        context.getContextData().remove(SAMLEndpoint.SAML_ASSERTION);
         context.getContextData().remove(SAMLEndpoint.SAML_AUTHN_STATEMENT);
 
         mapper.importNewUser(null, null, null, model, context);
@@ -143,7 +172,7 @@ class SamlAuthnContextClassRefMapperTest {
 
     @Test
     void zetZonderAssertionOpEenLaterHaakjeEenLegeNotitieEnGeenWaardeUitHetNiets() {
-        BrokeredIdentityContext context = newContext();
+        BrokeredIdentityContext context = samlContext();
 
         mapper.importNewUser(null, null, null, model, context);
 
@@ -151,9 +180,43 @@ class SamlAuthnContextClassRefMapperTest {
     }
 
     @Test
+    void weigertEenKoppelingZonderHandtekeningcontrole() {
+        assertGeweigerdZonderHandtekeningcontrole(mapper, model);
+    }
+
+    /** Gedeelde controle voor de SAML-mappers: elke zwakke koppelingsinstelling laat de login falen. */
+    static void assertGeweigerdZonderHandtekeningcontrole(
+            AbstractIdentityProviderMapper mapper, IdentityProviderMapperModel model) {
+        BrokeredIdentityContext[] zwak = {
+            samlContext(false, true, "MIIBcertificaat"),
+            samlContext(true, false, "MIIBcertificaat"),
+            samlContext(true, true, null),
+            samlContext(true, true, " "),
+            MapperTestSupport.newContext(),
+        };
+        for (BrokeredIdentityContext context : zwak) {
+            zetAssertion(context, statement(BASIS));
+
+            assertThatThrownBy(() -> mapper.preprocessFederatedIdentity(null, null, model, context))
+                    .isInstanceOf(IdentityBrokerException.class)
+                    .hasMessageContaining("handtekening");
+            assertThat(sessionNotes(context)).isEmpty();
+        }
+    }
+
+    @Test
+    void weigertEenMapperZonderNotitienaam() {
+        BrokeredIdentityContext context = loginMet(statement(BASIS));
+
+        assertThatThrownBy(() -> mapper.preprocessFederatedIdentity(null, null, mapperModel(), context))
+                .isInstanceOf(IdentityBrokerException.class)
+                .hasMessageContaining("note");
+    }
+
+    @Test
     void isAlleenBedoeldVoorSamlKoppelingenEnDraaitInElkeSynchronisatiemodus() {
         assertThat(mapper.getCompatibleProviders()).containsExactly("saml");
-        assertThat(mapper.supportsSyncMode(org.keycloak.models.IdentityProviderSyncMode.FORCE)).isTrue();
+        assertThat(mapper.supportsSyncMode(IdentityProviderSyncMode.FORCE)).isTrue();
         assertThat(mapper.getId()).isEqualTo("nlportal-saml-authncontext-note-mapper");
         assertThat(mapper.getConfigProperties()).extracting("name").containsExactly("note");
         assertThat(mapper.getDisplayCategory()).isNotBlank();

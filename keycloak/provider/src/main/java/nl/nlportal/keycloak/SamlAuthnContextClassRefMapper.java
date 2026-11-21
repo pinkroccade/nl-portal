@@ -16,42 +16,27 @@
 package nl.nlportal.keycloak;
 
 import java.util.List;
-import org.keycloak.broker.provider.AbstractIdentityProviderMapper;
 import org.keycloak.broker.provider.BrokeredIdentityContext;
+import org.keycloak.broker.provider.IdentityBrokerException;
 import org.keycloak.broker.saml.SAMLEndpoint;
-import org.keycloak.broker.saml.SAMLIdentityProviderFactory;
+import org.keycloak.dom.saml.v2.assertion.AssertionType;
 import org.keycloak.dom.saml.v2.assertion.AuthnStatementType;
 import org.keycloak.models.IdentityProviderMapperModel;
-import org.keycloak.models.IdentityProviderSyncMode;
-import org.keycloak.models.KeycloakSession;
-import org.keycloak.models.RealmModel;
-import org.keycloak.models.UserModel;
 import org.keycloak.provider.ProviderConfigProperty;
 
 /**
- * zet de AuthnContextClassRef uit de AuthnStatement van de SAML-assertion in een
- * gebruikerssessie-notitie. Een notitie hoort bij de sessie, niet bij de gebruiker, en kan daarom via de mapper
- * "User Session Note" als claim in het token (anders dan een gebruikersattribuut, dat delen sessies met elkaar).
- * Ontbreekt de AuthnContextClassRef, dan zet de mapper een lege notitie (geen oude waarde van een eerdere login in
- * dezelfde Keycloak-sessie); de backend weigert een lege of onbekende acr.
+ * zet de AuthnContextClassRef uit de AuthnStatement van de SAML-assertion in een gebruikerssessie-notitie, zodat de
+ * client-mapper "User Session Note" hem als claim in het token zet. Ontbreekt de AuthnContextClassRef, dan zet de
+ * mapper een lege notitie; de backend weigert een lege of onbekende acr. De assertion moet precies een AuthnStatement
+ * hebben, en het statement dat Keycloak los in de context zet moet dat zijn: een tweede statement met een ander niveau
+ * mag niet stil genegeerd worden.
  */
-public class SamlAuthnContextClassRefMapper extends AbstractIdentityProviderMapper {
+public class SamlAuthnContextClassRefMapper extends SamlSessionNoteMapper {
     public static final String PROVIDER_ID = "nlportal-saml-authncontext-note-mapper";
-    public static final String NOTE = "note";
 
     @Override
-    public String[] getCompatibleProviders() {
-        return new String[] {SAMLIdentityProviderFactory.PROVIDER_ID};
-    }
-
-    @Override
-    public boolean supportsSyncMode(IdentityProviderSyncMode syncMode) {
-        return true;
-    }
-
-    @Override
-    public String getDisplayCategory() {
-        return "Session Importer";
+    public String getId() {
+        return PROVIDER_ID;
     }
 
     @Override
@@ -60,60 +45,37 @@ public class SamlAuthnContextClassRefMapper extends AbstractIdentityProviderMapp
     }
 
     @Override
-    public String getId() {
-        return PROVIDER_ID;
-    }
-
-    @Override
     public String getHelpText() {
         return "Zet de AuthnContextClassRef van de SAML-assertion in een sessienotitie.";
     }
 
     @Override
-    public List<ProviderConfigProperty> getConfigProperties() {
-        ProviderConfigProperty p = new ProviderConfigProperty();
-        p.setName(NOTE);
-        p.setLabel("Sessienotitie");
-        p.setHelpText("Naam van de notitie, bijvoorbeeld acr (de naam die de client-mapper in het token leest).");
-        p.setType(ProviderConfigProperty.STRING_TYPE);
-        return List.of(p);
+    protected List<ProviderConfigProperty> sourceProperties() {
+        return List.of();
     }
 
-    // Bij de eerste login serialiseert Keycloak de context tussen de assertion en de first-broker-login-flow; de
-    // AuthnStatement gaat dan verloren, een tekstwaarde in de contextdata niet. Daarom op elk haakje opnieuw zetten.
-    private static final String CONTEXT_KEY = "nlportal.authn-context-class-ref";
-
     @Override
-    public void preprocessFederatedIdentity(
-            KeycloakSession session, RealmModel realm, IdentityProviderMapperModel mapperModel, BrokeredIdentityContext context) {
-        Object statement = context.getContextData().get(SAMLEndpoint.SAML_AUTHN_STATEMENT);
-        if (statement != null || !context.getContextData().containsKey(CONTEXT_KEY)) {
-            String classRef = "";
-            if (statement instanceof AuthnStatementType authn
-                    && authn.getAuthnContext() != null
-                    && authn.getAuthnContext().getSequence() != null
-                    && authn.getAuthnContext().getSequence().getClassRef() != null) {
-                classRef = authn.getAuthnContext().getSequence().getClassRef().getValue().toString();
-            }
-            context.getContextData().put(CONTEXT_KEY, classRef);
+    protected String readValue(IdentityProviderMapperModel model, BrokeredIdentityContext context) {
+        AssertionType assertion = assertion(context);
+        if (assertion == null) return null;
+        List<AuthnStatementType> statements = assertion.getStatements().stream()
+                .filter(AuthnStatementType.class::isInstance)
+                .map(AuthnStatementType.class::cast)
+                .toList();
+        if (statements.size() != 1) {
+            throw new IdentityBrokerException(
+                    "De assertion heeft " + statements.size() + " AuthnStatements in plaats van precies een");
         }
-        applyNote(mapperModel, context);
-    }
-
-    @Override
-    public void importNewUser(
-            KeycloakSession session, RealmModel realm, UserModel user, IdentityProviderMapperModel mapperModel, BrokeredIdentityContext context) {
-        applyNote(mapperModel, context);
-    }
-
-    @Override
-    public void updateBrokeredUser(
-            KeycloakSession session, RealmModel realm, UserModel user, IdentityProviderMapperModel mapperModel, BrokeredIdentityContext context) {
-        applyNote(mapperModel, context);
-    }
-
-    private void applyNote(IdentityProviderMapperModel mapperModel, BrokeredIdentityContext context) {
-        Object value = context.getContextData().get(CONTEXT_KEY);
-        context.setSessionNote(mapperModel.getConfig().get(NOTE), value == null ? "" : value.toString());
+        AuthnStatementType authn = statements.get(0);
+        Object loose = context.getContextData().get(SAMLEndpoint.SAML_AUTHN_STATEMENT);
+        if (loose != null && loose != authn) {
+            throw new IdentityBrokerException("Het AuthnStatement in de context is niet dat van de gevalideerde assertion");
+        }
+        if (authn.getAuthnContext() != null
+                && authn.getAuthnContext().getSequence() != null
+                && authn.getAuthnContext().getSequence().getClassRef() != null) {
+            return authn.getAuthnContext().getSequence().getClassRef().getValue().toString();
+        }
+        return "";
     }
 }

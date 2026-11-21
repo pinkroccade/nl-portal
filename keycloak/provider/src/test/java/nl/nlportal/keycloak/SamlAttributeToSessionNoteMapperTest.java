@@ -16,7 +16,7 @@
 package nl.nlportal.keycloak;
 
 import static nl.nlportal.keycloak.MapperTestSupport.mapperModel;
-import static nl.nlportal.keycloak.MapperTestSupport.newContext;
+import static nl.nlportal.keycloak.MapperTestSupport.samlContext;
 import static nl.nlportal.keycloak.MapperTestSupport.sessionNotes;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -67,7 +67,7 @@ class SamlAttributeToSessionNoteMapperTest {
         AttributeStatementType statement = new AttributeStatementType();
         for (ASTChoiceType attribuut : attributen) statement.addAttribute(attribuut);
         assertion.addStatement(statement);
-        BrokeredIdentityContext context = newContext();
+        BrokeredIdentityContext context = samlContext();
         context.getContextData().put(SAMLEndpoint.SAML_ASSERTION, assertion);
         return context;
     }
@@ -122,12 +122,35 @@ class SamlAttributeToSessionNoteMapperTest {
     }
 
     @Test
-    void zetEenLegeNotitieAlsHetAttribuutGeenWaardeHeeft() {
+    void laatDeLoginFalenAlsHetAttribuutGeenWaardeHeeft() {
+        // Een attribuut zonder AttributeValue is geen "ontbrekend attribuut": consistent met "lege waarde faalt".
         BrokeredIdentityContext context = loginMet(choice(attribuut(ACTING)));
 
-        verwerk(context);
+        assertThatThrownBy(() -> verwerk(context)).isInstanceOf(IdentityBrokerException.class);
+    }
 
-        assertThat(sessionNotes(context)).containsEntry("acting_subject_id", "");
+    @Test
+    void laatDeLoginFalenZonderAssertionEnZonderEerderGezetteWaarde() {
+        BrokeredIdentityContext context = samlContext();
+
+        assertThatThrownBy(() -> verwerk(context)).isInstanceOf(IdentityBrokerException.class);
+    }
+
+    @Test
+    void weigertEenKoppelingZonderHandtekeningcontrole() {
+        SamlAuthnContextClassRefMapperTest.assertGeweigerdZonderHandtekeningcontrole(mapper, model);
+    }
+
+    @Test
+    void weigertEenMapperZonderAttribuutnaamOfNotitienaam() {
+        BrokeredIdentityContext context = loginMet(choice(attribuut(ACTING, BSN)));
+
+        assertThatThrownBy(() -> mapper.preprocessFederatedIdentity(null, null, mapperModel("note", "x"), context))
+                .isInstanceOf(IdentityBrokerException.class)
+                .hasMessageContaining("attribute.name");
+        assertThatThrownBy(() -> mapper.preprocessFederatedIdentity(null, null, mapperModel("attribute.name", ACTING), context))
+                .isInstanceOf(IdentityBrokerException.class)
+                .hasMessageContaining("note");
     }
 
     @Test
@@ -212,7 +235,7 @@ class SamlAttributeToSessionNoteMapperTest {
 
     @Test
     void zetZonderAssertionOpEenLaterHaakjeEenLegeNotitie() {
-        BrokeredIdentityContext context = newContext();
+        BrokeredIdentityContext context = samlContext();
 
         mapper.importNewUser(null, null, null, model, context);
 

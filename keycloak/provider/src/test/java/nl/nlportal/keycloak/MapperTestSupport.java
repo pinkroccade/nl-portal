@@ -19,6 +19,7 @@ import java.lang.reflect.Proxy;
 import java.util.HashMap;
 import java.util.Map;
 import org.keycloak.broker.provider.BrokeredIdentityContext;
+import org.keycloak.broker.saml.SAMLIdentityProviderConfig;
 import org.keycloak.models.IdentityProviderMapperModel;
 import org.keycloak.models.IdentityProviderModel;
 import org.keycloak.models.UserSessionModel;
@@ -39,6 +40,20 @@ final class MapperTestSupport {
     static BrokeredIdentityContext newContext() {
         IdentityProviderModel idp = new IdentityProviderModel();
         idp.setEnabled(true);
+        return new BrokeredIdentityContext("id", idp);
+    }
+
+    /** Een SAML-koppeling zoals bedoeld: handtekeningen gecontroleerd, assertion ondertekend, certificaat vastgepind. */
+    static BrokeredIdentityContext samlContext() {
+        return samlContext(true, true, "MIIBcertificaat");
+    }
+
+    static BrokeredIdentityContext samlContext(boolean validateSignature, boolean wantAssertionsSigned, String certificate) {
+        SAMLIdentityProviderConfig idp = new SAMLIdentityProviderConfig();
+        idp.setEnabled(true);
+        idp.setValidateSignature(validateSignature);
+        idp.setWantAssertionsSigned(wantAssertionsSigned);
+        if (certificate != null) idp.addSigningCertificate(certificate);
         return new BrokeredIdentityContext("id", idp);
     }
 

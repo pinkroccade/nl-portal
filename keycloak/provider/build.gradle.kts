@@ -56,7 +56,7 @@ java {
 tasks.withType<JavaCompile>().configureEach {
     options.release.set(keycloakJavaRelease.toInt())
     // De SPI van identity-provider-mappers is bij Keycloak intern gemarkeerd (KC-SERVICES0047); geen annotatieprocessors.
-    options.compilerArgs.addAll(listOf("-proc:none", "-Xlint:all"))
+    options.compilerArgs.addAll(listOf("-proc:none", "-Xlint:all", "-Werror"))
 }
 
 tasks.jar {

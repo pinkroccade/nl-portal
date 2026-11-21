@@ -22,6 +22,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import java.util.List;
+import java.util.Map;
 import org.junit.jupiter.api.Test;
 import org.keycloak.broker.oidc.OIDCIdentityProvider;
 import org.keycloak.broker.provider.BrokeredIdentityContext;
@@ -82,6 +83,48 @@ class OidcClaimToSessionNoteMapperTest {
                 .isInstanceOf(IdentityBrokerException.class)
                 .hasMessageContaining("acr");
         assertThatThrownBy(() -> verwerk(getal)).isInstanceOf(IdentityBrokerException.class);
+    }
+
+    @Test
+    void negeertEenClaimDieAlleenInDeOngetekendeUserinfoStaat() {
+        // getClaimValue(context, naam) zou ook userinfo raadplegen; alleen het gevalideerde ID-token is te vertrouwen.
+        BrokeredIdentityContext context = loginMet(null, null);
+        context.getContextData().put(OIDCIdentityProvider.USER_INFO, Map.of("acr", "high"));
+
+        verwerk(context);
+
+        assertThat(sessionNotes(context)).containsEntry("acr", "");
+    }
+
+    @Test
+    void negeertEenClaimDieAlleenInHetAccessTokenStaat() {
+        BrokeredIdentityContext context = loginMet(null, null);
+        JsonWebToken accessToken = new JsonWebToken();
+        accessToken.setOtherClaims("acr", "high");
+        context.getContextData().put(OIDCIdentityProvider.VALIDATED_ACCESS_TOKEN, accessToken);
+
+        verwerk(context);
+
+        assertThat(sessionNotes(context)).containsEntry("acr", "");
+    }
+
+    @Test
+    void laatDeLoginFalenZonderGevalideerdIdTokenEnZonderEerderGezetteWaarde() {
+        BrokeredIdentityContext context = newContext();
+
+        assertThatThrownBy(() -> verwerk(context)).isInstanceOf(IdentityBrokerException.class);
+    }
+
+    @Test
+    void weigertEenMapperZonderClaimnaamOfNotitienaam() {
+        BrokeredIdentityContext context = loginMet("acr", "high");
+
+        assertThatThrownBy(() -> mapper.preprocessFederatedIdentity(null, null, mapperModel("note", "x"), context))
+                .isInstanceOf(IdentityBrokerException.class)
+                .hasMessageContaining("claim.name");
+        assertThatThrownBy(() -> mapper.preprocessFederatedIdentity(null, null, mapperModel("claim.name", "acr"), context))
+                .isInstanceOf(IdentityBrokerException.class)
+                .hasMessageContaining("note");
     }
 
     @Test
