@@ -2,8 +2,10 @@ server:
     port: 8080
 
 management:
-    # Beheerpoort apart zetten: MANAGEMENT_SERVER_PORT=8091 (zie site/hosting-en-configuratie/beheer-modulestatus.md)
-    # Beheerpoort apart zetten: MANAGEMENT_SERVER_PORT=8091 (zie site/hosting-en-configuratie/beheer-modulestatus.md)
+    server:
+        # De actuator staat altijd op een eigen poort en nooit op de applicatiepoort (ADR 0021 besluit 8, regel 5);
+        # de runtime start niet zonder (zie site/hosting-en-configuratie/beheer-modulestatus.md).
+        port: ${MANAGEMENT_SERVER_PORT:8091}
     endpoint:
         health:
             access: read_only
@@ -45,6 +47,11 @@ logging:
         root: ${LOGLEVEL:INFO}
 
 nl-portal:
+    tenancy:
+        # Map met base.yaml en per tenant <oin>.yaml (het tenantbestand); verplicht, de runtime start niet zonder.
+        directory: ${NL_PORTAL_TENANTS_DIRECTORY}
+        # IP-adressen of CIDR-blokken van de ingress; alleen van deze adressen gelden Forwarded en X-Forwarded-Host.
+        trusted-proxies: ${NL_PORTAL_TRUSTED_PROXIES:}
     authentication:
         keycloak:
             resource: ${KEYCLOAK_CLIENT_ID}

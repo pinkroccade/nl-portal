@@ -50,6 +50,35 @@ nooit in een flag-systeem. Daarom bevat een flag alleen aan of uit. Ook flagwijz
 rolling restart van de eigen cel; er is geen uitzondering op "elke wijziging is een rolling restart". Het
 flagbestand wordt wel periodiek herladen, maar het ontwerp rekent daar niet op.
 
+## Wat al werkt: het tenantbestand voor tenantresolutie
+
+Sinds epic #499 (stap 2) leest de runtime een map met tenantbestanden: `base.yaml` (de gedeelde basis van de
+omgeving, optioneel) en per tenant `<oin>.yaml`, dat de basis overschrijft. De map staat in
+`NL_PORTAL_TENANTS_DIRECTORY` en is verplicht; `docker-compose/imports/tenants` bevat de demo-tenant *De Bosrand*.
+
+```yaml
+oin: "00000099000000000001"   # altijd tussen aanhalingstekens
+naam: Gemeente De Bosrand
+omgevingstype: ontwikkeling   # productie | acceptatie | test | ontwikkeling (mag in base.yaml)
+domeinen: [localhost]
+thema:
+    titel: Mijn De Bosrand
+inlogmiddelen: [test]         # digid | eherkenning | wallet | test (test niet in productie)
+minimumNiveau: substantieel   # basis | midden | substantieel | hoog (standaard substantieel)
+sessie:
+    inactiviteit: PT15M       # hoogstens 15 minuten
+    absoluut: PT8H            # hoogstens 8 uur
+```
+
+De tenant volgt uit de host van het request (kleine letters, zonder poort en trailing dot, exact tegen
+`domeinen`). `Forwarded` en `X-Forwarded-Host` tellen alleen van de adressen in `NL_PORTAL_TRUSTED_PROXIES` (de
+ingress); van elk ander adres telt alleen de `Host`-header. Een onbekende host krijgt een kale 404.
+
+Het JSON-schema staat in `backend/core/schema/tenant.schema.json` en wordt uit de Kotlin-typen gegenereerd
+(`mise run backend:tenant-schema`). De validator draait bij opstarten en als CLI voor CI:
+`mise run backend:tenant-validator` bouwt `backend/core/build/libs/nl-portal-tenant-validator.jar`, en
+`java -jar nl-portal-tenant-validator.jar <map>` geeft exitcode 0 bij een geldige map.
+
 ## Controles
 
 - **In CI:** elk tenantbestand wordt tegen een schema gevalideerd (onder andere gequote OIN's), domeinen en

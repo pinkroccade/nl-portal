@@ -3,3 +3,4 @@ nl.nlportal.core.autoconfiguration.CoreAutoConfiguration
 nl.nlportal.core.featureflag.FeatureFlagAutoConfiguration
 nl.nlportal.core.modulestatus.ModuleStatusAutoConfiguration
 nl.nlportal.core.koppeling.KoppelingAutoConfiguration
+nl.nlportal.core.tenancy.TenancyAutoConfiguration
