@@ -61,6 +61,6 @@ class SessionTest : BffTestBase() {
         }.collectList().block()!!.joinToString("\n")
         assertThat(values).contains("nlp.tenant")
         // een JWT begint met eyJ: het ID-token is er een, het access-token mag er niet bij staan
-        assertThat(Regex("eyJ[A-Za-z0-9_-]{10,}\\.").findAll(values).count()).isEqualTo(1)
+        assertThat(Regex("eyJ[A-Za-z0-9_-]+\\.eyJ[A-Za-z0-9_-]+\\.[A-Za-z0-9_-]+").findAll(values).count()).isEqualTo(1)
     }
 }

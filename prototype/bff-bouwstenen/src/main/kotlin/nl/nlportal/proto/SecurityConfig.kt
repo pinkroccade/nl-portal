@@ -18,10 +18,13 @@ import org.springframework.security.oauth2.client.oidc.authentication.OidcAuthor
 import org.springframework.security.oauth2.client.oidc.userinfo.OidcReactiveOAuth2UserService
 import org.springframework.security.oauth2.client.web.server.DefaultServerOAuth2AuthorizationRequestResolver
 import org.springframework.security.oauth2.client.web.server.ServerOAuth2AuthorizedClientRepository
+import org.springframework.security.oauth2.client.oidc.web.server.logout.OidcClientInitiatedServerLogoutSuccessHandler
 import org.springframework.security.web.server.SecurityWebFilterChain
+import org.springframework.session.ReactiveSessionRepository
 import org.springframework.security.web.server.authentication.HttpStatusServerEntryPoint
 import org.springframework.security.web.server.authentication.ServerAuthenticationFailureHandler
 import org.springframework.security.web.server.authentication.ServerAuthenticationSuccessHandler
+import org.springframework.security.web.server.authentication.logout.ServerLogoutHandler
 import org.springframework.security.web.server.savedrequest.NoOpServerRequestCache
 import org.springframework.util.MultiValueMap
 import org.springframework.web.server.ServerWebExchange
@@ -68,11 +71,18 @@ class SecurityConfig {
         RedisPreAuthRepository(redis, p.flowCookieMaxAge)
 
     @Bean
+    fun oidcSessionRegistry(redis: ReactiveStringRedisTemplate, p: ProtoProperties) =
+        RedisOidcSessionRegistry(redis, p.absoluteSessionTimeout)
+
+    @Bean
     fun securityChain(
         http: ServerHttpSecurity,
         registrations: TenantClientRegistrationRepository,
         preAuth: RedisPreAuthRepository,
         clock: Clock,
+        oidcSessions: RedisOidcSessionRegistry,
+        sessionRepository: ReactiveSessionRepository<*>,
+        redis: ReactiveStringRedisTemplate,
     ): SecurityWebFilterChain {
         val tokenClient = WebClientReactiveAuthorizationCodeTokenResponseClient().apply {
             val assertion = NimbusJwtClientAuthenticationParametersConverter<OAuth2AuthorizationCodeGrantRequest> { reg ->
@@ -90,7 +100,9 @@ class SecurityConfig {
             .csrf { it.disable() } // buiten dit prototype (CSRF-ticket)
             .requestCache { it.requestCache(NoOpServerRequestCache.getInstance()) }
             .exceptionHandling { it.authenticationEntryPoint(HttpStatusServerEntryPoint(HttpStatus.UNAUTHORIZED)) }
-            .authorizeExchange { it.anyExchange().authenticated() }
+            .authorizeExchange {
+                it.pathMatchers("/logout/connect/back-channel/*").permitAll().anyExchange().authenticated()
+            }
             .oauth2Login {
                 it.clientRegistrationRepository(registrations)
                     .authorizationRequestRepository(preAuth)
@@ -101,6 +113,25 @@ class SecurityConfig {
                     .authorizedClientRepository(DiscardingAuthorizedClientRepository)
                     .authenticationSuccessHandler(bounceToFirstPage(clock))
                     .authenticationFailureHandler(failureHandler())
+                    .oidcSessionRegistry(oidcSessions)
+            }
+            .logout {
+                // een sequentiele handler: register leegmaken en dan de sessie ongeldig maken (die neemt de context mee)
+                it.logoutHandler(
+                    ServerLogoutHandler { wfe, _ ->
+                        wfe.exchange.session.flatMap { s ->
+                            oidcSessions.removeSessionInformation(s.id).then(s.invalidate())
+                        }
+                    },
+                ).logoutSuccessHandler(
+                    OidcClientInitiatedServerLogoutSuccessHandler(registrations).apply { setPostLogoutRedirectUri("{baseUrl}/") },
+                )
+            }
+            .oidcLogout {
+                it.clientRegistrationRepository(registrations).oidcSessionRegistry(oidcSessions).backChannel { b ->
+                    b.logoutUri("/logout/connect/back-channel/{registrationId}")
+                        .logoutHandler(BackChannelLogoutHandler(oidcSessions, sessionRepository, redis))
+                }
             }
             .build()
     }
