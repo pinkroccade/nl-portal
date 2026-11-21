@@ -31,9 +31,8 @@ import nl.nlportal.documentenapi.service.DocumentenApiService
 import nl.nlportal.zakenapi.TestHelper.testDocument
 import nl.nlportal.zakenapi.TestHelper.testZaakDocument
 import nl.nlportal.zakenapi.client.ZakenApiClient
-import nl.nlportal.zakenapi.client.ZakenApiConfig.ZakenApiConfigProperties
 import nl.nlportal.zakenapi.domain.ZaakRol
-import nl.nlportal.zgw.objectenapi.client.ObjectsApiClient
+import nl.nlportal.zgw.objectenapi.service.ObjectenApiService
 import org.junit.jupiter.api.Assertions.assertNull
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
@@ -54,14 +53,13 @@ class ZakenApiServiceTest {
     private lateinit var zakenApiService: ZakenApiService
 
     @Mock(answer = Answers.RETURNS_DEEP_STUBS)
-    private lateinit var objectsApiClient: ObjectsApiClient
+    private lateinit var objectenApiService: ObjectenApiService
 
     @Mock(answer = Answers.RETURNS_DEEP_STUBS)
     private lateinit var documentenApiClient: DocumentenApiClient
 
     @Mock
     private lateinit var documentenApiService: DocumentenApiService
-    private lateinit var zakenApiConfigProperties: ZakenApiConfigProperties
     private lateinit var documentApisConfig: DocumentApisConfig
 
     @Mock
@@ -73,14 +71,6 @@ class ZakenApiServiceTest {
     @BeforeEach
     fun setUp() {
         MockitoAnnotations.openMocks(this)
-
-        zakenApiConfigProperties =
-            ZakenApiConfigProperties().apply {
-                url = "http://localhost:8080"
-                clientId = "zaken-api-client-id"
-                secret = "zaken-api-secret"
-                zaakTypesIdsExcluded = emptyList()
-            }
 
         val documentApiConfig =
             DocumentApiConfig().apply {
@@ -105,9 +95,8 @@ class ZakenApiServiceTest {
         zakenApiService =
             ZakenApiService(
                 zakenApiClient,
-                zakenApiConfigProperties,
                 documentenApiService,
-                objectsApiClient,
+                objectenApiService,
                 authenticationMachtigingsDienstService,
             )
 

@@ -17,50 +17,60 @@ package nl.nlportal.zakenapi.autoconfigure
 
 import nl.nlportal.core.modulestatus.ModuleStatusRegistry
 import nl.nlportal.catalogiapi.client.CatalogiApiConfig
+import nl.nlportal.core.koppeling.KoppelingRegister
+import nl.nlportal.core.tenancy.TenantDirectory
+import nl.nlportal.core.tenancy.VervallenProperties
+import nl.nlportal.core.util.requireConfigured
 import nl.nlportal.commonground.authentication.AuthenticationMachtigingsDienstService
 import nl.nlportal.documentenapi.service.DocumentenApiService
 import nl.nlportal.zakenapi.client.ZakenApiClient
-import nl.nlportal.zakenapi.client.ZakenApiConfig
+import nl.nlportal.zakenapi.client.controleerKoppelingenHebbenModulegegevens
 import nl.nlportal.zakenapi.service.ZakenApiService
-import nl.nlportal.zgw.objectenapi.client.ObjectsApiClient
+import nl.nlportal.zgw.objectenapi.service.ObjectenApiService
+import org.springframework.beans.factory.InitializingBean
 import org.springframework.boot.autoconfigure.AutoConfiguration
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty
-import org.springframework.boot.context.properties.EnableConfigurationProperties
 import org.springframework.context.annotation.Bean
-import org.springframework.web.reactive.function.client.WebClient
 
 @AutoConfiguration
-@EnableConfigurationProperties(
-    ZakenApiConfig::class,
-)
 @ConditionalOnProperty(prefix = "nl-portal.config", name = ["objectenapi.enabled", "catalogiapi.enabled", "zakenapi.enabled"], havingValue = "true")
 class ZakenApiAutoConfiguration {
     @Bean
     @ConditionalOnMissingBean(ZakenApiService::class)
     fun zakenApiService(
-        zakenApiConfig: ZakenApiConfig,
         zakenApiClient: ZakenApiClient,
         documentenApiService: DocumentenApiService,
-        objectsApiClient: ObjectsApiClient,
+        objectenApiService: ObjectenApiService,
         authenticationMachtigingsDienstService: AuthenticationMachtigingsDienstService,
     ): ZakenApiService =
         ZakenApiService(
             zakenApiClient = zakenApiClient,
-            zakenApiConfigProperties = zakenApiConfig.properties,
             documentenApiService = documentenApiService,
-            objectsApiClient = objectsApiClient,
+            objectenApiService = objectenApiService,
             authenticationMachtigingsDienstService = authenticationMachtigingsDienstService,
         )
 
     @Bean
-    fun zakenApiConfig(): ZakenApiConfig = ZakenApiConfig()
-
-    @Bean
     fun zakenApiClient(
-        zakenApiConfig: ZakenApiConfig,
+        koppelingRegister: KoppelingRegister,
+        tenantDirectory: TenantDirectory,
         catalogiApiConfig: CatalogiApiConfig,
-        webClientBuilder: WebClient.Builder,
         moduleStatus: ModuleStatusRegistry,
-    ): ZakenApiClient = ZakenApiClient(zakenApiConfig.properties, catalogiApiConfig.properties, webClientBuilder, moduleStatus)
+    ): ZakenApiClient =
+        ZakenApiClient(
+            koppelingRegister,
+            tenantDirectory,
+            // Gelezen bij elke aanroep: de configuratie van de Catalogi API is (nog) niet per tenant.
+            { zaakTypeId -> "${catalogiApiConfig.properties.url.requireConfigured("catalogiapi", "url")}/catalogi/api/v1/zaaktypen/$zaakTypeId" },
+            moduleStatus,
+        )
+
+    /** Een tenant met `koppelingen.zakenapi` zonder `modules.zakenapi` weigert het opstarten, in plaats van pas bij de eerste inwoner te falen. */
+    @Bean
+    fun zakenApiModulegegevensControle(tenantDirectory: TenantDirectory) = InitializingBean { controleerKoppelingenHebbenModulegegevens(tenantDirectory) }
+
+    /** De oude `nl-portal.config.zakenapi.properties.*` (url, clientId, secret, zaakTypesIdsExcluded, useNnpKvkQueryIdentificators) zijn vervallen. */
+    @Bean
+    fun zakenApiVervallenProperties() = VervallenProperties(ZakenApiClient.MODULE, "nl-portal.config.zakenapi.properties")
 }
