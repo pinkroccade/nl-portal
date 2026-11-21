@@ -5,3 +5,14 @@ domeinen:
     - localhost
 thema:
     titel: Mijn De Bosrand
+
+koppelingen:
+    zakenapi:
+        url: http://localhost:8001
+        auth:
+            type: zgw-jwt
+            clientId: nl-portal
+            secret: 00000099000000000001.zaken-secret
+modules:
+    zakenapi:
+        nnpKvkQueryIdentificatoren: false

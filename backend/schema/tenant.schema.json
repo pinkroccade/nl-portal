@@ -139,7 +139,24 @@
     },
     "modules" : {
       "type" : "object",
-      "properties" : { },
+      "properties" : {
+        "zakenapi" : {
+          "type" : "object",
+          "properties" : {
+            "uitgeslotenZaaktypen" : {
+              "type" : "array",
+              "items" : {
+                "type" : "string",
+                "minLength" : 1
+              }
+            },
+            "nnpKvkQueryIdentificatoren" : {
+              "type" : "boolean"
+            }
+          },
+          "additionalProperties" : false
+        }
+      },
       "additionalProperties" : false
     }
   },

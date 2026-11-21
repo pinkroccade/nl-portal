@@ -188,6 +188,8 @@ class HttpClientRules(
                 "nl.nlportal.openproduct..",
                 "nl.nlportal.payment.direct..",
                 "nl.nlportal.verificatie..",
+                // Zaken API is gemigreerd (#510), maar ZakenApiService roept de inline functie ObjectenApiService.getObjectByUrl aan, die de WebClient
+                // van de Objecten API in dit pakket uitschrijft. Weg met de migratie van de Objecten API (T12, #511).
                 "nl.nlportal.zakenapi..",
                 "nl.nlportal.zgw.objectenapi..",
                 "nl.nlportal.zgw.taak..",

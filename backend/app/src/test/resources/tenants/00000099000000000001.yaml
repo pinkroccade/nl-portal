@@ -6,3 +6,14 @@ domeinen:
     - bosrand.example
 thema:
     titel: Mijn De Bosrand
+
+koppelingen:
+    zakenapi:
+        url: http://localhost:56789
+        auth:
+            type: zgw-jwt
+            clientId: test-client
+            secret: 00000099000000000001.zaken-secret
+modules:
+    zakenapi:
+        nnpKvkQueryIdentificatoren: false

@@ -41,7 +41,7 @@ modules:
     risico: middel
     toelichting: Client per tenant via het register; zaakdata van de verkeerde bron is een datalek.
     signalen:
-      config: ZakenApiConfig is een singleton.
+      config: "ZakenApiConfig is weg (#510). Wat rest is de inline ObjectenApiService.getObjectByUrl, die de config van de Objecten API in ZakenApiService uitschrijft; weg met T12 (#511)."
   ":zgw:zaken":
     omvang: S
     risico: laag

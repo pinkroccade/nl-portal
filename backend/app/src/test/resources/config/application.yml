@@ -23,6 +23,9 @@ spring:
 nl-portal:
     tenancy:
         directory: src/test/resources/tenants
+    # De secret store van de test: het geheim van de koppeling `zakenapi` in het tenantbestand (minstens 32 tekens voor een ZGW-JWT).
+    geheimen:
+        "00000099000000000001.zaken-secret": testwaarde-zaken-geheim-voor-de-app-test-0123456789
     security:
         endpoints:
             unsecured: /api/public/**
@@ -75,10 +78,6 @@ nl-portal:
                 enabled: false
         zakenapi:
             enabled: true
-            properties:
-                url: http://localhost:56789
-                clientId: test-client
-                secret: test-secret
         objectenapi:
             enabled: true
             properties:

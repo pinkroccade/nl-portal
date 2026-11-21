@@ -21,11 +21,12 @@ import java.util.UUID
 import kotlinx.coroutines.flow.Flow
 import nl.nlportal.commonground.authentication.AuthenticationMachtigingsDienstService
 import nl.nlportal.portal.authentication.domain.PortalAuthentication
+import nl.nlportal.core.tenancy.TenantContextMissingException
+import nl.nlportal.core.util.ModuleNotConfiguredException
 import nl.nlportal.core.util.ZgwUrls.extractId
 import nl.nlportal.documentenapi.domain.Document
 import nl.nlportal.documentenapi.service.DocumentenApiService
 import nl.nlportal.zakenapi.client.ZakenApiClient
-import nl.nlportal.zakenapi.client.ZakenApiConfig.ZakenApiConfigProperties
 import nl.nlportal.zakenapi.domain.Zaak
 import nl.nlportal.zakenapi.domain.ZaakDetails
 import nl.nlportal.zakenapi.domain.ZaakDetailsObject
@@ -36,7 +37,7 @@ import nl.nlportal.zakenapi.domain.ZaakRol
 import nl.nlportal.zakenapi.domain.ZaakStatus
 import nl.nlportal.zakenapi.domain.ZaakSubStatus
 import nl.nlportal.zakenapi.domain.ZaakSubStatusDoelgroep
-import nl.nlportal.zgw.objectenapi.client.ObjectsApiClient
+import nl.nlportal.zgw.objectenapi.service.ObjectenApiService
 import nl.nlportal.zgw.objectenapi.domain.ObjectsApiObject
 import org.springframework.core.io.buffer.DataBuffer
 import org.springframework.http.HttpStatus
@@ -44,9 +45,8 @@ import org.springframework.web.server.ResponseStatusException
 
 class ZakenApiService(
     private val zakenApiClient: ZakenApiClient,
-    private val zakenApiConfigProperties: ZakenApiConfigProperties,
     private val documentenApiService: DocumentenApiService,
-    private val objectsApiClient: ObjectsApiClient,
+    private val objectenApiService: ObjectenApiService,
     private val authenticationMachtigingsDienstService: AuthenticationMachtigingsDienstService,
 ) {
     suspend fun getZaken(
@@ -90,8 +90,9 @@ class ZakenApiService(
             request.ofZaakTypes(it)
         }
 
-        if (zakenApiConfigProperties.zaakTypesIdsExcluded.isNotEmpty()) {
-            request.notInZaakTypes(zakenApiConfigProperties.zaakTypesIdsExcluded)
+        val uitgesloten = zakenApiClient.configuratie().uitgeslotenZaaktypeIds()
+        if (uitgesloten.isNotEmpty()) {
+            request.notInZaakTypes(uitgesloten)
         }
 
         if (zaakTypeUUIDs.isNotEmpty()) {
@@ -153,6 +154,11 @@ class ZakenApiService(
                 .results
                 .filterNot { it.doelgroep == ZaakSubStatusDoelgroep.INTERN }
                 .sortedBy { it.tijdstip }
+        } catch (ex: ModuleNotConfiguredException) {
+            // Ontbrekende configuratie of tenant faalt gesloten, net als de andere operaties: geen stille lege lijst.
+            throw ex
+        } catch (ex: TenantContextMissingException) {
+            throw ex
         } catch (ex: Exception) {
             logger.warn { "Could not get zak sub statussen for $zaakUrl and $statusUrl: $ex" }
         }
@@ -201,8 +207,10 @@ class ZakenApiService(
         return ZaakDetails(zaakUrl, zaakDetailsObjects)
     }
 
+    // De URL komt uit een antwoord van de Zaken API en wordt dus niet vertrouwd: alleen via de service, die de host van de Objecten API
+    // controleert, nooit rechtstreeks via de client (die stuurt zijn token naar elke URL).
     private suspend fun getObjectApiZaakDetails(objectUrl: String): ObjectsApiObject<ZaakDetailsObject>? =
-        objectsApiClient.getObjectByUrl<ZaakDetailsObject>(
+        objectenApiService.getObjectByUrl<ZaakDetailsObject>(
             url = objectUrl,
         )
 

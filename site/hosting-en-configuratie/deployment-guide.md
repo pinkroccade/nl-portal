@@ -9,7 +9,7 @@ description: >-
 
 De NL Portal images (`ghcr.io/pinkroccade/nl-portal-backend` en `ghcr.io/pinkroccade/nl-portal-frontend`) worden volledig geconfigureerd via environment variabelen. De complete, versie-specifieke referentie met inline documentatie vind je in de monorepo, in de bestanden `docker-compose/imports/backend.env` en `docker-compose/imports/frontend.env`. Raadpleeg altijd het bestand dat hoort bij de release die je deployt.
 
-De backend variabelen volgen de Spring Boot relaxed binding naamconventie: de property `nl-portal.config.zakenapi.properties.url` wordt de environment variabele `NLPORTAL_CONFIG_ZAKENAPI_PROPERTIES_URL`.
+De backend variabelen volgen de Spring Boot relaxed binding naamconventie: de property `nl-portal.config.zakenapi.enabled` wordt de environment variabele `NLPORTAL_CONFIG_ZAKENAPI_ENABLED`.
 
 **Let op bij properties met koppeltekens in meerdere delen.** Relaxed binding accepteert twee schrijfwijzen, maar je moet er consequent één aanhouden: vervang *elk* koppelteken door een underscore, óf laat *elk* koppelteken weg. Een mengvorm wordt **stilzwijgend genegeerd** — geen foutmelding, geen waarschuwing, de property houdt gewoon zijn standaardwaarde. Voor `nl-portal.support.ping-endpoint.enabled`:
 
@@ -31,18 +31,32 @@ equivalent is nog niet ingericht; zie [epic #191](https://github.com/pinkroccade
 
 De functionele modules van de backend (onder andere Zaken API, Catalogi API, Documenten APIs, Open Object, OpenKlant 2, HaalCentraal BRP (`haalcentraal-brp`) en Handelsregister (`kvk`, als omgevingsvariabele `NLPORTAL_CONFIG_KVK_ENABLED`), Berichten, Taak, Prefill, DMN, OpenProduct, betalingen en virusscan) worden per module aangezet met een enable-vlag. Alle modules staan standaard uit.
 
-Elke module heeft daarnaast eigen properties die met hetzelfde patroon worden gezet: `NLPORTAL_CONFIG_<MODULE>_PROPERTIES_<PROPERTY>`. Bijvoorbeeld voor de Zaken API:
+Elke module die nog niet naar het tenantbestand is gemigreerd heeft daarnaast eigen properties die met hetzelfde patroon worden gezet: `NLPORTAL_CONFIG_<MODULE>_PROPERTIES_<PROPERTY>`. De Zaken API is gemigreerd: zij heeft alleen nog de enable-vlag, en haar URL, authenticatie en overige gegevens staan per tenant in het [tenantbestand](tenantbestand-flag-en-secret-store.md):
 
 ```shell
 NLPORTAL_CONFIG_ZAKENAPI_ENABLED=true
-NLPORTAL_CONFIG_ZAKENAPI_PROPERTIES_URL=https://openzaak.example.com
-NLPORTAL_CONFIG_ZAKENAPI_PROPERTIES_CLIENTID=nl-portal
-NLPORTAL_CONFIG_ZAKENAPI_PROPERTIES_SECRET=<secret>
+# het geheim van koppelingen.zakenapi uit het tenantbestand, met het OIN van de tenant in de naam (minstens 32 tekens)
+NL_PORTAL_GEHEIMEN_00000099000000000001_ZAKEN_SECRET=<secret>
+```
+
+```yaml
+# <oin>.yaml in de map NL_PORTAL_TENANTS_DIRECTORY
+koppelingen:
+    zakenapi:
+        url: https://openzaak.example.com
+        auth:
+            type: zgw-jwt
+            clientId: nl-portal
+            secret: 00000099000000000001.zaken-secret
+modules:
+    zakenapi:
+        uitgeslotenZaaktypen: []              # UUID's van zaaktypen die nooit in de lijst komen
+        nnpKvkQueryIdentificatoren: false     # bedrijven zoeken als niet-natuurlijk persoon (kvkNummer)
 ```
 
 **Let op:** de zaken-functionaliteit vereist dat de Zaken API, Catalogi API én Open Object modules alle drie enabled zijn.
 
-**Ontbrekende configuratie:** een module controleert zijn verplichte instellingen (URL, `clientId`, `secret` of token) pas bij het eerste gebruik, niet bij het opstarten. Zet je een module aan zonder die instellingen, dan start de backend gewoon op en faalt de eerste aanroep van die module met een foutmelding als `Module 'zakenapi' is not configured: setting 'url' is missing`. Controleer na het aanzetten van een module dus altijd dat een aanroep slaagt; een goede opstart bewijst nog niet dat de configuratie klopt.
+**Ontbrekende configuratie:** een module die nog niet naar het tenantbestand is gemigreerd controleert zijn verplichte instellingen (URL, `clientId`, `secret` of token) pas bij het eerste gebruik, niet bij het opstarten. Zet je een module aan zonder die instellingen, dan start de backend gewoon op en faalt de eerste aanroep van die module met een foutmelding als `Module 'zakenapi' is not configured: setting 'url' is missing`. Controleer na het aanzetten van een module dus altijd dat een aanroep slaagt; een goede opstart bewijst nog niet dat de configuratie klopt.
 
 Alle module properties, inclusief de optionele, zijn met inline documentatie te vinden in `docker-compose/imports/backend.env` in de monorepo.
 

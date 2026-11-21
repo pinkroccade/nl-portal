@@ -41,6 +41,7 @@ dependencies {
     testImplementation(TestDependencies.springGraphQLTest)
     testImplementation(TestDependencies.springSecurityTest)
 
+    testImplementation(testFixtures(project(":core")))
     testImplementation(project(":zgw:common-ground-authentication-test"))
     testImplementation(TestDependencies.kotlinCoroutines)
     testImplementation(TestDependencies.mockitoKotlin)

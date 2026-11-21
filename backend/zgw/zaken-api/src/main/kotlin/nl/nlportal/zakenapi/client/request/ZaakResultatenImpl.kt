@@ -16,9 +16,8 @@
 package nl.nlportal.zakenapi.client.request
 
 import nl.nlportal.zakenapi.client.ZakenApiClient
-import nl.nlportal.zakenapi.client.handleStatus
+import nl.nlportal.zakenapi.client.ZakenApiClient.Companion.ZAKEN_PAD
 import nl.nlportal.zakenapi.domain.ZaakResultaat
-import org.springframework.web.reactive.function.client.awaitBody
 import java.util.UUID
 
 class ZaakResultatenImpl(
@@ -31,11 +30,5 @@ class GetZaakResultatenImpl(
     val zakenApiClient: ZakenApiClient,
     val id: UUID,
 ) : GetZaakResultaat {
-    override suspend fun retrieve(): ZaakResultaat =
-        this.zakenApiClient.webClient
-            .get()
-            .uri("/zaken/api/v1/resultaten/$id")
-            .retrieve()
-            .handleStatus()
-            .awaitBody()
+    override suspend fun retrieve(): ZaakResultaat = zakenApiClient.haal("$ZAKEN_PAD/resultaten/$id")
 }
