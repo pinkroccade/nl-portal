@@ -1,0 +1,10 @@
+#!/usr/bin/env bash
+#MISE description="Prototype #500: bewijs met een echte Keycloak 26.8 dat DigiD- en wallet-claims in het ID-token van nl-portal-backend komen (simulatoren)"
+#MISE dir="{{config_root}}/prototypes/digid-wallet-claims-500"
+set -euo pipefail
+
+./build-spi.sh
+trap 'docker compose down -v' EXIT
+docker compose down -v > /dev/null 2>&1 || true
+docker compose up -d
+node --test test/claims.test.mjs
