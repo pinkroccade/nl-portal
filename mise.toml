@@ -22,16 +22,16 @@ shellcheck = "0.11.0"
 # --- Aggregaten ---
 
 [tasks.build]
-description = "Bouw backend en frontend"
-depends = ["backend:build", "frontend:build"]
+description = "Bouw backend, frontend en de Keycloak-provider"
+depends = ["backend:build", "frontend:build", "keycloak:build"]
 
 [tasks.test]
-description = "Draai de unit-tests van backend, frontend en scripts (integratietests: backend:integration-test)"
-depends = ["backend:test", "frontend:test", "scripts:test", "perf:test"]
+description = "Draai de unit-tests van backend, frontend, Keycloak-provider en scripts (integratietests: backend:integration-test, keycloak:integration-test)"
+depends = ["backend:test", "frontend:test", "keycloak:test", "scripts:test", "perf:test"]
 
 [tasks.lint]
-description = "Lint, typecheck en formatteringscontrole van backend en frontend"
-depends = ["backend:lint", "frontend:lint", "frontend:typecheck", "frontend:prettier", "perf:check", "workflows:lint", "mise:check-shell"]
+description = "Lint, typecheck en formatteringscontrole van backend en frontend, plus de controles van workflows, mise-taken en Keycloak-versie"
+depends = ["backend:lint", "frontend:lint", "frontend:typecheck", "frontend:prettier", "perf:check", "workflows:lint", "mise:check-shell", "keycloak:check-version"]
 
 [tasks.arch-check]
 description = "Bewaak de architectuurregels (backend: ArchUnit; frontend: package-boundaries valt onder frontend:lint)"
@@ -135,6 +135,32 @@ description = "Bouw de tenantvalidator als CLI-jar (backend/core/build/libs/nl-p
 dir = "backend"
 shell = "bash -c"
 run = "./gradlew :core:tenantValidatorJar"
+
+# --- Keycloak (eigen image met de NL Portal-provider, zie keycloak/README.md) ---
+
+[tasks."keycloak:build"]
+description = "Bouw de Keycloak-provider (keycloak/provider/build/libs/nlportal-keycloak-provider.jar), gecompileerd tegen keycloakVersion"
+dir = "keycloak/provider"
+shell = "bash -c"
+run = "../../backend/gradlew jar"
+
+[tasks."keycloak:test"]
+description = "Draai de unit-tests van de Keycloak-provider (mappers; mislukt ook als de Keycloak-API verandert)"
+dir = "keycloak/provider"
+shell = "bash -c"
+run = "../../backend/gradlew test"
+
+[tasks."keycloak:check-version"]
+description = "Faal als keycloak/Dockerfile een andere Keycloak-versie heeft dan keycloakVersion in keycloak/provider/gradle.properties, of niet op digest staat"
+run = "node scripts/check-keycloak-version.mjs"
+
+[tasks."keycloak:verify-dependencies"]
+description = "Genereer keycloak/provider/gradle/verification-metadata.xml opnieuw; draai na elke wijziging van een Keycloak- of testdependency en commit het resultaat"
+dir = "keycloak/provider"
+shell = "bash -c"
+run = "../../backend/gradlew --write-verification-metadata sha256 test"
+
+# keycloak:image en keycloak:integration-test staan in mise-tasks/keycloak/
 
 # --- Frontend ---
 
@@ -347,6 +373,16 @@ run = "gitleaks detect --source . --no-banner --no-git --config .gitleaks.toml"
 [tasks."security:secrets-scan-history"]
 description = "Scan de git-historie van HEAD op secrets; bestaande bevindingen staan in .gitleaks-baseline.json, alleen nieuwe laten falen"
 run = "gitleaks git --no-banner --config .gitleaks.toml --baseline-path .gitleaks-baseline.json --redact --log-opts=HEAD"
+
+[tasks."sbom:keycloak-image"]
+description = "Genereer een CycloneDX-SBOM van het eigen Keycloak-image (keycloak/sbom.cyclonedx.json); bouwt het image eerst"
+depends = ["keycloak:image"]
+run = "syft docker:nl-portal-keycloak:dev -o cyclonedx-json=keycloak/sbom.cyclonedx.json"
+
+[tasks."security:keycloak-vuln-scan"]
+description = "Genereer de SBOM van het eigen Keycloak-image en scan die op bekende kwetsbaarheden (faalt op high/critical waarvoor een fix bestaat; uitzonderingen met reden en herzieningsdatum staan in keycloak/.grype.yaml)"
+depends = ["sbom:keycloak-image"]
+run = "grype sbom:keycloak/sbom.cyclonedx.json --config keycloak/.grype.yaml --fail-on high --only-fixed"
 
 [tasks."security:frontend-vuln-scan"]
 description = "Genereer de frontend-SBOM en scan die op bekende kwetsbaarheden (faalt op high/critical)"

@@ -1,0 +1,316 @@
+{
+  "realm": "portal",
+  "enabled": true,
+  "sslRequired": "none",
+  "attributes": {
+    "frontendUrl": "http://localhost:18080"
+  },
+  "authenticationFlows": [
+    {
+      "alias": "auto-broker-login",
+      "description": "Eerste login via een broker: alleen een nieuwe gebruiker aanmaken, nooit een bestaande koppelen",
+      "providerId": "basic-flow",
+      "topLevel": true,
+      "builtIn": false,
+      "authenticationExecutions": [
+        {
+          "authenticator": "idp-create-user-if-unique",
+          "requirement": "REQUIRED",
+          "priority": 10,
+          "userSetupAllowed": false,
+          "authenticatorFlow": false
+        }
+      ]
+    },
+    {
+      "alias": "alleen-koppelingen",
+      "description": "Geen wachtwoordformulier, geen registratie: alleen een bestaande sessie of een koppeling",
+      "providerId": "basic-flow",
+      "topLevel": true,
+      "builtIn": false,
+      "authenticationExecutions": [
+        {
+          "authenticator": "auth-cookie",
+          "requirement": "ALTERNATIVE",
+          "priority": 10,
+          "userSetupAllowed": false,
+          "authenticatorFlow": false
+        },
+        {
+          "authenticator": "identity-provider-redirector",
+          "requirement": "ALTERNATIVE",
+          "priority": 20,
+          "userSetupAllowed": false,
+          "authenticatorFlow": false
+        }
+      ]
+    }
+  ],
+  "clients": [
+    {
+      "clientId": "nl-portal-backend",
+      "enabled": true,
+      "publicClient": false,
+      "secret": "backend-secret",
+      "standardFlowEnabled": true,
+      "directAccessGrantsEnabled": false,
+      "redirectUris": [
+        "http://localhost:18081/bff/callback"
+      ],
+      "attributes": {
+        "pkce.code.challenge.method": "S256"
+      },
+      "defaultClientScopes": [
+        "basic",
+        "web-origins",
+        "profile",
+        "email",
+        "roles"
+      ],
+      "protocolMappers": [
+        {
+          "name": "acr-van-idp",
+          "protocol": "openid-connect",
+          "protocolMapper": "oidc-usersessionmodel-note-mapper",
+          "config": {
+            "user.session.note": "acr",
+            "claim.name": "acr",
+            "jsonType.label": "String",
+            "id.token.claim": "true",
+            "access.token.claim": "false",
+            "userinfo.token.claim": "false"
+          }
+        },
+        {
+          "name": "inlogmiddel",
+          "protocol": "openid-connect",
+          "protocolMapper": "oidc-usersessionmodel-note-mapper",
+          "config": {
+            "user.session.note": "identity_provider",
+            "claim.name": "inlogmiddel",
+            "jsonType.label": "String",
+            "id.token.claim": "true",
+            "access.token.claim": "false",
+            "userinfo.token.claim": "false"
+          }
+        },
+        {
+          "name": "acting-subject-id",
+          "protocol": "openid-connect",
+          "protocolMapper": "oidc-usersessionmodel-note-mapper",
+          "config": {
+            "user.session.note": "acting_subject_id",
+            "claim.name": "acting_subject_id",
+            "jsonType.label": "String",
+            "id.token.claim": "true",
+            "access.token.claim": "false",
+            "userinfo.token.claim": "false"
+          }
+        },
+        {
+          "name": "legal-subject-id",
+          "protocol": "openid-connect",
+          "protocolMapper": "oidc-usersessionmodel-note-mapper",
+          "config": {
+            "user.session.note": "legal_subject_id",
+            "claim.name": "legal_subject_id",
+            "jsonType.label": "String",
+            "id.token.claim": "true",
+            "access.token.claim": "false",
+            "userinfo.token.claim": "false"
+          }
+        }
+      ]
+    },
+    {
+      "clientId": "account",
+      "enabled": false
+    },
+    {
+      "clientId": "account-console",
+      "enabled": false
+    }
+  ],
+  "identityProviders": [
+    {
+      "alias": "digid",
+      "providerId": "saml",
+      "enabled": true,
+      "firstBrokerLoginFlowAlias": "auto-broker-login",
+      "config": {
+        "singleSignOnServiceUrl": "http://localhost:18080/realms/idp-sim/protocol/saml",
+        "entityId": "http://localhost:18080/realms/portal",
+        "nameIDPolicyFormat": "urn:oasis:names:tc:SAML:2.0:nameid-format:persistent",
+        "postBindingAuthnRequest": "true",
+        "postBindingResponse": "true",
+        "wantAssertionsSigned": "true",
+        "validateSignature": "true",
+        "signingCertificate": "SETUP-VERVANGT-DIT",
+        "syncMode": "FORCE",
+        "authnContextClassRefs": "[\"urn:oasis:names:tc:SAML:2.0:ac:classes:MobileTwoFactorContract\"]",
+        "authnContextComparisonType": "minimum"
+      }
+    },
+    {
+      "alias": "wallet",
+      "providerId": "oidc",
+      "enabled": true,
+      "firstBrokerLoginFlowAlias": "auto-broker-login",
+      "config": {
+        "authorizationUrl": "http://localhost:18080/realms/idp-sim/protocol/openid-connect/auth",
+        "tokenUrl": "http://localhost:18080/realms/idp-sim/protocol/openid-connect/token",
+        "jwksUrl": "http://localhost:18080/realms/idp-sim/protocol/openid-connect/certs",
+        "issuer": "http://localhost:18080/realms/idp-sim",
+        "clientId": "portal-wallet-broker",
+        "clientSecret": "wallet-sim-secret",
+        "clientAuthMethod": "client_secret_post",
+        "useJwksUrl": "true",
+        "validateSignature": "true",
+        "defaultScope": "openid",
+        "syncMode": "FORCE"
+      }
+    },
+    {
+      "alias": "digid-handmatig",
+      "providerId": "saml",
+      "enabled": true,
+      "firstBrokerLoginFlowAlias": "auto-broker-login",
+      "config": {
+        "singleSignOnServiceUrl": "http://localhost:18082/sso",
+        "entityId": "http://localhost:18080/realms/portal",
+        "idpEntityId": "http://localhost:18082/idp",
+        "nameIDPolicyFormat": "urn:oasis:names:tc:SAML:2.0:nameid-format:persistent",
+        "postBindingAuthnRequest": "true",
+        "postBindingResponse": "true",
+        "wantAssertionsSigned": "true",
+        "validateSignature": "true",
+        "signingCertificate": "SETUP-VERVANGT-DIT",
+        "syncMode": "FORCE"
+      }
+    }
+  ],
+  "components": {
+    "org.keycloak.userprofile.UserProfileProvider": [
+      {
+        "providerId": "declarative-user-profile",
+        "config": {
+          "kc.user.profile.config": [
+            "{\"attributes\":[{\"name\":\"username\",\"displayName\":\"${username}\",\"validations\":{\"length\":{\"min\":3,\"max\":255}},\"permissions\":{\"view\":[\"admin\",\"user\"],\"edit\":[\"admin\"]}},{\"name\":\"email\",\"displayName\":\"${email}\",\"validations\":{\"email\":{},\"length\":{\"max\":255}},\"permissions\":{\"view\":[\"admin\",\"user\"],\"edit\":[\"admin\"]}},{\"name\":\"firstName\",\"displayName\":\"${firstName}\",\"permissions\":{\"view\":[\"admin\",\"user\"],\"edit\":[\"admin\"]}},{\"name\":\"lastName\",\"displayName\":\"${lastName}\",\"permissions\":{\"view\":[\"admin\",\"user\"],\"edit\":[\"admin\"]}}],\"unmanagedAttributePolicy\":\"ADMIN_VIEW\"}"
+          ]
+        }
+      }
+    ]
+  },
+  "identityProviderMappers": [
+    {
+      "name": "acr",
+      "identityProviderAlias": "digid",
+      "identityProviderMapper": "nlportal-saml-authncontext-note-mapper",
+      "config": {
+        "syncMode": "FORCE",
+        "note": "acr"
+      }
+    },
+    {
+      "name": "acr",
+      "identityProviderAlias": "wallet",
+      "identityProviderMapper": "nlportal-oidc-claim-note-mapper",
+      "config": {
+        "syncMode": "FORCE",
+        "claim.name": "acr",
+        "note": "acr"
+      }
+    },
+    {
+      "name": "acting-wallet",
+      "identityProviderAlias": "wallet",
+      "identityProviderMapper": "nlportal-oidc-claim-note-mapper",
+      "config": {
+        "syncMode": "FORCE",
+        "claim.name": "acting_subject_id",
+        "note": "acting_subject_id"
+      }
+    },
+    {
+      "name": "acting",
+      "identityProviderAlias": "digid",
+      "identityProviderMapper": "nlportal-saml-attribute-note-mapper",
+      "config": {
+        "syncMode": "FORCE",
+        "attribute.name": "urn:nl-eid-gdi:1.0:ActingSubjectID",
+        "note": "acting_subject_id"
+      }
+    },
+    {
+      "name": "legal",
+      "identityProviderAlias": "digid",
+      "identityProviderMapper": "nlportal-saml-attribute-note-mapper",
+      "config": {
+        "syncMode": "FORCE",
+        "attribute.name": "urn:nl-eid-gdi:1.0:LegalSubjectID",
+        "note": "legal_subject_id"
+      }
+    },
+    {
+      "name": "gebruikersnaam",
+      "identityProviderAlias": "digid",
+      "identityProviderMapper": "saml-username-idp-mapper",
+      "config": {
+        "syncMode": "IMPORT",
+        "template": "${ALIAS}.${NAMEID}",
+        "target": "LOCAL"
+      }
+    },
+    {
+      "name": "gebruikersnaam",
+      "identityProviderAlias": "wallet",
+      "identityProviderMapper": "oidc-username-idp-mapper",
+      "config": {
+        "syncMode": "IMPORT",
+        "template": "${ALIAS}.${CLAIM.sub}",
+        "target": "LOCAL"
+      }
+    },
+    {
+      "name": "acr",
+      "identityProviderAlias": "digid-handmatig",
+      "identityProviderMapper": "nlportal-saml-authncontext-note-mapper",
+      "config": {
+        "syncMode": "FORCE",
+        "note": "acr"
+      }
+    },
+    {
+      "name": "acting",
+      "identityProviderAlias": "digid-handmatig",
+      "identityProviderMapper": "nlportal-saml-attribute-note-mapper",
+      "config": {
+        "syncMode": "FORCE",
+        "attribute.name": "urn:nl-eid-gdi:1.0:ActingSubjectID",
+        "note": "acting_subject_id"
+      }
+    },
+    {
+      "name": "legal",
+      "identityProviderAlias": "digid-handmatig",
+      "identityProviderMapper": "nlportal-saml-attribute-note-mapper",
+      "config": {
+        "syncMode": "FORCE",
+        "attribute.name": "urn:nl-eid-gdi:1.0:LegalSubjectID",
+        "note": "legal_subject_id"
+      }
+    },
+    {
+      "name": "gebruikersnaam",
+      "identityProviderAlias": "digid-handmatig",
+      "identityProviderMapper": "saml-username-idp-mapper",
+      "config": {
+        "syncMode": "IMPORT",
+        "template": "${ALIAS}.${NAMEID}",
+        "target": "LOCAL"
+      }
+    }
+  ],
+  "browserFlow": "alleen-koppelingen",
+  "registrationAllowed": false
+}
