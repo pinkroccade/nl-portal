@@ -18,34 +18,72 @@ package nl.nlportal.graphql
 import graphql.GraphQLError
 import graphql.GraphqlErrorBuilder
 import graphql.schema.DataFetchingEnvironment
+import io.github.oshai.kotlinlogging.KotlinLogging
+import nl.nlportal.core.koppeling.KoppelingConfiguratieException
 import nl.nlportal.core.koppeling.KoppelingException
 import nl.nlportal.core.modulegate.ModuleNotAvailableException
+import nl.nlportal.core.tenancy.TenantContextMissingException
+import nl.nlportal.core.util.ModuleNotConfiguredException
 import org.springframework.graphql.execution.DataFetcherExceptionResolverAdapter
 import org.springframework.security.core.AuthenticationException
+import java.util.UUID
 
 /**
- * Zet fouten om naar een GraphQL-fout met een stabiele `extensions.code`. `UNAUTHENTICATED` (geen identiteit: de sessie is verlopen of
- * ongeldig) laat de frontend de sessie als verlopen behandelen; `/graphql` geeft daarvoor geen HTTP 401 omdat anonieme queries bestaan.
+ * Zet een fout uit een data fetcher om naar een GraphQL-fout. Interne configuratiefouten (`ModuleNotConfiguredException`,
+ * `TenantContextMissingException`, `KoppelingConfiguratieException`) bevatten OIN, koppeling- of headernamen en gaan dus
+ * niet met hun melding naar de browser: de browser krijgt een vaste melding, een generieke code en een correlatieId. De log
+ * noemt de code, het correlatieId, de klassenaam en de melding van de uitzondering (voor de beheerder), nooit de oorzaak
+ * (`cause`) of een stacktrace. `UNAUTHENTICATED` (geen identiteit: de sessie is verlopen of ongeldig) laat de frontend de sessie als
+ * verlopen behandelen; `/graphql` geeft daarvoor geen HTTP 401 omdat anonieme queries bestaan.
  */
 class GraphQLExceptionHandler : DataFetcherExceptionResolverAdapter() {
     override fun resolveToSingleError(
         ex: Throwable,
         env: DataFetchingEnvironment,
-    ): GraphQLError? =
-        GraphqlErrorBuilder
+    ): GraphQLError? {
+        val uitkomst =
+            when (ex) {
+                is ModuleNotAvailableException -> Uitkomst(ex.message, mapOf("code" to "MODULE_NOT_AVAILABLE", "module" to ex.module))
+
+                // Foutdetails van een bron gaan niet naar de browser: alleen een generieke code en de referentie voor de log.
+                is KoppelingException -> Uitkomst(ex.message, mapOf("code" to "KOPPELING_FOUT", "correlatieId" to ex.correlatieId))
+
+                // Geen identiteit (sessie verlopen of ongeldig): de frontend behandelt deze code als verlopen sessie. Nooit de melding van de bron doorgeven.
+                is AuthenticationException -> Uitkomst("Niet geauthenticeerd", mapOf("code" to "UNAUTHENTICATED"))
+
+                is ModuleNotConfiguredException -> intern(ex, "Module is niet beschikbaar", "MODULE_NIET_GECONFIGUREERD")
+
+                is TenantContextMissingException -> intern(ex, "Niet geautoriseerd", "TENANT_ONTBREEKT")
+
+                is KoppelingConfiguratieException -> intern(ex, "Koppeling is niet beschikbaar", "KOPPELING_FOUT")
+
+                else -> Uitkomst(ex.message, null)
+            }
+        return GraphqlErrorBuilder
             .newError()
-            // Bij een authenticatiefout nooit de melding van de bron doorgeven: alleen een generieke tekst.
-            .message(if (ex is AuthenticationException) "Niet geauthenticeerd" else ex.message)
-            .also { error ->
-                when (ex) {
-                    is ModuleNotAvailableException -> error.extensions(mapOf("code" to "MODULE_NOT_AVAILABLE", "module" to ex.module))
-
-                    is AuthenticationException -> error.extensions(mapOf("code" to "UNAUTHENTICATED"))
-
-                    // Foutdetails van een bron gaan niet naar de browser: alleen een generieke code en de referentie voor de log.
-                    is KoppelingException -> error.extensions(mapOf("code" to "KOPPELING_FOUT", "correlatieId" to ex.correlatieId))
-                }
-            }.path(env.executionStepInfo.path)
+            .message(uitkomst.melding)
+            .also { error -> uitkomst.extensions?.let { error.extensions(it) } }
+            .path(env.executionStepInfo.path)
             .location(env.field.sourceLocation)
             .build()
+    }
+
+    private fun intern(
+        ex: Throwable,
+        melding: String,
+        code: String,
+    ): Uitkomst {
+        val correlatieId = UUID.randomUUID().toString()
+        log.warn { "Interne fout bij een GraphQL-aanroep ($code, ${ex::class.simpleName}: ${ex.message}), referentie $correlatieId" }
+        return Uitkomst(melding, mapOf("code" to code, "correlatieId" to correlatieId))
+    }
+
+    private class Uitkomst(
+        val melding: String?,
+        val extensions: Map<String, Any>?,
+    )
+
+    private companion object {
+        val log = KotlinLogging.logger {}
+    }
 }

@@ -28,7 +28,6 @@ class IdentityRulesProofTest {
             authenticationPackages = arrayOf("$base.identityvio.auth.."),
             identityTypes = setOf("$base.identityvio.auth.Identity"),
             bearerTokenHolder = "$base.identityvio.auth.Session",
-            bearerTokenReaders = arrayOf("$base.identityclean.brp.."),
             authenticationModules = setOf("/portal-authentication/"),
         )
 
@@ -60,7 +59,7 @@ class IdentityRulesProofTest {
     }
 
     @Test
-    fun `the bearer token rule fails when a module outside the named readers reads the raw token`() {
+    fun `the bearer token rule fails when a module outside the authentication module reads the raw token`() {
         assertFailsOn(rules.onlyNamedReadersUseTheBearerToken(), "ReadsBearerToken")
     }
 

@@ -229,17 +229,23 @@ class ClientSleutelsTest {
     private fun schrijf(
         naam: String,
         inhoud: String,
-    ): String = dir.resolve(naam).also { Files.writeString(it, inhoud) }.toString()
+    ): String =
+        dir
+            .resolve(naam)
+            .also {
+                Files.createDirectories(it.parent)
+                Files.writeString(it, inhoud)
+            }.toString()
 
     private val a = "00000099000000000001"
     private val b = "00000099000000000002"
 
     @Test
-    fun `een geldige sleutel per tenant laadt, een relatief pad is relatief aan de tenantmap`() {
-        schrijf("a.jwk", sleutel("ka").toJSONString())
-        schrijf("b.jwk", sleutel("kb").toJSONString())
+    fun `een geldige sleutel per tenant laadt, een relatief pad is relatief aan de sleutelmap`() {
+        schrijf("$a/a.jwk", sleutel("ka").toJSONString())
+        schrijf("$b/b.jwk", sleutel("kb").toJSONString())
 
-        val sleutels = TenantClientSleutels.laad(listOf(tenant(a, "a.jwk"), tenant(b, dir.resolve("b.jwk").toString())), dir)
+        val sleutels = TenantClientSleutels.laad(listOf(tenant(a, "$a/a.jwk"), tenant(b, dir.resolve(b).resolve("b.jwk").toString())), dir)
 
         assertThat(sleutels.voor(Oin(a)).keyID).isEqualTo("ka")
         assertThat(sleutels.voor(Oin(b)).keyID).isEqualTo("kb")
@@ -250,8 +256,12 @@ class ClientSleutelsTest {
         inhoud: String?,
         bevat: String,
     ) {
-        val bestand = if (inhoud == null) dir.resolve("bestaat-niet.jwk").toString() else schrijf("x.jwk", inhoud)
-        assertThatThrownBy { TenantClientSleutels.laad(listOf(tenant(a, bestand)), null) }.hasMessageContaining(bevat).hasMessageContaining("Tenant $a")
+        val bestand = if (inhoud == null) "$a/bestaat-niet.jwk" else schrijf("$a/x.jwk", inhoud).let { "$a/x.jwk" }
+        assertThatThrownBy { TenantClientSleutels.laad(listOf(tenant(a, bestand)), dir) }
+            .hasMessageContaining(bevat)
+            .hasMessageContaining("Tenant $a")
+            .hasMessageNotContaining(dir.toString())
+            .hasMessageNotContaining("x.jwk")
     }
 
     @Test
@@ -276,11 +286,11 @@ class ClientSleutelsTest {
     @Test
     fun `twee tenants met dezelfde keyId of dezelfde sleutel laten de runtime niet starten`() {
         val gedeeld = sleutel("zelfde")
-        schrijf("a.jwk", sleutel("zelfde").toJSONString())
-        schrijf("b.jwk", sleutel("zelfde").toJSONString())
-        schrijf("c.jwk", gedeeld.toJSONString())
+        schrijf("$a/a.jwk", sleutel("zelfde").toJSONString())
+        schrijf("$b/b.jwk", sleutel("zelfde").toJSONString())
+        schrijf("$a/c.jwk", gedeeld.toJSONString())
         schrijf(
-            "d.jwk",
+            "$b/d.jwk",
             RSAKey
                 .Builder(gedeeld.toRSAPublicKey())
                 .privateKey(gedeeld.toRSAPrivateKey())
@@ -290,8 +300,37 @@ class ClientSleutelsTest {
                 .toJSONString(),
         )
 
-        assertThatThrownBy { TenantClientSleutels.laad(listOf(tenant(a, "a.jwk"), tenant(b, "b.jwk")), dir) }.hasMessageContaining("keyId")
-        assertThatThrownBy { TenantClientSleutels.laad(listOf(tenant(a, "c.jwk"), tenant(b, "d.jwk")), dir) }.hasMessageContaining("dezelfde clientsleutel")
+        assertThatThrownBy { TenantClientSleutels.laad(listOf(tenant(a, "$a/a.jwk"), tenant(b, "$b/b.jwk")), dir) }.hasMessageContaining("keyId")
+        assertThatThrownBy { TenantClientSleutels.laad(listOf(tenant(a, "$a/c.jwk"), tenant(b, "$b/d.jwk")), dir) }.hasMessageContaining("dezelfde clientsleutel")
+    }
+
+    @Test
+    fun `een sleutelbestand buiten de map van de eigen tenant laat de runtime niet starten, ook niet via een omweg of een symlink`() {
+        schrijf("$b/b.jwk", sleutel("kb").toJSONString())
+        schrijf("$a/a.jwk", sleutel("ka").toJSONString())
+
+        // een pad dat via .. naar de map van een andere tenant ontsnapt, en een absoluut pad naar die map
+        listOf("$a/../$b/b.jwk", "../${dir.fileName}/$b/b.jwk", dir.resolve(b).resolve("b.jwk").toString()).forEach { pad ->
+            assertThatThrownBy { TenantClientSleutels.laad(listOf(tenant(a, pad)), dir) }
+                .hasMessageContaining("niet in de map van deze tenant")
+                .hasMessageContaining("Tenant $a")
+                .hasMessageNotContaining(b.plus("/b.jwk"))
+        }
+        // een symlink in de eigen map naar de sleutel van een andere tenant (alleen waar het OS symlinks toestaat)
+        val link = dir.resolve(a).resolve("link.jwk")
+        val kanLinken = runCatching { Files.createSymbolicLink(link, dir.resolve(b).resolve("b.jwk")) }.isSuccess
+        if (kanLinken) {
+            assertThatThrownBy { TenantClientSleutels.laad(listOf(tenant(a, "$a/link.jwk")), dir) }.hasMessageContaining("niet in de map van deze tenant")
+        }
+    }
+
+    @Test
+    fun `een ontbrekende map van de tenant of een map in plaats van een bestand laat de runtime niet starten`() {
+        schrijf("$a/a.jwk", sleutel("ka").toJSONString())
+        Files.createDirectories(dir.resolve(a).resolve("map.jwk"))
+
+        assertThatThrownBy { TenantClientSleutels.laad(listOf(tenant(b, "$b/b.jwk")), dir) }.hasMessageContaining("ontbreekt").hasMessageContaining("Tenant $b")
+        assertThatThrownBy { TenantClientSleutels.laad(listOf(tenant(a, "$a/map.jwk")), dir) }.hasMessageContaining("geen bestand")
     }
 }
 

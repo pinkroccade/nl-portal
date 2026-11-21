@@ -8,5 +8,22 @@ thema:
     titel: Mijn De Bosrand
 authenticatie:
     issuer: http://localhost:9999/realms/test
-    # Relatief aan deze map; de testrun maakt het bestand (zie TestSleutelInitializer).
-    sleutelBestand: ../../../../build/test-sleutels/clientsleutel.jwk.json
+    # Relatief aan de sleutelmap (build/test-sleutels, nl-portal.sleutelmap); de testrun maakt het bestand (zie TestSleutelInitializer).
+    sleutelBestand: 00000099000000000001/clientsleutel.jwk.json
+koppelingen:
+    brp:
+        url: http://localhost:56789/haalcentraal/api/brp
+        leverancier: Haal Centraal BRP-mock
+        auth:
+            # Geen sleutel: de mocks vragen er geen; in productie authenticeert de cloud gateway.
+            type: geen
+    brp-bewoning:
+        url: http://localhost:56789/haalcentraal/api/bewoning
+        leverancier: Haal Centraal Bewoning-mock
+        auth:
+            # Geen sleutel: de mocks vragen er geen; in productie authenticeert de cloud gateway.
+            type: geen
+modules:
+    brp:
+        # Doelbinding BRP per gemeente; leeg of weglaten geeft de standaardvelden en alle woonplaatsen.
+        toegestaneWoonplaatsenBewoning: []

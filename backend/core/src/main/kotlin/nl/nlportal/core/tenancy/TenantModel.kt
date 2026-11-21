@@ -164,6 +164,9 @@ enum class TenantKoppelingAuthType(
     ZGW_JWT("zgw-jwt"),
     OAUTH2_CLIENT_CREDENTIALS("oauth2-client-credentials"),
     OAUTH2_PRIVATE_KEY_JWT("oauth2-private-key-jwt"),
+
+    /** Bewust geen authenticatie door de app: de bron zit achter de cloud gateway, die per gemeente zelf authenticeert (mTLS). */
+    GEEN("geen"),
 }
 
 /** Authenticatie van een koppeling; welke velden verplicht zijn hangt van [type] af (zie [ontbrekendeVelden]). */
@@ -185,6 +188,7 @@ data class TenantKoppelingAuth(
             TenantKoppelingAuthType.ZGW_JWT -> listOf("clientId" to clientId, "secret" to secret)
             TenantKoppelingAuthType.OAUTH2_CLIENT_CREDENTIALS -> listOf("tokenUrl" to tokenUrl, "clientId" to clientId, "secret" to secret)
             TenantKoppelingAuthType.OAUTH2_PRIVATE_KEY_JWT -> listOf("tokenUrl" to tokenUrl, "clientId" to clientId, "privateKeyBestand" to privateKeyBestand)
+            TenantKoppelingAuthType.GEEN -> emptyList()
         }.filter { (_, waarde) -> waarde == null || (waarde is String && waarde.isBlank()) }.map { it.first }
 
     /** Geen geheim in de tekstweergave: alleen of een verwijzing is gezet. */

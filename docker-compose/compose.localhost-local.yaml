@@ -31,13 +31,14 @@ services:
             NLPORTAL_BEHEER_WACHTWOORDHASH: "{noop}${BACKEND_BEHEER_PASSWORD:?draai eerst mise run dev:setup}"
             NLPORTAL_FEATUREFLAGS_FILE: /etc/nl-portal/flags/nl-portal.flagd.json
             NL_PORTAL_TENANTS_DIRECTORY: /etc/nl-portal/imports/tenants
+            NL_PORTAL_SLEUTELMAP: /etc/nl-portal/sleutels
             SPRING_CONFIG_IMPORT: optional:configtree:/etc/nl-portal/koppelingen/
         volumes:
             - ./imports/flags:/etc/nl-portal/flags:ro
             - ./imports/koppelingen:/etc/nl-portal/koppelingen:ro
-            # De map met tenantbestanden en, op dezelfde relatieve plek als op de host, de gegenereerde clientsleutel per tenant.
+            # De map met tenantbestanden en de sleutelmap met de gegenereerde clientsleutel per tenant (<oin>/clientsleutel.jwk.json).
             - ./imports/tenants:/etc/nl-portal/imports/tenants:ro
-            - ./.generated/tenants:/etc/nl-portal/.generated/tenants:ro
+            - ./.generated/tenants:/etc/nl-portal/sleutels:ro
 
     nl-portal-frontend:
         container_name: nl-portal-frontend

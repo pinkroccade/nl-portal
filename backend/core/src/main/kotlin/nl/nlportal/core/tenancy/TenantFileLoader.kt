@@ -15,6 +15,7 @@
  */
 package nl.nlportal.core.tenancy
 
+import com.nimbusds.jose.jwk.RSAKey
 import nl.nlportal.core.tenancy.TenantFileViolation.Code
 import org.yaml.snakeyaml.LoaderOptions
 import org.yaml.snakeyaml.Yaml
@@ -56,11 +57,14 @@ data class TenantFileViolation(
         NIET_ERFBARE_WAARDE_IN_BASIS,
         TWEEDE_TENANT_NOG_NIET_TOEGESTAAN,
         DUBBELE_ISSUER,
-        DUBBEL_SLEUTELBESTAND,
         GEHEIM_NIET_ALS_VERWIJZING,
         KOPPELING_ONVOLLEDIG,
         MODULE_CONFIGURATIE_ONGELDIG,
         GEHEIM_VAN_ANDERE_TENANT,
+        SLEUTELBESTAND_ONTBREEKT,
+        SLEUTELBESTAND_ONGELDIG,
+        DUBBELE_KEYID,
+        DUBBELE_CLIENTSLEUTEL,
     }
 
     override fun toString() = "$bestand${pad?.let { " ($it)" } ?: ""}: $code - $bericht"
@@ -81,11 +85,15 @@ class InvalidTenantConfigurationException(
  * Laadt de tenantbestanden uit een map: `base.yaml` (gedeelde basis van de omgeving, optioneel) en per tenant
  * `<oin>.yaml`, dat de basis overschrijft. Dezelfde code draait bij opstarten en als CLI ([TenantValidatorCli]).
  *
+ * @param sleutelmap de vaste basismap van de clientsleutels (`nl-portal.sleutelmap`). Met een waarde controleert de loader ook de bestanden: het sleutelbestand
+ * van elke tenant bestaat onder `<sleutelmap>/<oin>/` (ook na het oplossen van symlinks) en is een bruikbare sleutel (privé RSA, PS256, kid), en geen twee
+ * tenants delen een `kid` of sleutel. Zonder waarde (de validator-CLI zonder `--sleutelmap`, CI van een config-repository zonder geheimen) controleert hij alleen het pad.
  * @param meerdereTenantsToegestaan blijft `false` tot alle modules hun configuratie per tenant lezen (epic #499, stap 7).
  */
 class TenantFileLoader(
     private val meerdereTenantsToegestaan: Boolean = MEERDERE_TENANTS_TOEGESTAAN,
     private val modules: TenantModules = TenantModules.ontdek(),
+    private val sleutelmap: Path? = null,
 ) {
     private val model = TenantSchemaModel(modules)
 
@@ -159,7 +167,8 @@ class TenantFileLoader(
                 metOin(violations, voor, samengevoegd["oin"] as? String)
                 return null
             }
-        return controleerBestand(naam, pad.nameWithoutExtension, bestand, violations)?.let { Geladen(naam, it) }
+        val definitie = controleerBestand(naam, pad.nameWithoutExtension, bestand, violations) ?: return null
+        return Geladen(naam, definitie, sleutelmap?.let { controleerSleutelBestand(naam, definitie, it, violations) })
     }
 
     private fun controleerBestand(
@@ -263,13 +272,21 @@ class TenantFileLoader(
                 geheimVerwijzingen(configuratie, pad).filterNot { (_, verwijzing) -> verwijzing.valtOnder(bestand.oin) }.forEach { (geheimPad, _) ->
                     violations += buitenNaamruimte(geheimPad).alsViolation(naam)
                 }
-                modules.valideer(module, configuratie, ModuleContext(bestand.koppelingen.keys)).forEach {
+                modules.valideer(module, configuratie, ModuleContext(bestand.koppelingen.keys, authHeaders(bestand))).forEach {
                     violations += TenantFileViolation(Code.MODULE_CONFIGURATIE_ONGELDIG, naam, "$pad.${it.pad}".trimEnd('.'), it.bericht)
                 }
                 module to configuratie
             }.toMap()
 
-    /** De enige plek die de OIN van de tenant in het bericht zet van de overtredingen vanaf [vanaf] onder `koppelingen` en `modules` (story 14). */
+    private fun authHeaders(bestand: TenantBestand): Map<String, String> =
+        bestand.koppelingen
+            .mapNotNull { (naam, koppeling) ->
+                koppeling.auth.headerNaam
+                    ?.takeIf { koppeling.auth.type == TenantKoppelingAuthType.API_KEY }
+                    ?.let { naam to it }
+            }.toMap()
+
+    /** De enige plek die de OIN van de tenant in het bericht zet van de overtredingen vanaf [vanaf] onder `authenticatie`, `koppelingen` en `modules` (story 14). */
     private fun metOin(
         violations: MutableList<TenantFileViolation>,
         vanaf: Int,
@@ -278,7 +295,7 @@ class TenantFileLoader(
         if (oin == null) return
         for (i in vanaf until violations.size) {
             val v = violations[i]
-            if (v.pad?.startsWith("koppelingen") == true || v.pad?.startsWith("modules") == true) {
+            if (v.pad?.startsWith("authenticatie") == true || v.pad?.startsWith("koppelingen") == true || v.pad?.startsWith("modules") == true) {
                 violations[i] = v.copy(bericht = "Tenant $oin: ${v.bericht}")
             }
         }
@@ -294,6 +311,9 @@ class TenantFileLoader(
         val ontwikkeling = bestand.omgevingstype == Omgevingstype.ONTWIKKELING
         if (!veiligeUrl(authenticatie.issuer, ontwikkeling, slotSlashToegestaan = false)) {
             violations += TenantFileViolation(Code.ONGELDIGE_WAARDE, naam, "authenticatie.issuer", "De issuer is een absolute https-URL (http alleen in ontwikkeling) zonder gebruikersinformatie, query, fragment of slot-slash")
+        }
+        if (!sleutelbestandValtOnder(authenticatie.sleutelBestand, bestand.oin)) {
+            violations += TenantFileViolation(Code.GEHEIM_VAN_ANDERE_TENANT, naam, "authenticatie.sleutelBestand", "Het sleutelbestand staat in een map met de OIN van deze tenant als pad-segment, en in geen andere OIN-map, zonder '..'")
         }
         authenticatie.interneBasisUrl?.let {
             if (!veiligeUrl(it, http = true, slotSlashToegestaan = false)) {
@@ -311,6 +331,49 @@ class TenantFileLoader(
         val schemaOk = uri.scheme == "https" || (http && uri.scheme == "http")
         return schemaOk && !uri.host.isNullOrEmpty() && uri.rawUserInfo == null && uri.rawQuery == null && uri.rawFragment == null &&
             (slotSlashToegestaan || !uri.rawPath.orEmpty().endsWith("/"))
+    }
+
+    /**
+     * Het sleutelbestand bestaat onder de map van de eigen tenant en is een bruikbare clientsleutel. De melding noemt veld en OIN,
+     * nooit het pad of een sleuteldeel.
+     */
+    private fun controleerSleutelBestand(
+        naam: String,
+        tenant: TenantDefinition,
+        sleutelmap: Path,
+        violations: MutableList<TenantFileViolation>,
+    ): RSAKey? {
+        val oin = tenant.oin.value
+        return try {
+            ClientSleutelBestand.lees(ClientSleutelBestand.pad(tenant.authenticatie.sleutelBestand, oin, sleutelmap))
+        } catch (e: ClientSleutelFout) {
+            val code =
+                when (e.soort) {
+                    ClientSleutelFout.Soort.ONTBREEKT -> Code.SLEUTELBESTAND_ONTBREEKT
+                    ClientSleutelFout.Soort.ONGELDIG -> Code.SLEUTELBESTAND_ONGELDIG
+                    ClientSleutelFout.Soort.BUITEN_NAAMRUIMTE -> Code.GEHEIM_VAN_ANDERE_TENANT
+                }
+            violations += TenantFileViolation(code, naam, "authenticatie.sleutelBestand", "Tenant $oin: ${e.message}")
+            null
+        }
+    }
+
+    private fun controleerUniekeSleutels(
+        tenants: List<Geladen>,
+        violations: MutableList<TenantFileViolation>,
+    ) {
+        val kids = mutableMapOf<String, Geladen>()
+        val duimafdrukken = mutableMapOf<String, Geladen>()
+        tenants.forEach { tenant ->
+            val sleutel = tenant.sleutel ?: return@forEach
+            val oin = tenant.definition.oin.value
+            kids.putIfAbsent(sleutel.keyID, tenant)?.let {
+                violations += TenantFileViolation(Code.DUBBELE_KEYID, tenant.bestand, "authenticatie.sleutelBestand", "Tenant $oin: de keyId is al in gebruik in ${it.bestand}; elke tenant heeft een eigen clientsleutel")
+            }
+            duimafdrukken.putIfAbsent(sleutel.computeThumbprint().toString(), tenant)?.let {
+                violations += TenantFileViolation(Code.DUBBELE_CLIENTSLEUTEL, tenant.bestand, "authenticatie.sleutelBestand", "Tenant $oin: dezelfde clientsleutel als in ${it.bestand}; elke tenant heeft een eigen sleutelpaar")
+            }
+        }
     }
 
     private fun controleerSessie(
@@ -334,7 +397,7 @@ class TenantFileLoader(
             violations += TenantFileViolation(Code.DUBBELE_OIN, dubbel[1].bestand, "oin", "OIN $oin staat ook in ${dubbel[0].bestand}")
         }
         controleerUniek(tenants, violations, Code.DUBBELE_ISSUER, "authenticatie.issuer", "Issuer") { it.definition.authenticatie.issuer }
-        controleerUniek(tenants, violations, Code.DUBBEL_SLEUTELBESTAND, "authenticatie.sleutelBestand", "Sleutelbestand") { it.definition.authenticatie.sleutelBestand }
+        controleerUniekeSleutels(tenants, violations)
         val eigenaar = mutableMapOf<String, Geladen>()
         tenants.forEach { tenant ->
             tenant.definition.domeinen.distinct().forEach { domein ->
@@ -556,6 +619,7 @@ class TenantFileLoader(
     private class Geladen(
         val bestand: String,
         val definition: TenantDefinition,
+        val sleutel: RSAKey? = null,
     )
 
     companion object {

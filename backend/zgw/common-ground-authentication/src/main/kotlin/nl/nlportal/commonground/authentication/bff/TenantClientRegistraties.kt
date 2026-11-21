@@ -15,9 +15,9 @@
  */
 package nl.nlportal.commonground.authentication.bff
 
-import com.nimbusds.jose.JWSAlgorithm
-import com.nimbusds.jose.jwk.JWK
 import com.nimbusds.jose.jwk.RSAKey
+import nl.nlportal.core.tenancy.ClientSleutelBestand
+import nl.nlportal.core.tenancy.ClientSleutelFout
 import nl.nlportal.core.tenancy.Oin
 import nl.nlportal.core.tenancy.TenantContext
 import nl.nlportal.core.tenancy.TenantDefinition
@@ -27,14 +27,14 @@ import org.springframework.security.oauth2.core.AuthorizationGrantType
 import org.springframework.security.oauth2.core.ClientAuthenticationMethod
 import reactor.core.publisher.Mono
 import java.net.URI
-import java.nio.file.Files
 import java.nio.file.Path
 
 /**
- * De private clientsleutels van de tenants voor `private_key_jwt`, gelezen uit de bestandsmount van de secret store.
- * Elke tenant heeft een eigen sleutel: RSA van minstens 3072 bit met `alg: PS256` (NL GOV, ASVS 11.2.3) en een `kid`.
- * Een ontbrekend of onbruikbaar bestand, een dubbele `kid` en dezelfde sleutel bij twee tenants laten de runtime niet starten.
- * Berichten bevatten nooit sleuteldelen.
+ * De private clientsleutels van de tenants voor `private_key_jwt`, gelezen uit de bestandsmount van de secret store onder de vaste sleutelmap
+ * (`nl-portal.sleutelmap`, per tenant een map met de OIN als naam). Elke tenant heeft een eigen sleutel: RSA van minstens 3072 bit met
+ * `alg: PS256` (NL GOV, ASVS 11.2.3) en een `kid`; het echte pad (symlinks opgelost) ligt onder de map van de eigen tenant. Een ontbrekend of
+ * onbruikbaar bestand, een pad buiten de eigen map, een dubbele `kid` en dezelfde sleutel bij twee tenants laten de runtime niet starten.
+ * Berichten bevatten nooit sleuteldelen of paden.
  */
 class TenantClientSleutels private constructor(
     private val perOin: Map<Oin, RSAKey>,
@@ -42,15 +42,15 @@ class TenantClientSleutels private constructor(
     fun voor(oin: Oin): RSAKey = perOin[oin] ?: error("Geen clientsleutel voor tenant $oin")
 
     companion object {
-        const val ALGORITME = "PS256"
-        const val MIN_BITS = 3072
+        const val ALGORITME = ClientSleutelBestand.ALGORITME
+        const val MIN_BITS = ClientSleutelBestand.MIN_BITS
 
-        /** [basisMap]: een relatief `sleutelBestand` is relatief aan de map met tenantbestanden. */
+        /** Een relatief `sleutelBestand` is relatief aan [sleutelmap]. */
         fun laad(
             tenants: List<TenantDefinition>,
-            basisMap: Path?,
+            sleutelmap: Path,
         ): TenantClientSleutels {
-            val sleutels = tenants.associate { it.oin to lees(it, basisMap) }
+            val sleutels = tenants.associate { it.oin to lees(it, sleutelmap) }
             val kids = HashMap<String, Oin>()
             val duimafdrukken = HashMap<String, Oin>()
             sleutels.forEach { (oin, sleutel) ->
@@ -64,23 +64,13 @@ class TenantClientSleutels private constructor(
 
         private fun lees(
             tenant: TenantDefinition,
-            basisMap: Path?,
-        ): RSAKey {
-            val pad = Path.of(tenant.authenticatie.sleutelBestand).let { if (it.isAbsolute || basisMap == null) it else basisMap.resolve(it) }.normalize()
-            check(Files.isRegularFile(pad)) { "Tenant ${tenant.oin}: het sleutelbestand ontbreekt of is geen bestand ($pad)" }
-            val jwk =
-                try {
-                    JWK.parse(Files.readString(pad))
-                } catch (e: java.text.ParseException) {
-                    throw IllegalStateException("Tenant ${tenant.oin}: het sleutelbestand is geen geldige JWK", e)
-                }
-            check(jwk is RSAKey) { "Tenant ${tenant.oin}: de clientsleutel is geen RSA-sleutel" }
-            check(jwk.isPrivate) { "Tenant ${tenant.oin}: de clientsleutel is niet privé; private_key_jwt vraagt het private deel" }
-            check(!jwk.keyID.isNullOrBlank()) { "Tenant ${tenant.oin}: de clientsleutel mist een kid" }
-            check(jwk.algorithm == JWSAlgorithm.PS256) { "Tenant ${tenant.oin}: de clientsleutel moet alg $ALGORITME dragen (zonder alg valt de client stil terug op RS256)" }
-            check(jwk.size() >= MIN_BITS) { "Tenant ${tenant.oin}: de clientsleutel moet minstens $MIN_BITS bit zijn" }
-            return jwk
-        }
+            sleutelmap: Path,
+        ): RSAKey =
+            try {
+                ClientSleutelBestand.lees(ClientSleutelBestand.pad(tenant.authenticatie.sleutelBestand, tenant.oin.value, sleutelmap))
+            } catch (e: ClientSleutelFout) {
+                throw IllegalStateException("Tenant ${tenant.oin}: ${e.message}", e)
+            }
     }
 }
 

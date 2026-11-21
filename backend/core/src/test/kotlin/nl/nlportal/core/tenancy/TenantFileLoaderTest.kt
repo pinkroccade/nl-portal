@@ -41,7 +41,7 @@ class TenantFileLoaderTest {
     private fun tenant(
         oin: String = bosrand,
         domeinen: String = "[bosrand.example]",
-        authenticatie: String = "authenticatie:\n  issuer: https://login.example/realms/$oin\n  sleutelBestand: /run/secrets/$oin.jwk\n",
+        authenticatie: String = "authenticatie:\n  issuer: https://login.example/realms/$oin\n  sleutelBestand: /run/secrets/$oin/k.jwk\n",
         extra: String = "",
     ) = "oin: \"$oin\"\nnaam: Gemeente De Bosrand\ndomeinen: $domeinen\nthema:\n  titel: De Bosrand\n$authenticatie$extra\n"
 
@@ -275,8 +275,8 @@ class TenantFileLoaderTest {
     @Test
     fun `een issuer die geen veilige absolute URL is weigert het opstarten`() {
         schrijf("base.yaml", basis)
-        for (slecht in listOf("login.example/realms/x", "http://login.example/realms/x", "https://user@login.example/realms/x", "https://login.example/realms/x?a=1", "https://login.example/realms/x#f", "https://login.example/realms/x/", "ftp://login.example/x")) {
-            schrijf("$bosrand.yaml", tenant(authenticatie = "authenticatie:\n  issuer: \"$slecht\"\n  sleutelBestand: /k.jwk\n"))
+        for (slecht in listOf("login.example/realms/x", "http://login.example/realms/x", "https://user@login.example/realms/x", "https://login.example/realms/x?a=1", "https://login.example/realms/x#f", "https://login.example/realms/x/", "ftp://login.example/x", "https://login example/x", "https:///realms/x")) {
+            schrijf("$bosrand.yaml", tenant(authenticatie = "authenticatie:\n  issuer: \"$slecht\"\n  sleutelBestand: /run/secrets/$bosrand/k.jwk\n"))
             val result = laad()
             assertThat(codes(result)).describedAs(slecht).containsExactly(Code.ONGELDIGE_WAARDE)
             assertThat(result.violations.single().pad).isEqualTo("authenticatie.issuer")
@@ -286,7 +286,7 @@ class TenantFileLoaderTest {
     @Test
     fun `http voor de issuer mag alleen in een ontwikkelomgeving`() {
         schrijf("base.yaml", "omgevingstype: ontwikkeling\ninlogmiddelen: [test]")
-        schrijf("$bosrand.yaml", tenant(authenticatie = "authenticatie:\n  issuer: http://keycloak.localhost:8082/realms/x\n  sleutelBestand: /k.jwk\n  interneBasisUrl: http://keycloak:8080/realms/x\n"))
+        schrijf("$bosrand.yaml", tenant(authenticatie = "authenticatie:\n  issuer: http://keycloak.localhost:8082/realms/x\n  sleutelBestand: /run/secrets/$bosrand/k.jwk\n  interneBasisUrl: http://keycloak:8080/realms/x\n"))
 
         assertThat(laad().violations).isEmpty()
     }
@@ -294,7 +294,7 @@ class TenantFileLoaderTest {
     @Test
     fun `een onbruikbare interne basis-URL weigert het opstarten`() {
         schrijf("base.yaml", basis)
-        schrijf("$bosrand.yaml", tenant(authenticatie = "authenticatie:\n  issuer: https://login.example/realms/x\n  sleutelBestand: /k.jwk\n  interneBasisUrl: keycloak\n"))
+        schrijf("$bosrand.yaml", tenant(authenticatie = "authenticatie:\n  issuer: https://login.example/realms/x\n  sleutelBestand: /run/secrets/$bosrand/k.jwk\n  interneBasisUrl: keycloak\n"))
 
         val result = laad()
 
@@ -303,7 +303,7 @@ class TenantFileLoaderTest {
     }
 
     @Test
-    fun `twee tenants met dezelfde issuer of hetzelfde sleutelbestand weigeren het opstarten`() {
+    fun `twee tenants met dezelfde issuer weigeren het opstarten, en een sleutelbestand van een andere OIN ook`() {
         schrijf("base.yaml", basis)
         schrijf("$bosrand.yaml", tenant())
         schrijf(
@@ -311,11 +311,22 @@ class TenantFileLoaderTest {
             tenant(
                 oin = wijdeVeld,
                 domeinen = "[wijdeveld.example]",
-                authenticatie = "authenticatie:\n  issuer: https://login.example/realms/$bosrand\n  sleutelBestand: /run/secrets/$bosrand.jwk\n",
+                authenticatie = listOf("authenticatie:", "  issuer: https://login.example/realms/$bosrand", "  sleutelBestand: /run/secrets/$wijdeVeld/k.jwk", "").joinToString("\n"),
             ),
         )
 
-        assertThat(codes(laad(meerdere = true))).containsExactlyInAnyOrder(Code.DUBBELE_ISSUER, Code.DUBBEL_SLEUTELBESTAND)
+        assertThat(codes(laad(meerdere = true))).containsExactly(Code.DUBBELE_ISSUER)
+
+        schrijf(
+            "$wijdeVeld.yaml",
+            tenant(
+                oin = wijdeVeld,
+                domeinen = "[wijdeveld.example]",
+                authenticatie = listOf("authenticatie:", "  issuer: https://login.example/realms/$wijdeVeld", "  sleutelBestand: /run/secrets/$bosrand/k.jwk", "").joinToString("\n"),
+            ),
+        )
+
+        assertThat(codes(laad(meerdere = true))).containsExactly(Code.GEHEIM_VAN_ANDERE_TENANT)
     }
 
     @Test

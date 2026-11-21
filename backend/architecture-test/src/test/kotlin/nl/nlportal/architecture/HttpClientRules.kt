@@ -181,7 +181,6 @@ class HttpClientRules(
                 "nl.nlportal.catalogiapi..",
                 "nl.nlportal.documentenapi..",
                 "nl.nlportal.form..",
-                "nl.nlportal.haalcentraalbrp..",
                 "nl.nlportal.kvk..",
                 "nl.nlportal.openklant..",
                 "nl.nlportal.openproduct..",

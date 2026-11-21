@@ -89,7 +89,7 @@ class TenantFileLoaderModulesTest {
         oin: String = bosrand,
         extra: String = "",
         domein: String = "bosrand.example",
-    ) = "oin: \"$oin\"\nnaam: Gemeente\ndomeinen: [$domein]\nthema:\n  titel: De Bosrand\nauthenticatie:\n  issuer: https://login.example/realms/$oin\n  sleutelBestand: /run/secrets/$oin.jwk\n$extra\n"
+    ) = "oin: \"$oin\"\nnaam: Gemeente\ndomeinen: [$domein]\nthema:\n  titel: De Bosrand\nauthenticatie:\n  issuer: https://login.example/realms/$oin\n  sleutelBestand: /run/secrets/$oin/k.jwk\n$extra\n"
 
     private val basis = "omgevingstype: acceptatie\ninlogmiddelen: [digid]\n"
 
@@ -385,6 +385,18 @@ class TenantFileLoaderModulesTest {
     }
 
     @Test
+    fun `auth type geen vraagt om geen velden, maar een weggelaten auth blijft een weigering`() {
+        schrijf("base.yaml", basis)
+        schrijf("$bosrand.yaml", tenant(extra = "koppelingen:\n  brp:\n    url: https://brp.example.nl\n    auth:\n      type: geen"))
+
+        assertThat(laad().violations).isEmpty()
+
+        schrijf("$bosrand.yaml", tenant(extra = "koppelingen:\n  brp:\n    url: https://brp.example.nl"))
+
+        assertThat(laad().violations.map { it.pad }).containsExactly("koppelingen.brp.auth")
+    }
+
+    @Test
     fun `een volledige koppeling per auth type wordt geladen`() {
         schrijf("base.yaml", basis)
         val auths =
@@ -575,7 +587,7 @@ class TenantFileLoaderModulesTest {
         assertThat(schema["properties"]["koppelingen"]["additionalProperties"]["properties"]["auth"]["properties"]["secret"]["pattern"].asString())
             .isEqualTo(GeheimVerwijzing.PATROON)
         assertThat(schema["properties"]["koppelingen"]["additionalProperties"]["properties"]["auth"]["properties"]["type"]["enum"].teksten())
-            .containsExactly("api-key", "bearer", "zgw-jwt", "oauth2-client-credentials", "oauth2-private-key-jwt")
+            .containsExactly("api-key", "bearer", "zgw-jwt", "oauth2-client-credentials", "oauth2-private-key-jwt", "geen")
     }
 
     @Test

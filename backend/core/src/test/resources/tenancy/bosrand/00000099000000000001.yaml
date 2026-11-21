@@ -5,4 +5,4 @@ thema:
   titel: De Bosrand
 authenticatie:
   issuer: http://localhost:9999/realms/bosrand
-  sleutelBestand: /run/secrets/bosrand.jwk
+  sleutelBestand: /run/secrets/00000099000000000001/bosrand.jwk

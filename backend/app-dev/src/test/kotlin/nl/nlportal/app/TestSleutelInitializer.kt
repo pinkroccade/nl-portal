@@ -24,11 +24,11 @@ import java.nio.file.Path
 
 /**
  * Maakt het sleutelpaar van de testtenant (`private_key_jwt`, PS256) als het nog niet bestaat. Een privésleutel in Git hoort niet;
- * het bestand staat in de build-map en het tenantbestand van de test verwijst er relatief naartoe.
+ * het bestand staat in de build-map en het tenantbestand van de test verwijst er relatief aan de sleutelmap (`nl-portal.sleutelmap`) naartoe, in de map met de OIN van de testtenant.
  */
 class TestSleutelInitializer : ApplicationContextInitializer<ConfigurableApplicationContext> {
     override fun initialize(context: ConfigurableApplicationContext) {
-        val bestand = Path.of("build/test-sleutels/clientsleutel.jwk.json")
+        val bestand = Path.of("build/test-sleutels/00000099000000000001/clientsleutel.jwk.json")
         if (Files.exists(bestand)) return
         Files.createDirectories(bestand.parent)
         Files.writeString(

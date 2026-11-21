@@ -17,6 +17,7 @@ package nl.nlportal.commonground.authentication.bff
 
 import nl.nlportal.core.security.config.HttpSecurityConfigurer
 import nl.nlportal.core.tenancy.TenancyAutoConfiguration
+import nl.nlportal.core.tenancy.SLEUTELMAP
 import nl.nlportal.core.tenancy.TenantDirectory
 import org.springframework.beans.factory.ObjectProvider
 import org.springframework.boot.autoconfigure.AutoConfiguration
@@ -62,8 +63,8 @@ class BffAutoConfiguration {
         indeling: ObjectProvider<IdpEindpuntenIndeling>,
     ): TenantClientRegistraties {
         BrokerBasis.controleer(tenants.tenants, environment.getRequiredProperty("nl-portal.authentication.broker-url"))
-        val basisMap = environment.getProperty("nl-portal.tenancy.directory")?.let { Path.of(it) }
-        return TenantClientRegistraties(tenants.tenants, TenantClientSleutels.laad(tenants.tenants, basisMap), indeling.getIfAvailable { KeycloakEindpunten })
+        val sleutelmap = Path.of(environment.getRequiredProperty(SLEUTELMAP))
+        return TenantClientRegistraties(tenants.tenants, TenantClientSleutels.laad(tenants.tenants, sleutelmap), indeling.getIfAvailable { KeycloakEindpunten })
     }
 
     @Bean

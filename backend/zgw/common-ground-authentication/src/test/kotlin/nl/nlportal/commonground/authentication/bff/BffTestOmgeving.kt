@@ -154,7 +154,8 @@ object BffTestOmgeving {
 
     val provider: MockOAuth2Server = MockOAuth2Server(OAuth2Config(tokenCallbacks = tokenCallbacks.values.toSet())).also { it.start() }
 
-    private val sleutelMap = Files.createTempDirectory("bff-test-sleutels")
+    /** De sleutelmap (`nl-portal.sleutelmap`): per tenant een map met de OIN als naam. */
+    val sleutelMap: java.nio.file.Path = Files.createTempDirectory("bff-test-sleutels")
 
     private fun tenant(
         naam: String,
@@ -165,7 +166,8 @@ object BffTestOmgeving {
         sessie: Sessie = Sessie(),
     ): TestTenant {
         val sleutel = RSAKeyGenerator(3072).keyID("$naam-sleutel-1").algorithm(JWSAlgorithm.PS256).generate()
-        val bestand = sleutelMap.resolve("$naam.jwk")
+        val bestand = sleutelMap.resolve(oin).resolve("$naam.jwk")
+        Files.createDirectories(bestand.parent)
         Files.writeString(bestand, sleutel.toJSONString())
         val tokens = tokenCallbacks.getValue(naam)
         val definitie =

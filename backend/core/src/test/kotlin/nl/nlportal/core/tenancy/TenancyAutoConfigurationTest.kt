@@ -36,7 +36,7 @@ class TenancyAutoConfigurationTest {
         Files.writeString(dir.resolve("base.yaml"), "omgevingstype: test\ninlogmiddelen: [test]\n")
         Files.writeString(
             dir.resolve("00000099000000000001.yaml"),
-            "oin: \"00000099000000000001\"\nnaam: N\ndomeinen: [a.example]\nthema:\n  titel: T\nauthenticatie:\n  issuer: https://login.example/realms/k1\n  sleutelBestand: /run/secrets/k0.jwk\n",
+            "oin: \"00000099000000000001\"\nnaam: N\ndomeinen: [a.example]\nthema:\n  titel: T\nauthenticatie:\n  issuer: https://login.example/realms/k1\n  sleutelBestand: /run/secrets/00000099000000000001/k0.jwk\n",
         )
     }
 
@@ -72,13 +72,25 @@ class TenancyAutoConfigurationTest {
         geldigeTenant()
         Files.writeString(
             dir.resolve("00000099000000000001.yaml"),
-            "oin: \"00000099000000000001\"\nnaam: N\ndomeinen: [A.example]\nthema:\n  titel: T\nauthenticatie:\n  issuer: https://login.example/realms/k2\n  sleutelBestand: /run/secrets/k1.jwk\n",
+            "oin: \"00000099000000000001\"\nnaam: N\ndomeinen: [A.example]\nthema:\n  titel: T\nauthenticatie:\n  issuer: https://login.example/realms/k2\n  sleutelBestand: /run/secrets/00000099000000000001/k1.jwk\n",
         )
 
         runner.withPropertyValues("nl-portal.tenancy.directory=$dir").run {
             assertThat(it).hasFailed()
             assertThat(it.startupFailure).hasStackTraceContaining("ONGELDIG_DOMEIN")
         }
+    }
+
+    @Test
+    fun `met een sleutelmap laat een ontbrekend sleutelbestand de context niet starten, zonder of met een lege sleutelmap wordt alleen het pad getoetst`() {
+        geldigeTenant()
+
+        runner.withPropertyValues("nl-portal.tenancy.directory=$dir", "nl-portal.sleutelmap=${dir.resolve("sleutels")}").run {
+            assertThat(it).hasFailed()
+            assertThat(it.startupFailure).hasStackTraceContaining("SLEUTELBESTAND_ONTBREEKT").hasStackTraceContaining("Tenant 00000099000000000001")
+        }
+        runner.withPropertyValues("nl-portal.tenancy.directory=$dir", "nl-portal.sleutelmap=").run { assertThat(it).hasNotFailed() }
+        runner.withPropertyValues("nl-portal.tenancy.directory=$dir").run { assertThat(it).hasNotFailed() }
     }
 
     @Test

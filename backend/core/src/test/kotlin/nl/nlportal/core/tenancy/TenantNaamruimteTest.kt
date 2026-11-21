@@ -66,7 +66,7 @@ class TenantNaamruimteTest {
         extra: String,
         oin: String = bosrand,
         omgeving: String = basis,
-    ) = schrijf("$oin.yaml", "oin: \"$oin\"\nnaam: Gemeente\ndomeinen: [bosrand.example]\nthema:\n  titel: De Bosrand\n$omgeving\nauthenticatie:\n  issuer: https://login.example/realms/$oin\n  sleutelBestand: /run/secrets/$oin.jwk\n$extra\n")
+    ) = schrijf("$oin.yaml", "oin: \"$oin\"\nnaam: Gemeente\ndomeinen: [bosrand.example]\nthema:\n  titel: De Bosrand\n$omgeving\nauthenticatie:\n  issuer: https://login.example/realms/$oin\n  sleutelBestand: /run/secrets/$oin/k.jwk\n$extra\n")
 
     private fun laad() = TenantFileLoader(modules = modules).load(dir)
 
@@ -312,6 +312,34 @@ class TenantNaamruimteTest {
         assertThat(zonder.violations.map { it.code }).containsExactly(Code.MODULE_CONFIGURATIE_ONGELDIG)
         assertThat(zonder.violations.single().bericht).isEqualTo("Tenant $bosrand: koppeling documenten ontbreekt")
         assertThat(met.violations).isEmpty()
+    }
+
+    @Test
+    fun `een module ziet de naam van de auth-header van een api-key-koppeling, en niets bij andere auth`() {
+        var gezien: ModuleContext? = null
+        val module =
+            object : TenantModuleConfiguratie<ProefConfiguratie> {
+                override val naam = "proef"
+                override val klasse = ProefConfiguratie::class
+
+                override fun valideer(
+                    configuratie: ProefConfiguratie,
+                    context: ModuleContext,
+                ): List<ModuleOvertreding> {
+                    gezien = context
+                    return emptyList()
+                }
+            }
+        tenant(
+            koppeling("$bosrand.zaken") +
+                "  brp:\n    url: https://brp.example.nl\n    auth:\n      type: geen\n" +
+                "modules:\n  proef:\n    brpVelden: [naam]\n",
+        )
+
+        TenantFileLoader(modules = TenantModules.van(listOf(module))).load(dir)
+
+        assertThat(gezien!!.koppelingen).containsExactlyInAnyOrder("zaken", "brp")
+        assertThat(gezien!!.authHeaders).isEqualTo(mapOf("zaken" to "X-Api-Key"))
     }
 
     // --- review M2: een configuratieklasse hoort bij precies een module ---

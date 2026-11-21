@@ -255,6 +255,7 @@ abstract class BffTestBasis {
         @JvmStatic
         @DynamicPropertySource
         fun eigenschappen(registry: DynamicPropertyRegistry) {
+            registry.add("nl-portal.sleutelmap") { BffTestOmgeving.sleutelMap.toString() }
             registry.add("nl-portal.authentication.broker-url") { "http://localhost:${BffTestOmgeving.provider.baseUrl().port}" }
         }
     }

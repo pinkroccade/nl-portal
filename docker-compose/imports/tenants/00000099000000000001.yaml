@@ -8,5 +8,23 @@ thema:
     titel: Mijn De Bosrand
 authenticatie:
     issuer: http://localhost:8082/realms/nlportal
-    # Relatief aan deze map; `mise run dev:setup` maakt het sleutelpaar (docker-compose/.generated/tenants).
-    sleutelBestand: ../../.generated/tenants/00000099000000000001/clientsleutel.jwk.json
+    # Relatief aan de sleutelmap (nl-portal.sleutelmap), in de map met de OIN van deze tenant; `mise run dev:setup` maakt het sleutelpaar
+    # (docker-compose/.generated/tenants).
+    sleutelBestand: 00000099000000000001/clientsleutel.jwk.json
+koppelingen:
+    brp:
+        url: http://localhost:5010/haalcentraal/api/brp
+        leverancier: Haal Centraal BRP-mock
+        auth:
+            # Geen sleutel: de mocks vragen er geen; in productie authenticeert de cloud gateway.
+            type: geen
+    brp-bewoning:
+        url: http://localhost:5011/haalcentraal/api/bewoning
+        leverancier: Haal Centraal Bewoning-mock
+        auth:
+            # Geen sleutel: de mocks vragen er geen; in productie authenticeert de cloud gateway.
+            type: geen
+modules:
+    brp:
+        # Doelbinding BRP per gemeente; leeg of weglaten geeft de standaardvelden en alle woonplaatsen.
+        toegestaneWoonplaatsenBewoning: []

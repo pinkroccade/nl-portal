@@ -18,6 +18,8 @@ package nl.nlportal.commonground.authentication.bff
 import nl.nlportal.core.tenancy.TenantDefinition
 import nl.nlportal.core.tenancy.TenantDirectory
 import nl.nlportal.core.tenancy.TenantFileLoader
+import nl.nlportal.core.tenancy.TenantModuleConfiguratie
+import nl.nlportal.core.tenancy.TenantModules
 import nl.nlportal.core.tenancy.TenantWebFilter
 import nl.nlportal.core.tenancy.TrustedProxies
 import org.assertj.core.api.Assertions.assertThat
@@ -38,6 +40,16 @@ import java.net.URLDecoder
 import java.nio.file.Path
 import java.time.Duration
 
+/** Het demo-tenantbestand heeft een `modules.brp`; de module zelf zit niet in deze module, dus een minimale bijdrage voor de loader. */
+data class BrpConfiguratieVoorTest(
+    val toegestaneWoonplaatsenBewoning: List<String> = emptyList(),
+)
+
+private object BrpVoorTest : TenantModuleConfiguratie<BrpConfiguratieVoorTest> {
+    override val naam = "brp"
+    override val klasse = BrpConfiguratieVoorTest::class
+}
+
 /**
  * Klokgestuurde unit-tests zonder Spring: de sessiebewaking met de tijden uit het echte demo-tenantbestand, en het foutpad van
  * de uitlog-handler (geen `end_session_endpoint`, kapotte sessie-inhoud, onbekende registratie): de lokale sessie is altijd weg.
@@ -48,7 +60,12 @@ class SessieEnUitlogUnitTest {
     private val vastleggen = Beveiligingsgebeurtenissen { gebeurtenissen += it }
     private val store = InMemoryWebSessionStore().also { it.setClock(klok) }
     private val idResolver = CookieWebSessionIdResolver().also { it.cookieName = BffNamen.SESSIE_COOKIE }
-    private val demo: TenantDefinition = TenantFileLoader().load(Path.of("../../../docker-compose/imports/tenants")).tenants.single()
+    private val demo: TenantDefinition =
+        TenantFileLoader(modules = TenantModules.van(listOf(BrpVoorTest)))
+            .load(Path.of("../../../docker-compose/imports/tenants"))
+            .also { assertThat(it.violations).isEmpty() }
+            .tenants
+            .single()
 
     private fun sessie(
         tenant: TenantDefinition,
@@ -143,7 +160,8 @@ class SessieEnUitlogUnitTest {
     // --- uitlogfoutpad ---
 
     private fun metTestSleutel(tenant: TenantDefinition): TenantDefinition {
-        val testTenant = BffTestOmgeving.tenants.first()
+        // Elke tenant heeft zijn sleutel in de eigen map onder de sleutelmap: neem het sleutelbestand van de testtenant met dezelfde OIN over.
+        val testTenant = BffTestOmgeving.tenants.firstOrNull { it.oin == tenant.oin } ?: return tenant
         return tenant.copy(authenticatie = tenant.authenticatie.copy(sleutelBestand = testTenant.definitie.authenticatie.sleutelBestand))
     }
 
@@ -152,7 +170,7 @@ class SessieEnUitlogUnitTest {
         geregistreerd: List<TenantDefinition> = listOf(demo),
     ): UitlogHandler {
         val tenants = geregistreerd.map(::metTestSleutel)
-        val sleutels = TenantClientSleutels.laad(tenants, null)
+        val sleutels = TenantClientSleutels.laad(tenants, BffTestOmgeving.sleutelMap)
         val registraties = TenantClientRegistraties(tenants, sleutels) { issuer, basis -> IdpEindpunten("$issuer/auth", "$basis/token", "$basis/certs", endSession) }
         return UitlogHandler(registraties, TenantDirectory(listOf(demo)), vastleggen)
     }

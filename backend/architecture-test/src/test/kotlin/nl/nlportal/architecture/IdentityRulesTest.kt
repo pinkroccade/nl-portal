@@ -37,7 +37,7 @@ class IdentityRulesTest {
     }
 
     @Test
-    fun `only the named readers use the raw bearer token`() {
+    fun `nobody outside authentication uses the raw bearer token`() {
         IdentityRules.production.onlyNamedReadersUseTheBearerToken().check(classes)
     }
 
