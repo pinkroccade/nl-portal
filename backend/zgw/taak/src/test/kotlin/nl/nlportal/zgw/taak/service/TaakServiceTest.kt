@@ -17,12 +17,11 @@ package nl.nlportal.zgw.taak.service
 
 import kotlinx.coroutines.reactor.ReactorContext
 import kotlinx.coroutines.test.runTest
+import nl.nlportal.commonground.authentication.AuthenticationMachtigingsDienstService
+import nl.nlportal.commonground.authentication.JwtBuilder
 import nl.nlportal.core.koppeling.KoppelingException
 import nl.nlportal.core.koppeling.KoppelingFoutsoort
 import nl.nlportal.core.testing.TestTenants
-import org.junit.jupiter.api.assertThrows
-import nl.nlportal.commonground.authentication.AuthenticationMachtigingsDienstService
-import nl.nlportal.commonground.authentication.JwtBuilder
 import nl.nlportal.core.util.Mapper
 import nl.nlportal.zgw.objectenapi.client.ObjectsApiClient
 import nl.nlportal.zgw.taak.TestHelper.assertStatus
@@ -38,6 +37,7 @@ import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
+import org.junit.jupiter.api.assertThrows
 import org.mockito.kotlin.any
 import org.mockito.kotlin.mock
 import org.mockito.kotlin.whenever

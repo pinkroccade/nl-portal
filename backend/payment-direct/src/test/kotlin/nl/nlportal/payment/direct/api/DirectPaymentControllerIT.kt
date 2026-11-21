@@ -16,6 +16,7 @@
 package nl.nlportal.payment.direct.api
 
 import nl.nlportal.payment.direct.TestHelper
+import nl.nlportal.payment.direct.ObjectenTestServer
 import nl.nlportal.payment.direct.PaymentTestConfiguration
 import nl.nlportal.payment.direct.PaymentTestTenants
 import nl.nlportal.payment.direct.service.DirectPaymentService
@@ -51,14 +52,12 @@ internal class DirectPaymentControllerIT(
 
     @BeforeEach
     internal fun setUp() {
-        server = MockWebServer()
+        server = ObjectenTestServer.server
         setupMockObjectsApiServer()
-        server.start(PaymentTestConfiguration.OBJECTEN_POORT)
     }
 
     @AfterEach
     internal fun tearDown() {
-        server.shutdown()
     }
 
     @Test

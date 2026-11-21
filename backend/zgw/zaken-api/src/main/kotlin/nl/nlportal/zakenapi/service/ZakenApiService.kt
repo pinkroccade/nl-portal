@@ -220,8 +220,8 @@ class ZakenApiService(
         return ZaakDetails(zaakUrl, zaakDetailsObjects)
     }
 
-    // De URL komt uit een antwoord van de Zaken API en wordt dus niet vertrouwd: alleen via de service, die de host van de Objecten API
-    // controleert, nooit rechtstreeks via de client (die stuurt zijn token naar elke URL).
+    // De URL komt uit een antwoord van de Zaken API en wordt dus niet vertrouwd: de Objecten-koppeling volgt alleen URL's onder haar
+    // basis-URL (HostBinding) en stuurt haar token nooit naar een andere host.
     private suspend fun getObjectApiZaakDetails(objectUrl: String): ObjectsApiObject<ZaakDetailsObject>? =
         objectenApiService.getObjectByUrl<ZaakDetailsObject>(
             url = objectUrl,

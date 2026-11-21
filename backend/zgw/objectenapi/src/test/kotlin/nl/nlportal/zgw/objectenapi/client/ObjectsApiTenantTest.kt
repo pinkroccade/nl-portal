@@ -15,6 +15,7 @@
  */
 package nl.nlportal.zgw.objectenapi.client
 
+import nl.nlportal.core.koppeling.KoppelingException
 import nl.nlportal.core.testing.TestTenants
 import nl.nlportal.zgw.objectenapi.domain.Comparator
 import nl.nlportal.zgw.objectenapi.domain.CreateObjectsApiObjectRequest
@@ -26,6 +27,10 @@ import org.assertj.core.api.Assertions.assertThat
 import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
+import org.junit.jupiter.params.ParameterizedTest
+import org.junit.jupiter.params.provider.ValueSource
+import org.springframework.http.HttpStatus
+import org.springframework.web.server.ResponseStatusException
 import java.util.UUID
 
 /** Seam 1: de gegevens van een inwoner (BSN) gaan alleen naar de Objecten-koppeling van de eigen tenant. */
@@ -96,7 +101,38 @@ class ObjectsApiTenantTest {
                 TestTenants.metTenant(TestTenants.BOSRAND) { client.getObjectByUrl<Map<String, Any>>(wijdeVeld.url("/api/v2/objects/1").toString()) }
             }.exceptionOrNull()
 
-        assertThat(fout).isInstanceOf(nl.nlportal.core.koppeling.KoppelingException::class.java)
+        assertThat(fout).isInstanceOf(KoppelingException::class.java)
         assertThat(wijdeVeld.requestCount).isZero()
+    }
+
+    @Test
+    fun `een 404 van de bron is voor de inwoner een niet-gevonden`() {
+        bosrand.enqueue(MockResponse().setResponseCode(404))
+
+        val fout = runCatching { TestTenants.metTenant(TestTenants.BOSRAND) { client.getObjectById<Map<String, Any>>(UUID.randomUUID().toString()) } }.exceptionOrNull()
+
+        assertThat(fout).isInstanceOf(ResponseStatusException::class.java)
+        assertThat((fout as ResponseStatusException).statusCode).isEqualTo(HttpStatus.NOT_FOUND)
+    }
+
+    @Test
+    fun `een 404 met problem+json van de bron is ook een niet-gevonden`() {
+        bosrand.enqueue(
+            MockResponse().setResponseCode(404).addHeader("Content-Type", "application/problem+json").setBody("""{"title":"Niet gevonden","status":404}"""),
+        )
+
+        val fout = runCatching { TestTenants.metTenant(TestTenants.BOSRAND) { client.getObjectById<Map<String, Any>>(UUID.randomUUID().toString()) } }.exceptionOrNull()
+
+        assertThat(fout).isInstanceOf(ResponseStatusException::class.java)
+    }
+
+    @ParameterizedTest
+    @ValueSource(ints = [400, 401, 403, 407, 408, 410, 429, 500, 503])
+    fun `een andere fout van de bron geeft geen bronstatus aan de inwoner`(status: Int) {
+        bosrand.enqueue(MockResponse().setResponseCode(status))
+
+        val fout = runCatching { TestTenants.metTenant(TestTenants.BOSRAND) { client.getObjectById<Map<String, Any>>(UUID.randomUUID().toString()) } }.exceptionOrNull()
+
+        assertThat(fout).isInstanceOf(KoppelingException::class.java)
     }
 }

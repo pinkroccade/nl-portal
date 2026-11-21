@@ -16,6 +16,7 @@
 package nl.nlportal.berichten.web.rest
 
 import nl.nlportal.berichten.BerichtenFlagFile
+import nl.nlportal.berichten.ObjectenTestServer
 import nl.nlportal.berichten.TestHelper
 import nl.nlportal.commonground.authentication.WithBurgerUser
 import nl.nlportal.core.modulegate.ModuleGate
@@ -47,16 +48,14 @@ class BerichtDocumentResourceIT(
 
     @BeforeEach
     fun setUp() {
-        mockServer = MockWebServer()
+        mockServer = ObjectenTestServer.server
         setupDispatcher()
-        mockServer.start(port = 10001)
         documentApisConfig.properties.getConfig("openzaak").url = mockServer.url("/").toString()
     }
 
     @AfterEach
     internal fun tearDown() {
         BerichtenFlagFile.switchTo(true, moduleGate)
-        mockServer.shutdown()
     }
 
     @Test

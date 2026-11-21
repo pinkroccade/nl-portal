@@ -19,6 +19,7 @@ import tools.jackson.databind.JsonNode
 import io.github.oshai.kotlinlogging.KLogger
 import io.github.oshai.kotlinlogging.KotlinLogging
 import nl.nlportal.berichten.BerichtenFlagFile
+import nl.nlportal.berichten.ObjectenTestServer
 import nl.nlportal.berichten.TestHelper
 import nl.nlportal.commonground.authentication.WithBurgerUser
 import nl.nlportal.core.modulegate.ModuleGate
@@ -54,16 +55,14 @@ class BerichtenQueryIT(
 
     @BeforeEach
     fun setUp() {
-        mockObjectenApi = MockWebServer()
+        mockObjectenApi = ObjectenTestServer.server
         setupMockObjectsApiServer()
-        mockObjectenApi.start(port = 10001)
         documentApisConfig.properties.getConfig("openzaak").url = mockObjectenApi.url("/").toString()
     }
 
     @AfterEach
     internal fun tearDown() {
         BerichtenFlagFile.switchTo(true, moduleGate)
-        mockObjectenApi.shutdown()
     }
 
     @Test

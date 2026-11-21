@@ -115,6 +115,10 @@ De Objecten API (Open Object) is gemigreerd naar een tenantkoppeling `koppelinge
 De Objecten API kent alleen `Authorization: Token <token>`, dus de koppeling gebruikt `api-key` met `headerNaam: Authorization`; de waarde van het geheim is `Token <token>`. Een URL die de bron teruggeeft (`getObjectByUrl`) wordt alleen gevolgd als hij onder de basis-URL van dezelfde koppeling valt (HostBinding), zodat het token nooit naar een andere host gaat.
 De oude properties `nl-portal.config.objectenapi.properties.*` (`url`, `token`) zijn vervallen en weigeren het opstarten zolang ze gezet zijn, ook als omgevingsvariabele (`NLPORTAL_CONFIG_OBJECTENAPI_PROPERTIES_URL` en `_TOKEN`).
 
+**Isolatie tussen tenants.** Dat het token alleen naar de eigen koppeling gaat, scheidt de objecten van twee tenants niet als ze dezelfde Objecten API gebruiken. Geef daarom elke tenant een eigen Objecten API-instantie, of een token dat alleen de objecttypen van die tenant ziet (Open Object-autorisatie per objecttype). Wijzen twee tenants naar dezelfde instantie met een token dat elkaars objecttypen mag lezen of schrijven, dan zijn taken en berichten van de ene tenant via de andere op te halen op UUID en kan de betaalwebhook van de ene tenant een taak van de andere afronden. Leg dit vast als livegangpunt (T26, naast #537).
+
+**Bufferlimiet.** Elke koppeling leest een antwoord tot 16 MB in het geheugen (zoals de oude clients); een groter antwoord is een fout. `spring.codec.max-in-memory-size` geldt niet voor koppelingen.
+
 ```yaml
 koppelingen:
     objectenapi:

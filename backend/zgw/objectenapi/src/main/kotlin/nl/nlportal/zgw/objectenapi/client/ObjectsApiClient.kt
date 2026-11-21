@@ -25,7 +25,7 @@ import nl.nlportal.zgw.objectenapi.domain.ObjectSearchParameter
 import nl.nlportal.zgw.objectenapi.domain.ObjectsApiObject
 import nl.nlportal.zgw.objectenapi.domain.ResultPage
 import nl.nlportal.zgw.objectenapi.domain.UpdateObjectsApiObjectRequest
-import org.springframework.http.HttpStatusCode
+import org.springframework.http.HttpStatus
 import org.springframework.web.server.ResponseStatusException
 import org.springframework.web.util.UriUtils
 import java.nio.charset.StandardCharsets
@@ -36,13 +36,13 @@ import java.util.UUID
  * uit een antwoord van een andere bron volgt alleen als hij onder de basis-URL van die koppeling valt (host-binding).
  */
 open class ObjectsApiClient(
-    val koppelingen: KoppelingRegister,
+    private val koppelingen: KoppelingRegister,
 ) {
     @PublishedApi
     internal suspend fun koppeling(): KoppelingClient = koppelingen.current(MODULE)
 
-    /** Een 4xx van de bron (bijvoorbeeld 404) komt als [ResponseStatusException] met die status naar boven, zonder bronwaarden; alle andere fouten zijn een [KoppelingException]. */
-    suspend inline fun <reified T> getObjectById(id: String): ObjectsApiObject<T>? =
+    /** Alleen een 404 van de bron komt als [ResponseStatusException] (NOT_FOUND) naar boven; elke andere fout, ook een 401, 403 of 429, is een [KoppelingException]: een bronstatus zegt iets over onze koppeling, niet over de aanvraag van de inwoner. */
+    suspend inline fun <reified T> getObjectById(id: String): ObjectsApiObject<T> =
         try {
             koppeling().get(
                 "$OBJECTEN_PAD/${UriUtils.encodePathSegment(id, StandardCharsets.UTF_8)}",
@@ -53,7 +53,7 @@ open class ObjectsApiClient(
             throw bronStatus(e, T::class.java.simpleName)
         }
 
-    suspend inline fun <reified T> getObjectByUrl(url: String): ObjectsApiObject<T>? = koppeling().get(url, typeReferentie<ObjectsApiObject<T>>(), headers = CRS_HEADERS)
+    suspend inline fun <reified T> getObjectByUrl(url: String): ObjectsApiObject<T> = koppeling().get(url, typeReferentie<ObjectsApiObject<T>>(), headers = CRS_HEADERS)
 
     suspend inline fun <reified T> getObjects(
         objectSearchParameters: List<ObjectSearchParameter>,
@@ -85,14 +85,16 @@ open class ObjectsApiClient(
         fout: KoppelingException,
         type: String,
     ): Throwable =
-        if (fout.soort == KoppelingFoutsoort.BRON_PROBLEEM || fout.soort == KoppelingFoutsoort.BRON_NIET_CONFORM) {
-            fout.status.takeIf { it in 400..499 }?.let { ResponseStatusException(HttpStatusCode.valueOf(it), "Failed to GET $type") } ?: fout
+        if (fout.status == HTTP_NOT_FOUND && (fout.soort == KoppelingFoutsoort.BRON_PROBLEEM || fout.soort == KoppelingFoutsoort.BRON_NIET_CONFORM)) {
+            ResponseStatusException(HttpStatus.NOT_FOUND, "Failed to GET $type")
         } else {
             fout
         }
 
     companion object {
         const val MODULE = "objectenapi"
+
+        private const val HTTP_NOT_FOUND = 404
 
         @PublishedApi
         internal const val OBJECTEN_PAD = "/api/v2/objects"

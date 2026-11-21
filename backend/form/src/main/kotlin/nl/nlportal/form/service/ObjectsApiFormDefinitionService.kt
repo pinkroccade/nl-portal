@@ -31,7 +31,6 @@ class ObjectsApiFormDefinitionService(
     suspend fun getObjectsApiFormDefinitionById(objectId: UUID): FormDefinition? {
         val obj =
             objectenApiService.getObjectById<ObjectsApiFormIoFormDefinition>(objectId.toString())
-                ?: return null
 
         val expected = formConfig.properties.formDefinitionObjectTypeUrl
         if (expected == null) {

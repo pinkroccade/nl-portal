@@ -21,6 +21,8 @@ import com.nimbusds.jwt.SignedJWT
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertNotNull
 import org.junit.jupiter.api.Assertions.assertTrue
+import okhttp3.mockwebserver.MockResponse
+import okhttp3.mockwebserver.MockWebServer
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.io.TempDir
 import org.springframework.http.HttpHeaders
@@ -100,6 +102,58 @@ class KoppelingWebClientFactoryTest {
         val mock = MockClientHttpRequest(verzoek.method(), verzoek.url())
         verzoek.writeTo(mock, ExchangeStrategies.withDefaults()).block()
         return mock.bodyAsString.block()!!
+    }
+
+    @Test
+    fun `een antwoord van 1 MB past in de buffer, zoals bij de oude clients (16 MB)`() {
+        MockWebServer().use { server ->
+            val groot = "x".repeat(1024 * 1024)
+            server.enqueue(MockResponse().setResponseCode(200).addHeader("Content-Type", "text/plain").setBody(groot))
+            val echteFactory = KoppelingWebClientFactory(WebClient.builder(), klok = vasteKlok)
+            val client =
+                echteFactory.webClient(
+                    "testmodule",
+                    koppeling {
+                        url = server.url("/").toString().trimEnd('/')
+                        auth.type = KoppelingAuthType.GEEN
+                    },
+                )
+
+            val antwoord =
+                client
+                    .get()
+                    .uri("/groot")
+                    .retrieve()
+                    .bodyToMono(String::class.java)
+                    .block()
+
+            assertEquals(groot.length, antwoord!!.length)
+        }
+    }
+
+    @Test
+    fun `een antwoord boven 16 MB wordt geweigerd`() {
+        MockWebServer().use { server ->
+            server.enqueue(MockResponse().setResponseCode(200).addHeader("Content-Type", "text/plain").setBody("x".repeat(17 * 1024 * 1024)))
+            val echteFactory = KoppelingWebClientFactory(WebClient.builder(), klok = vasteKlok)
+            val client =
+                echteFactory.webClient(
+                    "testmodule",
+                    koppeling {
+                        url = server.url("/").toString().trimEnd('/')
+                        auth.type = KoppelingAuthType.GEEN
+                    },
+                )
+
+            org.junit.jupiter.api.assertThrows<org.springframework.web.reactive.function.client.WebClientResponseException> {
+                client
+                    .get()
+                    .uri("/te-groot")
+                    .retrieve()
+                    .bodyToMono(String::class.java)
+                    .block()
+            }
+        }
     }
 
     @Test
