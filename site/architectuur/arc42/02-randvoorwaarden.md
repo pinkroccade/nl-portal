@@ -28,9 +28,20 @@
   propageren — dit is relevant voor hoofdstuk 9 (architectuurbeslissingen die backports
   bemoeilijken, zijn een reëel risico, zie hoofdstuk 11).
 
-## 2.3 Normatieve randvoorwaarden (te bevestigen)
+## 2.3 Normatieve randvoorwaarden
 
-NL Portal verwerkt overheids-identiteit en BRP-gegevens. Een normenkader zoals de **BIO** (Baseline
-Informatiebeveiliging Overheid) is voor dit type systeem gebruikelijk, maar **is niet geverifieerd
-als onderdeel van deze review** — er is geen BIO-toetsingsdocument in de repository aangetroffen.
-Dit is opgenomen als open vraag in hoofdstuk 11 (risico's), niet als vastgestelde randvoorwaarde.
+NL Portal verwerkt overheidsidentiteit en BRP-gegevens. De normen waaraan het zich toetst, staan met versie en
+raadpleegdatum in de [normatieve bronnen](../../compliance/normatieve-bronnen.md); het
+[principeregister](../principes.md) vertaalt ze naar toetsbare principes.
+
+| Randvoorwaarde | Bron-ID | Uitgewerkt in |
+|---|---|---|
+| **BIO2** (Baseline Informatiebeveiliging Overheid 2, op basis van ISO/IEC 27002:2022) | `N-BIO2-1.3` | P-01, P-03, P-04, P-05, P-07, P-08, P-15 |
+| **OWASP ASVS 5.0** level 2 als basis | `N-ASVS-5.0` | P-01, P-02, P-03, P-07 |
+| **AVG**: minimale gegevensverwerking en gegevensbescherming door ontwerp (art. 5 en 25) | `N-AVG-2016` | P-05, P-06 |
+| **Open standaarden**: de pas-toe-of-leg-uitlijst van Forum Standaardisatie, waaronder de NLGov REST API Design Rules en WCAG 2.2 | `N-FS-PTOLU`, `N-NLAPI-2.2`, `N-WCAG-2.2` | P-09, P-10, P-11 |
+| **Referentiearchitecturen**: NORA, GEMMA en het Common Ground 5-lagenmodel | `N-NORA-3.0`, `N-GEMMA-2`, `N-CG-5LAGEN` | P-06, P-08, P-12, P-13, P-14 |
+
+Een BIO2-toetsing per control is daarmee nog niet gedaan: het register legt vast welke controls de principes
+dragen, niet dat elke control is getoetst. Die toetsing hoort bij de analyse van epic
+[#530](https://github.com/pinkroccade/nl-portal/issues/530).

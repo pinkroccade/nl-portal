@@ -72,6 +72,10 @@ legt vast *dat* en *hoe* beslissingen worden vastgelegd.
   De backend is per tenant de vertrouwelijke OIDC-client `nl-portal-backend` (BFF, RFC 10017); tokens blijven op
   de server, de browser heeft een sessiecookie; token exchange en `nl-portal-m2m` vervallen; `private_key_jwt`.
 
+- [`0023-architectuurprincipes-en-toetsing.md`](../../development/adr/0023-architectuurprincipes-en-toetsing.md) — **voorgesteld** (#531).
+  Principeregister in TOGAF-vorm met per principe een bron en een toetsing, afgedwongen door
+  `compliance:check`; een bron telt ook als gedekt via een getoetst principe.
+
 ## Overige kandidaten
 
 Nog niet als ADR vastgelegd:
