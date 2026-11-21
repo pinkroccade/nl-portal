@@ -28,8 +28,8 @@ import reactor.core.publisher.Mono
 import java.time.Duration
 import java.time.Instant
 
-/** Bouwt uit een [Koppeling] een [WebClient] met de authenticatie van die koppeling. */
-class KoppelingWebClientFactory(
+/** Bouwt uit een [Koppeling] een [WebClient] met de authenticatie van die koppeling; alleen het register gebruikt hem (epic #499, #507). */
+internal class KoppelingWebClientFactory(
     private val webClientBuilder: WebClient.Builder,
     private val zgwJwtGenerator: ZgwJwtGenerator = ZgwJwtGenerator(),
 ) {

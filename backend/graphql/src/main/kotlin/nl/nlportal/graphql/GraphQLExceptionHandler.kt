@@ -18,6 +18,7 @@ package nl.nlportal.graphql
 import graphql.GraphQLError
 import graphql.GraphqlErrorBuilder
 import graphql.schema.DataFetchingEnvironment
+import nl.nlportal.core.koppeling.KoppelingException
 import nl.nlportal.core.modulegate.ModuleNotAvailableException
 import org.springframework.graphql.execution.DataFetcherExceptionResolverAdapter
 
@@ -29,8 +30,14 @@ class GraphQLExceptionHandler : DataFetcherExceptionResolverAdapter() {
         GraphqlErrorBuilder
             .newError()
             .message(ex.message)
-            .also { error -> if (ex is ModuleNotAvailableException) error.extensions(mapOf("code" to "MODULE_NOT_AVAILABLE", "module" to ex.module)) }
-            .path(env.executionStepInfo.path)
+            .also { error ->
+                when (ex) {
+                    is ModuleNotAvailableException -> error.extensions(mapOf("code" to "MODULE_NOT_AVAILABLE", "module" to ex.module))
+
+                    // Foutdetails van een bron gaan niet naar de browser: alleen een generieke code en de referentie voor de log.
+                    is KoppelingException -> error.extensions(mapOf("code" to "KOPPELING_FOUT", "correlatieId" to ex.correlatieId))
+                }
+            }.path(env.executionStepInfo.path)
             .location(env.field.sourceLocation)
             .build()
 }

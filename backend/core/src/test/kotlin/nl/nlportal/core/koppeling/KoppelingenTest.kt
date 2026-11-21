@@ -17,7 +17,6 @@ package nl.nlportal.core.koppeling
 
 import nl.nlportal.core.util.ModuleNotConfiguredException
 import org.junit.jupiter.api.Assertions.assertEquals
-import org.junit.jupiter.api.Assertions.assertNotNull
 import org.junit.jupiter.api.Assertions.assertNull
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
@@ -27,6 +26,7 @@ import org.springframework.boot.context.properties.EnableConfigurationProperties
 import org.springframework.boot.test.context.runner.ApplicationContextRunner
 import org.springframework.context.annotation.Configuration
 import org.springframework.web.reactive.function.client.WebClient
+import nl.nlportal.core.tenancy.TenantDirectory
 
 class KoppelingenTest {
     @Configuration
@@ -60,15 +60,21 @@ class KoppelingenTest {
     }
 
     @Test
-    fun `de autoconfiguratie levert de koppelingen en de fabriek aan modules`() {
-        ApplicationContextRunner()
-            .withConfiguration(AutoConfigurations.of(KoppelingAutoConfiguration::class.java))
-            .withBean(WebClient.Builder::class.java, { WebClient.builder() })
-            .withBean(ZgwJwtGenerator::class.java, { ZgwJwtGenerator() })
-            .withPropertyValues("nl-portal.koppelingen.zakenapi.url=https://zaken.example.nl")
+    fun `de autoconfiguratie levert een register zodra de tenancy aanstaat, met de koppelingen voor elke tenant`() {
+        val basis =
+            ApplicationContextRunner()
+                .withConfiguration(AutoConfigurations.of(KoppelingAutoConfiguration::class.java))
+                .withBean(WebClient.Builder::class.java, { WebClient.builder() })
+                .withBean(ZgwJwtGenerator::class.java, { ZgwJwtGenerator() })
+                .withPropertyValues("nl-portal.koppelingen.zakenapi.url=https://zaken.example.nl", "nl-portal.koppeling-resilience.max-gelijktijdig=3")
+
+        basis.run { context -> assertTrue(context.getBeansOfType(KoppelingRegister::class.java).isEmpty()) }
+        basis
+            .withBean(TenantDirectory::class.java, { TenantDirectory(emptyList()) })
             .run { context ->
-                assertNotNull(context.getBean(KoppelingWebClientFactory::class.java))
-                assertEquals("https://zaken.example.nl", context.getBean(KoppelingenProperties::class.java).voorModule("zakenapi", null).url)
+                assertNull(context.startupFailure)
+                assertEquals(1, context.getBeansOfType(KoppelingRegister::class.java).size)
+                assertEquals(3, context.getBean(KoppelingResilienceProperties::class.java).maxGelijktijdig)
             }
     }
 
