@@ -66,3 +66,25 @@ class StoresAKoppelingClient(
 ) {
     fun naam() = client.naam
 }
+
+class ReadsUrlStream {
+    fun lees(): Any =
+        java.net
+            .URI("https://bron.example")
+            .toURL()
+            .openStream()
+}
+
+class ReadsUrlContent {
+    fun lees(): Any? =
+        java.net
+            .URI("https://bron.example")
+            .toURL()
+            .content
+}
+
+class HoldsUrlConnection(
+    private val verbinding: java.net.HttpURLConnection,
+) {
+    fun status() = verbinding.responseCode
+}

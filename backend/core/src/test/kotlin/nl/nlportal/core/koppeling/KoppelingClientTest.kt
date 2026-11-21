@@ -33,6 +33,7 @@ import org.assertj.core.api.Assertions.assertThatThrownBy
 import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
+import org.junit.jupiter.api.io.TempDir
 import org.junit.jupiter.params.ParameterizedTest
 import org.junit.jupiter.params.provider.ValueSource
 import org.springframework.boot.autoconfigure.AutoConfigurations
@@ -42,7 +43,10 @@ import org.springframework.boot.webclient.autoconfigure.WebClientAutoConfigurati
 import org.springframework.context.annotation.AnnotationConfigApplicationContext
 import org.springframework.web.reactive.function.client.WebClient
 import reactor.util.context.Context
+import java.nio.file.Path
+import java.security.KeyPairGenerator
 import java.time.Duration
+import java.util.Base64
 import java.util.concurrent.TimeUnit
 
 /** Seam 2 van epic #499: de [KoppelingClient] tegen een nep-server, via het register en met een tenant in de Reactor Context. */
@@ -675,6 +679,118 @@ class KoppelingClientTest {
         assertThatThrownBy { alsTenant(bosrand) { register.current("zaken") } }.isInstanceOf(ModuleNotConfiguredException::class.java)
         assertThat(alsTenant(bosrand) { register.current("vergunningen") }.naam).isEqualTo("vergunningen")
     }
+
+    @ParameterizedTest
+    @ValueSource(
+        strings = [
+            "zgw-jwt zonder secret",
+            "zgw-jwt zonder client-id",
+            "client-credentials zonder token-url",
+            "client-credentials zonder client-id",
+            "client-credentials zonder secret",
+            "private-key-jwt zonder token-url",
+            "private-key-jwt zonder client-id",
+            "private-key-jwt zonder sleutelbestand",
+        ],
+    )
+    fun `een onvolledige koppeling van elk authenticatietype bestaat niet in het register en geeft geen netwerkfout`(geval: String) {
+        val onvolledig = onvolledigeKoppeling(geval)
+        val register = register(koppelingen = mapOf(bosrand to mapOf("zaken" to onvolledig, "vergunningen" to koppeling(bron))))
+
+        assertThatThrownBy { alsTenant(bosrand) { register.current("zaken") } }.isInstanceOf(ModuleNotConfiguredException::class.java)
+        assertThat(alsTenant(bosrand) { register.current("vergunningen") }.naam).isEqualTo("vergunningen")
+        assertThat(bron.requestCount).isZero()
+    }
+
+    @Test
+    fun `een onleesbaar sleutelbestand laat het bouwen van het register falen, niet de eerste tokenaanvraag`(
+        @TempDir map: Path,
+    ) {
+        val kapot = map.resolve("kapot.pem").also { it.toFile().writeText("geen sleutel") }
+        val geen = map.resolve("ontbreekt.pem")
+
+        listOf(kapot, geen).forEach { sleutelbestand ->
+            val koppeling = volledigePrivateKeyKoppeling().apply { auth.privateKeyFile = sleutelbestand.toString() }
+            assertThatThrownBy { register(koppelingen = mapOf(bosrand to mapOf("zaken" to koppeling))) }
+                .isInstanceOf(IllegalArgumentException::class.java)
+                .hasMessageNotContaining(sleutelbestand.toString())
+        }
+    }
+
+    @Test
+    fun `een volledige zgw-jwt-, client-credentials- en private-key-jwt-koppeling staat in het register`(
+        @TempDir map: Path,
+    ) {
+        val sleutel = map.resolve("sleutel.pem").also { it.toFile().writeText(pem()) }
+        val koppelingen =
+            mapOf(
+                "zgw" to zgwKoppeling(),
+                "cc" to clientCredentialsKoppeling(),
+                "pk" to volledigePrivateKeyKoppeling().apply { auth.privateKeyFile = sleutel.toString() },
+            )
+
+        val register = register(koppelingen = mapOf(bosrand to koppelingen))
+
+        koppelingen.keys.forEach { assertThat(alsTenant(bosrand) { register.current(it) }.naam).isEqualTo(it) }
+    }
+
+    @Test
+    fun `een tokenendpoint dat doorverwijst wordt niet gevolgd, en client-secret en assertion gaan niet naar het doel`() {
+        andereBron.enqueue(MockResponse().setResponseCode(307).setHeader("Location", buitenstaander.url("/token").toString()))
+        val koppeling = clientCredentialsKoppeling().apply { auth.tokenUrl = andereBron.url("/token").toString() }
+
+        fout { register(koppelingen = mapOf(bosrand to mapOf("zaken" to koppeling))).current("zaken").get<Zaak>("/x") }
+
+        assertThat(andereBron.requestCount).isEqualTo(1)
+        assertThat(buitenstaander.requestCount).isZero()
+        assertThat(bron.requestCount).isZero()
+    }
+
+    private fun zgwKoppeling() =
+        koppeling(bron).apply {
+            auth.type = KoppelingAuthType.ZGW_JWT
+            auth.token = null
+            auth.secret = "een-geheim-van-minstens-32-tekens-lang"
+            auth.clientId = "nl-portal"
+        }
+
+    private fun clientCredentialsKoppeling() =
+        koppeling(bron).apply {
+            auth.type = KoppelingAuthType.OAUTH2_CLIENT_CREDENTIALS
+            auth.token = null
+            auth.tokenUrl = "https://idp.example.nl/token"
+            auth.clientId = "nl-portal"
+            auth.secret = "geheim"
+        }
+
+    private fun volledigePrivateKeyKoppeling() =
+        koppeling(bron).apply {
+            auth.type = KoppelingAuthType.OAUTH2_PRIVATE_KEY_JWT
+            auth.token = null
+            auth.tokenUrl = "https://idp.example.nl/token"
+            auth.clientId = "nl-portal"
+            auth.privateKeyFile = "wordt-overschreven"
+        }
+
+    private fun pem(): String {
+        val sleutelpaar = KeyPairGenerator.getInstance("RSA").apply { initialize(2048) }.generateKeyPair()
+        return "-----BEGIN PRIVATE KEY-----\n" +
+            Base64.getMimeEncoder(64, "\n".toByteArray()).encodeToString(sleutelpaar.private.encoded) +
+            "\n-----END PRIVATE KEY-----\n"
+    }
+
+    private fun onvolledigeKoppeling(geval: String): Koppeling =
+        when (geval) {
+            "zgw-jwt zonder secret" -> zgwKoppeling().apply { auth.secret = null }
+            "zgw-jwt zonder client-id" -> zgwKoppeling().apply { auth.clientId = null }
+            "client-credentials zonder token-url" -> clientCredentialsKoppeling().apply { auth.tokenUrl = null }
+            "client-credentials zonder client-id" -> clientCredentialsKoppeling().apply { auth.clientId = null }
+            "client-credentials zonder secret" -> clientCredentialsKoppeling().apply { auth.secret = null }
+            "private-key-jwt zonder token-url" -> volledigePrivateKeyKoppeling().apply { auth.tokenUrl = null }
+            "private-key-jwt zonder client-id" -> volledigePrivateKeyKoppeling().apply { auth.clientId = null }
+            "private-key-jwt zonder sleutelbestand" -> volledigePrivateKeyKoppeling().apply { auth.privateKeyFile = null }
+            else -> error(geval)
+        }
 
     // Query
 

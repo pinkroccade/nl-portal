@@ -70,50 +70,33 @@ internal class KoppelingWebClientFactory(
             }
 
             KoppelingAuthType.ZGW_JWT -> {
-                builder.filter(
-                    bearer {
-                        Mono.fromCallable {
-                            zgwJwtGenerator.generateToken(
-                                auth.secret.requireConfigured(modulenaam, "auth.secret"),
-                                auth.clientId.requireConfigured(modulenaam, "auth.client-id"),
-                            )
-                        }
-                    },
-                )
+                // Alle waarden bij het opstarten ophalen: een ontbrekende waarde hoort geen netwerkstoring te zijn.
+                val secret = auth.secret.requireConfigured(modulenaam, "auth.secret")
+                val clientId = auth.clientId.requireConfigured(modulenaam, "auth.client-id")
+                builder.filter(bearer { Mono.fromCallable { zgwJwtGenerator.generateToken(secret, clientId) } })
             }
 
             KoppelingAuthType.OAUTH2_CLIENT_CREDENTIALS -> {
-                builder.filter(
-                    bearer(
-                        TokenCache {
-                            haalToken(
-                                auth.tokenUrl.requireConfigured(modulenaam, "auth.token-url"),
-                                basicAuth =
-                                    auth.clientId.requireConfigured(modulenaam, "auth.client-id") to
-                                        auth.secret.requireConfigured(modulenaam, "auth.secret"),
-                            )
-                        }::token,
-                    ),
-                )
+                val tokenUrl = auth.tokenUrl.requireConfigured(modulenaam, "auth.token-url")
+                val basicAuth =
+                    auth.clientId.requireConfigured(modulenaam, "auth.client-id") to
+                        auth.secret.requireConfigured(modulenaam, "auth.secret")
+                builder.filter(bearer(TokenCache { haalToken(tokenUrl, basicAuth = basicAuth) }::token))
             }
 
             KoppelingAuthType.OAUTH2_PRIVATE_KEY_JWT -> {
+                val tokenUrl = auth.tokenUrl.requireConfigured(modulenaam, "auth.token-url")
+                val clientId = auth.clientId.requireConfigured(modulenaam, "auth.client-id")
+                val sleutel = ClientAssertion.leesSleutel(auth.privateKeyFile.requireConfigured(modulenaam, "auth.private-key-file"))
                 builder.filter(
                     bearer(
                         TokenCache {
-                            val tokenUrl = auth.tokenUrl.requireConfigured(modulenaam, "auth.token-url")
-                            val assertion =
-                                ClientAssertion.sign(
-                                    auth.clientId.requireConfigured(modulenaam, "auth.client-id"),
-                                    tokenUrl,
-                                    auth.privateKeyFile.requireConfigured(modulenaam, "auth.private-key-file"),
-                                )
                             haalToken(
                                 tokenUrl,
                                 extraVelden =
                                     mapOf(
                                         "client_assertion_type" to ClientAssertion.TYPE,
-                                        "client_assertion" to assertion,
+                                        "client_assertion" to ClientAssertion.sign(clientId, tokenUrl, sleutel),
                                     ),
                             )
                         }::token,

@@ -40,7 +40,7 @@ import com.tngtech.archunit.lang.syntax.ArchRuleDefinition.noFields
  * @param koppelingPackages de pakketten waar de HTTP-client wel mag leven; vrijgesteld van alle regels.
  * @param webClientTypeExempt pakketten die alleen het type van een WebClient-hulpklasse mogen kennen (nu het
  * `ExchangeFilterFunction` van `core.modulestatus`); ze zijn vrijgesteld van [noWebClientInModules] en van niets anders.
- * @param koppelingBronpad deel van het bestandspad waaraan blijkt dat een koppelingspakket in de `core`-module staat.
+ * @param koppelingBronpad deel van het bestandspad waaraan blijkt dat een koppelingspakket in de `core`-module van de backend staat (`/backend/core/build/`, dus niet in een geneste module die toevallig `core` heet).
  * @param notYetMigrated pakketten van modules die nog niet naar de `KoppelingClient` zijn gemigreerd (T9 tot en met T21).
  * Elk migratieticket haalt zijn pakket hier weg; de lijst is een ratchet en mag alleen korter worden.
  * @param clientPackages de pakketten waarmee een module een eigen HTTP-client zou bouwen of aansturen.
@@ -50,7 +50,7 @@ class HttpClientRules(
     private val notYetMigrated: Array<String> = emptyArray(),
     private val clientPackages: Array<String> = PRODUCTION_CLIENT_PACKAGES,
     private val webClientTypeExempt: Array<String> = arrayOf("nl.nlportal.core.modulestatus.."),
-    private val koppelingBronpad: String = "/core/build/",
+    private val koppelingBronpad: String = "/backend/core/build/",
 ) {
     private val outsideKoppeling = resideOutsideOfPackages(*koppelingPackages, *notYetMigrated)
     private val outsideKoppelingEnTypeVrijstelling = resideOutsideOfPackages(*koppelingPackages, *notYetMigrated, *webClientTypeExempt)
@@ -77,9 +77,11 @@ class HttpClientRules(
             .should()
             .dependOnClassesThat(resideInAnyPackage(*clientPackages))
             .orShould()
+            .dependOnClassesThat(JavaClass.Predicates.assignableTo(java.net.URLConnection::class.java))
+            .orShould()
             .callMethodWhere(
-                DescribedPredicate.describe("open a raw connection with URL.openConnection") { call: JavaCall<*> ->
-                    call.targetOwner.name == "java.net.URL" && call.name == "openConnection"
+                DescribedPredicate.describe("open a raw connection with URL.openConnection, openStream or getContent") { call: JavaCall<*> ->
+                    call.targetOwner.name == "java.net.URL" && call.name in setOf("openConnection", "openStream", "getContent")
                 },
             ).allowEmptyShould(false)
             .because(
@@ -121,7 +123,8 @@ class HttpClientRules(
         val regels = listOf(strikt.noOwnWebClient(), strikt.noWebClientInModules(), strikt.noWiretap(), strikt.noRequestDetailLogging())
         return notYetMigrated.filter { pakket ->
             val inPakket = classes.that(resideInAnyPackage(pakket))
-            regels.none { it.evaluate(inPakket).hasViolation() }
+            // Een pakket zonder klassen (module verwijderd of hernoemd) is ook verouderd: de regels zouden hem niet zien.
+            inPakket.isEmpty() || regels.none { it.evaluate(inPakket).hasViolation() }
         }
     }
 
@@ -162,7 +165,6 @@ class HttpClientRules(
                 "org.springframework.web.client..",
                 "org.springframework.web.service..",
                 "java.net.http..",
-                "java.net.HttpURLConnection",
                 "okhttp3..",
                 "org.apache.hc..",
                 "org.eclipse.jetty.client..",

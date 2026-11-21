@@ -115,7 +115,7 @@ via een rolling update wordt uitgerold, niet via hot reload; een andere OpenFeat
   RFC 9457 (`KoppelingException`; gesynthetiseerd bij een niet-conforme bron, een netwerkfout of een 502), één
   `ResultPage`, **host-binding** (een absolute URL, zoals `next`, wordt alleen gevolgd onder de basis-URL van
   dezelfde koppeling: schema, host, poort en padprefix; anders een fout zonder aanroep en dus zonder credentials;
-  redirects worden nooit gevolgd: de connector van elke koppeling staat in code op niet-volgen, onafhankelijk van `spring.http.clients.redirects`; padtekens `;` en gecodeerde `/`, ``, NUL en `%` worden geweigerd), en een limiet op gelijktijdige aanroepen plus een circuit breaker per tenant en
+  redirects worden nooit gevolgd: de connector van elke koppeling staat in code op niet-volgen, onafhankelijk van `spring.http.clients.redirects`; padtekens `;` en gecodeerde `/`, `\`, NUL en `%` worden geweigerd), en een limiet op gelijktijdige aanroepen plus een circuit breaker per tenant en
   koppeling (Resilience4j; standaardwaarden onder `nl-portal.koppeling-resilience`; alleen storingen van de bron
   tellen, een 4xx of eigen weigering niet). Een client hoort bij één tenant en weigert een aanroep in de context van een andere tenant. Er worden geen headers of bodies gelogd en foutdetails van een bron gaan niet naar de
   browser: het bericht van een `KoppelingException` is generiek met een correlatie-ID, en de GraphQL-foutafhandelaar

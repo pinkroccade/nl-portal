@@ -37,7 +37,7 @@ internal object ClientAssertion {
     fun sign(
         clientId: String,
         tokenUrl: String,
-        privateKeyFile: String,
+        sleutel: RSAPrivateKey,
     ): String {
         val nu = System.currentTimeMillis()
         val claims =
@@ -51,19 +51,26 @@ internal object ClientAssertion {
                 .expirationTime(Date(nu + GELDIGHEID_MILLIS))
                 .build()
         val jwt = SignedJWT(JWSHeader(JWSAlgorithm.RS256), claims)
-        jwt.sign(RSASSASigner(leesSleutel(privateKeyFile)))
+        jwt.sign(RSASSASigner(sleutel))
         return jwt.serialize()
     }
 
-    private fun leesSleutel(bestand: String): RSAPrivateKey {
-        val pem =
-            Files
-                .readString(Path.of(bestand))
-                .replace("-----BEGIN PRIVATE KEY-----", "")
-                .replace("-----END PRIVATE KEY-----", "")
-                .replace(Regex("\\s"), "")
-        return KeyFactory
-            .getInstance("RSA")
-            .generatePrivate(PKCS8EncodedKeySpec(Base64.getDecoder().decode(pem))) as RSAPrivateKey
-    }
+    /**
+     * Leest de sleutel bij het opstarten, zodat een onleesbaar bestand meteen faalt en niet bij de eerste tokenaanvraag.
+     * De reden noemt het pad niet en de oorzaak ook niet: een parserfout kan sleutelmateriaal bevatten.
+     */
+    fun leesSleutel(bestand: String): RSAPrivateKey =
+        try {
+            val pem =
+                Files
+                    .readString(Path.of(bestand))
+                    .replace("-----BEGIN PRIVATE KEY-----", "")
+                    .replace("-----END PRIVATE KEY-----", "")
+                    .replace(Regex("\\s"), "")
+            KeyFactory
+                .getInstance("RSA")
+                .generatePrivate(PKCS8EncodedKeySpec(Base64.getDecoder().decode(pem))) as RSAPrivateKey
+        } catch (e: Exception) {
+            throw IllegalArgumentException("Het sleutelbestand van de koppeling is niet te lezen als PKCS#8 RSA-sleutel")
+        }
 }

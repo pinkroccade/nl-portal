@@ -64,6 +64,19 @@ class HttpClientRulesProofTest {
     }
 
     @Test
+    fun `the WebClient type rule also fails on URL streams and content and on any URL connection type`() {
+        assertFailsOn(rules.noWebClientInModules(), "ReadsUrlStream", "ReadsUrlContent", "HoldsUrlConnection")
+    }
+
+    @Test
+    fun `a package in the not yet migrated list without any class is reported as stale`() {
+        val ratchet = HttpClientRules(koppelingPackages = arrayOf("$base.httpclean.koppeling.."), notYetMigrated = arrayOf("$base.httpvio.status..", "$base.bestaat.niet.meer.."))
+        val everything = ClassFileImporter().importPackages("$base.httpvio", "$base.httpclean")
+
+        assertThat(ratchet.staleExemptions(everything)).containsExactly("$base.bestaat.niet.meer..")
+    }
+
+    @Test
     fun `the stored client rule fails when a module keeps a KoppelingClient in a field`() {
         assertFailsOn(rules.noStoredKoppelingClient(), "StoresAKoppelingClient")
         rules.noStoredKoppelingClient().check(clean())
