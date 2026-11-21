@@ -23,35 +23,45 @@ data class Gebruiker(
     val subject: String,
 )
 
+/** Soort van de identificatie van een vertegenwoordigde. */
+enum class Soort(
+    /** Waarde zoals bronnen die kennen (`identificatie__type`); geen persoonsgegeven, dus ook bruikbaar voor flag-targeting. */
+    val code: String,
+) {
+    BSN("bsn"),
+    KVK("kvk"),
+}
+
 /** Namens wie de gebruiker optreedt: een burger of een bedrijf. */
 sealed interface Vertegenwoordigde {
-    /** Soort van de identificatie: `bsn` of `kvk`. Geen persoonsgegeven, dus bruikbaar voor flag-targeting. */
-    val soort: String
+    val soort: Soort
 
     /** Het BSN of KvK-nummer. */
     val identificatie: String
 
-    /** Leesbare weergave voor logging in bronnen, bijvoorbeeld `BSN:123456782`. */
-    val representatie: String get() = "${soort.uppercase()}:$identificatie"
+    /**
+     * Auditveld bij de bron (`correctedBy`), bijvoorbeeld `BSN:123456782`. Bevat het nummer; gebruik het niet in
+     * logregels of foutmeldingen.
+     */
+    val representatie: String get() = "${soort.name}:$identificatie"
 
     data class Burger(
         val bsn: String,
     ) : Vertegenwoordigde {
-        override val soort get() = BSN
+        override val soort get() = Soort.BSN
         override val identificatie get() = bsn
+
+        override fun toString() = "Burger(bsn=***)"
     }
 
     data class Bedrijf(
         val kvkNummer: String,
         val vestigingsnummer: String? = null,
     ) : Vertegenwoordigde {
-        override val soort get() = KVK
+        override val soort get() = Soort.KVK
         override val identificatie get() = kvkNummer
-    }
 
-    companion object {
-        const val BSN = "bsn"
-        const val KVK = "kvk"
+        override fun toString() = "Bedrijf(kvkNummer=***, vestigingsnummer=${if (vestigingsnummer == null) "geen" else "***"})"
     }
 }
 

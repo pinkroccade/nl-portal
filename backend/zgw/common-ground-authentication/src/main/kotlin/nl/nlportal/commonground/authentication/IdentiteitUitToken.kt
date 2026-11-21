@@ -15,6 +15,7 @@
  */
 package nl.nlportal.commonground.authentication
 
+import nl.nlportal.commonground.authentication.exception.OngeldigTokenException
 import nl.nlportal.commonground.authentication.exception.UserTypeUnsupportedException
 import nl.nlportal.portal.authentication.domain.Gebruiker
 import nl.nlportal.portal.authentication.domain.Identiteit
@@ -36,7 +37,7 @@ object IdentiteitUitToken {
         val issuer = jwt.issuer?.toString()
         val subject = jwt.subject
         if (issuer == null || subject == null) {
-            throw UserTypeUnsupportedException("Token has no issuer or subject")
+            throw OngeldigTokenException("Token has no issuer or subject")
         }
         return Identiteit(
             gebruiker = Gebruiker(issuer = issuer, subject = subject),
@@ -47,19 +48,48 @@ object IdentiteitUitToken {
 
     private fun vertegenwoordigde(jwt: Jwt): Vertegenwoordigde? {
         val claim = jwt.claims[VERTEGENWOORDIGDE_CLAIM] as? Map<*, *> ?: return null
-        claim[BSN_CLAIM]?.let { return Vertegenwoordigde.Burger(it.toString()) }
-        claim[KVK_CLAIM]?.let { return Vertegenwoordigde.Bedrijf(it.toString(), claim[VESTIGINGSNUMMER_CLAIM]?.toString()) }
-        return null
+        val bsn = nummer(claim, BSN_CLAIM, MAX_BSN)
+        val kvk = nummer(claim, KVK_CLAIM, MAX_KVK)
+        return when {
+            bsn != null && kvk != null -> throw OngeldigTokenException("Token has both a BSN and a KvK number")
+            bsn != null -> Vertegenwoordigde.Burger(bsn)
+            kvk != null -> Vertegenwoordigde.Bedrijf(kvk, nummer(claim, VESTIGINGSNUMMER_CLAIM, MAX_VESTIGING))
+            else -> null
+        }
+    }
+
+    /**
+     * Het nummer onder [naam], of `null` als de claim ontbreekt. Een waarde die geen niet-lege string van alleen
+     * cijfers is (en niet langer dan [maxLengte]) geldt als ongeldig token: een leeg of vreemd nummer mag nooit als
+     * filter bij een bron terechtkomen.
+     */
+    private fun nummer(
+        claim: Map<*, *>,
+        naam: String,
+        maxLengte: Int,
+    ): String? {
+        val waarde = claim[naam] ?: return null
+        if (waarde !is String || waarde.isEmpty() || waarde.length > maxLengte || !waarde.all { it in '0'..'9' }) {
+            throw OngeldigTokenException("Token has an invalid $naam claim")
+        }
+        return waarde
     }
 
     private fun machtigingsdienstUuids(jwt: Jwt): List<UUID>? =
-        when (val claim = jwt.claims[MACHTIGINGSDIENST_CLAIM]) {
-            is List<*> -> claim.filterIsInstance<String>().map { UUID.fromString(it) }
-            is String -> listOf(UUID.fromString(claim))
-            else -> null
+        try {
+            when (val claim = jwt.claims[MACHTIGINGSDIENST_CLAIM]) {
+                is List<*> -> claim.filterIsInstance<String>().map { UUID.fromString(it) }
+                is String -> listOf(UUID.fromString(claim))
+                else -> null
+            }
+        } catch (e: IllegalArgumentException) {
+            throw OngeldigTokenException("Token has an invalid $MACHTIGINGSDIENST_CLAIM claim")
         }
 
-    /** Wire-naam van de vertegenwoordigde-claim, vooralsnog `aanvrager`. */
+    private const val MAX_BSN = 9
+    private const val MAX_KVK = 8
+    private const val MAX_VESTIGING = 12
+
     const val VERTEGENWOORDIGDE_CLAIM = "aanvrager"
     const val BSN_CLAIM = "bsn"
     const val KVK_CLAIM = "kvk"

@@ -48,7 +48,7 @@ class BerichtenService(
         val searchParameters =
             listOf(
                 ObjectSearchParameter("geopend", STRING_CONTAINS, "false"),
-                ObjectSearchParameter("identificatie__type", EQUAL_TO, authentication.identiteit.vertegenwoordigde.soort),
+                ObjectSearchParameter("identificatie__type", EQUAL_TO, authentication.identiteit.vertegenwoordigde.soort.code),
                 ObjectSearchParameter("identificatie__value", EQUAL_TO, authentication.identiteit.vertegenwoordigde.identificatie),
                 ObjectSearchParameter("publicatiedatum", LOWER_THAN_OR_EQUAL_TO, LocalDate.now().toString()),
             )
@@ -93,14 +93,14 @@ class BerichtenService(
 
         if (bericht.identificatie.value != authentication.identiteit.vertegenwoordigde.identificatie) {
             logger.debug {
-                "Access denied to document $documentId on bericht $berichtId for user ${authentication.identiteit.vertegenwoordigde.identificatie}"
+                "Access denied to document $documentId on bericht $berichtId for subject ${authentication.identiteit.gebruiker.subject}"
             }
             throw ResponseStatusException(HttpStatus.UNAUTHORIZED, "Access denied")
         }
 
         if (!bericht.geopend) {
             logger.debug {
-                "Access denied to document $documentId on bericht $berichtId for user ${authentication.identiteit.vertegenwoordigde.identificatie}"
+                "Access denied to document $documentId on bericht $berichtId for subject ${authentication.identiteit.gebruiker.subject}"
             }
             throw ResponseStatusException(HttpStatus.FORBIDDEN, "Access denied")
         }
@@ -109,7 +109,7 @@ class BerichtenService(
             bericht.bijlages.firstOrNull { extractId(it) == documentId }
                 ?: run {
                     logger.debug {
-                        "Access denied to document $documentId on bericht $berichtId for user ${authentication.identiteit.vertegenwoordigde.identificatie}"
+                        "Access denied to document $documentId on bericht $berichtId for subject ${authentication.identiteit.gebruiker.subject}"
                     }
                     throw ResponseStatusException(HttpStatus.UNAUTHORIZED, "Access denied")
                 }
@@ -141,7 +141,7 @@ class BerichtenService(
         val filterPublicationDate = LocalDate.now().plusDays(1)
         val searchParameters =
             mutableListOf(
-                ObjectSearchParameter("identificatie__type", EQUAL_TO, authentication.identiteit.vertegenwoordigde.soort),
+                ObjectSearchParameter("identificatie__type", EQUAL_TO, authentication.identiteit.vertegenwoordigde.soort.code),
                 ObjectSearchParameter("identificatie__value", EQUAL_TO, authentication.identiteit.vertegenwoordigde.identificatie),
                 ObjectSearchParameter("publicatiedatum", LOWER_THAN_OR_EQUAL_TO, filterPublicationDate.toString()),
             )

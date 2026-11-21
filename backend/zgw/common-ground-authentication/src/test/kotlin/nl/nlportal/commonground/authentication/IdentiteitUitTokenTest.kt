@@ -15,6 +15,7 @@
  */
 package nl.nlportal.commonground.authentication
 
+import nl.nlportal.commonground.authentication.exception.OngeldigTokenException
 import nl.nlportal.commonground.authentication.exception.UserTypeUnsupportedException
 import nl.nlportal.portal.authentication.domain.Gebruiker
 import nl.nlportal.portal.authentication.domain.Vertegenwoordigde
@@ -22,6 +23,8 @@ import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertNull
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertThrows
+import org.springframework.security.core.AuthenticationException
+import org.springframework.security.oauth2.core.OAuth2AuthenticationException
 import org.springframework.security.oauth2.jwt.Jwt
 import java.util.UUID
 
@@ -73,6 +76,7 @@ internal class IdentiteitUitTokenTest {
 
     @Test
     fun `a token without BSN or KvK number is rejected`() {
+        assertThrows<UserTypeUnsupportedException> { IdentiteitUitToken.lees(token().claim("random", "1234").build()) }
         assertRejected(token().claim("random", "1234").build())
     }
 
@@ -108,6 +112,56 @@ internal class IdentiteitUitTokenTest {
         )
     }
 
+    @Test
+    fun `a blank, non-string or non-numeric BSN or KvK number is rejected`() {
+        for (waarde in listOf<Any>("", "  ", " 123 ", "12a4", 123456782, listOf("123"), mapOf("x" to "1"))) {
+            assertRejected(token().claim("aanvrager", mapOf("bsn" to waarde)).build())
+            assertRejected(token().claim("aanvrager", mapOf("kvk" to waarde)).build())
+        }
+    }
+
+    @Test
+    fun `a BSN, KvK number or vestigingsnummer longer than its format is rejected`() {
+        assertRejected(token().claim("aanvrager", mapOf("bsn" to "1234567890")).build())
+        assertRejected(token().claim("aanvrager", mapOf("kvk" to "123456789")).build())
+        assertRejected(token().claim("aanvrager", mapOf("kvk" to "1234", "vestigingsnummer" to "1234567890123")).build())
+    }
+
+    @Test
+    fun `a blank or non-numeric vestigingsnummer is rejected`() {
+        assertRejected(token().claim("aanvrager", mapOf("kvk" to "1234", "vestigingsnummer" to "")).build())
+        assertRejected(token().claim("aanvrager", mapOf("kvk" to "1234", "vestigingsnummer" to "00x")).build())
+    }
+
+    @Test
+    fun `a token with both a BSN and a KvK number is ambiguous and rejected`() {
+        assertRejected(token().claim("aanvrager", mapOf("bsn" to "1234", "kvk" to "5678")).build())
+    }
+
+    @Test
+    fun `a malformed machtigingsdienst uuid is rejected as an invalid token`() {
+        val jwt = token().claim("aanvrager", mapOf("bsn" to "1234")).claim("urn:etoegang:core:ServiceUUID", listOf("geen-uuid")).build()
+
+        assertRejected(jwt)
+    }
+
+    @Test
+    fun `every rejection is an authentication exception so the resource server answers 401 instead of 500`() {
+        val ontbreekt = assertThrows<AuthenticationException> { IdentiteitUitToken.lees(token().build()) }
+        val misvormd = assertThrows<AuthenticationException> { IdentiteitUitToken.lees(token().claim("aanvrager", mapOf("bsn" to "")).build()) }
+
+        assertEquals("invalid_token", (ontbreekt as OAuth2AuthenticationException).error.errorCode)
+        assertEquals("invalid_token", (misvormd as OAuth2AuthenticationException).error.errorCode)
+    }
+
+    @Test
+    fun `a missing issuer or subject is rejected with its own exception, not as an unsupported user type`() {
+        val claim = mapOf("bsn" to "1234")
+        val zonderSubject = Jwt.withTokenValue("t").header("alg", "none").issuer("https://i.example").claim("aanvrager", claim).build()
+
+        assertThrows<OngeldigTokenException> { IdentiteitUitToken.lees(zonderSubject) }
+    }
+
     private fun token() =
         Jwt
             .withTokenValue("token")
@@ -116,6 +170,6 @@ internal class IdentiteitUitTokenTest {
             .subject("s")
 
     private fun assertRejected(jwt: Jwt) {
-        assertThrows<UserTypeUnsupportedException> { IdentiteitUitToken.lees(jwt) }
+        assertThrows<OngeldigTokenException> { IdentiteitUitToken.lees(jwt) }
     }
 }

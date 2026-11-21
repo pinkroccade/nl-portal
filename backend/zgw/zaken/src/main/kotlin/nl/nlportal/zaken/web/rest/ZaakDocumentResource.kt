@@ -50,7 +50,7 @@ class ZaakDocumentResource(
 
         if (document == null || content == null) {
             logger.debug {
-                "Access denied to document $zaakDocumentId for user ${authentication.identiteit.vertegenwoordigde.identificatie}"
+                "Access denied to document $zaakDocumentId for subject ${authentication.identiteit.gebruiker.subject}"
             }
             throw ResponseStatusException(HttpStatus.UNAUTHORIZED, "Access denied")
         }

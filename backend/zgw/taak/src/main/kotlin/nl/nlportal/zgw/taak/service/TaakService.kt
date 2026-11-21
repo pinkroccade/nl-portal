@@ -222,14 +222,14 @@ open class TaakService(
 
     private fun getUserSearchParameters(authentication: PortalAuthentication): List<ObjectSearchParameter> =
         listOf(
-            ObjectSearchParameter("identificatie__type", Comparator.EQUAL_TO, authentication.identiteit.vertegenwoordigde.soort),
+            ObjectSearchParameter("identificatie__type", Comparator.EQUAL_TO, authentication.identiteit.vertegenwoordigde.soort.code),
             ObjectSearchParameter("identificatie__value", Comparator.EQUAL_TO, authentication.identiteit.vertegenwoordigde.identificatie),
         )
 
     private fun isAuthorizedForTaak(
         authentication: PortalAuthentication,
         taakIdentificatie: TaakIdentificatie,
-    ): Boolean = taakIdentificatie.type.lowercase() == authentication.identiteit.vertegenwoordigde.soort && taakIdentificatie.value == authentication.identiteit.vertegenwoordigde.identificatie
+    ): Boolean = taakIdentificatie.type.lowercase() == authentication.identiteit.vertegenwoordigde.soort.code && taakIdentificatie.value == authentication.identiteit.vertegenwoordigde.identificatie
 
     private fun isAuthorizedForTaak(
         authentication: PortalAuthentication,

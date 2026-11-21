@@ -33,7 +33,7 @@ class PortalAuthentication(
         super.setAuthenticated(true)
     }
 
-    override val userType: String get() = identiteit.vertegenwoordigde.soort
+    override val userType: String get() = identiteit.vertegenwoordigde.soort.code
 
     override val subject: String get() = identiteit.gebruiker.subject
 

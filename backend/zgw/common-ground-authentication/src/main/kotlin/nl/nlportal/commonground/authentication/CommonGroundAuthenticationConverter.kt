@@ -19,7 +19,7 @@ import com.fasterxml.jackson.annotation.JsonProperty
 import com.fasterxml.jackson.annotation.JsonValue
 import io.github.oshai.kotlinlogging.KotlinLogging
 import nl.nlportal.commonground.authentication.exception.TokenExchangeException
-import nl.nlportal.commonground.authentication.exception.UserTypeUnsupportedException
+import nl.nlportal.commonground.authentication.exception.OngeldigTokenException
 import nl.nlportal.portal.authentication.domain.PortalAuthentication
 import org.springframework.core.convert.converter.Converter
 import org.springframework.security.oauth2.jwt.Jwt
@@ -47,7 +47,7 @@ class CommonGroundAuthenticationConverter(
                 val identiteit =
                     try {
                         IdentiteitUitToken.lees(exchangedJwt)
-                    } catch (e: UserTypeUnsupportedException) {
+                    } catch (e: OngeldigTokenException) {
                         logger.error { "Token of user ${exchangedJwt.subject ?: "unknown"} rejected: ${e.message}" }
                         throw e
                     }
