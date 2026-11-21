@@ -41,7 +41,13 @@ class TenantResolutionIT(
 ) {
     private val bosrand = "00000099000000000001"
 
-    private fun client(port: Int = serverPort) = WebTestClient.bindToServer().baseUrl("http://localhost:$port").build()
+    // Ruime responstimeout: onder 50 gelijktijdige requests op een CI-runner is de standaard van 5 s te krap.
+    private fun client(port: Int = serverPort) =
+        WebTestClient
+            .bindToServer()
+            .baseUrl("http://localhost:$port")
+            .responseTimeout(Duration.ofSeconds(30))
+            .build()
 
     private fun get(
         pad: String,
@@ -156,6 +162,10 @@ class TenantResolutionIT(
     fun `200 parallelle requests lekken niet en lezen altijd de tenant van hun eigen host`() {
         // De testconfiguratie heeft één tenant (stap 7 maakt er meer); de echte cross-tenant-lektest volgt in stap 8.
         // Dit toetst dat elk request altijd een tenant heeft, ook onder belasting, en dat een onbekende host nooit een tenant krijgt.
+        // Eigen scheduler voor de blokkerende client-aanroepen: de gedeelde boundedElastic heeft 10 threads per CPU (20 bij
+        // 2 CPU's), en de servercode in dezelfde JVM gebruikt die ook. Houden de 50 gelijktijdige clientaanroepen die vol, dan
+        // wacht de server op een thread die pas vrijkomt als zijn eigen antwoord er is: een deadlock die alleen bij weinig CPU's optreedt.
+        val clientScheduler = Schedulers.newBoundedElastic(50, Int.MAX_VALUE, "tenant-it-client")
         val hosten = listOf("bosrand.example", "localhost", "onbekend.example", "BOSRAND.example:8443")
         val resultaten =
             Flux
@@ -174,9 +184,10 @@ class TenantResolutionIT(
                                     .orEmpty()
                                     .joinToString(""),
                             )
-                        }.subscribeOn(Schedulers.boundedElastic())
+                        }.subscribeOn(clientScheduler)
                 }, 50)
                 .collectList()
+                .doFinally { clientScheduler.dispose() }
                 .block(Duration.ofSeconds(60))!!
 
         assertThat(resultaten).hasSize(200)
