@@ -49,7 +49,7 @@ describe("useDownload", () => {
     vi.restoreAllMocks();
   });
 
-  it("haalt same-origin op met het CSRF-token en downloadt onder de bestandsnaam uit Content-Disposition", async () => {
+  it("haalt same-origin op zonder CSRF-token (GET) en downloadt onder de bestandsnaam uit Content-Disposition", async () => {
     fetchMock.mockResolvedValue(
       new Response("inhoud", {
         status: 200,
@@ -66,7 +66,7 @@ describe("useDownload", () => {
     expect(event.preventDefault).toHaveBeenCalled();
     expect(fetchMock).toHaveBeenCalledWith("/api/document/1", {
       credentials: "same-origin",
-      headers: { "X-XSRF-TOKEN": "token-1" },
+      headers: {},
     });
     expect(klikken).toHaveLength(1);
     expect(klikken[0].download).toBe("doc.pdf");

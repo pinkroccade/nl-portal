@@ -112,7 +112,7 @@ export const PortalFileUpload = ({
     const upload = fetch(uploadLink, {
       method: "POST",
       credentials: "same-origin",
-      headers: csrfHeaders(),
+      headers: csrfHeaders({ url: uploadLink, method: "POST" }),
       body: formData,
     })
       .then(async (response) => {

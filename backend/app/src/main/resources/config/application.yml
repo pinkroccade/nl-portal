@@ -63,6 +63,7 @@ nl-portal:
         # Map met base.yaml en per tenant <oin>.yaml (het tenantbestand); verplicht, de runtime start niet zonder.
         directory: ${NL_PORTAL_TENANTS_DIRECTORY}
         # IP-adressen of CIDR-blokken van de ingress; alleen van deze adressen gelden Forwarded en X-Forwarded-Host.
+        # Nooit het adres van de nginx-sidecar (127.0.0.1/::1) opnemen: die vertrouwt de ingress niet voor deze headers.
         trusted-proxies: ${NL_PORTAL_TRUSTED_PROXIES:}
     authentication:
         bff:

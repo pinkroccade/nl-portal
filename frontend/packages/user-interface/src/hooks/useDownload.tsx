@@ -25,7 +25,7 @@ const useDownload = (href: string, filename?: string) => {
 
     const response = await fetch(href, {
       credentials: "same-origin",
-      headers: csrfHeaders(),
+      headers: csrfHeaders({ url: href }),
     });
 
     setLoading(false);

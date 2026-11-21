@@ -76,6 +76,12 @@ De tenant volgt uit de host van het request (kleine letters, zonder poort en tra
 `domeinen`). `Forwarded` en `X-Forwarded-Host` tellen alleen van de adressen in `NL_PORTAL_TRUSTED_PROXIES` (de
 ingress); van elk ander adres telt alleen de `Host`-header. Een onbekende host krijgt een kale 404.
 
+Het adres van de nginx-sidecar van de frontend (`127.0.0.1`/`::1`) hoort **nooit** in `NL_PORTAL_TRUSTED_PROXIES`: de sidecar
+stuurt de `Host`-header van de browser door en overschrijft `X-Forwarded-Host` met diezelfde waarde en `Forwarded` met een lege
+waarde, maar vertrouwt de ingress ervoor niet. Zet alleen het adres of blok van de ingress zelf in de lijst. De sidecar meldt
+`Strict-Transport-Security` alleen als de ingress `X-Forwarded-Proto: https` meegeeft. De CSP heeft bewust geen `form-action`:
+Chromium toetst die ook op de redirect na de uitlog-POST naar Keycloak, en de broker-URL is in de sidecar niet bekend.
+
 Koppelingen en modulegegevens staan in hetzelfde bestand. Geheimen staan er nooit zelf in, alleen als naam van een geheim in de secret store:
 
 ```yaml

@@ -19,6 +19,7 @@ import {
   djangoPasswordHash,
   generateSecrets,
   render,
+  gebruikerVoor,
   withManagedBlock,
 } from "./dev-setup.mjs";
 
@@ -73,6 +74,12 @@ test("withManagedBlock zet LOCAL_UID en LOCAL_GID zodat de container de 0600-cli
   assert.doesNotMatch(withManagedBlock("", fixed(1), {}), /LOCAL_UID/, "zonder uid (Windows) valt compose terug op 1000");
 });
 
+test("gebruikerVoor weigert uid 0 en laat Windows (geen uid) door", () => {
+  assert.throws(() => gebruikerVoor(0, 0), /root/);
+  assert.deepEqual(gebruikerVoor(1000, 1001), { uid: 1000, gid: 1001 });
+  assert.deepEqual(gebruikerVoor(undefined, undefined), {});
+});
+
 test("devSetup rendert dezelfde waarden in realm, compose en :app", () => {
   const root = scratchRoot();
   try {
@@ -101,6 +108,7 @@ test("devSetup rendert dezelfde waarden in realm, compose en :app", () => {
     assert.match(read("backend/app/.env.properties"), new RegExp("^REDIS_PASSWORD=" + secrets.REDIS_PASSWORD + "$", "m"));
     assert.match(read("backend/app/.env.properties"), /^REDIS_SSL=false$/m, "bootRun op de host praat met de TLS-loze Redis van de compose");
     assert.doesNotMatch(read(APP_DEV_OUTPUT), /KEYCLOAK_CLIENT_SECRET/);
+    assert.match(read(APP_DEV_OUTPUT), /^REDIS_SSL=false$/m, "app-dev bootRun op de host praat met de TLS-loze Redis");
     assert.match(
       read("backend/app/.env.properties"),
       new RegExp(`^NL_PORTAL_GEHEIMEN_00000099000000000001_ZAKEN_SECRET=${secrets.OPENZAAK_NLPORTAL_SECRET}$`, "m"),

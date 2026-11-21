@@ -80,7 +80,17 @@ export const ApiProvider = ({
             ...init,
             headers: {
               ...(init?.headers as Record<string, string>),
-              ...csrfHeaders(),
+              ...csrfHeaders({
+                url:
+                  typeof input === "string" || input instanceof URL
+                    ? input
+                    : input.url,
+                method:
+                  init?.method ??
+                  (typeof input === "object" && "method" in input
+                    ? input.method
+                    : undefined),
+              }),
             },
           });
           if (response.status === 401) markeerVerlopen?.();

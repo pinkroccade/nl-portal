@@ -134,7 +134,16 @@ export function genereerTenantRealms(root, sleutelMaker = maakClientSleutel) {
   });
 }
 
-const huidigeGebruiker = () => (process.getuid ? { uid: process.getuid(), gid: process.getgid() } : {});
+/**
+ * Uid 0 (dev:setup onder sudo) schrijft geen LOCAL_UID: de backend-container zou als root draaien. Compose valt dan terug op 1000
+ * en de 0600-sleutel is voor root, dus de run faalt zichtbaar in plaats van stil met te veel rechten.
+ */
+export const gebruikerVoor = (uid, gid) => {
+  if (uid === 0) throw new Error("dev:setup draaien als root (sudo) is niet toegestaan: de backend-container zou als root draaien; draai het als gewone gebruiker");
+  return uid === undefined ? {} : { uid, gid };
+};
+
+const huidigeGebruiker = () => (process.getuid ? gebruikerVoor(process.getuid(), process.getgid()) : {});
 
 export function devSetup(root, secrets = generateSecrets()) {
   const written = [];
@@ -157,6 +166,8 @@ export function devSetup(root, secrets = generateSecrets()) {
     [
       "# Gegenereerd door mise run dev:setup (gitignored).",
       ...APP_DEV_SECRETS.map((name) => `${name}=${secrets[name]}`),
+      // bootRun op de host praat met de TLS-loze Redis van de compose; buiten lokaal staat REDIS_SSL standaard aan.
+      "REDIS_SSL=false",
       "",
     ].join("\n"),
   );

@@ -25,16 +25,62 @@ import {
 } from "../../session/sessie";
 
 describe("csrfToken en csrfHeaders", () => {
-  it("lezen het token uit het Host-cookie", () => {
-    const cookies = "a=1; __Host-XSRF-TOKEN=abc%3D%3D; b=2";
+  const cookies = "a=1; __Host-XSRF-TOKEN=abc%3D%3D; b=2";
+  const locatie = {
+    href: "https://portal.example/pagina",
+    origin: "https://portal.example",
+  };
 
+  it("lezen het token uit het Host-cookie", () => {
     expect(csrfToken(cookies)).toBe("abc==");
-    expect(csrfHeaders(cookies)).toEqual({ "X-XSRF-TOKEN": "abc==" });
+    expect(
+      csrfHeaders({ url: "/graphql", method: "POST" }, cookies, locatie),
+    ).toEqual({ "X-XSRF-TOKEN": "abc==" });
   });
 
   it("geven niets terug zolang het cookie er niet is", () => {
     expect(csrfToken("a=1; XSRF-TOKEN=x")).toBeUndefined();
-    expect(csrfHeaders("")).toEqual({});
+    expect(
+      csrfHeaders({ url: "/graphql", method: "POST" }, "", locatie),
+    ).toEqual({});
+  });
+
+  it("sturen het token niet mee bij GET, HEAD en OPTIONS", () => {
+    for (const method of [undefined, "GET", "get", "HEAD", "OPTIONS"])
+      expect(
+        csrfHeaders({ url: "/api/bestand", method }, cookies, locatie),
+      ).toEqual({});
+  });
+
+  it("sturen het token mee bij elke muterende methode op dezelfde origin, ook met een absolute URL", () => {
+    for (const method of ["POST", "put", "PATCH", "DELETE"])
+      expect(
+        csrfHeaders(
+          { url: "https://portal.example/api/x", method },
+          cookies,
+          locatie,
+        ),
+      ).toEqual({ "X-XSRF-TOKEN": "abc==" });
+  });
+
+  it("lekken het token niet naar een andere origin of een onleesbare URL", () => {
+    expect(
+      csrfHeaders(
+        { url: "https://elders.example/upload", method: "POST" },
+        cookies,
+        locatie,
+      ),
+    ).toEqual({});
+    expect(
+      csrfHeaders(
+        { url: "http://portal.example/upload", method: "POST" },
+        cookies,
+        locatie,
+      ),
+    ).toEqual({});
+    expect(
+      csrfHeaders({ url: "http://[", method: "POST" }, cookies, locatie),
+    ).toEqual({});
   });
 });
 

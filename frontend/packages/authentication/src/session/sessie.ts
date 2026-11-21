@@ -54,8 +54,26 @@ export const csrfToken = (
     : undefined;
 };
 
-/** De header die elke muterende aanroep meestuurt (double submit); leeg zolang er geen token is. */
-export const csrfHeaders = (cookies?: string): Record<string, string> => {
+const VEILIGE_METHODEN = ["GET", "HEAD", "OPTIONS"];
+
+/** Het doel van een aanroep: de URL (relatief of absoluut) en de methode (standaard `GET`). */
+export type CsrfDoel = { url: string | URL; method?: string };
+
+/**
+ * De header voor een muterende aanroep naar dezelfde origin (double submit); leeg zolang er geen token is, bij `GET`/`HEAD`/`OPTIONS`
+ * en bij een andere origin, zodat het token nooit naar een andere partij lekt.
+ */
+export const csrfHeaders = (
+  { url, method = "GET" }: CsrfDoel,
+  cookies?: string,
+  locatie: Pick<Location, "href" | "origin"> = window.location,
+): Record<string, string> => {
+  if (VEILIGE_METHODEN.includes(method.toUpperCase())) return {};
+  try {
+    if (new URL(url, locatie.href).origin !== locatie.origin) return {};
+  } catch {
+    return {};
+  }
   const token = csrfToken(cookies);
   return token ? { [CSRF_HEADER]: token } : {};
 };
