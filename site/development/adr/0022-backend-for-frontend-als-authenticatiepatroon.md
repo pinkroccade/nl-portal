@@ -107,6 +107,9 @@ en wie de OAuth-client is.
 13. **Keycloak: laatste stabiele release** (nu 26.8; minimaal 26.4 vanwege `at+jwt` sinds 26.2 en
     DPoP-ondersteuning sinds 26.4). Docker-compose en de documentatie volgen de laatste stabiele release; een
     upgrade gaat eerst via dev, en keycloak-config-cli moet die versie ondersteunen (zie ADR 0021 besluit 6).
+    Beveiligingspatches gaan vóór de tool: zit een patch alleen in een release die keycloak-config-cli niet
+    ondersteunt, dan wint de patch en worden realm-wijzigingen bevroren of handmatig onder change-procedure
+    doorgevoerd tot de tool volgt, of wordt de tool vervangen (Crossplane, ADR 0021 besluit 6).
 
 14. **Eén authenticatiepad, architectonisch geborgd.** De BFF-login is het enige authenticatiepad. Dit staat
     in arc42 §8 en wordt met architectuurregels (ArchUnit) afgedwongen: geen resource-server- of
