@@ -334,6 +334,7 @@ private object TenantDefinitionVoorTest {
             modules = mapOf("proef" to configuratie),
         )
 }
+
 /** Een gewone klasse (geen dataclass) met een geheimverwijzing: de geheimwandeling zou haar overslaan. */
 class GewoneProfiel(
     val sleutel: GeheimVerwijzing,
