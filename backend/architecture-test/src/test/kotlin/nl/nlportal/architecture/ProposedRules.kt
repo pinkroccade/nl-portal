@@ -30,7 +30,7 @@ object ProposedRules {
     val all =
         listOf(
             ProposedRule("noConfigurationPropertiesOutsideAutoconfig", "configuratie alleen via het register, niet geïnjecteerd buiten de autoconfig"),
-            ProposedRule("noOwnWebClient", "geen WebClient.create()/builder() buiten core en zgw-client"),
+            ProposedRule("noOwnWebClient", "geen WebClient.create()/builder() buiten core.koppeling"),
             ProposedRule("noJvmGlobalState", "geen JVM-globale stores (InMemorySecretKeyStore, ThreadLocal, OpenFeatureAPI buiten core.featureflag)"),
             ProposedRule("noNewCoroutineScopes", "geen GlobalScope, CoroutineScope(...) of runBlocking: de tenant valt dan uit de Reactor Context"),
             ProposedRule("tenantRegistryComplete", "elke tenant levert bij het opstarten een volledig register op"),
@@ -38,9 +38,10 @@ object ProposedRules {
 
     fun status(existingRuleNames: Set<String>): List<RuleStatus> = all.map { RuleStatus(it, it.methodName in existingRuleNames) }
 
-    /** Rules that exist today: the public methods of [ArchitectureRules] that return an ArchRule. */
+    /** Rules that exist today: the public methods of [ArchitectureRules] and [HttpClientRules] that return an ArchRule. */
     fun existingRuleNames(): Set<String> =
-        ArchitectureRules::class.java.methods
+        listOf(ArchitectureRules::class.java, HttpClientRules::class.java)
+            .flatMap { it.methods.toList() }
             .filter { com.tngtech.archunit.lang.ArchRule::class.java.isAssignableFrom(it.returnType) }
             .map { it.name }
             .toSet()

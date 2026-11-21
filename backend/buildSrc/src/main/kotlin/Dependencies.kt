@@ -33,6 +33,9 @@ object Dependencies {
     val kotlinLogging by lazy { "io.github.oshai:kotlin-logging-jvm:${Versions.kotlinLogging}" }
     val springCloudStream by lazy { "org.springframework.cloud:spring-cloud-stream:${Versions.springCloud}" }
     val springCloudStreamBinderRabbit by lazy { "org.springframework.cloud:spring-cloud-stream-binder-rabbit:${Versions.springCloud}" }
+    val resilience4jCircuitBreaker by lazy { "io.github.resilience4j:resilience4j-circuitbreaker:${Versions.resilience4j}" }
+    val resilience4jBulkhead by lazy { "io.github.resilience4j:resilience4j-bulkhead:${Versions.resilience4j}" }
+    val resilience4jReactor by lazy { "io.github.resilience4j:resilience4j-reactor:${Versions.resilience4j}" }
     val springBootStarter by lazy { "org.springframework.boot:spring-boot-starter" }
     val springWebFlux by lazy { "org.springframework.boot:spring-boot-starter-webflux" }
     val springBootWebClient by lazy { "org.springframework.boot:spring-boot-starter-webclient" }

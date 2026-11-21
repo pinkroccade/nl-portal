@@ -19,25 +19,37 @@ import io.github.oshai.kotlinlogging.KotlinLogging
 import nl.nlportal.core.util.requireConfigured
 import org.springframework.core.ParameterizedTypeReference
 import org.springframework.http.HttpHeaders
+import org.springframework.http.client.reactive.ReactorClientHttpConnector
 import org.springframework.util.LinkedMultiValueMap
 import org.springframework.web.reactive.function.BodyInserters
 import org.springframework.web.reactive.function.client.ClientRequest
 import org.springframework.web.reactive.function.client.ExchangeFilterFunction
 import org.springframework.web.reactive.function.client.WebClient
 import reactor.core.publisher.Mono
+import reactor.netty.http.client.HttpClient
 import java.time.Duration
 import java.time.Instant
 
-/** Bouwt uit een [Koppeling] een [WebClient] met de authenticatie van die koppeling. */
-class KoppelingWebClientFactory(
+/** Bouwt uit een [Koppeling] een [WebClient] met de authenticatie van die koppeling; alleen het register gebruikt hem (epic #499, #507). */
+internal class KoppelingWebClientFactory(
     private val webClientBuilder: WebClient.Builder,
     private val zgwJwtGenerator: ZgwJwtGenerator = ZgwJwtGenerator(),
 ) {
+    /**
+     * Elke client van een koppeling krijgt een eigen connector die redirects nooit volgt. Dat staat hier in code, niet in
+     * configuratie: Spring Boot volgt anders standaard redirects (`spring.http.clients.redirects`), en dan geldt de host-binding
+     * alleen voor de eerste URL en lekken credentials naar het doel van de redirect. Het gevolg is dat de connector-instellingen
+     * van de door Spring Boot geleverde builder (bijvoorbeeld een SSL-bundel) niet gelden voor koppelingen.
+     */
+    private val zonderRedirects = ReactorClientHttpConnector(HttpClient.create().followRedirect(false))
+
+    private fun basisBuilder() = webClientBuilder.clone().clientConnector(zonderRedirects)
+
     fun webClient(
         modulenaam: String,
         koppeling: Koppeling,
     ): WebClient {
-        val builder = webClientBuilder.clone().baseUrl(koppeling.url.requireConfigured(modulenaam, "url"))
+        val builder = basisBuilder().baseUrl(koppeling.url.requireConfigured(modulenaam, "url"))
         if (koppeling.isOnbeveiligd()) {
             logger.warn { "Koppeling van module '$modulenaam' gebruikt http naar een publiek adres; gebruik https." }
         }
@@ -58,50 +70,33 @@ class KoppelingWebClientFactory(
             }
 
             KoppelingAuthType.ZGW_JWT -> {
-                builder.filter(
-                    bearer {
-                        Mono.fromCallable {
-                            zgwJwtGenerator.generateToken(
-                                auth.secret.requireConfigured(modulenaam, "auth.secret"),
-                                auth.clientId.requireConfigured(modulenaam, "auth.client-id"),
-                            )
-                        }
-                    },
-                )
+                // Alle waarden bij het opstarten ophalen: een ontbrekende waarde hoort geen netwerkstoring te zijn.
+                val secret = auth.secret.requireConfigured(modulenaam, "auth.secret")
+                val clientId = auth.clientId.requireConfigured(modulenaam, "auth.client-id")
+                builder.filter(bearer { Mono.fromCallable { zgwJwtGenerator.generateToken(secret, clientId) } })
             }
 
             KoppelingAuthType.OAUTH2_CLIENT_CREDENTIALS -> {
-                builder.filter(
-                    bearer(
-                        TokenCache {
-                            haalToken(
-                                auth.tokenUrl.requireConfigured(modulenaam, "auth.token-url"),
-                                basicAuth =
-                                    auth.clientId.requireConfigured(modulenaam, "auth.client-id") to
-                                        auth.secret.requireConfigured(modulenaam, "auth.secret"),
-                            )
-                        }::token,
-                    ),
-                )
+                val tokenUrl = auth.tokenUrl.requireConfigured(modulenaam, "auth.token-url")
+                val basicAuth =
+                    auth.clientId.requireConfigured(modulenaam, "auth.client-id") to
+                        auth.secret.requireConfigured(modulenaam, "auth.secret")
+                builder.filter(bearer(TokenCache { haalToken(tokenUrl, basicAuth = basicAuth) }::token))
             }
 
             KoppelingAuthType.OAUTH2_PRIVATE_KEY_JWT -> {
+                val tokenUrl = auth.tokenUrl.requireConfigured(modulenaam, "auth.token-url")
+                val clientId = auth.clientId.requireConfigured(modulenaam, "auth.client-id")
+                val sleutel = ClientAssertion.leesSleutel(auth.privateKeyFile.requireConfigured(modulenaam, "auth.private-key-file"))
                 builder.filter(
                     bearer(
                         TokenCache {
-                            val tokenUrl = auth.tokenUrl.requireConfigured(modulenaam, "auth.token-url")
-                            val assertion =
-                                ClientAssertion.sign(
-                                    auth.clientId.requireConfigured(modulenaam, "auth.client-id"),
-                                    tokenUrl,
-                                    auth.privateKeyFile.requireConfigured(modulenaam, "auth.private-key-file"),
-                                )
                             haalToken(
                                 tokenUrl,
                                 extraVelden =
                                     mapOf(
                                         "client_assertion_type" to ClientAssertion.TYPE,
-                                        "client_assertion" to assertion,
+                                        "client_assertion" to ClientAssertion.sign(clientId, tokenUrl, sleutel),
                                     ),
                             )
                         }::token,
@@ -124,8 +119,7 @@ class KoppelingWebClientFactory(
     ): Mono<AccessToken> {
         val formulier = LinkedMultiValueMap<String, String>().apply { add("grant_type", "client_credentials") }
         extraVelden.forEach { (naam, waarde) -> formulier.add(naam, waarde) }
-        return webClientBuilder
-            .clone()
+        return basisBuilder()
             .build()
             .post()
             .uri(tokenUrl)
