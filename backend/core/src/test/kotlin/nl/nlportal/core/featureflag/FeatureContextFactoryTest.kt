@@ -20,12 +20,11 @@ import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertFalse
 import org.junit.jupiter.api.Assertions.assertNull
 import org.junit.jupiter.api.Test
+import org.springframework.security.authentication.AbstractAuthenticationToken
 import org.springframework.security.authentication.AnonymousAuthenticationToken
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken
 import org.springframework.security.core.authority.SimpleGrantedAuthority
 import org.springframework.security.core.context.ReactiveSecurityContextHolder
-import org.springframework.security.oauth2.jwt.Jwt
-import org.springframework.security.oauth2.server.resource.authentication.JwtAuthenticationToken
 import reactor.core.publisher.Mono
 import reactor.core.scheduler.Schedulers
 
@@ -39,29 +38,23 @@ class FeatureContextFactoryTest {
             },
         )
 
-    /** A citizen's token as NL Portal receives it: the subject plus BSN, KVK number and name claims. */
+    /** A logged-in citizen as the BFF builds it from the session: a subject and a user type, no token. */
     private class CitizenAuthentication(
-        jwt: Jwt,
-    ) : JwtAuthenticationToken(jwt, listOf(SimpleGrantedAuthority("SCOPE_openid"))),
+        override val subject: String,
+    ) : AbstractAuthenticationToken(listOf(SimpleGrantedAuthority("ROLE_USER"))),
         UserTypeAware {
+        init {
+            super.setAuthenticated(true)
+        }
+
         override val userType = "bsn"
-        override val subject: String get() = token.subject!!
+
+        override fun getCredentials(): Any? = null
+
+        override fun getPrincipal(): Any = subject
     }
 
-    private val citizen =
-        CitizenAuthentication(
-            Jwt
-                .withTokenValue("token")
-                .header("alg", "none")
-                .subject(SUBJECT)
-                .claim("aanvrager", mapOf("bsn" to BSN))
-                .claim("bsn", BSN)
-                .claim("kvk", KVK)
-                .claim("name", NAME)
-                .claim("given_name", "Jan")
-                .claim("family_name", "Jansen")
-                .build(),
-        )
+    private val citizen = CitizenAuthentication(SUBJECT)
 
     @Test
     fun `an authenticated request carries tenant, environment and user type`() {
@@ -83,15 +76,6 @@ class FeatureContextFactoryTest {
     }
 
     @Test
-    fun `BSN, KVK number and name never reach the context`() {
-        val values = allValues(factory.create(citizen))
-
-        listOf(BSN, KVK, NAME, "Jan", "Jansen", SUBJECT).forEach { personalData ->
-            assertFalse(values.any { it.contains(personalData) }, "'$personalData' found in evaluation context: $values")
-        }
-    }
-
-    @Test
     fun `without a configured secret the context holds no user id`() {
         val context = FeatureContextFactory(FeatureFlagProperties.Context().apply { tenant = "gemeente-a" }).create(citizen)
 
@@ -109,7 +93,7 @@ class FeatureContextFactoryTest {
     @Test
     fun `an anonymous or unauthenticated authentication yields no user attributes`() {
         val anonymous = AnonymousAuthenticationToken("key", "anonymousUser", listOf(SimpleGrantedAuthority("ROLE_ANONYMOUS")))
-        val unauthenticated = CitizenAuthentication(citizen.token).apply { isAuthenticated = false }
+        val unauthenticated = CitizenAuthentication(SUBJECT).apply { isAuthenticated = false }
 
         listOf(anonymous, unauthenticated).forEach {
             val context = factory.create(it)
@@ -161,8 +145,5 @@ class FeatureContextFactoryTest {
 
     private companion object {
         const val SUBJECT = "c0ffee00-0000-4000-8000-000000000001"
-        const val BSN = "999990755"
-        const val KVK = "69599084"
-        const val NAME = "Jan Jansen"
     }
 }

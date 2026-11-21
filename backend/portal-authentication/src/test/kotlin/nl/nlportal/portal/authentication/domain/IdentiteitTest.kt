@@ -15,6 +15,8 @@
  */
 package nl.nlportal.portal.authentication.domain
 
+import nl.nlportal.core.tenancy.Betrouwbaarheidsniveau
+import nl.nlportal.core.tenancy.Inlogmiddel
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertFalse
 import org.junit.jupiter.api.Assertions.assertNull
@@ -26,7 +28,7 @@ import org.springframework.security.authentication.AbstractAuthenticationToken
 internal class IdentiteitTest {
     private val burger = Vertegenwoordigde.Burger("123456782")
     private val bedrijf = Vertegenwoordigde.Bedrijf("12345678", "000012345678")
-    private val gebruiker = Gebruiker("https://login.example.nl/realms/portal", "subject-1")
+    private val gebruiker = Gebruiker("https://login.example.nl/realms/portal", "subject-1", Inlogmiddel.DIGID, Betrouwbaarheidsniveau.SUBSTANTIEEL)
 
     @Test
     fun `the soort of a burger is bsn and of a bedrijf is kvk`() {
@@ -66,7 +68,7 @@ internal class IdentiteitTest {
 
     @Test
     fun `an authentication does not show its token or the identificatie in its string form`() {
-        val authentication: AbstractAuthenticationToken = PortalAuthentication(Identiteit(gebruiker, burger), "geheim.token.waarde", emptyList())
+        val authentication: AbstractAuthenticationToken = PortalAuthentication(Identiteit(gebruiker, burger), emptyList())
 
         assertDoesNotThrow { authentication.toString() }
         assertFalse(authentication.toString().contains("geheim.token.waarde"))
@@ -74,10 +76,9 @@ internal class IdentiteitTest {
     }
 
     @Test
-    fun `the raw token is only reachable through bearerToken, not through credentials`() {
-        val authentication = PortalAuthentication(Identiteit(gebruiker, burger), "geheim.token.waarde", emptyList())
+    fun `an authentication carries no credentials`() {
+        val authentication = PortalAuthentication(Identiteit(gebruiker, burger), emptyList())
 
-        assertEquals("geheim.token.waarde", authentication.bearerToken)
         assertNull(authentication.credentials)
     }
 
@@ -92,8 +93,8 @@ internal class IdentiteitTest {
 
     @Test
     fun `the user type and subject of an authentication follow the vertegenwoordigde and the gebruiker`() {
-        val burgerAuthentication = PortalAuthentication(Identiteit(gebruiker, burger), "token", emptyList())
-        val bedrijfAuthentication = PortalAuthentication(Identiteit(gebruiker, bedrijf), "token", emptyList())
+        val burgerAuthentication = PortalAuthentication(Identiteit(gebruiker, burger), emptyList())
+        val bedrijfAuthentication = PortalAuthentication(Identiteit(gebruiker, bedrijf), emptyList())
 
         assertEquals("bsn", burgerAuthentication.userType)
         assertEquals("kvk", bedrijfAuthentication.userType)

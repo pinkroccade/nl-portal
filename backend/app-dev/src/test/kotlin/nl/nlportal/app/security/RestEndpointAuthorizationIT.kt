@@ -62,6 +62,29 @@ class RestEndpointAuthorizationIT {
     @Autowired
     lateinit var webTestClient: WebTestClient
 
+    /**
+     * Zoals de SPA: host van de tenant, Origin en het CSRF-token uit het cookie dat de backend bij het eerste request zet, in cookie en
+     * header, zodat een muterend request de beveiligingsketen bereikt.
+     */
+    private fun client(): WebTestClient {
+        val anoniem = webTestClient.mutate().baseUrl("http://localhost").build()
+        val token =
+            anoniem
+                .get()
+                .uri("/api/public/sessie")
+                .exchange()
+                .returnResult(String::class.java)
+                .responseCookies["__Host-XSRF-TOKEN"]!!
+                .first()
+                .value
+        return anoniem
+            .mutate()
+            .defaultHeader("Origin", "http://localhost")
+            .defaultCookie("__Host-XSRF-TOKEN", token)
+            .defaultHeader("X-XSRF-TOKEN", token)
+            .build()
+    }
+
     @Autowired
     lateinit var requestMappingHandlerMapping: RequestMappingHandlerMapping
 
@@ -95,7 +118,7 @@ class RestEndpointAuthorizationIT {
             .filter { (_, _, isPublic) -> !isPublic }
             .map { (method, path, _) ->
                 DynamicTest.dynamicTest("$method $path should require authentication") {
-                    webTestClient
+                    client()
                         .method(method)
                         .uri(path)
                         .exchange()
@@ -114,7 +137,7 @@ class RestEndpointAuthorizationIT {
             .filter { (_, _, isPublic) -> isPublic }
             .map { (method, path, _) ->
                 DynamicTest.dynamicTest("$method $path should be accessible without authentication") {
-                    webTestClient
+                    client()
                         .method(method)
                         .uri(path)
                         .exchange()

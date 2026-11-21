@@ -63,7 +63,7 @@ internal class HaalCentraalBrpClientTest {
     }
 
     @Test
-    fun `personen post stuurt api key, extra headers en token mee`() =
+    fun `personen post stuurt api key en extra headers mee, nooit een token`() =
         runBlocking {
             server.enqueue(jsonResponse("""{"type": "RaadpleegMetBurgerservicenummer", "personen": []}"""))
             val client = HaalCentraalBrpClient(properties, null, WebClient.builder())
@@ -78,11 +78,11 @@ internal class HaalCentraalBrpClientTest {
             assertThat(request.path).isEqualTo("/personen")
             assertThat(request.getHeader("X-API-KEY")).isEqualTo("geheime-sleutel")
             assertThat(request.getHeader("X-Extra")).isEqualTo("waarde")
-            assertThat(request.getHeader("Authorization")).startsWith("Bearer ")
+            assertThat(request.getHeader("Authorization")).isNull()
         }
 
     @Test
-    fun `bewoningen post stuurt api key, extra headers en token mee`() =
+    fun `bewoningen post stuurt api key en extra headers mee, nooit een token`() =
         runBlocking {
             server.enqueue(jsonResponse("""{"bewoningen": []}"""))
             val client = HaalCentraalBrpBewoningClient(properties, null, WebClient.builder())
@@ -97,7 +97,7 @@ internal class HaalCentraalBrpClientTest {
             assertThat(request.path).isEqualTo("/bewoningen")
             assertThat(request.getHeader("X-API-KEY")).isEqualTo("geheime-sleutel")
             assertThat(request.getHeader("X-Extra")).isEqualTo("waarde")
-            assertThat(request.getHeader("Authorization")).startsWith("Bearer ")
+            assertThat(request.getHeader("Authorization")).isNull()
         }
 
     @Test

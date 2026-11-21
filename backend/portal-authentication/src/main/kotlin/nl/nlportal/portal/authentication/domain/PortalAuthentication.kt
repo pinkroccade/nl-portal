@@ -20,13 +20,11 @@ import org.springframework.security.core.GrantedAuthority
 import org.springframework.security.authentication.AbstractAuthenticationToken
 
 /**
- * De authenticatie van een ingelogde gebruiker. De enige leesroute naar de identiteit is [identiteit]. Het ruwe
- * token is alleen via [bearerToken] bereikbaar, voor doorgifte aan een bron (ArchUnit: alleen haalcentraal-brp);
- * [getCredentials] geeft het niet prijs.
+ * De authenticatie van een ingelogde gebruiker, zoals de BFF hem uit de sessie opbouwt. De enige leesroute naar de
+ * identiteit is [identiteit]. Er is geen token: modules krijgen nooit een token te zien ([getCredentials] is leeg).
  */
 class PortalAuthentication(
     val identiteit: Identiteit,
-    val bearerToken: String,
     authorities: Collection<GrantedAuthority>,
 ) : AbstractAuthenticationToken(authorities),
     UserTypeAware {

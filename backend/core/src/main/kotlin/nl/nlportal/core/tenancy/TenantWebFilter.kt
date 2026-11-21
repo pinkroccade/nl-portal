@@ -45,8 +45,9 @@ class TenantWebFilter(
         chain: WebFilterChain,
     ): Mono<Void> {
         if (draaitOpManagementpoort(exchange)) return chain.filter(exchange)
+        val host = hostVan(exchange.request)
         val tenant =
-            hostVan(exchange.request)
+            host
                 ?.let(TenantDirectory::normaliseerHost)
                 ?.let(directory::forHost)
         if (tenant == null) {
@@ -54,6 +55,7 @@ class TenantWebFilter(
             return exchange.response.setComplete()
         }
         exchange.attributes[ATTRIBUUT] = tenant.oin
+        exchange.attributes[HOST_ATTRIBUUT] = checkNotNull(host)
         return chain.filter(exchange).contextWrite { OinMdcBridge.schrijf(it.put(TenantContext.SLEUTEL, tenant.oin), tenant.oin) }
     }
 
@@ -125,5 +127,12 @@ class TenantWebFilter(
          * via [TenantContext].
          */
         internal const val ATTRIBUUT = "nl.nlportal.core.tenancy.Oin"
+
+        /**
+         * Attribuut op de exchange met de host (met eventuele poort) waaruit de tenant volgde, na de vertrouwensregels voor
+         * forwarded-headers. De BFF bouwt hieruit de origin van de tenant voor redirect-URI's en de Origin-regel; zo gebruiken
+         * tenantresolutie en origin dezelfde bron. Alleen de host, nooit de tenant zelf.
+         */
+        const val HOST_ATTRIBUUT = "nl.nlportal.core.tenancy.Host"
     }
 }

@@ -15,11 +15,9 @@
  */
 package nl.nlportal.haalcentraalbrp.client.path
 
-import nl.nlportal.portal.authentication.domain.PortalAuthentication
 import nl.nlportal.haalcentraalbrp.client.HaalCentraalBrpBewoningClient
 import nl.nlportal.haalcentraalbrp.domain.bewoning.BewoningenApiResponse
 import nl.nlportal.haalcentraalbrp.domain.bewoning.BewoningenApiRequest
-import org.springframework.http.HttpHeaders
 import org.springframework.http.MediaType
 import org.springframework.security.core.Authentication
 import org.springframework.web.reactive.function.client.awaitBody
@@ -34,11 +32,7 @@ class Bewoningen(
         client.webClient
             .post()
             .uri("/bewoningen")
-            .headers {
-                if (it[HttpHeaders.AUTHORIZATION].isNullOrEmpty()) {
-                    it.setBearerAuth((authentication as PortalAuthentication).bearerToken)
-                }
-            }.contentType(MediaType.APPLICATION_JSON)
+            .contentType(MediaType.APPLICATION_JSON)
             .accept(MediaType.APPLICATION_JSON)
             .bodyValue(bewoningenApiRequest)
             .retrieve()

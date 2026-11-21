@@ -20,6 +20,8 @@ object TestDependencies {
     val okHttp by lazy { "com.squareup.okhttp3:okhttp:${Versions.okHttp3}" }
     val okHttpMockWebserver by lazy { "com.squareup.okhttp3:mockwebserver:${Versions.okHttp3}" }
     val okHttpTls by lazy { "com.squareup.okhttp3:okhttp-tls:${Versions.okHttp3}" }
+    val mockOauth2Server by lazy { "no.nav.security:mock-oauth2-server:${Versions.mockOauth2Server}" }
+    val testcontainers by lazy { "org.testcontainers:testcontainers" }
     val springBootTest by lazy { "org.springframework.boot:spring-boot-starter-test" }
     val springBootWebClientTest by lazy { "org.springframework.boot:spring-boot-starter-webclient-test" }
     val springBootTestWebClient by lazy { "org.springframework.boot:spring-boot-webtestclient" }

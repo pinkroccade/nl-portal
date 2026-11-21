@@ -1,9 +1,12 @@
 server:
     port: 8080
+    # Spring volgt zelf geen Forwarded of X-Forwarded-*; de tenantresolutie doet dat alleen van de vertrouwde proxies.
+    forward-headers-strategy: none
 
 management:
-    # Beheerpoort apart zetten: MANAGEMENT_SERVER_PORT=8091 (zie site/hosting-en-configuratie/beheer-modulestatus.md)
-    # Beheerpoort apart zetten: MANAGEMENT_SERVER_PORT=8091 (zie site/hosting-en-configuratie/beheer-modulestatus.md)
+    server:
+        # De actuator staat altijd op een eigen poort (de tenantresolutie eist het).
+        port: ${MANAGEMENT_SERVER_PORT:8091}
     endpoint:
         health:
             access: read_only
@@ -21,12 +24,14 @@ management:
 spring:
     application:
         name: nl-portal-app-dev
-    security:
-        oauth2:
-            resourceserver:
-                jwt:
-                    jwk-set-uri: http://localhost:8082/realms/nlportal/protocol/openid-connect/certs
-                    issuer-uri: http://localhost:8082/realms/nlportal
+    data:
+        redis:
+            host: ${REDIS_HOST:localhost}
+            port: ${REDIS_PORT:6379}
+            username: ${REDIS_USERNAME:}
+            password: ${REDIS_PASSWORD:}
+            repositories:
+                enabled: false
     graphql:
         graphiql:
             enabled: true
@@ -47,11 +52,10 @@ nl-portal:
     support:
         ping-endpoint:
             enabled: false
+    tenancy:
+        directory: ${NL_PORTAL_TENANTS_DIRECTORY:../../docker-compose/imports/tenants}
     authentication:
-        keycloak:
-            resource: nl-portal-m2m
-            credentials:
-                secret: ${KEYCLOAK_CLIENT_SECRET:}
+        broker-url: ${KEYCLOAK_BROKER_URL:http://localhost:8082}
     security:
         cors:
             -   path: "/**"

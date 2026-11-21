@@ -15,11 +15,9 @@
  */
 package nl.nlportal.haalcentraalbrp.client.path
 
-import nl.nlportal.portal.authentication.domain.PortalAuthentication
 import nl.nlportal.haalcentraalbrp.client.HaalCentraalBrpClient
 import nl.nlportal.haalcentraalbrp.domain.brp.BrpApiRequest
 import nl.nlportal.haalcentraalbrp.domain.brp.BrpApiResponse
-import org.springframework.http.HttpHeaders
 import org.springframework.http.MediaType
 import org.springframework.security.core.Authentication
 import org.springframework.web.reactive.function.client.awaitBody
@@ -35,11 +33,7 @@ class Personen(
         client.webClient
             .post()
             .uri("/personen")
-            .headers {
-                if (it[HttpHeaders.AUTHORIZATION].isNullOrEmpty()) {
-                    it.setBearerAuth((authentication as PortalAuthentication).bearerToken)
-                }
-            }.contentType(MediaType.APPLICATION_JSON)
+            .contentType(MediaType.APPLICATION_JSON)
             .accept(MediaType.APPLICATION_JSON)
             .bodyValue(brpApiRequest)
             .retrieve()

@@ -22,6 +22,12 @@ dependencies {
     api(project(":core"))
     api(project(":portal-authentication"))
 
+    // BFF (ADR 0022): sessies en pre-auth-sessies in Redis. Alleen Spring Session en Lettuce, geen JDBC- of andere store.
+    implementation("org.springframework.boot:spring-boot-starter-session-data-redis")
+    implementation("org.springframework.boot:spring-boot-starter-data-redis-reactive")
+    implementation("io.micrometer:context-propagation")
+    implementation(Dependencies.kotlinCoroutinesReactor)
+
     testImplementation(TestDependencies.springBootTest)
     testImplementation(TestDependencies.springBootWebClientTest)
     testImplementation(TestDependencies.springBootTestWebClient)
@@ -30,6 +36,9 @@ dependencies {
     testImplementation(TestDependencies.mockitoKotlin)
     testImplementation(TestDependencies.okHttpMockWebserver)
     testImplementation(project(":zgw:common-ground-authentication-test"))
+    testImplementation(TestDependencies.mockOauth2Server)
+    testImplementation(TestDependencies.assertJCore)
+    testImplementation(TestDependencies.kotlinCoroutines)
 }
 
 val jar: Jar by tasks
