@@ -20,6 +20,7 @@ test("vasteGeheimen laat verwijzingen, lege waarden en getallen toe", () => {
     '"token_auth": 1,',
     '"secret": "",',
     "- BROKER=amqp://gebruiker:${PW}@host:5672//",
+    "  secret: 00000099000000000001.zaken-secret",
   ];
   for (const regel of toegestaan) assert.deepEqual(vasteGeheimen(regel), [], regel);
 });
@@ -32,6 +33,7 @@ test("vasteGeheimen herkent vaste waarden, ook als standaardwaarde, zonder de wa
     "  secret: iets",
     "NLPORTAL_BEHEER_WACHTWOORDHASH={noop}iets",
     "- BROKER=amqp://gebruiker:iets@host:5672//",
+    "  secret: zaken-secret",
   ];
   for (const regel of vast) {
     const meldingen = vasteGeheimen(regel);

@@ -96,6 +96,10 @@ test("devSetup rendert dezelfde waarden in realm, compose en :app", () => {
       read("backend/app/.env.properties"),
       new RegExp(`^KEYCLOAK_CLIENT_SECRET=${secrets.KEYCLOAK_M2M_CLIENT_SECRET}$`, "m"),
     );
+    assert.match(
+      read("backend/app/.env.properties"),
+      new RegExp(`^NL_PORTAL_GEHEIMEN_00000099000000000001_ZAKEN_SECRET=${secrets.OPENZAAK_NLPORTAL_SECRET}$`, "m"),
+    );
     assert.match(read(APP_DEV_OUTPUT), new RegExp(`KEYCLOAK_CLIENT_SECRET=${secrets.KEYCLOAK_M2M_CLIENT_SECRET}`));
     for (const name of APP_DEV_SECRETS) assert.match(read(APP_DEV_OUTPUT), new RegExp(`^${name}=${secrets[name]}$`, "m"));
 
