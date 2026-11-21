@@ -18,7 +18,6 @@ package nl.nlportal.zgw.taak.web.rest
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.test.runTest
 import nl.nlportal.portal.authentication.domain.PortalAuthentication
-import nl.nlportal.documentenapi.client.DocumentApisConfig
 import nl.nlportal.documentenapi.domain.Document
 import nl.nlportal.documentenapi.domain.VirusScanResult
 import nl.nlportal.documentenapi.domain.VirusScanStatus
@@ -49,17 +48,14 @@ class TaakDocumentResourceTest {
     private val taakService: TaakService = mock()
     private val documentenApiService: DocumentenApiService = mock()
     private val virusScanService: VirusScanService = mock()
-    private val documentApisConfig: DocumentApisConfig =
-        DocumentApisConfig().apply {
-            properties.defaultDocumentApi = "openzaak"
-        }
     private val authentication: PortalAuthentication = mock()
 
     private lateinit var resource: TaakDocumentResource
 
     @BeforeEach
     fun setUp() {
-        resource = TaakDocumentResource(taakService, documentenApiService, virusScanService, documentApisConfig)
+        runBlocking { whenever(documentenApiService.standaardDocumentApi()).thenReturn("openzaak") }
+        resource = TaakDocumentResource(taakService, documentenApiService, virusScanService)
     }
 
     @Test

@@ -5,3 +5,30 @@ domeinen:
     - localhost
 thema:
     titel: Mijn De Bosrand
+koppelingen:
+    # De Documenten API: elke documenten-API is een eigen koppeling; modules.documenten-api noemt ze bij naam.
+    documenten-api:
+        url: http://localhost:8001/documenten/api/v1
+        leverancier: Open Zaak
+        auth:
+            type: zgw-jwt
+            clientId: nl-portal
+            # Het geheim komt uit de omgeving: NL_PORTAL_GEHEIMEN_00000099000000000001_DOCUMENTEN_API_SECRET (zie compose.localhost-*.yaml).
+            secret: 00000099000000000001.documenten-api-secret
+    documenten-dummydoc:
+        url: http://localhost:8002/documenten/api/v1
+        auth:
+            type: zgw-jwt
+            clientId: docdoc
+            secret: 00000099000000000001.documenten-dummydoc-secret
+modules:
+    documenten-api:
+        standaardDocumentApi: documenten-api
+        documentApis:
+            documenten-api:
+                rsin: "051845623"
+                documentTypeUrl: http://localhost:8001/catalogi/api/v1/informatieobjecttypen/36e40d95-e411-4884-b08f-e5864ec8167f
+            documenten-dummydoc: {}
+        # toegestaneMimeTypes: [application/pdf, image/png, image/jpeg]
+        vertrouwelijkheidsaanduidingWitlijst: [openbaar, beperkt_openbaar, intern, zaakvertrouwelijk, vertrouwelijk, confidentieel, geheim, zeer_geheim]
+        statusWitlijst: [ter_vaststelling, in_bewerking, definitief, gearchiveerd]

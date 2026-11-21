@@ -17,7 +17,6 @@ package nl.nlportal.zgw.taak.web.rest
 
 import kotlinx.coroutines.reactive.awaitSingle
 import nl.nlportal.portal.authentication.domain.PortalAuthentication
-import nl.nlportal.documentenapi.client.DocumentApisConfig
 import nl.nlportal.documentenapi.domain.VirusScanStatus
 import nl.nlportal.documentenapi.service.DocumentenApiService
 import nl.nlportal.documentenapi.service.VirusScanService
@@ -41,7 +40,6 @@ class TaakDocumentResource(
     private val taakService: TaakService,
     private val documentenApiService: DocumentenApiService,
     private val virusScanService: VirusScanService?,
-    private val documentApisConfig: DocumentApisConfig,
 ) {
     @PostMapping(
         value = ["/{taakId}/document/content"],
@@ -63,7 +61,7 @@ class TaakDocumentResource(
             return ResponseEntity(virusScanResult, HttpStatus.BAD_REQUEST)
         }
 
-        val documentApi = documentApisConfig.properties.defaultDocumentApi
+        val documentApi = documentenApiService.standaardDocumentApi()
         return try {
             ResponseEntity.ok(
                 documentenApiService.uploadDocument(

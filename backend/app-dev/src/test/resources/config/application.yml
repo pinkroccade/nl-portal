@@ -1,5 +1,10 @@
 server:
     port: 0
+    forward-headers-strategy: none
+
+management:
+    server:
+        port: 0
 
 spring:
     profiles:
@@ -16,6 +21,11 @@ spring:
                     issuer-uri: http://localhost:9999/auth/realms/test
 
 nl-portal:
+    tenancy:
+        directory: ../app/src/test/resources/tenants
+    geheimen:
+        "00000099000000000001":
+            documenten-api-secret: 12345678123456781234567812345678
     security:
         cors:
             -   path: "/**"
@@ -46,29 +56,6 @@ nl-portal:
                 secret: 12345678123456781234567812345678
         documentenapis:
             enabled: true
-            properties:
-                default-document-api: openzaak
-                vertrouwelijkheidsaanduiding-whitelist:
-                    - openbaar
-                    - beperkt_openbaar
-                    - intern
-                    - zaakvertrouwelijk
-                    - vertrouwelijk
-                    - confidentieel
-                    - geheim
-                    - zeer_geheim
-                status-whitelist:
-                    - ter_vaststelling
-                    - in_bewerking
-                    - definitief
-                    - gearchiveerd
-                configurations:
-                    openzaak:
-                        url: http://localhost:56789/documenten/api/v1
-                        clientId: test-client
-                        secret: test-secret
-                        rsin: "051845623"
-                        documentTypeUrl: http://localhost:56789/catalogi/api/v1/informatieobjecttypen/00000000-0000-0000-0000-000000000000
         virusscan:
             clamav:
                 enabled: false

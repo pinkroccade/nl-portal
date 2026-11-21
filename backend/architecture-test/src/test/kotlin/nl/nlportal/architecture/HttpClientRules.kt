@@ -180,7 +180,6 @@ class HttpClientRules(
                 "nl.nlportal.besluiten..",
                 "nl.nlportal.catalogiapi..",
                 "nl.nlportal.commonground.authentication..",
-                "nl.nlportal.documentenapi..",
                 "nl.nlportal.form..",
                 "nl.nlportal.haalcentraalbrp..",
                 "nl.nlportal.kvk..",

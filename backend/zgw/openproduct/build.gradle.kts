@@ -39,6 +39,7 @@ dependencies {
     testImplementation(TestDependencies.springGraphQLTest)
     testImplementation(TestDependencies.springSecurityTest)
     testImplementation(TestDependencies.kotlinCoroutines)
+    testImplementation(testFixtures(project(":core")))
     testImplementation(TestDependencies.kotlinTest)
     testImplementation(TestDependencies.mockitoKotlin)
     testImplementation(TestDependencies.okHttpMockWebserver)

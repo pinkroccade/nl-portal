@@ -1,5 +1,5 @@
 /*
- * Copyright 2015-2023 Den Haag, Ritense, the Netherlands.
+ * Copyright 2015-2026 Den Haag, Ritense, the Netherlands.
  *
  * Licensed under EUPL, Version 1.2 (the "License");
  * you may not use this file except in compliance with the License.
@@ -15,39 +15,29 @@
  */
 package nl.nlportal.documentenapi.autoconfigure
 
-import nl.nlportal.core.ssl.ClientSslContextResolver
-import nl.nlportal.core.ssl.ResourceClientSslContextResolver
-import nl.nlportal.documentenapi.client.DocumentApisConfig
+import nl.nlportal.core.koppeling.KoppelingRegister
+import nl.nlportal.core.tenancy.TenantDirectory
 import nl.nlportal.documentenapi.client.DocumentenApiClient
 import nl.nlportal.documentenapi.service.DocumentenApiService
-import nl.nlportal.core.koppeling.ZgwJwtGenerator
-import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.autoconfigure.AutoConfiguration
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty
-import org.springframework.boot.context.properties.EnableConfigurationProperties
 import org.springframework.context.annotation.Bean
-import org.springframework.core.io.ResourceLoader
 
+/**
+ * De Documenten API-module. De gegevens per tenant staan in het tenantbestand (`modules.documenten-api` en `koppelingen`); alleen de
+ * schakelaar `nl-portal.config.documentenapis.enabled` bepaalt nog of de modulebeans bestaan (andere modules hangen ervan af).
+ */
 @AutoConfiguration
-@EnableConfigurationProperties(DocumentApisConfig::class)
 @ConditionalOnProperty(prefix = "nl-portal.config.documentenapis", name = ["enabled"], havingValue = "true")
 class DocumentenApiAutoConfiguration {
-    @Bean
-    @ConditionalOnMissingBean(ClientSslContextResolver::class)
-    fun clientSslContextResolver(resourceLoader: ResourceLoader): ClientSslContextResolver = ResourceClientSslContextResolver(resourceLoader)
-
     @Bean
     @ConditionalOnMissingBean(DocumentenApiService::class)
     fun documentenApiService(
         documentenApiClient: DocumentenApiClient,
-        documentApisConfig: DocumentApisConfig,
-    ): DocumentenApiService = DocumentenApiService(documentenApiClient, documentApisConfig.properties)
+        tenantDirectory: TenantDirectory,
+    ): DocumentenApiService = DocumentenApiService(documentenApiClient, tenantDirectory)
 
     @Bean
-    fun documentenApiClient(
-        documentApisConfig: DocumentApisConfig,
-        zgwJwtGenerator: ZgwJwtGenerator,
-        @Autowired(required = false) clientSslContextResolver: ClientSslContextResolver? = null,
-    ): DocumentenApiClient = DocumentenApiClient(documentApisConfig.properties, zgwJwtGenerator, clientSslContextResolver)
+    fun documentenApiClient(koppelingRegister: KoppelingRegister): DocumentenApiClient = DocumentenApiClient(koppelingRegister)
 }
