@@ -31,20 +31,14 @@ class ObjectenApiService(
         objectTypeUrl: String,
         pageNumber: Int,
         pageSize: Int,
-    ): ResultPage<ObjectsApiObject<T>> =
-        objectsApiClient.getObjects(
-            objectSearchParameters = objectSearchParameters,
-            objectTypeUrl = objectTypeUrl,
-            page = pageNumber,
-            pageSize = pageSize,
-        )
+    ): ResultPage<ObjectsApiObject<T>> = objectsApiClient.getObjects(objectSearchParameters, objectTypeUrl, pageNumber, pageSize)
 
     suspend inline fun <reified T> getObjectById(objectId: String): ObjectsApiObject<T> = objectsApiClient.getObjectById(objectId)
 
     suspend inline fun <reified T> updateObject(
         objectUuid: UUID,
         objectsApiObject: UpdateObjectsApiObjectRequest<T>,
-    ): ObjectsApiObject<T>? = objectsApiClient.updateObject(objectUuid, objectsApiObject)
+    ): ObjectsApiObject<T> = objectsApiClient.updateObject(objectUuid, objectsApiObject)
 
     /** Een object-URL komt uit het antwoord van een andere bron: de koppeling volgt hem alleen onder zijn eigen basis-URL (host-binding). */
     suspend inline fun <reified T> getObjectByUrl(url: String): ObjectsApiObject<T> = objectsApiClient.getObjectByUrl(url)

@@ -38,7 +38,6 @@ note as tenancy_rules
   noNewCoroutineScopes: geen GlobalScope, CoroutineScope(...) of runBlocking: de tenant valt dan uit de Reactor Context (voorgesteld, niet actief)
   tenantRegistryComplete: elke tenant levert bij het opstarten een volledig register op (voorgesteld, niet actief)
 end note
-form --> core #grey
 form --> zgw_objectenapi #green : bewaakt
 graphql --> core #grey
 haalcentraal_brp --> core #grey

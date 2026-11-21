@@ -25,6 +25,7 @@ import nl.nlportal.zgw.objectenapi.domain.ObjectSearchParameter
 import nl.nlportal.zgw.objectenapi.domain.ObjectsApiObject
 import nl.nlportal.zgw.objectenapi.domain.ResultPage
 import nl.nlportal.zgw.objectenapi.domain.UpdateObjectsApiObjectRequest
+import org.springframework.core.ParameterizedTypeReference
 import org.springframework.http.HttpStatus
 import org.springframework.web.server.ResponseStatusException
 import org.springframework.web.util.UriUtils
@@ -38,22 +39,12 @@ import java.util.UUID
 open class ObjectsApiClient(
     private val koppelingen: KoppelingRegister,
 ) {
-    @PublishedApi
-    internal suspend fun koppeling(): KoppelingClient = koppelingen.current(MODULE)
+    private suspend fun koppeling(): KoppelingClient = koppelingen.current(MODULE)
 
     /** Alleen een 404 van de bron komt als [ResponseStatusException] (NOT_FOUND) naar boven; elke andere fout, ook een 401, 403 of 429, is een [KoppelingException]: een bronstatus zegt iets over onze koppeling, niet over de aanvraag van de inwoner. */
-    suspend inline fun <reified T> getObjectById(id: String): ObjectsApiObject<T> =
-        try {
-            koppeling().get(
-                "$OBJECTEN_PAD/${UriUtils.encodePathSegment(id, StandardCharsets.UTF_8)}",
-                typeReferentie<ObjectsApiObject<T>>(),
-                headers = CRS_HEADERS,
-            )
-        } catch (e: KoppelingException) {
-            throw bronStatus(e, T::class.java.simpleName)
-        }
+    suspend inline fun <reified T> getObjectById(id: String): ObjectsApiObject<T> = getObjectById(id, typeReferentie<ObjectsApiObject<T>>(), T::class.java.simpleName)
 
-    suspend inline fun <reified T> getObjectByUrl(url: String): ObjectsApiObject<T> = koppeling().get(url, typeReferentie<ObjectsApiObject<T>>(), headers = CRS_HEADERS)
+    suspend inline fun <reified T> getObjectByUrl(url: String): ObjectsApiObject<T> = getObjectByUrl(url, typeReferentie<ObjectsApiObject<T>>())
 
     suspend inline fun <reified T> getObjects(
         objectSearchParameters: List<ObjectSearchParameter>,
@@ -61,27 +52,69 @@ open class ObjectsApiClient(
         page: Int,
         pageSize: Int,
         ordering: String? = null,
-    ): ResultPage<ObjectsApiObject<T>> {
-        val query = mutableMapOf("page" to listOf(page.toString()), "pageSize" to listOf(pageSize.toString()))
-        objectTypeUrl?.let { query["type"] = listOf(it) }
-        query["data_attrs"] = listOf(ObjectSearchParameter.toQueryParameter(objectSearchParameters))
-        ordering?.let { query["ordering"] = listOf(it) }
-        return koppeling().get(OBJECTEN_PAD, typeReferentie<ResultPage<ObjectsApiObject<T>>>(), query, CRS_HEADERS)
-    }
+    ): ResultPage<ObjectsApiObject<T>> = getObjects(objectSearchParameters, objectTypeUrl, page, pageSize, ordering, typeReferentie<ResultPage<ObjectsApiObject<T>>>())
 
     suspend inline fun <reified T> updateObject(
         objectUuid: UUID,
         objectsApiObject: UpdateObjectsApiObjectRequest<T>,
-    ): ObjectsApiObject<T> = koppeling().put("$OBJECTEN_PAD/$objectUuid", objectsApiObject, typeReferentie<ObjectsApiObject<T>>(), CRS_HEADERS)
+    ): ObjectsApiObject<T> = updateObject(objectUuid, objectsApiObject, typeReferentie<ObjectsApiObject<T>>())
 
-    suspend inline fun <reified T> createObject(objectsApiObject: CreateObjectsApiObjectRequest<T>): ObjectsApiObject<T> = koppeling().post(OBJECTEN_PAD, objectsApiObject, typeReferentie<ObjectsApiObject<T>>(), CRS_HEADERS)
+    suspend inline fun <reified T> createObject(objectsApiObject: CreateObjectsApiObjectRequest<T>): ObjectsApiObject<T> = createObject(objectsApiObject, typeReferentie<ObjectsApiObject<T>>())
 
     suspend fun deleteObjectById(id: UUID) {
         koppeling().delete("$OBJECTEN_PAD/$id", CRS_HEADERS)
     }
 
+    // De kern staat in gewone (niet-inline) methoden, zodat de logica hier gemeten wordt en niet bij elke aanroeper.
+
     @PublishedApi
-    internal fun bronStatus(
+    internal suspend fun <T> getObjectById(
+        id: String,
+        type: ParameterizedTypeReference<ObjectsApiObject<T>>,
+        typenaam: String,
+    ): ObjectsApiObject<T> =
+        try {
+            koppeling().get("$OBJECTEN_PAD/${UriUtils.encodePathSegment(id, StandardCharsets.UTF_8)}", type, headers = CRS_HEADERS)
+        } catch (e: KoppelingException) {
+            throw bronStatus(e, typenaam)
+        }
+
+    @PublishedApi
+    internal suspend fun <T> getObjectByUrl(
+        url: String,
+        type: ParameterizedTypeReference<ObjectsApiObject<T>>,
+    ): ObjectsApiObject<T> = koppeling().get(url, type, headers = CRS_HEADERS)
+
+    @PublishedApi
+    internal suspend fun <T> getObjects(
+        objectSearchParameters: List<ObjectSearchParameter>,
+        objectTypeUrl: String?,
+        page: Int,
+        pageSize: Int,
+        ordering: String?,
+        type: ParameterizedTypeReference<ResultPage<ObjectsApiObject<T>>>,
+    ): ResultPage<ObjectsApiObject<T>> {
+        val query = mutableMapOf("page" to listOf(page.toString()), "pageSize" to listOf(pageSize.toString()))
+        objectTypeUrl?.let { query["type"] = listOf(it) }
+        query["data_attrs"] = listOf(ObjectSearchParameter.toQueryParameter(objectSearchParameters))
+        ordering?.let { query["ordering"] = listOf(it) }
+        return koppeling().get(OBJECTEN_PAD, type, query, CRS_HEADERS)
+    }
+
+    @PublishedApi
+    internal suspend fun <T> updateObject(
+        objectUuid: UUID,
+        objectsApiObject: UpdateObjectsApiObjectRequest<T>,
+        type: ParameterizedTypeReference<ObjectsApiObject<T>>,
+    ): ObjectsApiObject<T> = koppeling().put("$OBJECTEN_PAD/$objectUuid", objectsApiObject, type, CRS_HEADERS)
+
+    @PublishedApi
+    internal suspend fun <T> createObject(
+        objectsApiObject: CreateObjectsApiObjectRequest<T>,
+        type: ParameterizedTypeReference<ObjectsApiObject<T>>,
+    ): ObjectsApiObject<T> = koppeling().post(OBJECTEN_PAD, objectsApiObject, type, CRS_HEADERS)
+
+    private fun bronStatus(
         fout: KoppelingException,
         type: String,
     ): Throwable =
@@ -96,10 +129,8 @@ open class ObjectsApiClient(
 
         private const val HTTP_NOT_FOUND = 404
 
-        @PublishedApi
-        internal const val OBJECTEN_PAD = "/api/v2/objects"
+        private const val OBJECTEN_PAD = "/api/v2/objects"
 
-        @PublishedApi
-        internal val CRS_HEADERS = mapOf("Accept-Crs" to "EPSG:4326", "Content-Crs" to "EPSG:4326")
+        private val CRS_HEADERS = mapOf("Accept-Crs" to "EPSG:4326", "Content-Crs" to "EPSG:4326")
     }
 }
