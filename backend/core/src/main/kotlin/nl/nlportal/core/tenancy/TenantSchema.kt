@@ -68,8 +68,12 @@ internal class TenantSchemaModel(
         klasse: KClass<*>,
         pad: String,
         modules: TenantModules,
-    ): SchemaKnoop.Object =
-        SchemaKnoop.Object(
+    ): SchemaKnoop.Object {
+        // Alleen dataclasses: de geheimwandeling (naamruimte, opstartcontrole) volgt alleen die; een gewone klasse zou er open doorheen vallen.
+        check(klasse.isData) {
+            "${klasse.simpleName} ('${pad.ifEmpty { "tenantbestand" }}') is geen dataclass; klassen in het tenantbestand zijn dataclasses"
+        }
+        return SchemaKnoop.Object(
             (
                 klasse.primaryConstructor
                     ?: error("${klasse.simpleName} heeft geen primaire constructor en kan niet in het tenantbestand staan")
@@ -85,6 +89,7 @@ internal class TenantSchemaModel(
                         )
                 },
         )
+    }
 
     private fun nietErfbaar(parameter: KParameter) = parameter.type.classifier == GeheimVerwijzing::class || parameter.findAnnotation<NietErfbaar>() != null
 

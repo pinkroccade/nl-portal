@@ -77,6 +77,18 @@ class TenantNaamruimteTest {
 
     private fun geheimen(inhoud: String) = "modules:\n  geheimen:\n" + inhoud.trimIndent().prependIndent("    ") + "\n"
 
+    // --- melding bij een waarde die het schema doorlaat maar Jackson weigert (review-r2 L9) ---
+
+    @Test
+    fun `een waarde met de verkeerde vorm in modules krijgt het voorvoegsel met de OIN`() {
+        tenant("modules:\n  proef:\n    brpVelden: [naam]\n    timeout: geen-duur\n")
+
+        val violation = laad().violations.single()
+
+        assertThat(violation.code).isEqualTo(Code.ONGELDIGE_WAARDE)
+        assertThat(violation.bericht).startsWith("Tenant $bosrand: ")
+    }
+
     // --- H1: naamruimte per OIN ---
 
     @Test
@@ -321,4 +333,43 @@ private object TenantDefinitionVoorTest {
             sessie = Sessie(),
             modules = mapOf("proef" to configuratie),
         )
+}
+/** Een gewone klasse (geen dataclass) met een geheimverwijzing: de geheimwandeling zou haar overslaan. */
+class GewoneProfiel(
+    val sleutel: GeheimVerwijzing,
+)
+
+data class ProefMetGewoneKlasse(
+    val profiel: GewoneProfiel,
+)
+
+class GewoneKlasseModule : TenantModuleConfiguratie<ProefMetGewoneKlasse> {
+    override val naam = "gewoon"
+    override val klasse: KClass<ProefMetGewoneKlasse> = ProefMetGewoneKlasse::class
+}
+
+class GewoneConfiguratie(
+    val sleutel: GeheimVerwijzing,
+)
+
+class GewoneConfiguratieModule : TenantModuleConfiguratie<GewoneConfiguratie> {
+    override val naam = "gewoon"
+    override val klasse: KClass<GewoneConfiguratie> = GewoneConfiguratie::class
+}
+
+/** Seam: een moduleconfiguratie die geen dataclass is, valt niet door het net van de geheimcontroles (review-r2 M1). */
+class TenantModulesDataclassTest {
+    @Test
+    fun `een genest item dat geen dataclass is wordt bij het bouwen geweigerd`() {
+        val fout = assertThrows<IllegalStateException> { TenantModules.van(listOf(GewoneKlasseModule())) }
+
+        assertThat(fout.message).contains("GewoneProfiel").contains("geen dataclass")
+    }
+
+    @Test
+    fun `een moduleconfiguratie die geen dataclass is wordt geweigerd`() {
+        val fout = assertThrows<IllegalStateException> { TenantModules.van(listOf(GewoneConfiguratieModule())) }
+
+        assertThat(fout.message).contains("GewoneConfiguratie").contains("geen dataclass")
+    }
 }

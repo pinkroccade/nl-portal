@@ -91,7 +91,7 @@ class TenantModules private constructor(
             return van(gevonden)
         }
 
-        /** Voor tests en voor wie de bijdragen zelf aanlevert; weigert een ongeldige of dubbele naam, een gedeelde klasse en een klasse zonder primaire constructor. */
+        /** Voor tests en voor wie de bijdragen zelf aanlevert; weigert een ongeldige of dubbele naam, een gedeelde klasse een klasse zonder primaire constructor en een klasse (ook genest) die geen dataclass is. */
         fun van(configuraties: List<TenantModuleConfiguratie<*>>): TenantModules {
             configuraties.forEach {
                 check(it.naam.matches(NAAM)) { "Modulenaam '${it.naam}' is ongeldig: kleine letters, cijfers en streepjes, beginnend met een letter" }
@@ -104,7 +104,10 @@ class TenantModules private constructor(
             configuraties.groupBy { it.klasse }.values.firstOrNull { it.size > 1 }?.let { dubbel ->
                 error("De modules ${dubbel.joinToString { "'${it.naam}'" }} gebruiken dezelfde configuratieklasse; elke module heeft een eigen klasse")
             }
-            return TenantModules(configuraties.sortedBy { it.naam })
+            val modules = TenantModules(configuraties.sortedBy { it.naam })
+            // Bouwt het schema nu al: een klasse die geen dataclass is of een niet-ondersteund type heeft, weigert hier en niet pas bij het eerste bestand.
+            TenantSchemaModel(modules)
+            return modules
         }
     }
 }

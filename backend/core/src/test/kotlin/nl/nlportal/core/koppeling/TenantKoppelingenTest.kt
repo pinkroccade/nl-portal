@@ -40,6 +40,8 @@ import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertThrows
 import org.springframework.boot.autoconfigure.AutoConfigurations
 import org.springframework.boot.test.context.runner.ApplicationContextRunner
+import org.springframework.core.env.StandardEnvironment
+import org.springframework.core.env.SystemEnvironmentPropertySource
 import org.springframework.mock.env.MockEnvironment
 import org.springframework.web.reactive.function.client.WebClient
 import org.springframework.web.server.ServerWebExchange
@@ -315,6 +317,19 @@ class TenantKoppelingenTest {
         assertThat(bron.resolve(GeheimVerwijzing("zaken-sleutel"))).isEqualTo("waarde")
         assertThat(bron.resolve(GeheimVerwijzing("anders"))).isNull()
         assertThat(bron.vereis(GeheimVerwijzing("zaken-sleutel"))).isEqualTo("waarde")
+    }
+
+    @Test
+    fun `de geheimenbron leest een OIN-naam uit een echte omgevingsvariabele, ook met een numeriek eerste segment`() {
+        val omgeving = StandardEnvironment()
+        omgeving.propertySources.addFirst(
+            SystemEnvironmentPropertySource("proef", mutableMapOf<String, Any>("NL_PORTAL_GEHEIMEN_00000099000000000001_ZAKEN_SECRET" to "waarde")),
+        )
+        val bron = OmgevingGeheimenBron(omgeving)
+
+        assertThat(bron.resolve(GeheimVerwijzing("00000099000000000001.zaken-secret"))).isEqualTo("waarde")
+        assertThat(bron.resolve(GeheimVerwijzing("00000099000000000001-zaken-secret"))).isEqualTo("waarde")
+        assertThat(bron.resolve(GeheimVerwijzing("00000099000000000002.zaken-secret"))).isNull()
     }
 
     // --- de testhulp zelf ---
