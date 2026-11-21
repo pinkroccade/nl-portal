@@ -1,9 +1,12 @@
 server:
     port: 8080
+    # De tenantresolutie volgt Forwarded alleen van vertrouwde proxies; Spring zelf volgt niets (ForwardedHeadersGuard).
+    forward-headers-strategy: none
 
 management:
-    # Beheerpoort apart zetten: MANAGEMENT_SERVER_PORT=8091 (zie site/hosting-en-configuratie/beheer-modulestatus.md)
-    # Beheerpoort apart zetten: MANAGEMENT_SERVER_PORT=8091 (zie site/hosting-en-configuratie/beheer-modulestatus.md)
+    server:
+        # De actuator staat op een eigen poort, nooit op de applicatiepoort (ManagementExposureGuard, ADR 0021 besluit 8).
+        port: ${MANAGEMENT_SERVER_PORT:8091}
     endpoint:
         health:
             access: read_only
@@ -44,6 +47,13 @@ logging:
         root: DEBUG
 
 nl-portal:
+    tenancy:
+        # De demo-tenant van de compose-stack; bootRun draait in deze moduleomgeving.
+        directory: ../../docker-compose/imports/tenants
+    geheimen:
+        # Sleutel van de BRP-koppeling van de demo-tenant (de mocks vragen er geen).
+        "00000099000000000001":
+            brp-sleutel: lokale-mock-vraagt-geen-sleutel
     support:
         ping-endpoint:
             enabled: false
@@ -124,9 +134,6 @@ nl-portal:
                 token: ${OPENKLANT_API_TOKEN}
         haalcentraal-brp:
             enabled: true
-            properties:
-                brp-api-url: http://localhost:5010/haalcentraal/api/brp/
-                bewoning-api-url: http://localhost:5011/haalcentraal/api/bewoning/
         kvk:
             enabled: true
         taak:

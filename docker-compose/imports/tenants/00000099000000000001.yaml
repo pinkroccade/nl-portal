@@ -5,3 +5,22 @@ domeinen:
     - localhost
 thema:
     titel: Mijn De Bosrand
+koppelingen:
+    brp:
+        url: http://localhost:5010/haalcentraal/api/brp
+        leverancier: Haal Centraal BRP-mock
+        auth:
+            type: api-key
+            headerNaam: X-API-KEY
+            waarde: 00000099000000000001.brp-sleutel
+    brp-bewoning:
+        url: http://localhost:5011/haalcentraal/api/bewoning
+        leverancier: Haal Centraal Bewoning-mock
+        auth:
+            type: api-key
+            headerNaam: X-API-KEY
+            waarde: 00000099000000000001.brp-sleutel
+modules:
+    brp:
+        # Doelbinding BRP per gemeente; leeg of weglaten geeft de standaardvelden en alle woonplaatsen.
+        toegestaneWoonplaatsenBewoning: []

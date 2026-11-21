@@ -130,11 +130,10 @@ modules:
       globaal: InMemorySecretKeyStore.INSTANCE is JVM-breed.
       anoniem: POST /api/public/payment/direct/postsale is anoniem (HMAC); heeft tenantrouting nodig via host van webhookUrl en tenant van de keyId.
   ":haalcentraal-brp":
-    omvang: M
-    risico: middel
-    toelichting: Twee clients per tenant; allowedCitiesForBewoning en brpFields per tenant (doelbinding BRP).
-    signalen:
-      config: HaalCentraalBrpModuleConfiguration is een singleton.
+    omvang: S
+    risico: laag
+    toelichting: Gemigreerd (T9 #508); brpFields en allowedCitiesForBewoning zijn tenantconfiguratie (modules.brp), de bron loopt via de koppelingen brp en brp-bewoning.
+    signalen: {}
   ":kvk":
     omvang: S
     risico: middel

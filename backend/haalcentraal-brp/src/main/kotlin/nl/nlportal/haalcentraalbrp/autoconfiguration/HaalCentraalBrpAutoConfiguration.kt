@@ -1,5 +1,5 @@
 /*
- * Copyright 2015-2023 Den Haag, Ritense, the Netherlands.
+ * Copyright 2015-2026 Den Haag, Ritense, the Netherlands.
  *
  * Licensed under EUPL, Version 1.2 (the "License");
  * you may not use this file except in compliance with the License.
@@ -15,58 +15,26 @@
  */
 package nl.nlportal.haalcentraalbrp.autoconfiguration
 
-import nl.nlportal.core.ssl.ClientSslContextResolver
-import nl.nlportal.haalcentraalbrp.client.HaalCentraalBrpBewoningClient
-import nl.nlportal.haalcentraalbrp.client.HaalCentraalBrpClient
+import nl.nlportal.core.koppeling.KoppelingAutoConfiguration
+import nl.nlportal.core.koppeling.KoppelingRegister
+import nl.nlportal.core.tenancy.TenantDirectory
 import nl.nlportal.haalcentraalbrp.service.HaalCentraalBrpService
-import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.autoconfigure.AutoConfiguration
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty
-import org.springframework.boot.context.properties.EnableConfigurationProperties
 import org.springframework.context.annotation.Bean
-import org.springframework.web.reactive.function.client.WebClient
 
-@AutoConfiguration
-@EnableConfigurationProperties(HaalCentraalBrpModuleConfiguration::class)
+/**
+ * De BRP-module staat aan met `nl-portal.config.haalcentraal-brp.enabled=true`. De gegevens per tenant staan in het tenantbestand
+ * (`modules.brp` en `koppelingen.brp`); deze schakelaar is alleen de keuze of de runtime de module aanbiedt.
+ */
+@AutoConfiguration(after = [KoppelingAutoConfiguration::class])
 @ConditionalOnProperty(prefix = "nl-portal.config.haalcentraal-brp", name = ["enabled"], havingValue = "true")
 class HaalCentraalBrpAutoConfiguration {
     @Bean
-    @ConditionalOnMissingBean(HaalCentraalBrpBewoningClient::class)
-    fun haalCentraalBrpBewoningClient(
-        haalCentraalBrpModuleConfiguration: HaalCentraalBrpModuleConfiguration,
-        @Autowired(required = false) clientSslContextResolver: ClientSslContextResolver? = null,
-        webClientBuilder: WebClient.Builder,
-    ): HaalCentraalBrpBewoningClient =
-        HaalCentraalBrpBewoningClient(
-            haalCentraalBrpConfigurationProperties = haalCentraalBrpModuleConfiguration.properties,
-            clientSslContextResolver = clientSslContextResolver,
-            webClientBuilder = webClientBuilder,
-        )
-
-    @Bean
-    @ConditionalOnMissingBean(HaalCentraalBrpClient::class)
-    fun haalCentraalBrpClient(
-        haalCentraalBrpModuleConfiguration: HaalCentraalBrpModuleConfiguration,
-        @Autowired(required = false) clientSslContextResolver: ClientSslContextResolver? = null,
-        webClientBuilder: WebClient.Builder,
-    ): HaalCentraalBrpClient =
-        HaalCentraalBrpClient(
-            haalCentraalBrpConfigurationProperties = haalCentraalBrpModuleConfiguration.properties,
-            clientSslContextResolver = clientSslContextResolver,
-            webClientBuilder = webClientBuilder,
-        )
-
-    @Bean
     @ConditionalOnMissingBean(HaalCentraalBrpService::class)
     fun haalCentraalBrpService(
-        haalCentraalBrpModuleConfiguration: HaalCentraalBrpModuleConfiguration,
-        haalCentraalBrpClient: HaalCentraalBrpClient,
-        haalCentraalBrpBewoningClient: HaalCentraalBrpBewoningClient,
-    ): HaalCentraalBrpService =
-        HaalCentraalBrpService(
-            haalCentraalBrpConfigurationProperties = haalCentraalBrpModuleConfiguration.properties,
-            haalCentraalBrpClient = haalCentraalBrpClient,
-            haalCentraalBrpBewoningClient = haalCentraalBrpBewoningClient,
-        )
+        koppelingRegister: KoppelingRegister,
+        tenantDirectory: TenantDirectory,
+    ): HaalCentraalBrpService = HaalCentraalBrpService(koppelingRegister, tenantDirectory)
 }

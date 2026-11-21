@@ -18,37 +18,42 @@ package nl.nlportal.haalcentraalbrp.service
 import io.github.oshai.kotlinlogging.KotlinLogging
 import nl.nlportal.portal.authentication.domain.PortalAuthentication
 import nl.nlportal.portal.authentication.domain.Vertegenwoordigde
-import nl.nlportal.haalcentraalbrp.autoconfiguration.HaalCentraalBrpModuleConfiguration.HaalCentraalBrpConfigurationProperties
-import nl.nlportal.haalcentraalbrp.client.HaalCentraalBrpBewoningClient
-import nl.nlportal.haalcentraalbrp.client.HaalCentraalBrpClient
-import nl.nlportal.haalcentraalbrp.client.path.Bewoningen
-import nl.nlportal.haalcentraalbrp.client.path.Personen
+import nl.nlportal.core.koppeling.KoppelingException
+import nl.nlportal.core.koppeling.KoppelingRegister
+import nl.nlportal.core.koppeling.post
+import nl.nlportal.core.tenancy.TenantDirectory
+import nl.nlportal.core.util.ModuleNotConfiguredException
 import nl.nlportal.haalcentraalbrp.domain.bewoning.BewoningenApiRequest
 import nl.nlportal.haalcentraalbrp.domain.bewoning.BewoningenApiResponse
 import nl.nlportal.haalcentraalbrp.domain.brp.AanduidingNaamGebruikBrpNaam
 import nl.nlportal.haalcentraalbrp.domain.brp.BrpApiRequest
+import nl.nlportal.haalcentraalbrp.domain.brp.BrpApiResponse
 import nl.nlportal.haalcentraalbrp.domain.brp.BrpPersoon
+import nl.nlportal.haalcentraalbrp.tenant.BrpConfiguratie
+import nl.nlportal.haalcentraalbrp.tenant.BrpTenantConfiguratie
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
 
+/**
+ * Bevraagt de BRP en de bewoningen via de koppelingen van de huidige tenant. De tenant volgt uit de context van het request; de
+ * velden en de doelbinding (`modules.brp`) en de bron (`koppelingen`) zijn die van die tenant, nooit van een andere.
+ */
 class HaalCentraalBrpService(
-    val haalCentraalBrpConfigurationProperties: HaalCentraalBrpConfigurationProperties,
-    val haalCentraalBrpClient: HaalCentraalBrpClient,
-    val haalCentraalBrpBewoningClient: HaalCentraalBrpBewoningClient,
+    private val register: KoppelingRegister,
+    private val directory: TenantDirectory,
 ) {
     suspend fun getPersoon(authentication: PortalAuthentication): BrpPersoon? =
         if (authentication.identiteit.vertegenwoordigde is Vertegenwoordigde.Burger) {
+            val configuratie = directory.module<BrpConfiguratie>()
             val brpApiRequest =
                 BrpApiRequest(
                     burgerservicenummer = listOf(authentication.identiteit.vertegenwoordigde.identificatie),
-                    fields = haalCentraalBrpConfigurationProperties.brpFields,
+                    fields = configuratie.velden,
                 )
-            haalCentraalBrpClient
-                .path<Personen>()
-                .post(
-                    brpApiRequest,
-                    authentication,
-                ).personen
+            register
+                .current(BrpTenantConfiguratie.PERSONEN)
+                .post<BrpApiRequest, BrpApiResponse>("/personen", brpApiRequest, configuratie.aanvullendeHeaders)
+                .personen
                 .singleOrNull()
                 ?.apply {
                     naam?.officialLastName = determineOfficialLastName(this)
@@ -69,13 +74,20 @@ class HaalCentraalBrpService(
                         peildatum = LocalDate.now().format(DateTimeFormatter.ofPattern("yyyy-MM-dd")),
                         adresseerbaarObjectIdentificatie = adresseerbaarObjectIdentificatie,
                     )
-                haalCentraalBrpBewoningClient.path<Bewoningen>().post(bewoningenApiRequest, authentication)
+                val configuratie = directory.module<BrpConfiguratie>()
+                register
+                    .current(BrpTenantConfiguratie.MODULE, BrpTenantConfiguratie.BEWONING)
+                    .post<BewoningenApiRequest, BewoningenApiResponse>("/bewoningen", bewoningenApiRequest, configuratie.aanvullendeHeaders)
             } else {
                 logger.warn { "Authentication is not supported" }
                 null
             }
-        } catch (ex: Exception) {
-            logger.error(ex) { "Something went wrong with 'getBewoningen' - error: ${ex.message}" }
+        } catch (ex: KoppelingException) {
+            // Geen stacktrace of oorzaak: die kunnen het BSN bevatten. De referentie vindt de aanroep terug.
+            logger.error { "Bewoningen ophalen mislukt: koppeling '${ex.koppeling}', soort ${ex.soort}, referentie ${ex.correlatieId}" }
+            null
+        } catch (ex: ModuleNotConfiguredException) {
+            logger.warn { "Bewoningen ophalen kan niet: ${ex.message}" }
             null
         }
 
@@ -84,7 +96,7 @@ class HaalCentraalBrpService(
         adresseerbaarObjectIdentificatie: String,
         woonplaats: String? = null,
     ): Int? {
-        if (allowedBewoningRequest(woonplaats)) {
+        if (allowedBewoningRequest(directory.module<BrpConfiguratie>(), woonplaats)) {
             return getBewoningen(authentication, adresseerbaarObjectIdentificatie)
                 ?.bewoningen
                 ?.firstOrNull()
@@ -128,14 +140,15 @@ class HaalCentraalBrpService(
     }
 
     private fun allowedBewoningRequest(
+        configuratie: BrpConfiguratie,
         woonplaats: String? = null,
     ): Boolean {
-        if (haalCentraalBrpConfigurationProperties.allowedCitiesForBewoning.isNotEmpty()) {
+        if (configuratie.toegestaneWoonplaatsenBewoning.isNotEmpty()) {
             if (woonplaats == null) {
                 return false
             }
 
-            if (woonplaats !in haalCentraalBrpConfigurationProperties.allowedCitiesForBewoning) {
+            if (woonplaats !in configuratie.toegestaneWoonplaatsenBewoning) {
                 return false
             }
         }

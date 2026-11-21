@@ -167,7 +167,6 @@ class IdentityRules(
                         // Resource-serverconfiguratie met de converter; verdwijnt of verhuist met de BFF-tracer (epic #499, stap 4).
                         "nl.nlportal.core.security.OauthSecurityAutoConfiguration",
                     ),
-                bearerTokenReaders = arrayOf("nl.nlportal.haalcentraalbrp.."),
                 authenticationModules =
                     setOf("/portal-authentication/", "/common-ground-authentication/", "/common-ground-authentication-test/"),
             )

@@ -23,6 +23,10 @@ spring:
 nl-portal:
     tenancy:
         directory: src/test/resources/tenants
+    geheimen:
+        # Sleutel van de BRP-koppeling van de demo-tenant (de mocks vragen er geen).
+        "00000099000000000001":
+            brp-sleutel: test-sleutel
     security:
         endpoints:
             unsecured: /api/public/**
@@ -91,9 +95,6 @@ nl-portal:
                 token: 0000000000000000000000000000000000000000
         haalcentraal-brp:
             enabled: true
-            properties:
-                brp-api-url: http://localhost:56789/haalcentraal/api/brp/
-                bewoning-api-url: http://localhost:56789/haalcentraal/api/bewoning/
         kvk:
             enabled: true
             properties:
