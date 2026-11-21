@@ -1,3 +1,18 @@
+/*
+ * Copyright 2026 PinkRoccade Local Government B.V.
+ *
+ * Licensed under EUPL, Version 1.2 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ * https://joinup.ec.europa.eu/collection/eupl/eupl-text-eupl-12
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" basis,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 package nl.nlportal.commonground.authentication.bff
 
 import nl.nlportal.core.tenancy.Betrouwbaarheidsniveau
@@ -155,12 +170,19 @@ class SessieSecurityContextRepository(
     /** De callback levert een `OAuth2AuthenticationToken` met een [BffOidcUser]; daarna werkt alleen de [PortalAuthentication]. */
     private fun naarPortal(authentication: Authentication?): PortalAuthentication? =
         when (authentication) {
-            is PortalAuthentication -> authentication
-            is OAuth2AuthenticationToken ->
+            is PortalAuthentication -> {
+                authentication
+            }
+
+            is OAuth2AuthenticationToken -> {
                 (authentication.principal as? BffOidcUser)?.let { user ->
                     PortalAuthentication(user.identiteit, AuthorityUtils.NO_AUTHORITIES).also { it.details = SessieDetails(user.idToken.tokenValue) }
                 }
-            else -> null
+            }
+
+            else -> {
+                null
+            }
         }
 
     private fun wis(session: WebSession) {
@@ -171,4 +193,3 @@ class SessieSecurityContextRepository(
         val TTL_MARGE: Duration = Duration.ofMinutes(2)
     }
 }
-

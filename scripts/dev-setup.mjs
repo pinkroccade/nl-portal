@@ -61,6 +61,7 @@ export const TEMPLATES = [
   { template: "docker-compose/templates/openklant-2/configuration.json", output: "docker-compose/.generated/openklant-2/configuration.json" },
   { template: "docker-compose/templates/openklant-2/admin_user.json", output: "docker-compose/.generated/openklant-2/admin_user.json" },
   { template: "docker-compose/templates/openproduct/configuration.json", output: "docker-compose/.generated/openproduct/configuration.json" },
+  { template: "docker-compose/templates/redis/users.acl", output: "docker-compose/.generated/redis/users.acl" },
   { template: "backend/app/.env.properties.example", output: "backend/app/.env.properties" },
 ];
 

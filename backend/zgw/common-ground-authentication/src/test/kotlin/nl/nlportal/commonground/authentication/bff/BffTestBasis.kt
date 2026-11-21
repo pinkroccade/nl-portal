@@ -1,3 +1,18 @@
+/*
+ * Copyright 2026 PinkRoccade Local Government B.V.
+ *
+ * Licensed under EUPL, Version 1.2 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ * https://joinup.ec.europa.eu/collection/eupl/eupl-text-eupl-12
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" basis,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 package nl.nlportal.commonground.authentication.bff
 
 import com.nimbusds.jose.JWSAlgorithm
@@ -36,7 +51,12 @@ abstract class BffTestBasis {
 
     @BeforeEach
     fun begin() {
-        client = WebTestClient.bindToServer().baseUrl("http://localhost:$poort").responseTimeout(Duration.ofSeconds(30)).build()
+        client =
+            WebTestClient
+                .bindToServer()
+                .baseUrl("http://localhost:$poort")
+                .responseTimeout(Duration.ofSeconds(30))
+                .build()
         BffTestOmgeving.klok.reset()
         BffTestOmgeving.gebeurtenissen.clear()
         BffTestOmgeving.tenants.forEach { it.tokens.spec = TokenSpec() }
@@ -79,8 +99,10 @@ abstract class BffTestBasis {
     ): EntityExchangeResult<ByteArray> {
         var spec =
             client
-                .method(org.springframework.http.HttpMethod.valueOf(methode))
-                .uri(URI.create("http://localhost:$poort$pad"))
+                .method(
+                    org.springframework.http.HttpMethod
+                        .valueOf(methode),
+                ).uri(URI.create("http://localhost:$poort$pad"))
                 .header("Host", "${browser.host}:$poort")
         if (browser.jar.isNotEmpty()) spec = spec.header("Cookie", browser.cookieHeader())
         headers.forEach { (naam, waarde) -> spec = spec.header(naam, waarde) }
@@ -117,7 +139,13 @@ abstract class BffTestBasis {
         gebruikersnaam: String = "test",
     ): URI {
         val idp = WebTestClient.bindToServer().baseUrl("${autorisatieUri.scheme}://${autorisatieUri.authority}").build()
-        var resultaat = idp.get().uri(autorisatieUri).exchange().expectBody().returnResult()
+        var resultaat =
+            idp
+                .get()
+                .uri(autorisatieUri)
+                .exchange()
+                .expectBody()
+                .returnResult()
         if (resultaat.status.value() == 200) {
             // prompt=login dwingt de testprovider tot zijn inlogformulier; de claims komen uit het tokenverzoek, niet uit het formulier
             resultaat =

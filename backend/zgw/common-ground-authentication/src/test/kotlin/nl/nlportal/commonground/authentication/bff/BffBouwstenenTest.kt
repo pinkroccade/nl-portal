@@ -1,3 +1,18 @@
+/*
+ * Copyright 2026 PinkRoccade Local Government B.V.
+ *
+ * Licensed under EUPL, Version 1.2 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ * https://joinup.ec.europa.eu/collection/eupl/eupl-text-eupl-12
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" basis,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 package nl.nlportal.commonground.authentication.bff
 
 import ch.qos.logback.classic.Logger
@@ -83,7 +98,14 @@ class InlogbeslisserTest {
 
     @Test
     fun `wallet en eHerkenning worden geweigerd ook als de tenant ze aan heeft staan`() {
-        assertThat(reden(token { put("inlogmiddel", "wallet"); put("acr", "http://eidas.europa.eu/LoA/substantial") })).isEqualTo(Reden.INLOGMIDDEL_NIET_ONDERSTEUND)
+        assertThat(
+            reden(
+                token {
+                    put("inlogmiddel", "wallet")
+                    put("acr", "http://eidas.europa.eu/LoA/substantial")
+                },
+            ),
+        ).isEqualTo(Reden.INLOGMIDDEL_NIET_ONDERSTEUND)
         assertThat(reden(token { put("inlogmiddel", "eherkenning") })).isEqualTo(Reden.INLOGMIDDEL_NIET_ONDERSTEUND)
     }
 
@@ -92,7 +114,10 @@ class InlogbeslisserTest {
         val digid = Inlogbeslisser.NIVEAUS.getValue(Inlogmiddel.DIGID)
         assertThat(digid.values).containsExactly(Betrouwbaarheidsniveau.BASIS, Betrouwbaarheidsniveau.MIDDEN, Betrouwbaarheidsniveau.SUBSTANTIEEL, Betrouwbaarheidsniveau.HOOG)
         assertThat(Inlogbeslisser.NIVEAUS.getValue(Inlogmiddel.WALLET).keys).containsExactly("http://eidas.europa.eu/LoA/low", "http://eidas.europa.eu/LoA/substantial", "http://eidas.europa.eu/LoA/high")
-        assertThat(Inlogbeslisser.NIVEAUS.getValue(Inlogmiddel.TEST)).containsExactly(org.assertj.core.api.Assertions.entry("Basis", Betrouwbaarheidsniveau.BASIS))
+        assertThat(Inlogbeslisser.NIVEAUS.getValue(Inlogmiddel.TEST)).containsExactly(
+            org.assertj.core.api.Assertions
+                .entry("Basis", Betrouwbaarheidsniveau.BASIS),
+        )
         assertThat(Inlogbeslisser.NIVEAUS.getValue(Inlogmiddel.EHERKENNING)).isEmpty()
     }
 
@@ -135,7 +160,12 @@ class ClientSleutelsTest {
         kid: String? = "k1",
         alg: JWSAlgorithm? = JWSAlgorithm.PS256,
         bits: Int = 3072,
-    ): RSAKey = RSAKeyGenerator(bits).also { g -> kid?.let { g.keyID(it) }; alg?.let { g.algorithm(it) } }.generate()
+    ): RSAKey =
+        RSAKeyGenerator(bits)
+            .also { g ->
+                kid?.let { g.keyID(it) }
+                alg?.let { g.algorithm(it) }
+            }.generate()
 
     private fun tenant(
         oin: String,
@@ -189,7 +219,14 @@ class ClientSleutelsTest {
         weigert(sleutel(alg = null).toJSONString(), "PS256")
         weigert(sleutel(alg = JWSAlgorithm.RS256).toJSONString(), "PS256")
         weigert(sleutel(bits = 2048).toJSONString(), "3072")
-        weigert(com.nimbusds.jose.jwk.gen.ECKeyGenerator(com.nimbusds.jose.jwk.Curve.P_256).keyID("e").generate().toJSONString(), "geen RSA")
+        weigert(
+            com.nimbusds.jose.jwk.gen
+                .ECKeyGenerator(com.nimbusds.jose.jwk.Curve.P_256)
+                .keyID("e")
+                .generate()
+                .toJSONString(),
+            "geen RSA",
+        )
     }
 
     @Test
@@ -198,7 +235,16 @@ class ClientSleutelsTest {
         schrijf("a.jwk", sleutel("zelfde").toJSONString())
         schrijf("b.jwk", sleutel("zelfde").toJSONString())
         schrijf("c.jwk", gedeeld.toJSONString())
-        schrijf("d.jwk", RSAKey.Builder(gedeeld.toRSAPublicKey()).privateKey(gedeeld.toRSAPrivateKey()).keyID("andere-kid").algorithm(JWSAlgorithm.PS256).build().toJSONString())
+        schrijf(
+            "d.jwk",
+            RSAKey
+                .Builder(gedeeld.toRSAPublicKey())
+                .privateKey(gedeeld.toRSAPrivateKey())
+                .keyID("andere-kid")
+                .algorithm(JWSAlgorithm.PS256)
+                .build()
+                .toJSONString(),
+        )
 
         assertThatThrownBy { TenantClientSleutels.laad(listOf(tenant(a, "a.jwk"), tenant(b, "b.jwk")), dir) }.hasMessageContaining("keyId")
         assertThatThrownBy { TenantClientSleutels.laad(listOf(tenant(a, "c.jwk"), tenant(b, "d.jwk")), dir) }.hasMessageContaining("dezelfde clientsleutel")

@@ -13,8 +13,16 @@ services:
         container_name: nl-portal-backend
         network_mode: "service:localhost"
         env_file: imports/backend.env
+        # De clientsleutel is 0600 van de gebruiker die `mise run dev:setup` draaide; de container leest hem als diezelfde uid (Linux).
+        user: "${LOCAL_UID:-1000}:${LOCAL_GID:-1000}"
+        depends_on:
+            - nl-portal-sessies
         environment:
-            KEYCLOAK_CLIENT_SECRET: ${KEYCLOAK_M2M_CLIENT_SECRET:?draai eerst mise run dev:setup}
+            # De BFF (ADR 0022): sessies in Redis met ACL, en de publieke basis-URL van Keycloak waaronder elke issuer valt.
+            REDIS_HOST: nl-portal-sessies
+            REDIS_USERNAME: nlportal
+            REDIS_PASSWORD: ${REDIS_PASSWORD:?draai eerst mise run dev:setup}
+            KEYCLOAK_BROKER_URL: http://localhost:8082
             NLPORTAL_CONFIG_OBJECTENAPI_PROPERTIES_TOKEN: "${OBJECTS_API_TOKEN:?draai eerst mise run dev:setup}"
             NLPORTAL_CONFIG_ZAKENAPI_PROPERTIES_SECRET: "${OPENZAAK_NLPORTAL_SECRET:?draai eerst mise run dev:setup}"
             NLPORTAL_CONFIG_CATALOGIAPI_PROPERTIES_SECRET: "${OPENZAAK_NLPORTAL_SECRET:?draai eerst mise run dev:setup}"
@@ -24,12 +32,14 @@ services:
             NLPORTAL_CONFIG_OPENKLANT2_PROPERTIES_TOKEN: "${OPENKLANT_API_TOKEN:?draai eerst mise run dev:setup}"
             NLPORTAL_BEHEER_WACHTWOORDHASH: "{noop}${BACKEND_BEHEER_PASSWORD:?draai eerst mise run dev:setup}"
             NLPORTAL_FEATUREFLAGS_FILE: /etc/nl-portal/flags/nl-portal.flagd.json
-            NL_PORTAL_TENANTS_DIRECTORY: /etc/nl-portal/tenants
+            NL_PORTAL_TENANTS_DIRECTORY: /etc/nl-portal/imports/tenants
             SPRING_CONFIG_IMPORT: optional:configtree:/etc/nl-portal/koppelingen/
         volumes:
             - ./imports/flags:/etc/nl-portal/flags:ro
             - ./imports/koppelingen:/etc/nl-portal/koppelingen:ro
-            - ./imports/tenants:/etc/nl-portal/tenants:ro
+            # De map met tenantbestanden en, op dezelfde relatieve plek als op de host, de gegenereerde clientsleutel per tenant.
+            - ./imports/tenants:/etc/nl-portal/imports/tenants:ro
+            - ./.generated/tenants:/etc/nl-portal/.generated/tenants:ro
 
     nl-portal-frontend:
         image: ghcr.io/pinkroccade/nl-portal-frontend:${NL_PORTAL_IMAGE_TAG:?zet NL_PORTAL_IMAGE_TAG op een tag uit ghcr.io/pinkroccade/nl-portal-backend en -frontend (zie docker-compose/README.md)}
