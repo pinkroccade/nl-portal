@@ -80,4 +80,24 @@ internal class IdentiteitTest {
         assertEquals("geheim.token.waarde", authentication.bearerToken)
         assertNull(authentication.credentials)
     }
+
+    @Test
+    fun `a bedrijf without vestigingsnummer says so in its string form and has no vestiging`() {
+        val zonderVestiging = Vertegenwoordigde.Bedrijf("12345678")
+
+        assertNull(zonderVestiging.vestigingsnummer)
+        assertEquals("Bedrijf(kvkNummer=***, vestigingsnummer=geen)", zonderVestiging.toString())
+        assertEquals("Bedrijf(kvkNummer=***, vestigingsnummer=***)", bedrijf.toString())
+    }
+
+    @Test
+    fun `the user type and subject of an authentication follow the vertegenwoordigde and the gebruiker`() {
+        val burgerAuthentication = PortalAuthentication(Identiteit(gebruiker, burger), "token", emptyList())
+        val bedrijfAuthentication = PortalAuthentication(Identiteit(gebruiker, bedrijf), "token", emptyList())
+
+        assertEquals("bsn", burgerAuthentication.userType)
+        assertEquals("kvk", bedrijfAuthentication.userType)
+        assertEquals("subject-1", burgerAuthentication.subject)
+        assertEquals("subject-1", burgerAuthentication.principal)
+    }
 }

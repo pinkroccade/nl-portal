@@ -178,4 +178,18 @@ internal class IdentiteitUitTokenTest {
     private fun assertRejected(jwt: Jwt) {
         assertThrows<OngeldigTokenException> { IdentiteitUitToken.lees(jwt) }
     }
+
+    @Test
+    fun `an aanvrager claim without BSN or KvK number is rejected as unsupported user type`() {
+        assertThrows<UserTypeUnsupportedException> {
+            IdentiteitUitToken.lees(token().claim("aanvrager", mapOf("vestigingsnummer" to "000012345678")).build())
+        }
+    }
+
+    @Test
+    fun `a single machtigingsdienst uuid as string is read`() {
+        val jwt = token().claim("aanvrager", mapOf("kvk" to "1234")).claim(IdentiteitUitToken.MACHTIGINGSDIENST_CLAIM, uuid.toString()).build()
+
+        assertEquals(listOf(uuid), IdentiteitUitToken.lees(jwt).machtigingsdienstUuids)
+    }
 }

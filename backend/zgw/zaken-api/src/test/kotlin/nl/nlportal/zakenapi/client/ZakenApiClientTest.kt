@@ -193,6 +193,41 @@ class ZakenApiClientTest {
     }
 
     @Test
+    fun `zaken search - a bedrijf with a vestiging is searched by vestiging`() {
+        mockServer.enqueue(emptyZakenResponse())
+
+        return runTest {
+            zakenApiClient
+                .zaken()
+                .search()
+                .withAuthentication(JwtBuilder().vestigingsNummerKvk("123", "000012345678").buildAuthentication())
+                .retrieve()
+
+            val url = mockServer.takeRequest().requestUrl
+            assertEquals("000012345678", url?.queryParameter("rol__betrokkeneIdentificatie__vestiging__vestigingsNummer"))
+            assertEquals("123", url?.queryParameter("rol__betrokkeneIdentificatie__vestiging__kvkNummer"))
+        }
+    }
+
+    @Test
+    fun `zaken search - a bedrijf with a vestiging is searched as niet-natuurlijk persoon when configured so`() {
+        zakenApiConfigProperties.useNnpKvkQueryIdentificators = true
+        mockServer.enqueue(emptyZakenResponse())
+
+        return runTest {
+            zakenApiClient
+                .zaken()
+                .search()
+                .withAuthentication(JwtBuilder().vestigingsNummerKvk("123", "000012345678").buildAuthentication())
+                .retrieve()
+
+            val url = mockServer.takeRequest().requestUrl
+            assertEquals("000012345678", url?.queryParameter("rol__betrokkeneIdentificatie__nietNatuurlijkPersoon__vestigingsNummer"))
+            assertEquals("123", url?.queryParameter("rol__betrokkeneIdentificatie__nietNatuurlijkPersoon__kvkNummer"))
+        }
+    }
+
+    @Test
     fun `zaken search - paging and retrieve all`() {
         pagedRetrieve(
             listOf(

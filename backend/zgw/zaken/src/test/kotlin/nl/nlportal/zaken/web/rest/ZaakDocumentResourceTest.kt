@@ -24,6 +24,10 @@ import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertFalse
 import org.junit.jupiter.api.Assertions.assertNotNull
 import org.junit.jupiter.api.Test
+import org.junit.jupiter.api.assertThrows
+import org.springframework.http.HttpStatus
+import org.springframework.web.server.ResponseStatusException
+import nl.nlportal.commonground.authentication.JwtBuilder
 import org.mockito.kotlin.mock
 import org.mockito.kotlin.whenever
 
@@ -61,5 +65,20 @@ class ZaakDocumentResourceTest {
         assertFalse(header!!.contains('\r'))
         assertFalse(header.contains('\n'))
         assertEquals(200, response.statusCode.value())
+    }
+
+    @Test
+    fun `a document the user may not see is answered with unauthorized`() {
+        val echteAuthentication = JwtBuilder().vertegenwoordigdeBsn("123456782").buildAuthentication()
+        runBlocking {
+            whenever(zakenApiService.getZaakDocumentContent("id", echteAuthentication)).thenReturn(null to null)
+        }
+
+        val exception =
+            assertThrows<ResponseStatusException> {
+                runBlocking { resource.getContentStreaming("id", echteAuthentication) }
+            }
+
+        assertEquals(HttpStatus.UNAUTHORIZED, exception.statusCode)
     }
 }
