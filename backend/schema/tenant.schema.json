@@ -90,7 +90,7 @@
             "properties" : {
               "type" : {
                 "type" : "string",
-                "enum" : [ "api-key", "bearer", "zgw-jwt", "oauth2-client-credentials", "oauth2-private-key-jwt", "geen" ]
+                "enum" : [ "api-key", "bearer", "zgw-jwt", "oauth2-client-credentials", "oauth2-private-key-jwt", "gcs-v1-hmac", "geen" ]
               },
               "headerNaam" : {
                 "type" : "string",
@@ -165,6 +165,68 @@
               }
             }
           },
+          "additionalProperties" : false
+        },
+        "payment-direct" : {
+          "type" : "object",
+          "properties" : {
+            "webhookUrl" : {
+              "type" : "string",
+              "minLength" : 1
+            },
+            "customTemplateUrl" : {
+              "type" : "string",
+              "minLength" : 1
+            },
+            "toonResultaatPagina" : {
+              "type" : "boolean"
+            },
+            "profielen" : {
+              "type" : "object",
+              "additionalProperties" : {
+                "type" : "object",
+                "properties" : {
+                  "pspId" : {
+                    "type" : "string",
+                    "minLength" : 1
+                  },
+                  "taal" : {
+                    "type" : "string",
+                    "minLength" : 1
+                  },
+                  "valuta" : {
+                    "type" : "string",
+                    "minLength" : 1
+                  },
+                  "returnUrl" : {
+                    "type" : "string",
+                    "minLength" : 1
+                  },
+                  "koppeling" : {
+                    "type" : "string",
+                    "minLength" : 1
+                  },
+                  "webhookSleutelId" : {
+                    "type" : "string",
+                    "minLength" : 1
+                  },
+                  "webhookGeheim" : {
+                    "type" : "string",
+                    "pattern" : "^[a-z0-9]+([._-][a-z0-9]+)*$"
+                  },
+                  "creditcardAan" : {
+                    "type" : "boolean"
+                  },
+                  "aantalPogingen" : {
+                    "type" : "integer"
+                  }
+                },
+                "required" : [ "pspId", "returnUrl" ],
+                "additionalProperties" : false
+              }
+            }
+          },
+          "required" : [ "profielen" ],
           "additionalProperties" : false
         },
         "zakenapi" : {

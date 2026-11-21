@@ -25,9 +25,24 @@ koppelingen:
             type: zgw-jwt
             clientId: test-client
             secret: 00000099000000000001.zaken-secret
+    # Betalen via Worldline Direct, zodat de :app-tests de module met echte waarden laden. De geheimen staan in application.yml van de tests.
+    payment-direct:
+        url: http://localhost:56789/payment
+        auth:
+            type: gcs-v1-hmac
+            clientId: test-api-sleutel
+            secret: 00000099000000000001.payment-direct-api-geheim
 modules:
     brp:
         # Doelbinding BRP per gemeente; leeg of weglaten geeft de standaardvelden en alle woonplaatsen.
         toegestaneWoonplaatsenBewoning: []
     zakenapi:
         nnpKvkQueryIdentificatoren: false
+    payment-direct:
+        webhookUrl: http://bosrand.example/api/public/payment/direct/postsale
+        profielen:
+            belastingzaken:
+                pspId: TAX
+                returnUrl: http://bosrand.example
+                webhookSleutelId: test-webhook-sleutel
+                webhookGeheim: 00000099000000000001.payment-direct-webhook-geheim
