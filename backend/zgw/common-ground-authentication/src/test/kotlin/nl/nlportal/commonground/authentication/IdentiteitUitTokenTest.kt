@@ -157,7 +157,13 @@ internal class IdentiteitUitTokenTest {
     @Test
     fun `a missing issuer or subject is rejected with its own exception, not as an unsupported user type`() {
         val claim = mapOf("bsn" to "1234")
-        val zonderSubject = Jwt.withTokenValue("t").header("alg", "none").issuer("https://i.example").claim("aanvrager", claim).build()
+        val zonderSubject =
+            Jwt
+                .withTokenValue("t")
+                .header("alg", "none")
+                .issuer("https://i.example")
+                .claim("aanvrager", claim)
+                .build()
 
         assertThrows<OngeldigTokenException> { IdentiteitUitToken.lees(zonderSubject) }
     }
