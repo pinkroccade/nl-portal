@@ -64,7 +64,15 @@ class TenantWebFilter(
         if (trustedProxies.trusts(request.remoteAddress)) {
             forwardedHost(request)?.let { return it }
         }
-        return request.headers["Host"]?.singleOrNull()
+        val hosts = request.headers["Host"]
+        return when {
+            // Geen Host-header (HTTP/1.0, of een in-memory request met een absolute URI): de host van de request-URI.
+            hosts.isNullOrEmpty() -> request.uri.authority
+
+            hosts.size == 1 -> hosts.single()
+
+            else -> null
+        }
     }
 
     /** `null`: geen forwarded host aangegeven. Een lege of onbruikbare waarde is wel aangegeven en valt dus niet terug op `Host`. */

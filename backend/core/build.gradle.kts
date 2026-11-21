@@ -24,6 +24,9 @@ val bootJar: org.springframework.boot.gradle.tasks.bundling.BootJar by tasks
 bootJar.enabled = false
 jar.enabled = true
 
+// core is een bibliotheek met twee main-klassen (validator-CLI en schemagenerator): Spring Boot hoeft er geen te kiezen.
+tasks.named("resolveMainClassName") { enabled = false }
+
 dependencies {
     implementation(kotlin("stdlib-jdk8"))
 
