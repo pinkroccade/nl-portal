@@ -1,11 +1,11 @@
 server:
     port: 8080
-    # Spring volgt zelf geen Forwarded of X-Forwarded-*: de tenantresolutie doet dat alleen van de vertrouwde proxies.
+    # De tenantresolutie volgt Forwarded alleen van vertrouwde proxies; Spring zelf volgt niets (ForwardedHeadersGuard).
     forward-headers-strategy: none
 
 management:
     server:
-        # De actuator staat op een eigen poort (zie site/hosting-en-configuratie/beheer-modulestatus.md); de tenancy eist dat.
+        # De actuator staat op een eigen poort, nooit op de applicatiepoort (ManagementExposureGuard, ADR 0021 besluit 8).
         port: ${MANAGEMENT_SERVER_PORT:8091}
     endpoint:
         health:
@@ -48,8 +48,8 @@ logging:
 
 nl-portal:
     tenancy:
-        # De demo-tenant van docker-compose (relatief aan backend/app-dev, de werkmap van bootRun).
-        directory: ${NL_PORTAL_TENANTS_DIRECTORY:../../docker-compose/imports/tenants}
+        # De demo-tenant van de compose-stack; bootRun draait in deze moduleomgeving.
+        directory: ../../docker-compose/imports/tenants
     # De secret store van deze dev-app: het geheim van de koppeling `zakenapi` in het tenantbestand.
     geheimen:
         "00000099000000000001.zaken-secret": ${OPENZAAK_NLPORTAL_SECRET}
@@ -116,6 +116,10 @@ nl-portal:
                     port: 3310
         zakenapi:
             enabled: true
+            properties:
+                url: http://localhost:8001
+                clientId: nl-portal
+                secret: ${OPENZAAK_NLPORTAL_SECRET}
         objectenapi:
             enabled: true
             properties:
@@ -129,9 +133,6 @@ nl-portal:
                 token: ${OPENKLANT_API_TOKEN}
         haalcentraal-brp:
             enabled: true
-            properties:
-                brp-api-url: http://localhost:5010/haalcentraal/api/brp/
-                bewoning-api-url: http://localhost:5011/haalcentraal/api/bewoning/
         kvk:
             enabled: true
         taak:

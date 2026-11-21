@@ -28,6 +28,8 @@ data class ModuleOvertreding(
 /** Wat een module over de tenant weet bij het valideren van zijn eigen configuratie: de namen van de koppelingen in het tenantbestand. */
 data class ModuleContext(
     val koppelingen: Set<String> = emptySet(),
+    /** Per koppelingnaam de naam van de header waarmee de koppeling zelf authenticeert (alleen `api-key`); die mag een module niet zetten. */
+    val authHeaders: Map<String, String> = emptyMap(),
 )
 
 /**

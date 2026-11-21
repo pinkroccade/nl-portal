@@ -19,47 +19,64 @@ import graphql.GraphQLError
 import graphql.GraphqlErrorBuilder
 import graphql.schema.DataFetchingEnvironment
 import io.github.oshai.kotlinlogging.KotlinLogging
+import nl.nlportal.core.koppeling.KoppelingConfiguratieException
 import nl.nlportal.core.koppeling.KoppelingException
 import nl.nlportal.core.modulegate.ModuleNotAvailableException
 import nl.nlportal.core.tenancy.TenantContextMissingException
 import nl.nlportal.core.util.ModuleNotConfiguredException
 import org.springframework.graphql.execution.DataFetcherExceptionResolverAdapter
+import java.util.UUID
 
+/**
+ * Zet een fout uit een data fetcher om naar een GraphQL-fout. Interne configuratiefouten (`ModuleNotConfiguredException`,
+ * `TenantContextMissingException`, `KoppelingConfiguratieException`) bevatten OIN, koppeling- of headernamen en gaan dus
+ * niet met hun melding naar de browser: de browser krijgt een vaste melding, een generieke code en een correlatieId. De log
+ * noemt de code, het correlatieId, de klassenaam en de melding van de uitzondering (voor de beheerder), nooit de oorzaak
+ * (`cause`) of een stacktrace.
+ */
 class GraphQLExceptionHandler : DataFetcherExceptionResolverAdapter() {
     override fun resolveToSingleError(
         ex: Throwable,
         env: DataFetchingEnvironment,
-    ): GraphQLError? =
-        GraphqlErrorBuilder
+    ): GraphQLError? {
+        val uitkomst =
+            when (ex) {
+                is ModuleNotAvailableException -> Uitkomst(ex.message, mapOf("code" to "MODULE_NOT_AVAILABLE", "module" to ex.module))
+
+                // Foutdetails van een bron gaan niet naar de browser: alleen een generieke code en de referentie voor de log.
+                is KoppelingException -> Uitkomst(ex.message, mapOf("code" to "KOPPELING_FOUT", "correlatieId" to ex.correlatieId))
+
+                is ModuleNotConfiguredException -> intern(ex, "Module is niet beschikbaar", "MODULE_NIET_GECONFIGUREERD")
+
+                is TenantContextMissingException -> intern(ex, "Niet geautoriseerd", "TENANT_ONTBREEKT")
+
+                is KoppelingConfiguratieException -> intern(ex, "Koppeling is niet beschikbaar", "KOPPELING_FOUT")
+
+                else -> Uitkomst(ex.message, null)
+            }
+        return GraphqlErrorBuilder
             .newError()
-            .message(melding(ex))
-            .also { error ->
-                when (ex) {
-                    is ModuleNotAvailableException -> error.extensions(mapOf("code" to "MODULE_NOT_AVAILABLE", "module" to ex.module))
-
-                    // Foutdetails van een bron gaan niet naar de browser: alleen een generieke code en de referentie voor de log.
-                    // De melding van een tenant- of moduleconfiguratiefout bevat de OIN of de naam van een instelling: die gaat alleen naar de log.
-                    is ModuleNotConfiguredException -> error.extensions(mapOf("code" to "MODULE_NIET_GECONFIGUREERD"))
-
-                    is TenantContextMissingException -> error.extensions(mapOf("code" to "TENANT_ONTBREEKT"))
-
-                    is KoppelingException -> error.extensions(mapOf("code" to "KOPPELING_FOUT", "correlatieId" to ex.correlatieId))
-                }
-            }.path(env.executionStepInfo.path)
+            .message(uitkomst.melding)
+            .also { error -> uitkomst.extensions?.let { error.extensions(it) } }
+            .path(env.executionStepInfo.path)
             .location(env.field.sourceLocation)
             .build()
+    }
 
-    private fun melding(ex: Throwable): String? =
-        when (ex) {
-            is ModuleNotConfiguredException, is TenantContextMissingException -> {
-                log.warn { "GraphQL-fout met configuratiedetails (alleen in de log): ${ex.message}" }
-                if (ex is ModuleNotConfiguredException) "De module is niet beschikbaar" else "De aanvraag kan niet worden verwerkt"
-            }
+    private fun intern(
+        ex: Throwable,
+        melding: String,
+        code: String,
+    ): Uitkomst {
+        val correlatieId = UUID.randomUUID().toString()
+        log.warn { "Interne fout bij een GraphQL-aanroep ($code, ${ex::class.simpleName}: ${ex.message}), referentie $correlatieId" }
+        return Uitkomst(melding, mapOf("code" to code, "correlatieId" to correlatieId))
+    }
 
-            else -> {
-                ex.message
-            }
-        }
+    private class Uitkomst(
+        val melding: String?,
+        val extensions: Map<String, Any>?,
+    )
 
     private companion object {
         val log = KotlinLogging.logger {}

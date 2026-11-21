@@ -49,6 +49,7 @@ import java.util.concurrent.atomic.AtomicReference
 import org.springframework.mock.http.server.reactive.MockServerHttpRequest
 import org.springframework.mock.web.server.MockServerWebExchange
 import nl.nlportal.core.tenancy.TenantContext
+import nl.nlportal.core.tenancy.VervallenProperties
 
 /** Seam: het register leest per tenant uit `TenantDefinition`, met geheimen als verwijzing (epic #499, story 11, 12, 14). */
 class TenantKoppelingenTest {
@@ -118,6 +119,23 @@ class TenantKoppelingenTest {
         val register = TestTenants.register(TestTenants.tenant(bosrand, koppelingen = alle.mapValues { TestTenants.koppeling(url(bosrandBron), it.value, leverancier = "Open Zaak", versie = "1.31") }))
 
         TestTenants.metTenant(bosrand) { alle.keys.forEach { assertThat(register.current(it)).isNotNull } }
+    }
+
+    @Test
+    fun `een koppeling met auth type geen werkt zonder geheim en stuurt geen inloggegeven mee`() {
+        bosrandBron.enqueue(json("""{"id":"bosrand"}"""))
+        val register =
+            TestTenants.register(
+                TestTenants.tenant(bosrand, koppelingen = mapOf("brp" to TestTenants.koppeling(url(bosrandBron), TenantKoppelingAuth(TenantKoppelingAuthType.GEEN)))),
+                geheimen = GeheimenBron { null },
+            )
+
+        val zaak = TestTenants.metTenant(bosrand) { register.current("brp").get<Zaak>("/personen") }
+
+        assertThat(zaak).isEqualTo(Zaak("bosrand"))
+        val verzoek = bosrandBron.takeRequest()
+        assertThat(verzoek.getHeader("Authorization")).isNull()
+        assertThat(verzoek.getHeader("X-Api-Key")).isNull()
     }
 
     @Test
@@ -200,6 +218,46 @@ class TenantKoppelingenTest {
                 assertThat(context).hasFailed()
                 assertThat(generateSequence(context.startupFailure) { it.cause }.map { it.message }.joinToString()).contains("nl-portal.koppelingen.proef")
             }
+    }
+
+    // --- vervallen properties van een gemigreerde module ---
+
+    private fun metVervallenProperties(
+        vararg properties: String,
+        omgevingsvariabelen: Map<String, Any> = emptyMap(),
+    ) = ApplicationContextRunner()
+        .withConfiguration(AutoConfigurations.of(KoppelingAutoConfiguration::class.java))
+        .withBean(WebClient.Builder::class.java, { WebClient.builder() })
+        .withBean(ZgwJwtGenerator::class.java, { ZgwJwtGenerator() })
+        .withBean(TenantDirectory::class.java, { TenantDirectory(listOf(TestTenants.tenant(bosrand))) })
+        .withBean(GeheimenBron::class.java, { TestTenants.ALLE_GEHEIMEN })
+        .withBean("brpVervallen", VervallenProperties::class.java, { VervallenProperties("brp", "nl-portal.config.haalcentraal-brp.properties") })
+        .withInitializer { it.environment.propertySources.addFirst(SystemEnvironmentPropertySource(StandardEnvironment.SYSTEM_ENVIRONMENT_PROPERTY_SOURCE_NAME, omgevingsvariabelen)) }
+        .withPropertyValues(*properties)
+
+    private fun startupMelding(context: org.springframework.boot.test.context.assertj.AssertableApplicationContext) = generateSequence(context.startupFailure) { it.cause }.map { it.message }.joinToString()
+
+    @Test
+    fun `een oude property van een gemigreerde module weigert het opstarten en verwijst naar modules, zonder de waarde te noemen`() {
+        metVervallenProperties("nl-portal.config.haalcentraal-brp.properties.api-key=zeer-geheim").run { context ->
+            assertThat(context).hasFailed()
+            assertThat(startupMelding(context)).contains("nl-portal.config.haalcentraal-brp.properties", "modules.brp").doesNotContain("zeer-geheim")
+        }
+    }
+
+    @Test
+    fun `een oude property als omgevingsvariabele weigert het opstarten ook`() {
+        metVervallenProperties(omgevingsvariabelen = mapOf("NLPORTAL_CONFIG_HAALCENTRAALBRP_PROPERTIES_APIKEY" to "zeer-geheim")).run { context ->
+            assertThat(context).hasFailed()
+            assertThat(startupMelding(context)).contains("modules.brp").doesNotContain("zeer-geheim")
+        }
+    }
+
+    @Test
+    fun `zonder oude properties start het gewoon, ook met andere properties van die module`() {
+        metVervallenProperties("nl-portal.config.haalcentraal-brp.enabled=true", "nl-portal.config.haalcentraal-brp.propertiesx=a").run { context ->
+            assertThat(context).hasNotFailed()
+        }
     }
 
     // --- geheimen in modulegegevens ---

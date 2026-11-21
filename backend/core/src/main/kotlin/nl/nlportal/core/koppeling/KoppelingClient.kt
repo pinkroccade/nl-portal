@@ -133,7 +133,7 @@ class KoppelingClient internal constructor(
         check(TenantContext.current() == oin) { "Koppeling '$naam' hoort bij een andere tenant dan de huidige" }
         val verboden = if (eigenHeader == null) VERBODEN_HEADERS else VERBODEN_HEADERS + eigenHeader.lowercase()
         headers.keys.firstOrNull { it.lowercase() in verboden }?.let {
-            throw IllegalArgumentException("Header '$it' hoort bij de koppeling en kan niet per aanroep worden gezet")
+            throw KoppelingConfiguratieException("Header '$it' hoort bij de koppeling en kan niet per aanroep worden gezet")
         }
         val doel = bind(pad, query)
         val aanroep =

@@ -7,6 +7,18 @@ thema:
     titel: Mijn De Bosrand
 
 koppelingen:
+    brp:
+        url: http://localhost:5010/haalcentraal/api/brp
+        leverancier: Haal Centraal BRP-mock
+        auth:
+            # Geen sleutel: de mocks vragen er geen; in productie authenticeert de cloud gateway.
+            type: geen
+    brp-bewoning:
+        url: http://localhost:5011/haalcentraal/api/bewoning
+        leverancier: Haal Centraal Bewoning-mock
+        auth:
+            # Geen sleutel: de mocks vragen er geen; in productie authenticeert de cloud gateway.
+            type: geen
     zakenapi:
         url: http://localhost:8001
         auth:
@@ -14,5 +26,8 @@ koppelingen:
             clientId: nl-portal
             secret: 00000099000000000001.zaken-secret
 modules:
+    brp:
+        # Doelbinding BRP per gemeente; leeg of weglaten geeft de standaardvelden en alle woonplaatsen.
+        toegestaneWoonplaatsenBewoning: []
     zakenapi:
         nnpKvkQueryIdentificatoren: false
