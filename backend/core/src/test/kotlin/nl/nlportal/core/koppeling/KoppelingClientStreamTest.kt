@@ -42,7 +42,6 @@ import org.springframework.core.io.buffer.DataBuffer
 import org.springframework.core.io.buffer.DataBufferUtils
 import org.springframework.http.MediaType
 import org.springframework.web.reactive.function.client.WebClient
-import reactor.test.scheduler.VirtualTimeScheduler
 import reactor.util.context.Context
 import java.time.Duration
 import java.util.concurrent.TimeUnit
@@ -246,33 +245,26 @@ class KoppelingClientStreamTest {
         bron.enqueue(MockResponse().setHeader("Content-Type", "application/json").setBody("{}"))
         val register =
             register(
-                KoppelingResilienceInstellingen(maxGelijktijdigeStromen = 1, vensterGrootte = 2, minimumAanroepen = 2, timeout = Duration.ofMillis(600)),
+                KoppelingResilienceInstellingen(maxGelijktijdigeStromen = 1, vensterGrootte = 2, minimumAanroepen = 2, timeout = Duration.ofSeconds(30)),
             )
-        // Virtuele tijd: de timeouts van Reactor lopen op deze scheduler en verstrijken alleen als de test de klok vooruitzet.
-        val klok = VirtualTimeScheduler.getOrSet()
-        try {
-            // Een eerste aanroep warmt de verbinding op.
-            alsTenant { register.current("documenten").get<Map<String, String>>("/warm") }
-            bron.takeRequest()
+        // Een eerste aanroep warmt de verbinding op.
+        alsTenant { register.current("documenten").get<Map<String, String>>("/warm") }
+        bron.takeRequest()
 
-            runBlocking {
-                repeat(4) {
-                    val eersteBrok = CompletableDeferred<Unit>()
-                    val trage = stilgezet(register, eersteBrok = eersteBrok)
-                    assertThat(bron.takeRequest(5, TimeUnit.SECONDS)).isNotNull()
-                    // De lezer heeft het eerste brok en staat stil; de timeout van de eerste respons is daarmee voorbij.
-                    withTimeout(10_000) { eersteBrok.await() }
-                    // Ruim langer dan de timeout: de stroom wordt door de stiltetimeout afgebroken terwijl de lezer nog stilstaat.
-                    klok.advanceTimeBy(Duration.ofMillis(1_800))
-                    trage.cancelAndJoin()
-                }
+        runBlocking {
+            repeat(4) {
+                val eersteBrok = CompletableDeferred<Unit>()
+                val trage = stilgezet(register, eersteBrok = eersteBrok)
+                assertThat(bron.takeRequest(30, TimeUnit.SECONDS)).isNotNull()
+                // De lezer heeft het eerste brok en staat stil; de stroom blijft open tot de afnemer annuleert. Geen klok: de
+                // afbreking door de stiltetimeout zelf toetst KoppelingBewakerStroomTest zonder tijd.
+                withTimeout(60_000) { eersteBrok.await() }
+                trage.cancelAndJoin()
             }
-            val metadata = alsTenant { register.current("documenten").get<Map<String, String>>("/metadata") }
-
-            assertThat(metadata).isEmpty()
-        } finally {
-            VirtualTimeScheduler.reset()
         }
+        val metadata = alsTenant { register.current("documenten").get<Map<String, String>>("/metadata") }
+
+        assertThat(metadata).isEmpty()
     }
 
     @Test
