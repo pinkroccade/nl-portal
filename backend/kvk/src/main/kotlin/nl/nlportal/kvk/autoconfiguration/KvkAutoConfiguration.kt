@@ -17,6 +17,7 @@ package nl.nlportal.kvk.autoconfiguration
 
 import nl.nlportal.core.koppeling.KoppelingAutoConfiguration
 import nl.nlportal.core.koppeling.KoppelingRegister
+import nl.nlportal.core.tenancy.TenantDirectory
 import nl.nlportal.core.tenancy.VervallenProperties
 import nl.nlportal.kvk.graphql.KvkQuery
 import nl.nlportal.kvk.service.KvkService
@@ -40,7 +41,14 @@ class KvkAutoConfiguration {
     @ConditionalOnMissingBean(KvkQuery::class)
     fun kvkQuery(kvkService: KvkService): KvkQuery = KvkQuery(kvkService)
 
+    /**
+     * KvK heeft per gemeente alleen een koppeling, geen `modules.kvk`; daarom kan `ModuleContext` niet toetsen of de module een
+     * koppeling heeft. Deze controle doet dat: aan zonder een tenant met `koppelingen.kvk` weigert het opstarten.
+     */
+    @Bean
+    fun kvkKoppelingControle(directory: TenantDirectory) = KvkKoppelingControle(directory)
+
     /** De oude `...properties.*` (url, apiKey, ssl) zijn vervallen: staan ze nog gezet, dan weigert core het opstarten. */
     @Bean
-    fun kvkVervallenProperties() = VervallenProperties(KvkService.KOPPELING, "nl-portal.config.kvk.properties")
+    fun kvkVervallenProperties() = VervallenProperties(KvkService.MODULE, "nl-portal.config.kvk.properties", vervanging = "koppelingen.${KvkService.KOPPELING}")
 }

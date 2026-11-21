@@ -28,7 +28,8 @@ import java.nio.charset.StandardCharsets
 
 /**
  * Bevraagt het Handelsregister via de koppeling `kvk` van de huidige tenant. De tenant volgt uit de context van het request;
- * zonder tenant of zonder die koppeling faalt een aanroep gesloten. Alleen een fout van de bron zelf geeft `null`.
+ * zonder tenant of zonder die koppeling faalt een aanroep gesloten. Een nummer dat niet de vorm van een KvK- (8 cijfers) of vestigingsnummer
+ * (12 cijfers) heeft gaat niet naar de bron en geeft `null`. Alleen een fout van de bron zelf geeft verder `null`.
  */
 class KvkService(
     private val register: KoppelingRegister,
@@ -49,6 +50,10 @@ class KvkService(
         kvkNummer: String,
         vestigingsNummer: String? = null,
     ): MaatschappelijkeActiviteit? {
+        if (!KVK_NUMMER.matches(kvkNummer)) {
+            logOngeldig("KvK-nummer")
+            return null
+        }
         val kvkData =
             try {
                 register.current(KOPPELING).get<MaatschappelijkeActiviteit>("/basisprofielen/${segment(kvkNummer)}")
@@ -66,15 +71,25 @@ class KvkService(
         return kvkData
     }
 
-    suspend fun getVestigingsData(vestigingsNummer: String): Vestiging? =
-        try {
+    suspend fun getVestigingsData(vestigingsNummer: String): Vestiging? {
+        if (!VESTIGINGSNUMMER.matches(vestigingsNummer)) {
+            logOngeldig("vestigingsnummer")
+            return null
+        }
+        return try {
             register.current(KOPPELING).get<Vestiging>("/vestigingsprofielen/${segment(vestigingsNummer)}")
         } catch (ex: KoppelingException) {
             logFout("vestiging", ex)
             null
         }
+    }
 
     private fun segment(waarde: String) = UriUtils.encodePathSegment(waarde, StandardCharsets.UTF_8)
+
+    // Het nummer zelf komt niet in de log: het hoort bij een bedrijf.
+    private fun logOngeldig(soort: String) {
+        logger.warn { "KvK-aanroep geweigerd: het $soort heeft een ongeldige vorm, er is niets naar de bron gestuurd" }
+    }
 
     // Geen bericht, oorzaak of stacktrace: die kunnen het KvK-nummer bevatten. De referentie vindt de aanroep terug.
     private fun logFout(
@@ -85,7 +100,10 @@ class KvkService(
     }
 
     companion object {
+        const val MODULE = "kvk"
         const val KOPPELING = "kvk"
+        private val KVK_NUMMER = Regex("[0-9]{8}")
+        private val VESTIGINGSNUMMER = Regex("[0-9]{12}")
         private val logger = KotlinLogging.logger {}
     }
 }

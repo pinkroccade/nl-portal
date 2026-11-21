@@ -15,6 +15,10 @@
  */
 package nl.nlportal.kvk.service
 
+import ch.qos.logback.classic.Level
+import ch.qos.logback.classic.Logger
+import ch.qos.logback.classic.spi.ILoggingEvent
+import ch.qos.logback.core.read.ListAppender
 import kotlinx.coroutines.runBlocking
 import nl.nlportal.commonground.authentication.JwtBuilder
 import nl.nlportal.core.tenancy.Oin
@@ -33,6 +37,7 @@ import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertThrows
+import org.slf4j.LoggerFactory
 
 /** Seam 1 (epic #499, T10): het KvK-nummer en het vestigingsnummer gaan alleen naar de koppeling van de eigen tenant. */
 internal class KvkTenantTest {
@@ -73,9 +78,12 @@ internal class KvkTenantTest {
         serverWijdeVeld.dispatcher = kvk()
         val service = service()
 
-        TestTenants.metTenant(wijdeVeld) { service.getMaatschappelijkeActiviteit(bedrijf) }
+        val resultaat = TestTenants.metTenant(wijdeVeld) { service.getMaatschappelijkeActiviteit(bedrijf) }
 
-        assertThat(serverWijdeVeld.takeRequest().path).isEqualTo("/basisprofielen/90012768")
+        assertThat(resultaat?.naam).isEqualTo("Test bedrijf")
+        val verzoek = serverWijdeVeld.takeRequest()
+        assertThat(verzoek.path).isEqualTo("/basisprofielen/90012768")
+        assertThat(verzoek.getHeader("X-API-KEY")).isEqualTo("sleutel-van-wijde-veld")
         assertThat(serverBosrand.requestCount).isZero()
     }
 
@@ -163,13 +171,62 @@ internal class KvkTenantTest {
     }
 
     @Test
-    fun `een nummer met padtekens kan het pad niet verlaten en er gaat niets naar de bron`() {
+    fun `een nummer dat geen KvK-nummer is kan het pad niet verlaten en er gaat niets naar de bron`() {
         val service = service()
 
-        val resultaat = TestTenants.metTenant(bosrand) { service.getKvkData("../admin?x=1") }
+        listOf("../admin?x=1", "1%3Fx", "9001276", "900127689", "9001276a", "", " 90012768").forEach { nummer ->
+            assertThat(TestTenants.metTenant(bosrand) { service.getKvkData(nummer) }).describedAs(nummer).isNull()
+        }
 
-        assertThat(resultaat).isNull()
         assertThat(serverBosrand.requestCount).isZero()
+    }
+
+    @Test
+    fun `een vestigingsnummer dat geen twaalf cijfers heeft gaat niet naar de bron en laat de hoofdvestiging staan`() {
+        serverBosrand.dispatcher = kvk()
+        val service = service()
+
+        listOf("../admin", "9900002621", "9900002621290", "99000026212a", "99000026%3F29").forEach { nummer ->
+            assertThat(TestTenants.metTenant(bosrand) { service.getVestigingsData(nummer) }).describedAs(nummer).isNull()
+        }
+        val resultaat = TestTenants.metTenant(bosrand) { service.getKvkData("90012768", "99000026%3F29") }
+
+        assertThat(resultaat?.embedded?.vestiging?.vestigingsnummer).isEqualTo("000038509504")
+        assertThat(serverBosrand.takeRequest().path).isEqualTo("/basisprofielen/90012768")
+        assertThat(serverBosrand.requestCount).isEqualTo(1)
+    }
+
+    @Test
+    fun `een ongeldig nummer wordt gelogd zonder het nummer`() {
+        val service = service()
+        val regels = vangLogregels { TestTenants.metTenant(bosrand) { service.getKvkData("90012768x") } }
+
+        assertThat(regels).hasSize(1)
+        assertThat(regels.single().formattedMessage).doesNotContain("90012768")
+    }
+
+    @Test
+    fun `een bronfout wordt gelogd met de referentie, zonder KvK-nummer, bronantwoord of stacktrace`() {
+        serverBosrand.enqueue(MockResponse().setResponseCode(500).setBody("""{"detail":"KvK 90012768 niet gevonden"}"""))
+        val service = service()
+
+        val regels = vangLogregels { TestTenants.metTenant(bosrand) { service.getKvkData("90012768") } }
+
+        assertThat(regels).hasSize(1)
+        assertThat(regels.single().formattedMessage).contains("kvk").doesNotContain("90012768", "niet gevonden")
+        assertThat(regels.single().throwableProxy).isNull()
+    }
+
+    private fun vangLogregels(blok: () -> Unit): List<ILoggingEvent> {
+        val appender = ListAppender<ILoggingEvent>().apply { start() }
+        val logger = LoggerFactory.getLogger(KvkService::class.java) as Logger
+        logger.addAppender(appender)
+        try {
+            blok()
+        } finally {
+            logger.detachAppender(appender)
+        }
+        return appender.list.filter { it.level == Level.ERROR || it.level == Level.WARN }
     }
 
     private fun service(): KvkService {
