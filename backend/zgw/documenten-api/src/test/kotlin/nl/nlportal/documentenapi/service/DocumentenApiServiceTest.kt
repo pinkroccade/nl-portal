@@ -24,7 +24,16 @@ import java.util.UUID
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.test.runTest
 import nl.nlportal.documentenapi.domain.Vertrouwelijkheid.OPENBAAR
+import kotlinx.coroutines.reactor.ReactorContext
+import kotlinx.coroutines.withContext
+import nl.nlportal.commonground.authentication.JwtBuilder
+import nl.nlportal.documentenapi.domain.PostEnkelvoudiginformatieobjectRequest
+import nl.nlportal.portal.authentication.domain.PortalAuthentication
 import org.junit.jupiter.api.Assertions.assertEquals
+import org.mockito.kotlin.any
+import org.mockito.kotlin.argumentCaptor
+import org.mockito.kotlin.eq
+import org.springframework.security.core.context.ReactiveSecurityContextHolder
 import org.junit.jupiter.api.Test
 import org.mockito.Mockito.mock
 import org.mockito.Mockito.times
@@ -73,6 +82,36 @@ internal class DocumentenApiServiceTest(
 
             assertDocumentReturned(document)
         }
+
+    @Test
+    fun `an uploaded document names the identificatie of the vertegenwoordigde as auteur`() =
+        runTest {
+            val auteur = uploadMetAuthenticatie(JwtBuilder().vertegenwoordigdeKvk("12345678").buildAuthentication())
+
+            assertEquals("12345678", auteur)
+        }
+
+    @Test
+    fun `an uploaded document without an authenticated user has valtimo as auteur`() =
+        runTest {
+            val request = argumentCaptor<PostEnkelvoudiginformatieobjectRequest>()
+            whenever(documentenApiClient.postDocument(request.capture(), any(), eq("openzaak"))).thenReturn(getTestDocument(null))
+
+            documentenApiService.uploadDocument("inhoud".toByteArray(), "bestand.txt", "openzaak")
+
+            assertEquals("valtimo", request.firstValue.auteur)
+        }
+
+    private suspend fun uploadMetAuthenticatie(authentication: PortalAuthentication): String {
+        val request = argumentCaptor<PostEnkelvoudiginformatieobjectRequest>()
+        whenever(documentenApiClient.postDocument(request.capture(), any(), eq("openzaak"))).thenReturn(getTestDocument(null))
+
+        withContext(ReactorContext(ReactiveSecurityContextHolder.withAuthentication(authentication))) {
+            documentenApiService.uploadDocument("inhoud".toByteArray(), "bestand.txt", "openzaak")
+        }
+
+        return request.firstValue.auteur
+    }
 
     private fun getTestDocument(status: DocumentStatus?): Document =
         Document(
