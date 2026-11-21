@@ -41,10 +41,6 @@ internal sealed interface SchemaKnoop {
     ) : SchemaKnoop
 
     object Duur : SchemaKnoop
-
-    object Geheelgetal : SchemaKnoop
-
-    object Booleaans : SchemaKnoop
 }
 
 internal class Eigenschap(
@@ -87,14 +83,6 @@ internal object TenantSchemaModel {
         return when {
             klasse == String::class -> {
                 SchemaKnoop.Tekst(patroon = patroon(pad))
-            }
-
-            klasse == Boolean::class -> {
-                SchemaKnoop.Booleaans
-            }
-
-            klasse == Int::class -> {
-                SchemaKnoop.Geheelgetal
             }
 
             klasse == Duration::class -> {

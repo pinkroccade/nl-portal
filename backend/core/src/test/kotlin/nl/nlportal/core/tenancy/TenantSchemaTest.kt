@@ -54,6 +54,7 @@ class TenantSchemaTest {
         assertThat(schema["properties"]["inlogmiddelen"]["items"]["enum"].strings()).contains("digid", "wallet", "test")
         assertThat(schema["properties"]["minimumNiveau"]["enum"].strings()).containsExactly("basis", "midden", "substantieel", "hoog")
         assertThat(schema["properties"]["domeinen"]["minItems"].asInt()).isEqualTo(1)
+        assertThat(schema["properties"]["domeinen"]["items"]["pattern"].asString()).isEqualTo(TenantSchemaModel.HOSTNAAM_PATROON)
         assertThat(schema["properties"]["inlogmiddelen"]["minItems"].asInt()).isEqualTo(1)
         assertThat(schema["properties"]["sessie"]["properties"]["inactiviteit"]["type"].asString()).isEqualTo("string")
     }

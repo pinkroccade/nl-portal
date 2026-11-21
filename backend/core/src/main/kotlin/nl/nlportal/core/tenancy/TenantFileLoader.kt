@@ -48,6 +48,8 @@ data class TenantFileViolation(
         DUBBELE_OIN,
         BESTANDSNAAM_KLOPT_NIET_MET_OIN,
         TESTINLOGMIDDEL_IN_PRODUCTIE,
+        MINIMUMNIVEAU_TE_LAAG_IN_PRODUCTIE,
+        MEERDERE_BASISBESTANDEN,
         SESSIETIJD_BUITEN_GRENZEN,
         NIET_ERFBARE_WAARDE_IN_BASIS,
         TWEEDE_TENANT_NOG_NIET_TOEGESTAAN,
@@ -91,6 +93,9 @@ class TenantFileLoader(
             return TenantFileResult(emptyList(), listOf(TenantFileViolation(Code.GEEN_TENANTBESTANDEN, directory.fileName?.toString() ?: ".", null, "Geen tenantbestanden gevonden")))
         }
 
+        if (basisBestanden.size > 1) {
+            violations += TenantFileViolation(Code.MEERDERE_BASISBESTANDEN, basisBestanden[1].fileName.toString(), null, "Er is één basisbestand; ${basisBestanden[0].fileName} staat er al naast")
+        }
         val basis = basisBestanden.firstOrNull()?.let { leesBasis(it, violations) } ?: emptyMap()
         val tenants = tenantBestanden.mapNotNull { leesTenant(it, basis, violations) }
 
@@ -155,21 +160,9 @@ class TenantFileLoader(
             violations += TenantFileViolation(Code.BESTANDSNAAM_KLOPT_NIET_MET_OIN, naam, "oin", "Het bestand moet <oin>.yaml heten")
         }
         val voor = violations.size
-        if (bestand.domeinen.isEmpty()) violations += TenantFileViolation(Code.ONGELDIGE_WAARDE, naam, "domeinen", "Minstens één domein is verplicht")
-        if (bestand.inlogmiddelen.isEmpty()) violations += TenantFileViolation(Code.ONGELDIGE_WAARDE, naam, "inlogmiddelen", "Minstens één inlogmiddel is verplicht")
-        bestand.domeinen.filterNot { it.matches(HOSTNAAM) }.forEach {
-            violations += TenantFileViolation(Code.ONGELDIG_DOMEIN, naam, "domeinen", "Een domein is een hostnaam in kleine letters, zonder poort, trailing dot of IP-adres")
-        }
-        if (bestand.omgevingstype == Omgevingstype.PRODUCTIE && Inlogmiddel.TEST in bestand.inlogmiddelen) {
-            violations += TenantFileViolation(Code.TESTINLOGMIDDEL_IN_PRODUCTIE, naam, "inlogmiddelen", "Het testinlogmiddel is niet toegestaan in een productieomgeving")
-        }
-        val sessie = bestand.sessie
-        if (sessie.inactiviteit.isZero || sessie.inactiviteit.isNegative || sessie.inactiviteit > Sessie.MAX_INACTIVITEIT ||
-            sessie.absoluut.isZero || sessie.absoluut.isNegative || sessie.absoluut > Sessie.MAX_ABSOLUUT ||
-            sessie.inactiviteit > sessie.absoluut
-        ) {
-            violations += TenantFileViolation(Code.SESSIETIJD_BUITEN_GRENZEN, naam, "sessie", "Inactiviteit hoogstens 15 minuten, absoluut hoogstens 8 uur, inactiviteit niet langer dan absoluut, beide positief")
-        }
+        controleerDomeinen(naam, bestand, violations)
+        controleerInlogmiddelen(naam, bestand, violations)
+        controleerSessie(naam, bestand.sessie, violations)
         if (violations.size != voor) return null
 
         return TenantDefinition(
@@ -182,6 +175,42 @@ class TenantFileLoader(
             minimumNiveau = bestand.minimumNiveau,
             sessie = bestand.sessie,
         )
+    }
+
+    private fun controleerDomeinen(
+        naam: String,
+        bestand: TenantBestand,
+        violations: MutableList<TenantFileViolation>,
+    ) {
+        if (bestand.domeinen.isEmpty()) violations += TenantFileViolation(Code.ONGELDIGE_WAARDE, naam, "domeinen", "Minstens één domein is verplicht")
+        bestand.domeinen.filterNot { it.matches(HOSTNAAM) }.forEach {
+            violations += TenantFileViolation(Code.ONGELDIG_DOMEIN, naam, "domeinen", "Een domein is een hostnaam in kleine letters, zonder poort, trailing dot of IP-adres")
+        }
+    }
+
+    private fun controleerInlogmiddelen(
+        naam: String,
+        bestand: TenantBestand,
+        violations: MutableList<TenantFileViolation>,
+    ) {
+        if (bestand.inlogmiddelen.isEmpty()) violations += TenantFileViolation(Code.ONGELDIGE_WAARDE, naam, "inlogmiddelen", "Minstens één inlogmiddel is verplicht")
+        if (bestand.omgevingstype != Omgevingstype.PRODUCTIE) return
+        if (Inlogmiddel.TEST in bestand.inlogmiddelen) {
+            violations += TenantFileViolation(Code.TESTINLOGMIDDEL_IN_PRODUCTIE, naam, "inlogmiddelen", "Het testinlogmiddel is niet toegestaan in een productieomgeving")
+        }
+        if (bestand.minimumNiveau < Betrouwbaarheidsniveau.SUBSTANTIEEL) {
+            violations += TenantFileViolation(Code.MINIMUMNIVEAU_TE_LAAG_IN_PRODUCTIE, naam, "minimumNiveau", "In een productieomgeving is het minimumniveau minstens substantieel")
+        }
+    }
+
+    private fun controleerSessie(
+        naam: String,
+        sessie: Sessie,
+        violations: MutableList<TenantFileViolation>,
+    ) {
+        if (!sessie.binnenGrenzen()) {
+            violations += TenantFileViolation(Code.SESSIETIJD_BUITEN_GRENZEN, naam, "sessie", "Inactiviteit hoogstens 15 minuten, absoluut hoogstens 8 uur, inactiviteit niet langer dan absoluut, beide positief")
+        }
     }
 
     private fun controleerOverTenants(
@@ -306,14 +335,6 @@ class TenantFileLoader(
 
                 SchemaKnoop.Duur -> {
                     inhoud == null || inhoud is String
-                }
-
-                SchemaKnoop.Geheelgetal -> {
-                    inhoud == null || inhoud is Int
-                }
-
-                SchemaKnoop.Booleaans -> {
-                    inhoud == null || inhoud is Boolean
                 }
             }
         if (!goed) {

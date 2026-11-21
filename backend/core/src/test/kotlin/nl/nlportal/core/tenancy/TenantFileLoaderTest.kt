@@ -140,6 +140,38 @@ class TenantFileLoaderTest {
     }
 
     @Test
+    fun `een minimumniveau onder Substantieel in een productieomgeving weigert het opstarten`() {
+        for (niveau in listOf("basis", "midden")) {
+            schrijf("base.yaml", "omgevingstype: productie\ninlogmiddelen: [digid]")
+            schrijf("$bosrand.yaml", tenant(extra = "minimumNiveau: $niveau"))
+
+            val result = laad()
+
+            assertThat(codes(result)).describedAs(niveau).containsExactly(Code.MINIMUMNIVEAU_TE_LAAG_IN_PRODUCTIE)
+            assertThat(result.violations.single().pad).isEqualTo("minimumNiveau")
+        }
+    }
+
+    @Test
+    fun `een minimumniveau Substantieel of Hoog in productie, of Basis buiten productie, mag`() {
+        for ((omgeving, niveau) in listOf("productie" to "substantieel", "productie" to "hoog", "acceptatie" to "basis", "test" to "midden")) {
+            schrijf("base.yaml", "omgevingstype: $omgeving\ninlogmiddelen: [digid]")
+            schrijf("$bosrand.yaml", tenant(extra = "minimumNiveau: $niveau"))
+
+            assertThat(laad().violations).describedAs("$omgeving $niveau").isEmpty()
+        }
+    }
+
+    @Test
+    fun `twee basisbestanden naast elkaar weigeren het opstarten in plaats van er een stil te negeren`() {
+        schrijf("base.yaml", basis)
+        schrijf("base.yml", basis)
+        schrijf("$bosrand.yaml", tenant())
+
+        assertThat(codes(laad())).containsExactly(Code.MEERDERE_BASISBESTANDEN)
+    }
+
+    @Test
     fun `een testinlogmiddel in een ontwikkelomgeving mag`() {
         schrijf("base.yaml", "omgevingstype: ontwikkeling\ninlogmiddelen: [test]")
         schrijf("$bosrand.yaml", tenant())

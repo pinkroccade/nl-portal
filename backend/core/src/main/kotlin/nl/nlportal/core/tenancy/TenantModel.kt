@@ -83,6 +83,13 @@ data class Sessie(
     val inactiviteit: Duration = MAX_INACTIVITEIT,
     val absoluut: Duration = MAX_ABSOLUUT,
 ) {
+    fun binnenGrenzen() =
+        inactiviteit.isPositive() && inactiviteit <= MAX_INACTIVITEIT &&
+            absoluut.isPositive() && absoluut <= MAX_ABSOLUUT &&
+            inactiviteit <= absoluut
+
+    private fun Duration.isPositive() = !isZero && !isNegative
+
     companion object {
         val MAX_INACTIVITEIT: Duration = Duration.ofMinutes(15)
         val MAX_ABSOLUUT: Duration = Duration.ofHours(8)

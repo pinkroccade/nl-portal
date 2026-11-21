@@ -61,14 +61,6 @@ object TenantSchemaGenerator {
             SchemaKnoop.Duur -> {
                 mapOf("type" to "string", "pattern" to DUUR_PATROON, "description" to "ISO-8601-duur, bijvoorbeeld PT15M")
             }
-
-            SchemaKnoop.Geheelgetal -> {
-                mapOf("type" to "integer")
-            }
-
-            SchemaKnoop.Booleaans -> {
-                mapOf("type" to "boolean")
-            }
         }
 
     private fun objectSchema(knoop: SchemaKnoop.Object): LinkedHashMap<String, Any?> {
