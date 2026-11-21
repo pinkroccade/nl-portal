@@ -15,12 +15,16 @@
  */
 package nl.nlportal.core.koppeling
 
+import nl.nlportal.core.tenancy.GeheimenBron
+import nl.nlportal.core.tenancy.OmgevingGeheimenBron
 import nl.nlportal.core.tenancy.TenancyAutoConfiguration
 import nl.nlportal.core.tenancy.TenantDirectory
+import nl.nlportal.core.tenancy.TenantModules
+import org.springframework.beans.factory.ObjectProvider
 import org.springframework.boot.autoconfigure.AutoConfiguration
 import org.springframework.boot.autoconfigure.condition.ConditionalOnBean
-import org.springframework.boot.context.properties.ConfigurationProperties
 import org.springframework.boot.context.properties.EnableConfigurationProperties
+import org.springframework.core.env.Environment
 import org.springframework.context.annotation.Bean
 import org.springframework.web.reactive.function.client.WebClient
 
@@ -40,16 +44,37 @@ class KoppelingAutoConfiguration {
         directory: TenantDirectory,
         koppelingen: KoppelingenProperties,
         resilience: KoppelingResilienceInstellingen,
+        geheimenBron: ObjectProvider<GeheimenBron>,
+        modules: ObjectProvider<TenantModules>,
+        environment: Environment,
     ): KoppelingRegister {
-        // Zolang alle tenants dezelfde koppelingen en credentials krijgen, mag er maar één tenant zijn.
+        // Tussenfase: een nog niet gemigreerde module leest `nl-portal.koppelingen`. Dat zijn dezelfde koppelingen en
+        // credentials voor elke tenant, dus er mag maar één tenant zijn zolang dat blok gebruikt wordt.
         check(koppelingen.koppelingen.isEmpty() || directory.tenants.size <= 1) {
-            "Meerdere tenants en toch koppelingen uit 'nl-portal.koppelingen': dan delen ze bron en credentials; configureer koppelingen per tenant"
+            "Meerdere tenants en toch koppelingen uit 'nl-portal.koppelingen': dan delen ze bron en credentials; zet de koppelingen in het tenantbestand"
         }
-        return KoppelingRegister.bouw(
-            directory.tenants.associate { it.oin to koppelingen.koppelingen },
-            webClientBuilder,
-            resilience,
-            zgwJwtGenerator,
+        // Een module die haar configuratie in het tenantbestand bijdraagt is gemigreerd: haar oude regel mag er niet meer staan, ook niet
+        // als het tenantbestand de koppeling (nog) mist, want dan bediende de module stil de gedeelde, lenient opgebouwde koppeling.
+        val gemigreerd =
+            modules
+                .getIfAvailable { TenantModules.GEEN }
+                .configuraties
+                .map { it.naam }
+                .toSet()
+        check(
+            koppelingen.koppelingen.keys
+                .intersect(gemigreerd)
+                .isEmpty(),
+        ) {
+            "'nl-portal.koppelingen.${koppelingen.koppelingen.keys.intersect(gemigreerd).first()}' staat er nog, maar die module leest haar koppeling uit het tenantbestand; verwijder de regel"
+        }
+        return KoppelingRegister.bouwUitTenants(
+            directory.tenants,
+            geheimenBron.getIfAvailable { OmgevingGeheimenBron(environment) },
+            tussenfase = directory.tenants.associate { it.oin to koppelingen.koppelingen },
+            webClientBuilder = webClientBuilder,
+            resilience = resilience,
+            zgwJwtGenerator = zgwJwtGenerator,
         )
     }
 }

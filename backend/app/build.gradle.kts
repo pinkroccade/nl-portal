@@ -41,6 +41,7 @@ dependencies {
         developmentOnly("io.netty:netty-resolver-dns-native-macos::osx-aarch_64")
     }
 
+    testImplementation(testFixtures(project(":core")))
     testImplementation(project(":zgw:common-ground-authentication-test"))
     testImplementation(TestDependencies.springBootTest)
     // testImplementation(TestDependencies.springSecurityTest)
@@ -51,6 +52,21 @@ dependencies {
     testImplementation(TestDependencies.kotlinCoroutines)
     testImplementation(TestDependencies.okHttpMockWebserver)
     testImplementation("org.springframework.graphql:spring-graphql-test")
+}
+
+// Tenantbestand (epic #499): het JSON-schema wordt uit de Kotlin-typen gegenereerd, inclusief de configuratieklassen die de
+// modules bijdragen (TenantModuleConfiguratie); alleen hier staan alle modules op het klassenpad. TenantSchemaAppTest faalt
+// als het gecommitte bestand verouderd is. `mise run backend:tenant-schema` werkt het bij.
+tasks.register<JavaExec>("generateTenantSchema") {
+    group = "tenancy"
+    description = "Genereert backend/schema/tenant.schema.json uit de typen van het tenantbestand en van alle modules"
+    classpath = sourceSets["main"].runtimeClasspath
+    mainClass.set("nl.nlportal.core.tenancy.TenantSchemaGenerator")
+    args(
+        rootProject.layout.projectDirectory
+            .file("schema/tenant.schema.json")
+            .asFile.absolutePath,
+    )
 }
 
 // This module is the shipped application: produce a runnable Spring Boot fat jar,

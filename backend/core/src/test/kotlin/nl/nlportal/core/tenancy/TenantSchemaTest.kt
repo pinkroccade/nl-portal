@@ -19,20 +19,10 @@ import org.assertj.core.api.Assertions.assertThat
 import org.junit.jupiter.api.Test
 import tools.jackson.databind.JsonNode
 import tools.jackson.databind.json.JsonMapper
-import java.nio.file.Files
-import java.nio.file.Path
 
-/** Seam: het gepubliceerde JSON-schema is wat de Kotlin-typen beschrijven, en het gecommitte bestand is actueel. */
+/** Seam: het JSON-schema is wat de Kotlin-typen beschrijven (het gecommitte schema met alle modules staat in :app). */
 class TenantSchemaTest {
-    private val schema: JsonNode = JsonMapper.builder().build().readTree(TenantSchemaGenerator.generate())
-
-    @Test
-    fun `het gecommitte schema is actueel`() {
-        val bestand = Path.of("schema/tenant.schema.json")
-        assertThat(Files.readString(bestand).replace("\r\n", "\n"))
-            .describedAs("Schema verouderd: draai `mise run backend:tenant-schema` en commit het resultaat")
-            .isEqualTo(TenantSchemaGenerator.generate())
-    }
+    private val schema: JsonNode = JsonMapper.builder().build().readTree(TenantSchemaGenerator.generate(TenantModules.GEEN))
 
     @Test
     fun `het schema is gesloten en noemt de verplichte eigenschappen`() {

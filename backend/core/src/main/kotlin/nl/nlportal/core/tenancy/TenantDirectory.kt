@@ -16,6 +16,7 @@
 package nl.nlportal.core.tenancy
 
 import java.util.Locale
+import kotlin.reflect.KClass
 
 /**
  * Onveranderlijke allowlist van domein naar tenant, bij opstarten gebouwd uit de gevalideerde tenantbestanden.
@@ -37,6 +38,18 @@ class TenantDirectory(
     fun forHost(host: String): TenantDefinition? = perDomein[host]
 
     fun forOin(oin: Oin): TenantDefinition? = tenants.firstOrNull { it.oin == oin }
+
+    /**
+     * De configuratie van de module met klasse [klasse] voor de tenant uit de [TenantContext] (fail-closed: zonder tenant een
+     * [TenantContextMissingException], voor een tenant zonder configuratie van deze module een
+     * [nl.nlportal.core.util.ModuleNotConfiguredException]).
+     */
+    suspend fun <T : Any> module(klasse: KClass<T>): T {
+        val oin = TenantContext.current()
+        return (forOin(oin) ?: throw TenantContextMissingException()).requireModule(klasse)
+    }
+
+    suspend inline fun <reified T : Any> module(): T = module(T::class)
 
     companion object {
         /**

@@ -74,6 +74,34 @@ De tenant volgt uit de host van het request (kleine letters, zonder poort en tra
 `domeinen`). `Forwarded` en `X-Forwarded-Host` tellen alleen van de adressen in `NL_PORTAL_TRUSTED_PROXIES` (de
 ingress); van elk ander adres telt alleen de `Host`-header. Een onbekende host krijgt een kale 404.
 
+Koppelingen en modulegegevens staan in hetzelfde bestand. Geheimen staan er nooit zelf in, alleen als naam van een geheim in de secret store:
+
+```yaml
+koppelingen:
+    zaken:                    # de modulenaam, of een eigen naam voor een tweede koppeling van dezelfde module
+        url: https://zaken.example.nl
+        leverancier: Open Zaak
+        auth:
+            type: zgw-jwt     # api-key | bearer | zgw-jwt | oauth2-client-credentials | oauth2-private-key-jwt
+            clientId: bosrand # per tenant, nooit uit base.yaml
+            secret: 00000099000000000001.zaken-secret   # naam van het geheim, altijd met de eigen OIN vooraan; de waarde staat in de secret store
+modules:
+    brp:                      # de configuratie die de module bijdraagt (TenantModuleConfiguratie)
+        brpFields: [naam, geboortedatum]
+```
+
+De runtime weigert te starten bij een koppeling zonder verplichte velden voor haar `auth.type` (de melding noemt de OIN), een geheim dat geen naam
+is (de waarde zelf wordt nooit getoond), een geheim dat niet in de secret store staat, en een `modules.<naam>` zonder bijbehorende module. Credentials en
+geheimverwijzingen mogen niet in `base.yaml` staan. Geheimen lost de runtime op uit de omgeving: de naam `00000099000000000001.zaken-secret` is de omgevingsvariabele
+`NL_PORTAL_GEHEIMEN_00000099000000000001_ZAKEN_SECRET` (of de property `nl-portal.geheimen.00000099000000000001.zaken-secret`).
+Elke geheimverwijzing begint met de OIN van het eigen bestand (gevolgd door `.`, `-` of `_`), en een `privateKeyBestand` staat in een map met de eigen
+OIN (`/run/secrets/<oin>/client.pem`, zonder `..` en zonder andere OIN-map): een verwijzing naar de naamruimte van een andere tenant weigert het opstarten
+(`GEHEIM_VAN_ANDERE_TENANT`), ook in de validator-CLI. Zo kan een gekopieerd tenantbestand nooit stil de geheimen van een andere gemeente gebruiken. De
+meldingen noemen het veld en de OIN, nooit de naam of waarde van een geheim. Voor `modules.<naam>` geldt hetzelfde, en elk geheim daarin moet bij het opstarten
+in de secret store staan. `url` en `tokenUrl` zijn in een productieomgeving alleen `https`. Let op: de controle "is dit een naam" is een heuristiek (een
+geheim van alleen kleine letters en cijfers past in het patroon); de OIN-prefix en de Git-review zijn de echte bewaking. De validator-CLI kent de modules die op het
+klassenpad staan: `java -cp nl-portal-tenant-validator.jar:<module-jars> nl.nlportal.core.tenancy.TenantValidatorCli <map>`.
+
 Eisen aan de omgeving (ook als acceptatiecriterium voor de ingress in #191):
 
 - **De ingress overschrijft of verwijdert zowel `Forwarded` als `X-Forwarded-Host`** die de client meestuurt.
@@ -89,7 +117,7 @@ Eisen aan de omgeving (ook als acceptatiecriterium voor de ingress in #191):
 - **De managementpoort is alleen intern bereikbaar** (Service en NetworkPolicy, #191); hij luistert op alle interfaces.
 - Er is geen `base.yaml` én `base.yml` tegelijk: dat weigert het opstarten.
 
-Het JSON-schema staat in `backend/core/schema/tenant.schema.json` en wordt uit de Kotlin-typen gegenereerd
+Het JSON-schema staat in `backend/schema/tenant.schema.json` en wordt uit de Kotlin-typen gegenereerd
 (`mise run backend:tenant-schema`). De validator draait bij opstarten en als CLI voor CI:
 `mise run backend:tenant-validator` bouwt `backend/core/build/libs/nl-portal-tenant-validator.jar`, en
 `java -jar nl-portal-tenant-validator.jar <map>` geeft exitcode 0 bij een geldige map.

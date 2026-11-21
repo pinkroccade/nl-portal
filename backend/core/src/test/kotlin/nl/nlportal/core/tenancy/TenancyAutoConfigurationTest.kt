@@ -57,6 +57,17 @@ class TenancyAutoConfigurationTest {
     }
 
     @Test
+    fun `de runtime leest geheimen uit de omgeving, tenzij een eigen geheimenbron is geregistreerd`() {
+        geldigeTenant()
+        val omgeving = runner.withPropertyValues("nl-portal.tenancy.directory=$dir", "nl-portal.geheimen.zaken-sleutel=waarde")
+
+        omgeving.run { assertThat(it.getBean(GeheimenBron::class.java).resolve(GeheimVerwijzing("zaken-sleutel"))).isEqualTo("waarde") }
+        omgeving.withBean(GeheimenBron::class.java, { GeheimenBron { "eigen" } }).run {
+            assertThat(it.getBean(GeheimenBron::class.java).resolve(GeheimVerwijzing("zaken-sleutel"))).isEqualTo("eigen")
+        }
+    }
+
+    @Test
     fun `een ongeldig tenantbestand laat de context niet starten en noemt de fout`() {
         geldigeTenant()
         Files.writeString(
