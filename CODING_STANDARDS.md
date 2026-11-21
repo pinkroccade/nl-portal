@@ -61,9 +61,10 @@ principe dat geen controle kan zien; noem in de review het principe-ID als een w
 
 ### Open standaarden
 
-- (P-09, P-10) Een keuze voor een protocol, formaat of interface noemt de standaard van de
-  pas-toe-of-leg-uitlijst die van toepassing is, of legt in een ADR uit waarom hij niet wordt toegepast. Een
-  nieuw REST-endpoint volgt de NLGov REST API Design Rules.
+- (P-09, P-10) Een keuze voor een protocol, formaat of interface noemt de standaarden van de
+  pas-toe-of-leg-uitlijst die erop van toepassing zijn (niet de hele lijst), of legt in een ADR uit waarom een
+  standaard niet wordt toegepast. Een nieuwere IETF- of W3C-standaard die nog niet op de lijst staat, mag met
+  uitleg die beide noemt. Een nieuw REST-endpoint volgt de NLGov REST API Design Rules.
 
 ### Toegankelijkheid
 

@@ -185,14 +185,19 @@ ArchUnit-regel: `ArchitectureRules.cycleFree`
 
 ### P-09 Open standaarden: pas toe of leg uit
 
-**Statement:** Waar een standaard van de pas-toe-of-leg-uitlijst van Forum Standaardisatie van toepassing is,
-passen we hem toe; waar we dat niet doen, leggen we het uit in een ADR.
+**Statement:** Waar een standaard van de pas-toe-of-leg-uitlijst van Forum Standaardisatie van toepassing is op
+wat NL Portal doet, passen we hem toe; waar we dat niet doen, leggen we het uit in een ADR. Is er bij IETF of W3C
+al een nieuwere standaard die nog niet op de lijst staat, dan mag die, met uitleg.
 
 **Rationale:** Overheden zijn verplicht deze standaarden te vragen bij aanschaf. Een afwijking zonder uitleg
-maakt NL Portal moeilijker af te nemen en te koppelen.
+maakt NL Portal moeilijker af te nemen en te koppelen. De lijst is een bibliotheek van praktische standaarden,
+geen checklist: veel ervan raken NL Portal niet. En de lijst loopt achter op IETF en W3C; een standaard die daar
+al is opgevolgd, blindelings toepassen is ook geen goed ontwerp.
 
-**Implications:** Een keuze voor een protocol, formaat of interface begint bij de lijst. De uitleg bij een
-afwijking noemt de standaard en de reden.
+**Implications:** Een keuze voor een protocol, formaat of interface begint bij de vraag welke standaarden van de
+lijst op die keuze van toepassing zijn, niet bij de hele lijst. De uitleg bij een afwijking noemt de standaard en
+de reden. Kiezen we een nieuwere IETF- of W3C-standaard boven een standaard van de lijst, dan noemt de uitleg
+beide, en waar de lijst-standaard verplicht is, blijven we eraan voldoen of leggen we uit waarom niet.
 
 **Bron:** `N-FS-PTOLU`, `N-NORA-3.0`
 
