@@ -49,6 +49,9 @@ logging:
         root: DEBUG
 
 nl-portal:
+    # De secret store van deze dev-app: het geheim van de koppeling `zakenapi` in het tenantbestand.
+    geheimen:
+        "00000099000000000001.zaken-secret": ${OPENZAAK_NLPORTAL_SECRET}
     support:
         ping-endpoint:
             enabled: false
@@ -114,10 +117,6 @@ nl-portal:
                     port: 3310
         zakenapi:
             enabled: true
-            properties:
-                url: http://localhost:8001
-                clientId: nl-portal
-                secret: ${OPENZAAK_NLPORTAL_SECRET}
         objectenapi:
             enabled: true
             properties:

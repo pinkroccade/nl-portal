@@ -21,12 +21,28 @@ import java.net.URI
 import java.nio.charset.StandardCharsets
 
 /**
- * Host-binding: een URL wordt alleen gevolgd als hij onder de basis-URL van dezelfde koppeling valt (schema, host,
- * poort en padprefix). Anders volgt een fout en gaat er niets over de lijn, dus ook geen credentials.
+ * Host-binding: een URL wordt alleen gevolgd als hij onder de basis-URL van de bron valt (schema, host, poort en
+ * padprefix). Anders volgt een fout en gaat er niets over de lijn, dus ook geen credentials.
+ *
+ * [KoppelingClient] past dit toe op elk pad of elke URL van een koppeling. Voor een bron die nog geen koppeling is (de
+ * Objecten API) is er [valtOnder]; die kan weer `internal` zodra ook die via een koppeling loopt.
  */
-internal object HostBinding {
+object HostBinding {
+    /**
+     * Geeft de absolute [url] terug als [URI] als hij onder [basis] valt en weigert hem anders met een
+     * [IllegalArgumentException] (de melding noemt de reden, niet de URL). Een relatieve URL is geen geldige invoer: de
+     * aanroeper stuurt de teruggegeven [URI] door en niet de ruwe tekst.
+     */
+    fun valtOnder(
+        basis: URI,
+        url: String,
+    ): URI {
+        require(runCatching { URI(url).isAbsolute }.getOrDefault(false)) { "geen absolute URL" }
+        return oplossen(basis, url)
+    }
+
     /** Een fout als [IllegalArgumentException]: de aanroeper zet hem om, met de naam van de koppeling. */
-    fun oplossen(
+    internal fun oplossen(
         basis: URI,
         doel: String,
         query: Map<String, List<String>> = emptyMap(),

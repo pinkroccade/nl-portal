@@ -45,10 +45,6 @@ nl-portal:
                         secret: e09b8bc5-5831-4618-ab28-111111111111
         zakenapi:
             enabled: true
-            properties:
-                url: http://localhost:8001
-                clientId: valtimo_client
-                secret: e09b8bc5-5831-4618-ab28-41411304309d
 
 logging:
     level:

@@ -15,20 +15,13 @@
  */
 package nl.nlportal.zakenapi.client.request
 
-import nl.nlportal.zakenapi.domain.ResultPage
+import nl.nlportal.core.koppeling.ResultPage
 
 interface PagedRetrieve<O : PagedRetrieve<O, T>, T> : Retrieve<ResultPage<T>> {
     fun page(page: Int): O
 
     fun pageSize(pageSize: Int): O
 
-    suspend fun retrieveAll(): List<T> {
-        val results = mutableListOf<T>()
-        do {
-            val result = this.retrieve()
-            val next = result.next
-            results.addAll(result.results)
-        } while (next != null)
-        return results
-    }
+    /** Alle pagina's; een volgende pagina wordt alleen gevolgd onder de basis-URL van de koppeling van de tenant. */
+    suspend fun retrieveAll(): List<T>
 }

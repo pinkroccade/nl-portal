@@ -100,6 +100,10 @@ test("devSetup rendert dezelfde waarden in realm, compose en :app", () => {
     if (process.platform !== "win32") assert.equal(statSync(join(root, CLIENTSLEUTEL_UITVOER(OIN))).mode & 0o777, 0o600);
     assert.match(read("backend/app/.env.properties"), new RegExp("^REDIS_PASSWORD=" + secrets.REDIS_PASSWORD + "$", "m"));
     assert.doesNotMatch(read(APP_DEV_OUTPUT), /KEYCLOAK_CLIENT_SECRET/);
+    assert.match(
+      read("backend/app/.env.properties"),
+      new RegExp(`^NL_PORTAL_GEHEIMEN_00000099000000000001_ZAKEN_SECRET=${secrets.OPENZAAK_NLPORTAL_SECRET}$`, "m"),
+    );
     for (const name of APP_DEV_SECRETS) assert.match(read(APP_DEV_OUTPUT), new RegExp(`^${name}=${secrets[name]}$`, "m"));
 
     // Open Zaak, Objects, Open Notificaties, Open Klant en Open Product delen de JWT-secrets en tokens

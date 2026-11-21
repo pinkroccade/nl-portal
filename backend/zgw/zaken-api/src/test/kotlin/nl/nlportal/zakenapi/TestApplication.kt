@@ -15,6 +15,7 @@
  */
 package nl.nlportal.zakenapi
 
+import nl.nlportal.commonground.authentication.bff.BffAutoConfiguration
 import nl.nlportal.core.security.OauthSecurityAutoConfiguration
 import org.springframework.boot.autoconfigure.SpringBootApplication
 import org.springframework.boot.runApplication
@@ -25,6 +26,8 @@ import org.springframework.security.web.server.SecurityWebFilterChain
 @SpringBootApplication(
     exclude = [
         OauthSecurityAutoConfiguration::class,
+        // De test levert zelf een tenant (TestTenants); de login (BFF) heeft hier geen IdP en geen clientsleutel.
+        BffAutoConfiguration::class,
     ],
 )
 class TestApplication {

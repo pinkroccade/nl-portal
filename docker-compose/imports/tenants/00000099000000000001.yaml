@@ -24,6 +24,12 @@ koppelingen:
         auth:
             # Geen sleutel: de mocks vragen er geen; in productie authenticeert de cloud gateway.
             type: geen
+    zakenapi:
+        url: http://localhost:8001
+        auth:
+            type: zgw-jwt
+            clientId: nl-portal
+            secret: 00000099000000000001.zaken-secret
     # Betalen via Worldline Direct (optioneel): haal de commentaartekens weg, ook bij modules hieronder, en zet de geheimen in backend.env.
     # payment-direct:
     #     url: https://payment.preprod.direct.worldline-solutions.com
@@ -35,6 +41,8 @@ modules:
     brp:
         # Doelbinding BRP per gemeente; leeg of weglaten geeft de standaardvelden en alle woonplaatsen.
         toegestaneWoonplaatsenBewoning: []
+    zakenapi:
+        nnpKvkQueryIdentificatoren: false
     # payment-direct:
     #     webhookUrl: https://<domein van de tenant>/api/public/payment/direct/postsale
     #     profielen:

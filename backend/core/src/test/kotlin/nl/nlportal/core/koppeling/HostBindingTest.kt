@@ -42,4 +42,13 @@ class HostBindingTest {
         assertThat(uri.rawPath).isEqualTo("/api/zaken/1")
         assertThat(uri.rawQuery).isEqualTo("a%20b=1%2B2&a%20b=%26")
     }
+
+    @Test
+    fun `valtOnder geeft de gecontroleerde absolute URL terug en weigert een relatieve of een URL buiten de basis`() {
+        val basis = URI("https://bron.example/api")
+
+        assertThat(HostBinding.valtOnder(basis, "https://bron.example/api/objecten/1")).isEqualTo(URI("https://bron.example/api/objecten/1"))
+        assertThatThrownBy { HostBinding.valtOnder(basis, "objecten/1") }.isInstanceOf(IllegalArgumentException::class.java).hasMessageContaining("absolute")
+        assertThatThrownBy { HostBinding.valtOnder(basis, "https://kwaad.example/api/objecten/1") }.isInstanceOf(IllegalArgumentException::class.java).hasMessageContaining("andere host")
+    }
 }

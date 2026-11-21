@@ -40,10 +40,19 @@ import java.net.URLDecoder
 import java.nio.file.Path
 import java.time.Duration
 
-/** Het demo-tenantbestand heeft een `modules.brp`; de module zelf zit niet in deze module, dus een minimale bijdrage voor de loader. */
+/** Het demo-tenantbestand heeft `modules.brp` en `modules.zakenapi`; de modules zelf zitten niet in deze module, dus minimale bijdragen voor de loader. */
 data class BrpConfiguratieVoorTest(
     val toegestaneWoonplaatsenBewoning: List<String> = emptyList(),
 )
+
+data class ZakenApiConfiguratieVoorTest(
+    val nnpKvkQueryIdentificatoren: Boolean = false,
+)
+
+private object ZakenApiVoorTest : TenantModuleConfiguratie<ZakenApiConfiguratieVoorTest> {
+    override val naam = "zakenapi"
+    override val klasse = ZakenApiConfiguratieVoorTest::class
+}
 
 private object BrpVoorTest : TenantModuleConfiguratie<BrpConfiguratieVoorTest> {
     override val naam = "brp"
@@ -61,7 +70,7 @@ class SessieEnUitlogUnitTest {
     private val store = InMemoryWebSessionStore().also { it.setClock(klok) }
     private val idResolver = CookieWebSessionIdResolver().also { it.cookieName = BffNamen.SESSIE_COOKIE }
     private val demo: TenantDefinition =
-        TenantFileLoader(modules = TenantModules.van(listOf(BrpVoorTest)))
+        TenantFileLoader(modules = TenantModules.van(listOf(BrpVoorTest, ZakenApiVoorTest)))
             .load(Path.of("../../../docker-compose/imports/tenants"))
             .also { assertThat(it.violations).isEmpty() }
             .tenants
