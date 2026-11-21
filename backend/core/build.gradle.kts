@@ -16,6 +16,7 @@
 plugins {
     kotlin("jvm")
     id("info.solidsoft.pitest")
+    `java-test-fixtures`
 }
 
 val jar: Jar by tasks
@@ -65,6 +66,11 @@ dependencies {
 
     // Logging for Kotlin
     api(Dependencies.kotlinLogging)
+
+    // Testhulp voor module-tests (tenant in de context, register): testImplementation(testFixtures(project(":core")))
+    testFixturesApi(Dependencies.springWebFlux)
+    testFixturesImplementation(Dependencies.kotlinCoroutinesReactor)
+    testFixturesImplementation(Dependencies.kotlinCoroutines)
     testImplementation(TestDependencies.springBootTest)
     testImplementation(TestDependencies.springBootTestWebClient)
     testImplementation(TestDependencies.kotlinCoroutines)
@@ -121,20 +127,6 @@ tasks.named("pitest") {
         survivors.forEach { (file, line, what) -> println("  $file:$line  $what") }
     }
 }
-// Tenantbestand (epic #499): het JSON-schema wordt uit de Kotlin-typen gegenereerd en gecommit; TenantSchemaTest
-// faalt als het bestand verouderd is. `mise run backend:tenant-schema` werkt het bij.
-tasks.register<JavaExec>("generateTenantSchema") {
-    group = "tenancy"
-    description = "Genereert schema/tenant.schema.json uit de typen van het tenantbestand"
-    classpath = sourceSets["main"].runtimeClasspath
-    mainClass.set("nl.nlportal.core.tenancy.TenantSchemaGenerator")
-    args(
-        layout.projectDirectory
-            .file("schema/tenant.schema.json")
-            .asFile.absolutePath,
-    )
-}
-
 // De tenantvalidator als releaseartefact: een zelfstandige jar met alleen wat de validator nodig heeft (geen Spring).
 tasks.register<Jar>("tenantValidatorJar") {
     group = "tenancy"

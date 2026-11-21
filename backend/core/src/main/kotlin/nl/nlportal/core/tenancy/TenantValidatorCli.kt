@@ -39,7 +39,7 @@ object TenantValidatorCli {
         val opties = args.filter { it.startsWith("--") }
         val paden = args.filterNot { it.startsWith("--") }
         if (paden.size != 1 || (opties - "--meerdere-tenants").isNotEmpty()) {
-            err.println("Gebruik: nl-portal-tenant-validator <map met tenantbestanden> [--meerdere-tenants] | --schema")
+            err.println("Gebruik: nl-portal-tenant-validator <map met tenantbestanden> [--meerdere-tenants] | --schema (modules: zet hun jars op het klassenpad met java -cp)")
             return 2
         }
         val result = TenantFileLoader(meerdereTenantsToegestaan = "--meerdere-tenants" in opties).load(Path.of(paden.single()))

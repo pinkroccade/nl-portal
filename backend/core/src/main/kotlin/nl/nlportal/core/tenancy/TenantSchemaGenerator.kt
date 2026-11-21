@@ -25,7 +25,8 @@ object TenantSchemaGenerator {
 
     private val mapper = JsonMapper.builder().build()
 
-    fun generate(): String {
+    /** Het schema van het tenantbestand met de bijdragen van [modules] (standaard: alles op het klassenpad). */
+    fun generate(modules: TenantModules = TenantModules.ontdek()): String {
         val schema =
             linkedMapOf<String, Any?>(
                 "\$schema" to "https://json-schema.org/draft/2020-12/schema",
@@ -34,7 +35,7 @@ object TenantSchemaGenerator {
                 "description" to
                     "Niet-geheime inrichting van een tenant in een omgeving. Een OIN moet tussen aanhalingstekens staan. " +
                     "Het bestand heet <oin>.yaml; base.yaml in dezelfde map is de gedeelde basis voor die omgeving.",
-            ) + objectSchema(TenantSchemaModel.tenantBestand)
+            ) + objectSchema(TenantSchemaModel(modules).tenantBestand)
         return mapper.writerWithDefaultPrettyPrinter().writeValueAsString(schema).replace("\r\n", "\n") + "\n"
     }
 
@@ -58,6 +59,18 @@ object TenantSchemaGenerator {
                 }
             }
 
+            is SchemaKnoop.Sleutelmap -> {
+                linkedMapOf<String, Any?>("type" to "object", "additionalProperties" to schema(knoop.waarde))
+            }
+
+            SchemaKnoop.Booleaans -> {
+                mapOf("type" to "boolean")
+            }
+
+            SchemaKnoop.Geheel -> {
+                mapOf("type" to "integer")
+            }
+
             SchemaKnoop.Duur -> {
                 mapOf("type" to "string", "pattern" to DUUR_PATROON, "description" to "ISO-8601-duur, bijvoorbeeld PT15M")
             }
@@ -78,7 +91,7 @@ object TenantSchemaGenerator {
 
     private const val DUUR_PATROON = "^P(?!$)(\\d+D)?(T(?=\\d)(\\d+H)?(\\d+M)?(\\d+S)?)?$"
 
-    /** Schrijft het schema naar [doel]; aangeroepen door de build (`mise run backend:tenant-schema`). */
+    /** Schrijft het schema naar [doel]; aangeroepen door de build (`mise run backend:tenant-schema`, in :app waar alle modules op het klassenpad staan). */
     @JvmStatic
     fun main(args: Array<String>) {
         val doel = Path.of(args.firstOrNull() ?: error("Geef het doelbestand op"))
