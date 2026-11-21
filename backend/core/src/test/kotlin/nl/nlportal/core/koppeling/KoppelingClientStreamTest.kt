@@ -19,6 +19,7 @@ import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.CoroutineStart
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.async
+import kotlinx.coroutines.cancelAndJoin
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.first
@@ -263,7 +264,7 @@ class KoppelingClientStreamTest {
                     withTimeout(10_000) { eersteBrok.await() }
                     // Ruim langer dan de timeout: de stroom wordt door de stiltetimeout afgebroken terwijl de lezer nog stilstaat.
                     klok.advanceTimeBy(Duration.ofMillis(1_800))
-                    trage.cancel()
+                    trage.cancelAndJoin()
                 }
             }
             val metadata = alsTenant { register.current("documenten").get<Map<String, String>>("/metadata") }
