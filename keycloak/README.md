@@ -64,6 +64,7 @@ mise run keycloak:build              # provider-jar: keycloak/provider/build/lib
 mise run keycloak:check-version      # Dockerfile en provider-build gebruiken dezelfde Keycloak-versie, basisimage op digest
 mise run keycloak:image              # image nl-portal-keycloak:dev (vereist Docker)
 mise run keycloak:integration-test   # eigen image tegen een echte Keycloak met gesimuleerde DigiD en wallet (vereist Docker)
+mise run keycloak:bff-login-test      # echte BFF-login: backend (bootRun) tegen Keycloak uit de dev-compose, gedreven door een Node-browser (vereist Docker; poorten 8080, 8082, 6379 vrij)
 mise run keycloak:verify-dependencies  # verification-metadata.xml opnieuw genereren na een dependencywijziging
 mise run sbom:keycloak-image         # CycloneDX-SBOM van het image
 mise run security:keycloak-vuln-scan # grype op de SBOM (faalt op high/critical met een beschikbare fix)

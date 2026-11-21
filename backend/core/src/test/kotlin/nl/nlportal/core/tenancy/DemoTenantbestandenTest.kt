@@ -30,6 +30,16 @@ class DemoTenantbestandenTest {
     }
 
     @Test
+    fun `de demo-tenant laat het testinlogmiddel toe, dat altijd niveau basis levert`() {
+        val demo = TenantFileLoader().load(Path.of("../../docker-compose/imports/tenants")).tenants.single()
+
+        assertThat(demo.inlogmiddelen).containsExactly(Inlogmiddel.TEST)
+        assertThat(demo.minimumNiveau)
+            .describedAs("het testinlogmiddel zet acr=Basis; een hoger minimum weigert elke demo-login")
+            .isEqualTo(Betrouwbaarheidsniveau.BASIS)
+    }
+
+    @Test
     fun `de tenantbestanden van de app-tests voldoen aan de validator`() {
         val result = TenantFileLoader().load(Path.of("../app/src/test/resources/tenants"))
 

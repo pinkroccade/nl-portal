@@ -1,0 +1,57 @@
+#!/usr/bin/env bash
+#MISE description="Echte login van de BFF: de backend (bootRun) tegen het eigen Keycloak-image uit de dev-compose, gedreven door een Node-browser (vereist Docker; zie keycloak/integratietest/bff-login.test.mjs)"
+#MISE depends=["keycloak:image"]
+set -euo pipefail
+
+# Gebruikt de vaste poorten van de dev-compose (8082 Keycloak, 6379 Redis) en 8080 voor de backend: stop een draaiende dev-stack eerst.
+# De stack heeft een eigen compose-projectnaam en wordt na afloop met zijn volumes verwijderd. Een ontbrekende omgeving maakt
+# `dev:setup` aan; een bestaande blijft ongemoeid (opnieuw draaien geeft verse secrets).
+ROOT="$(cd "$(dirname "$0")/../.." && pwd)"
+PROJECT="nlp-bff-login"
+LOG_DIR="$(mktemp -d)"
+COMPOSE=(docker compose -p "$PROJECT")
+
+if [ ! -f "$ROOT/docker-compose/.env" ] || [ ! -f "$ROOT/backend/app/.env.properties" ]; then
+  (cd "$ROOT" && node scripts/dev-setup.mjs)
+fi
+
+stop_backend() {
+  [ -n "${BACKEND_PID:-}" ] && kill "$BACKEND_PID" > /dev/null 2>&1 || true
+  # Gradle start de app als kind; zoek hem op de poort (Windows: taskkill, elders: lsof).
+  if command -v taskkill > /dev/null 2>&1; then
+    PID="$(netstat -ano | grep -E ':8080 .*LISTENING' | awk '{print $5}' | head -1 || true)"
+    [ -n "$PID" ] && taskkill //PID "$PID" //F > /dev/null 2>&1 || true
+  elif command -v lsof > /dev/null 2>&1; then
+    PID="$(lsof -ti tcp:8080 -sTCP:LISTEN || true)"
+    [ -n "$PID" ] && kill "$PID" > /dev/null 2>&1 || true
+  fi
+}
+cleanup() {
+  stop_backend
+  (cd "$ROOT/docker-compose" && "${COMPOSE[@]}" down -v > /dev/null 2>&1) || true
+}
+trap cleanup EXIT
+
+cd "$ROOT/docker-compose"
+"${COMPOSE[@]}" down -v > /dev/null 2>&1 || true
+"${COMPOSE[@]}" up -d nl-portal-keycloak-database nl-portal-keycloak nl-portal-sessies
+"${COMPOSE[@]}" run --rm nl-portal-keycloak-config
+
+cd "$ROOT/backend"
+./gradlew :app:bootRun > "$LOG_DIR/backend.log" 2>&1 &
+BACKEND_PID=$!
+for _ in $(seq 1 120); do
+  if curl -fsS -H 'Host: debosrand.localhost:3000' http://127.0.0.1:8080/api/public/sessie > /dev/null 2>&1; then READY=1; break; fi
+  sleep 3
+done
+if [ -z "${READY:-}" ]; then
+  echo "De backend startte niet; laatste regels van $LOG_DIR/backend.log:" >&2
+  tail -30 "$LOG_DIR/backend.log" >&2
+  exit 1
+fi
+
+cd "$ROOT/keycloak/integratietest"
+node --test bff-login.test.mjs || {
+  echo "Backend-log: $LOG_DIR/backend.log" >&2
+  exit 1
+}
