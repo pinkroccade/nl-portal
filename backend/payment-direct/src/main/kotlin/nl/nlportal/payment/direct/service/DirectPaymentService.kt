@@ -24,8 +24,13 @@ import com.onlinepayments.domain.Order
 import com.onlinepayments.domain.OrderReferences
 import io.github.oshai.kotlinlogging.KLogger
 import io.github.oshai.kotlinlogging.KotlinLogging
-import nl.nlportal.payment.direct.autoconfiguration.DirectPaymentModuleConfiguration
+import nl.nlportal.core.koppeling.KoppelingException
+import nl.nlportal.core.tenancy.TenantContextMissingException
+import nl.nlportal.core.tenancy.TenantDirectory
+import nl.nlportal.core.util.ModuleNotConfiguredException
 import nl.nlportal.payment.direct.client.DirectPaymentClient
+import nl.nlportal.payment.direct.configuratie.DirectPaymentConfiguratie
+import nl.nlportal.payment.direct.configuratie.DirectPaymentProfiel
 import nl.nlportal.payment.direct.domain.DirectPaymentRequest
 import nl.nlportal.payment.direct.domain.DirectPaymentResponse
 import nl.nlportal.payment.direct.domain.DirectPaymentStatus
@@ -33,24 +38,28 @@ import org.springframework.http.HttpStatus
 import org.springframework.web.server.ResponseStatusException
 
 open class DirectPaymentService(
-    private val directPaymentModuleConfiguration: DirectPaymentModuleConfiguration,
+    private val directory: TenantDirectory,
     private val directPaymentClient: DirectPaymentClient,
 ) {
+    /**
+     * Het profiel met deze identifier, uit de configuratie van de huidige tenant. De identifier is vrije invoer van de client en
+     * staat daarom nooit in de melding of in de log.
+     */
+    private fun profiel(
+        configuratie: DirectPaymentConfiguratie,
+        identificatie: String,
+    ): DirectPaymentProfiel = configuratie.profiel(identificatie) ?: throw ResponseStatusException(HttpStatus.BAD_REQUEST, "Onbekend betaalprofiel")
+
     suspend fun getDirectPaymentStatus(
         identifier: String,
         hostedCheckoutId: String,
     ): DirectPaymentStatus {
-        val paymentDirectProfile =
-            directPaymentModuleConfiguration.properties.getPaymentProfile(identifier)
-                ?: directPaymentModuleConfiguration.properties.getPaymentProfileByPspPid(identifier)
-                ?: throw ResponseStatusException(
-                    HttpStatus.BAD_REQUEST,
-                    "Could not found direct payment profile for the identifier $identifier",
-                )
+        // Fail-closed: zonder tenant of zonder moduleconfiguratie volgt een fout.
+        val paymentDirectProfile = profiel(directory.module<DirectPaymentConfiguratie>(), identifier)
 
         val directPaymentStatusResponse =
             directPaymentClient.hostedCheckoutStatus(
-                directPaymentProfile = paymentDirectProfile,
+                profiel = paymentDirectProfile,
                 hostedCheckoutId = hostedCheckoutId,
             )
 
@@ -66,22 +75,17 @@ open class DirectPaymentService(
      */
     suspend fun doDirectPayment(paymentRequest: DirectPaymentRequest): DirectPaymentResponse {
         try {
-            val paymentDirectProfile =
-                directPaymentModuleConfiguration.properties.getPaymentProfile(paymentRequest.identifier)
-                    ?: directPaymentModuleConfiguration.properties.getPaymentProfileByPspPid(paymentRequest.identifier)
-                    ?: throw ResponseStatusException(
-                        HttpStatus.BAD_REQUEST,
-                        "Could not found direct payment profile for the identifier $paymentRequest.identifier",
-                    )
+            val configuratie = directory.module<DirectPaymentConfiguratie>()
+            val paymentDirectProfile = profiel(configuratie, paymentRequest.identifier)
 
             val hostedCheckoutSpecificInput =
                 HostedCheckoutSpecificInput()
-                    .withLocale(paymentRequest.langId ?: paymentDirectProfile.language)
+                    .withLocale(paymentRequest.langId ?: paymentDirectProfile.taal)
                     .withReturnUrl(paymentRequest.returnUrl ?: paymentDirectProfile.returnUrl)
-                    .withShowResultPage(directPaymentModuleConfiguration.properties.showResultPage)
-                    .withAllowedNumberOfPaymentAttempts(paymentDirectProfile.allowedNumberOfPayments)
+                    .withShowResultPage(configuratie.toonResultaatPagina)
+                    .withAllowedNumberOfPaymentAttempts(paymentDirectProfile.aantalPogingen)
 
-            directPaymentModuleConfiguration.properties.customTemplateUrl?.let {
+            configuratie.customTemplateUrl?.let {
                 hostedCheckoutSpecificInput.variant = it
             }
 
@@ -92,7 +96,7 @@ open class DirectPaymentService(
                             .withAmountOfMoney(
                                 AmountOfMoney()
                                     .withAmount((paymentRequest.amount * 100).toLong())
-                                    .withCurrencyCode(paymentDirectProfile.currency),
+                                    .withCurrencyCode(paymentDirectProfile.valuta),
                             ).withReferences(
                                 OrderReferences()
                                     .withDescriptor(paymentRequest.reference)
@@ -102,16 +106,16 @@ open class DirectPaymentService(
                         hostedCheckoutSpecificInput,
                     )
 
-            // only enable creditcard support if creditcardEnabled is enabled
-            if (paymentDirectProfile.creditcardEnabled) {
+            // Kaartbetalingen alleen als het profiel creditcardAan heeft.
+            if (paymentDirectProfile.creditcardAan) {
                 checkoutRequest.withCardPaymentMethodSpecificInput(
                     CardPaymentMethodSpecificInputBase()
                         .withAuthorizationMode("SALE"),
                 )
             }
 
-            // if webhookUrl property is configured, set webhook url in the request. Benefit is dynamically set the webhook url per environment.
-            directPaymentModuleConfiguration.properties.webhookUrl?.let {
+            // Is webhookUrl in de configuratie gezet, dan gaat die mee in het verzoek, zodat de webhook per omgeving een eigen adres heeft.
+            configuratie.webhookUrl?.let {
                 checkoutRequest.withFeedbacks(
                     Feedbacks().withWebhooksUrls(listOf(it)),
                 )
@@ -119,7 +123,7 @@ open class DirectPaymentService(
 
             val response =
                 directPaymentClient.hostedCheckout(
-                    directPaymentProfile = paymentDirectProfile,
+                    profiel = paymentDirectProfile,
                     checkoutRequest = checkoutRequest,
                 )
 
@@ -127,7 +131,16 @@ open class DirectPaymentService(
                 redirectUrl = response.redirectUrl,
             )
         } catch (ex: Exception) {
-            logger.error(ex) { "Error while do payment for ${paymentRequest.identifier} - ${ex.message}" }
+            when (ex) {
+                // Nooit het bronantwoord of de oorzaak loggen: alleen koppeling, soort en referentie.
+                is KoppelingException -> logger.error { "Betaling starten mislukt: koppeling '${ex.koppeling}', ${ex.soort}, referentie ${ex.correlatieId}" }
+
+                // Bekende fouten: de aanroeper of de GraphQL-foutafhandeling regelt de melding (en de log).
+                is ResponseStatusException, is ModuleNotConfiguredException, is TenantContextMissingException -> Unit
+
+                // Alleen het type: het bericht of de stacktrace kan gegevens uit het antwoord of de invoer bevatten.
+                else -> logger.error { "Betaling starten mislukt: onverwachte fout (${ex::class.simpleName})" }
+            }
             throw ex
         }
     }

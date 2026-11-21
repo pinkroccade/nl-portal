@@ -144,6 +144,9 @@ enum class TenantKoppelingAuthType(
     OAUTH2_CLIENT_CREDENTIALS("oauth2-client-credentials"),
     OAUTH2_PRIVATE_KEY_JWT("oauth2-private-key-jwt"),
 
+    /** Worldline Direct (`GCS v1HMAC`): elk verzoek wordt ondertekend met `clientId` (sleutel-ID) en `secret`. */
+    GCS_V1_HMAC("gcs-v1-hmac"),
+
     /** Bewust geen authenticatie door de app: de bron zit achter de cloud gateway, die per gemeente zelf authenticeert (mTLS). */
     GEEN("geen"),
 }
@@ -167,6 +170,7 @@ data class TenantKoppelingAuth(
             TenantKoppelingAuthType.ZGW_JWT -> listOf("clientId" to clientId, "secret" to secret)
             TenantKoppelingAuthType.OAUTH2_CLIENT_CREDENTIALS -> listOf("tokenUrl" to tokenUrl, "clientId" to clientId, "secret" to secret)
             TenantKoppelingAuthType.OAUTH2_PRIVATE_KEY_JWT -> listOf("tokenUrl" to tokenUrl, "clientId" to clientId, "privateKeyBestand" to privateKeyBestand)
+            TenantKoppelingAuthType.GCS_V1_HMAC -> listOf("clientId" to clientId, "secret" to secret)
             TenantKoppelingAuthType.GEEN -> emptyList()
         }.filter { (_, waarde) -> waarde == null || (waarde is String && waarde.isBlank()) }.map { it.first }
 
