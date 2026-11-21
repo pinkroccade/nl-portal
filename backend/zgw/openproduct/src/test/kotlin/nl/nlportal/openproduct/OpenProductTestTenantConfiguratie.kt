@@ -36,7 +36,7 @@ open class OpenProductTestTenantConfiguratie {
         TenantDirectory(
             listOf(
                 TestTenants.tenant(
-                    koppelingen = mapOf("zakenapi" to TestTenants.zgwKoppeling(url, "valtimo_client", "zaken-secret")),
+                    koppelingen = mapOf("zakenapi" to TestTenants.zgwKoppeling(url, "valtimo_client", "zaken-secret"), "objectenapi" to TestTenants.koppeling(url)),
                     modules = mapOf("zakenapi" to ZakenApiConfiguratie()),
                 ),
             ),

@@ -23,7 +23,6 @@ import nl.nlportal.documentenapi.client.DocumentApisConfig
 import nl.nlportal.openproduct.TestHelper
 import nl.nlportal.openproduct.TestHelper.readFileAsString
 import nl.nlportal.openproduct.autoconfigure.OpenProductModuleConfiguration
-import nl.nlportal.zgw.objectenapi.autoconfiguration.ObjectsApiClientConfig
 import okhttp3.mockwebserver.Dispatcher
 import okhttp3.mockwebserver.MockResponse
 import okhttp3.mockwebserver.MockWebServer
@@ -50,7 +49,6 @@ import tools.jackson.databind.JsonNode
 class OpenProductQueryIT(
     @Autowired private val httpGraphQlTester: HttpGraphQlTester,
     @Autowired private val openProductModuleConfiguration: OpenProductModuleConfiguration,
-    @Autowired private val objectsApiClientConfig: ObjectsApiClientConfig,
     @Autowired private val documentApisConfig: DocumentApisConfig,
 ) {
     companion object {
@@ -67,7 +65,6 @@ class OpenProductQueryIT(
         fun properties(propsRegistry: DynamicPropertyRegistry) {
             propsRegistry.add("nl-portal.config.openproduct.properties.product-api-url") { url }
             propsRegistry.add("nl-portal.config.openproduct.properties.product-type-api-url") { url }
-            propsRegistry.add("nl-portal.config.objectenapi.properties.url") { url }
         }
 
         @JvmStatic
@@ -91,7 +88,6 @@ class OpenProductQueryIT(
         url = server?.url("/").toString()
         openProductModuleConfiguration.properties.productApiUrl = URI(url)
         openProductModuleConfiguration.properties.productTypeApiUrl = URI(url)
-        objectsApiClientConfig.properties.url = URI(url)
         documentApisConfig.properties.getConfig("openzaak").url = server?.url("/").toString()
     }
 

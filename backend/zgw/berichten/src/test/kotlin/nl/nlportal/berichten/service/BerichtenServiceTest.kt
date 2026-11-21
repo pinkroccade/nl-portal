@@ -15,11 +15,12 @@
  */
 package nl.nlportal.berichten.service
 
+import kotlinx.coroutines.reactor.ReactorContext
 import kotlinx.coroutines.test.runTest
+import nl.nlportal.core.testing.TestTenants
 import nl.nlportal.berichten.autoconfigure.BerichtenConfiguration.BerichtenConfigurationProperties
 import nl.nlportal.commonground.authentication.JwtBuilder
 import nl.nlportal.documentenapi.service.DocumentenApiService
-import nl.nlportal.zgw.objectenapi.autoconfiguration.ObjectsApiClientConfig.ObjectsApiClientConfigProperties
 import nl.nlportal.zgw.objectenapi.client.ObjectsApiClient
 import nl.nlportal.zgw.objectenapi.service.ObjectenApiService
 import okhttp3.mockwebserver.MockResponse
@@ -47,10 +48,10 @@ class BerichtenServiceTest {
     fun setUp() {
         mockServer = MockWebServer()
         mockServer.start()
-        val config = ObjectsApiClientConfigProperties(url = mockServer.url("/").toUri(), token = "token")
+        val register = TestTenants.register(TestTenants.tenant(koppelingen = mapOf("objectenapi" to TestTenants.koppeling(mockServer.url("/").toString().trimEnd('/')))))
         service =
             BerichtenService(
-                ObjectenApiService(ObjectsApiClient(config), config),
+                ObjectenApiService(ObjectsApiClient(register)),
                 mock<DocumentenApiService>(),
                 BerichtenConfigurationProperties(),
             )
@@ -63,7 +64,7 @@ class BerichtenServiceTest {
 
     @Test
     fun `a bericht of another vertegenwoordigde is not readable`() =
-        runTest {
+        runTest(ReactorContext(TestTenants.tenantContext())) {
             mockServer.enqueue(berichtResponse(geopend = true))
 
             val exception = assertThrows<ResponseStatusException> { service.getBericht(ander, BERICHT_ID) }
@@ -73,7 +74,7 @@ class BerichtenServiceTest {
 
     @Test
     fun `an opened bericht of the vertegenwoordigde is returned without being updated`() =
-        runTest {
+        runTest(ReactorContext(TestTenants.tenantContext())) {
             mockServer.enqueue(berichtResponse(geopend = true))
 
             val bericht = service.getBericht(ontvanger, BERICHT_ID)
@@ -84,7 +85,7 @@ class BerichtenServiceTest {
 
     @Test
     fun `opening a bericht records the identificatie of the vertegenwoordigde as corrector`() =
-        runTest {
+        runTest(ReactorContext(TestTenants.tenantContext())) {
             mockServer.enqueue(berichtResponse(geopend = false))
             mockServer.enqueue(berichtResponse(geopend = true))
 
@@ -99,7 +100,7 @@ class BerichtenServiceTest {
 
     @Test
     fun `a document of a bericht of another vertegenwoordigde is not readable`() =
-        runTest {
+        runTest(ReactorContext(TestTenants.tenantContext())) {
             mockServer.enqueue(berichtResponse(geopend = true))
 
             val exception = assertThrows<ResponseStatusException> { service.getBerichtDocumentContent(ander, BERICHT_ID, DOCUMENT_ID) }
@@ -109,7 +110,7 @@ class BerichtenServiceTest {
 
     @Test
     fun `a document of an unopened bericht is forbidden`() =
-        runTest {
+        runTest(ReactorContext(TestTenants.tenantContext())) {
             mockServer.enqueue(berichtResponse(geopend = false))
 
             val exception = assertThrows<ResponseStatusException> { service.getBerichtDocumentContent(ontvanger, BERICHT_ID, DOCUMENT_ID) }
@@ -119,7 +120,7 @@ class BerichtenServiceTest {
 
     @Test
     fun `a document that is not an attachment of the bericht is not readable`() =
-        runTest {
+        runTest(ReactorContext(TestTenants.tenantContext())) {
             mockServer.enqueue(berichtResponse(geopend = true))
 
             val exception = assertThrows<ResponseStatusException> { service.getBerichtDocumentContent(ontvanger, BERICHT_ID, DOCUMENT_ID) }

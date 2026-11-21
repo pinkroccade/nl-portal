@@ -15,11 +15,15 @@
  */
 package nl.nlportal.zgw.taak.service
 
+import kotlinx.coroutines.reactor.ReactorContext
 import kotlinx.coroutines.test.runTest
+import nl.nlportal.core.koppeling.KoppelingException
+import nl.nlportal.core.koppeling.KoppelingFoutsoort
+import nl.nlportal.core.testing.TestTenants
+import org.junit.jupiter.api.assertThrows
 import nl.nlportal.commonground.authentication.AuthenticationMachtigingsDienstService
 import nl.nlportal.commonground.authentication.JwtBuilder
 import nl.nlportal.core.util.Mapper
-import nl.nlportal.zgw.objectenapi.autoconfiguration.ObjectsApiClientConfig.ObjectsApiClientConfigProperties
 import nl.nlportal.zgw.objectenapi.client.ObjectsApiClient
 import nl.nlportal.zgw.taak.TestHelper.assertStatus
 import nl.nlportal.zgw.taak.TestHelper.mockJsonResponse
@@ -58,12 +62,7 @@ class TaakServiceTest {
         whenever(machtigingsDienstService.isAllowedTaakType(any(), any())).thenReturn(true)
 
         val objectsApiClient =
-            ObjectsApiClient(
-                ObjectsApiClientConfigProperties(
-                    url = mockServer.url("/").toUri(),
-                    token = "token",
-                ),
-            )
+            ObjectsApiClient(TestTenants.register(TestTenants.tenant(koppelingen = mapOf("objectenapi" to TestTenants.koppeling(mockServer.url("/").toString().trimEnd('/'))))))
         service =
             TaakService(
                 objectsApiClient,
@@ -79,7 +78,7 @@ class TaakServiceTest {
 
     @Test
     fun `getTakenV2 returns an empty page when the Objects API fails`() =
-        runTest {
+        runTest(ReactorContext(TestTenants.tenantContext())) {
             mockServer.enqueue(MockResponse().setResponseCode(500))
 
             val page = service.getTakenV2(1, 10, burger())
@@ -92,7 +91,7 @@ class TaakServiceTest {
 
     @Test
     fun `getTakenV2 searches open taken of the user by default`() =
-        runTest {
+        runTest(ReactorContext(TestTenants.tenantContext())) {
             mockServer.enqueue(mockJsonResponse(resultPage(taakJson())))
 
             val page = service.getTakenV2(1, 10, burger())
@@ -115,7 +114,7 @@ class TaakServiceTest {
 
     @Test
     fun `getTakenV2 applies status, zaak, title and eigenaar filters`() =
-        runTest {
+        runTest(ReactorContext(TestTenants.tenantContext())) {
             val zaakId = UUID.randomUUID()
             whenever(machtigingsDienstService.taakTypes(any())).thenReturn(listOf("gzac", "other"))
             mockServer.enqueue(mockJsonResponse(resultPage()))
@@ -138,7 +137,7 @@ class TaakServiceTest {
 
     @Test
     fun `getTaken wraps the result with the number of returned taken`() =
-        runTest {
+        runTest(ReactorContext(TestTenants.tenantContext())) {
             mockServer.enqueue(mockJsonResponse(resultPage(taakJson(), taakJson())))
 
             val page = service.getTaken(2, 5, burger())
@@ -151,7 +150,7 @@ class TaakServiceTest {
 
     @Test
     fun `getTaakByIdV2 returns the taak for its owner`() =
-        runTest {
+        runTest(ReactorContext(TestTenants.tenantContext())) {
             mockServer.enqueue(mockJsonResponse(taakJson()))
 
             val taak = service.getTaakByIdV2(UUID.fromString(TAAK_ID), burger())
@@ -162,7 +161,7 @@ class TaakServiceTest {
 
     @Test
     fun `getTaakByIdV2 denies access to a taak of another user`() =
-        runTest {
+        runTest(ReactorContext(TestTenants.tenantContext())) {
             mockServer.enqueue(mockJsonResponse(taakJson()))
 
             assertStatus(HttpStatus.UNAUTHORIZED) {
@@ -172,7 +171,7 @@ class TaakServiceTest {
 
     @Test
     fun `getTaakByIdV2 denies access when the taak type is not allowed`() =
-        runTest {
+        runTest(ReactorContext(TestTenants.tenantContext())) {
             whenever(machtigingsDienstService.isAllowedTaakType(any(), any())).thenReturn(false)
             mockServer.enqueue(mockJsonResponse(taakJson()))
 
@@ -182,22 +181,18 @@ class TaakServiceTest {
         }
 
     @Test
-    fun `getTaakByIdV2 fails with bad request when the taak does not exist`() =
-        runTest {
-            // an empty body is mapped to null by the client
+    fun `getTaakByIdV2 fails closed when the Objects API answers without a body`() =
+        runTest(ReactorContext(TestTenants.tenantContext())) {
             mockServer.enqueue(MockResponse().setResponseCode(200))
 
-            val exception =
-                assertStatus(HttpStatus.BAD_REQUEST) {
-                    service.getTaakByIdV2(UUID.fromString(TAAK_ID), burger())
-                }
+            val fout = assertThrows<KoppelingException> { service.getTaakByIdV2(UUID.fromString(TAAK_ID), burger()) }
 
-            assertEquals("Taak [$TAAK_ID] kan niet gevonden worden", exception.reason)
+            assertEquals(KoppelingFoutsoort.ANTWOORD_ONBRUIKBAAR, fout.soort)
         }
 
     @Test
     fun `getTaakByIdV2 propagates an error status from the Objects API`() =
-        runTest {
+        runTest(ReactorContext(TestTenants.tenantContext())) {
             mockServer.enqueue(MockResponse().setResponseCode(404))
 
             assertStatus(HttpStatus.NOT_FOUND) {
@@ -207,7 +202,7 @@ class TaakServiceTest {
 
     @Test
     fun `submitTaak completes an open taak and stores the submission`() =
-        runTest {
+        runTest(ReactorContext(TestTenants.tenantContext())) {
             mockServer.enqueue(mockJsonResponse(taakJson()))
             mockServer.enqueue(mockJsonResponse(taakJson(status = "afgerond")))
 
@@ -225,7 +220,7 @@ class TaakServiceTest {
 
     @Test
     fun `submitTaakV2 rejects a taak that is not open`() =
-        runTest {
+        runTest(ReactorContext(TestTenants.tenantContext())) {
             mockServer.enqueue(mockJsonResponse(taakJson(status = "afgerond")))
 
             val exception =
@@ -240,7 +235,7 @@ class TaakServiceTest {
 
     @Test
     fun `submitTaakV2 denies access to a taak of another user`() =
-        runTest {
+        runTest(ReactorContext(TestTenants.tenantContext())) {
             mockServer.enqueue(mockJsonResponse(taakJson()))
 
             assertStatus(HttpStatus.UNAUTHORIZED) {

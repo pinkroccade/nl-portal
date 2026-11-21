@@ -29,8 +29,16 @@ import org.springframework.core.env.Environment
  */
 @TestConfiguration
 class PaymentTestConfiguration {
+    companion object {
+        const val OBJECTEN_POORT = 10002
+    }
+
     @Bean
-    fun tenantDirectory(environment: Environment): TenantDirectory = TestTenants.directory(PaymentTestTenants.tenant(TestTenants.BOSRAND, environment.getProperty("test.payment.url", "http://localhost:1").trimEnd('/')))
+    fun tenantDirectory(environment: Environment): TenantDirectory {
+        val tenant = PaymentTestTenants.tenant(TestTenants.BOSRAND, environment.getProperty("test.payment.url", "http://localhost:1").trimEnd('/'))
+        // De Objecten API van de tenant: de IT die hem aanroept start zijn nepserver op deze vaste poort.
+        return TestTenants.directory(tenant.copy(koppelingen = tenant.koppelingen + ("objectenapi" to TestTenants.koppeling("http://localhost:$OBJECTEN_POORT"))))
+    }
 
     @Bean
     fun geheimenBron(): GeheimenBron = PaymentTestTenants.geheimen(TestTenants.BOSRAND to PaymentTestTenants.WEBHOOK_GEHEIM)

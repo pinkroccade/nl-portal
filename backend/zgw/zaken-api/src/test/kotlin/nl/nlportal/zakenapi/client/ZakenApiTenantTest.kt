@@ -28,7 +28,6 @@ import nl.nlportal.core.testing.TestTenants.BOSRAND
 import nl.nlportal.core.testing.TestTenants.WIJDE_VELD
 import nl.nlportal.documentenapi.service.DocumentenApiService
 import nl.nlportal.zakenapi.service.ZakenApiService
-import nl.nlportal.zgw.objectenapi.autoconfiguration.ObjectsApiClientConfig.ObjectsApiClientConfigProperties
 import nl.nlportal.zgw.objectenapi.client.ObjectsApiClient
 import nl.nlportal.zgw.objectenapi.service.ObjectenApiService
 import okhttp3.mockwebserver.Dispatcher
@@ -329,19 +328,16 @@ class ZakenApiTenantTest {
     fun `een object-URL uit een antwoord van de Zaken API op een andere host wordt niet gevolgd, ook niet met het token van de Objecten API`() =
         runTest {
             val client = client(tenant(BOSRAND, bosrandBron, "bosrand"))
-            val objectsApiClient = mock<ObjectsApiClient>()
-            val objecten = ObjectenApiService(objectsApiClient, ObjectsApiClientConfigProperties(URI.create("https://objecten.example.nl"), "token"))
+            val objecten = ObjectenApiService(ObjectsApiClient(TestTenants.register(tenant(BOSRAND, bosrandBron, "bosrand").let { it.copy(koppelingen = it.koppelingen + ("objectenapi" to TestTenants.koppeling("https://objecten.example.nl"))) })))
             val service = ZakenApiService(client, mock<DocumentenApiService>(), objecten, mock<AuthenticationMachtigingsDienstService>())
             val zaakObject =
                 """{"url":"http://z/1","uuid":"1","zaak":"http://z/zaak","object":"https://evil.example/api/v2/objects/1","objectType":"overige","objectTypeOverige":"portaalzaakdetails"}"""
             bosrandBron.enqueue(pagina(zaakObject))
 
             val zaakUrl = "https://zaken.example.nl/zaken/api/v1/zaken/2941048a-7290-4a78-8c4e-14feaec137dc"
-            val fout = TestTenants.alsTenant(BOSRAND) { assertThrows<IllegalArgumentException> { service.getZaakDetails(zaakUrl) } }
+            val fout = TestTenants.alsTenant(BOSRAND) { assertThrows<KoppelingException> { service.getZaakDetails(zaakUrl) } }
 
-            assertThat(fout.message).contains("andere host")
-
-            verify(objectsApiClient, never()).webClientWithoutBaseUrl()
+            assertThat(fout.soort).isEqualTo(nl.nlportal.core.koppeling.KoppelingFoutsoort.HOST_BINDING)
         }
 
     @Test
