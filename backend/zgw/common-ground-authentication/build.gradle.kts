@@ -39,6 +39,7 @@ dependencies {
     testImplementation(TestDependencies.mockOauth2Server)
     testImplementation(TestDependencies.assertJCore)
     testImplementation(TestDependencies.kotlinCoroutines)
+    testImplementation(TestDependencies.testcontainers)
 }
 
 val jar: Jar by tasks

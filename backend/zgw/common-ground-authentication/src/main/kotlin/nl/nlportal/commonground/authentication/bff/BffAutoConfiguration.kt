@@ -21,13 +21,10 @@ import nl.nlportal.core.tenancy.TenantDirectory
 import org.springframework.beans.factory.ObjectProvider
 import org.springframework.boot.autoconfigure.AutoConfiguration
 import org.springframework.boot.autoconfigure.condition.ConditionalOnBean
-import org.springframework.boot.autoconfigure.condition.ConditionalOnClass
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean
 import org.springframework.context.annotation.Bean
+import org.springframework.context.annotation.Import
 import org.springframework.core.env.Environment
-import org.springframework.data.redis.core.ReactiveStringRedisTemplate
-import org.springframework.session.config.ReactiveSessionRepositoryCustomizer
-import org.springframework.session.data.redis.ReactiveRedisSessionRepository
 import org.springframework.web.server.session.CookieWebSessionIdResolver
 import org.springframework.web.server.session.WebSessionIdResolver
 import java.nio.file.Path
@@ -48,14 +45,11 @@ import java.time.Duration
     afterName = ["org.springframework.boot.data.redis.autoconfigure.DataRedisReactiveAutoConfiguration"],
 )
 @ConditionalOnBean(TenantDirectory::class)
+@Import(BffRedisConfiguration::class)
 class BffAutoConfiguration {
     @Bean
     @ConditionalOnMissingBean(Clock::class)
     fun bffClock(): Clock = Clock.systemUTC()
-
-    @Bean
-    @ConditionalOnMissingBean(EenmaligeOpslag::class)
-    fun eenmaligeOpslag(redis: ReactiveStringRedisTemplate): EenmaligeOpslag = RedisEenmaligeOpslag(redis)
 
     @Bean
     @ConditionalOnMissingBean(Beveiligingsgebeurtenissen::class)
@@ -143,11 +137,6 @@ class BffAutoConfiguration {
                     .sameSite("Strict")
             }
         }
-
-    /** Sessie-ID's van 256 bit uit een eigen generator (Spring Session gebruikt standaard een UUID van 122 bit). */
-    @Bean
-    @ConditionalOnClass(ReactiveRedisSessionRepository::class)
-    fun sessieIdGeneratorCustomizer(): ReactiveSessionRepositoryCustomizer<ReactiveRedisSessionRepository> = ReactiveSessionRepositoryCustomizer { it.setSessionIdGenerator(SecureSessionIdGenerator()) }
 
     private companion object {
         val FLOW_LEVENSDUUR: Duration = Duration.ofMinutes(5)
