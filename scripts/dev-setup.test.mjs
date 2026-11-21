@@ -66,6 +66,13 @@ test("withManagedBlock behoudt eigen regels en vervangt het blok bij herhaling",
   assert.match(tweede, /KEYCLOAK_DB_PASSWORD=KEYCLOAK_DB_PASSWORD-2/);
 });
 
+test("withManagedBlock zet LOCAL_UID en LOCAL_GID zodat de container de 0600-clientsleutel kan lezen", () => {
+  const blok = withManagedBlock("RUN_MODE=local\n", fixed(1), { uid: 1234, gid: 5678 });
+  assert.match(blok, /^LOCAL_UID=1234$/m);
+  assert.match(blok, /^LOCAL_GID=5678$/m);
+  assert.doesNotMatch(withManagedBlock("", fixed(1), {}), /LOCAL_UID/, "zonder uid (Windows) valt compose terug op 1000");
+});
+
 test("devSetup rendert dezelfde waarden in realm, compose en :app", () => {
   const root = scratchRoot();
   try {

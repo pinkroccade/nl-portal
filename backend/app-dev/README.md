@@ -14,7 +14,7 @@ cd ../../docker-compose && docker compose --profile zgw --profile haalcentraal u
 cd ../backend && ./gradlew :app-dev:bootRun
 ```
 
-Only a generated `.env.properties` is read (`mise run dev:setup`): the Keycloak client secret and the
+Only a generated `.env.properties` is read (`mise run dev:setup`): the Redis password and the
 secrets and tokens of the ZGW components, which `application.yml` references as placeholders. Unlike `:app`,
 this module is configured otherwise entirely from its own
 [`src/main/resources/config/application.yml`](src/main/resources/config/application.yml), which inlines

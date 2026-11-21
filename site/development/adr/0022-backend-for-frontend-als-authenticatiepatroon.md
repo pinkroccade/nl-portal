@@ -4,7 +4,7 @@
 
 Geaccepteerd op 2026-11-21, in de grilling-sessie van fase 0 voor de multitenancy-epic (zie het
 [besluitenlog fase 0](../research/fase0-besluiten-multitenancy-bff.md), vragen Q14 en Q18 tot en met Q23).
-Nog niet gebouwd. Hoort bij [ADR 0021](./0021-gedeelde-multi-tenant-runtime-met-cellen.md), dat de
+Gebouwd in T7 (#506), met de correcties onder "Correctie na de bouw". Hoort bij [ADR 0021](./0021-gedeelde-multi-tenant-runtime-met-cellen.md), dat de
 tenantbinding via de issuer hierop laat steunen. Steunt op [ADR 0017](./0017-vluchtige-state-toegestaan.md)
 voor de sessieopslag. Raakt de ASVS-toetsing van de token exchange
 ([`asvs-5-l3-toetsing-token-exchange.md`](../research/asvs-5-l3-toetsing-token-exchange.md)) en de issues
@@ -60,8 +60,9 @@ en wie de OAuth-client is.
    `Secure`, `HttpOnly`, `Path=/` en zonder `Domain`. Doel is `SameSite=Strict`; of de login-callback (een
    cross-site redirect van Keycloak) daarvoor een `Lax`-cookie of een tussenstap nodig heeft, wordt in de spec
    met een test vastgesteld (RFC 10017 §6.1.3.2, ASVS 3.3.1 tot 3.3.4).
-3. **Sessies in Redis**, als vluchtige state volgens ADR 0017, met de tenant in de sleutel. Een sessie van
-   tenant A is op het domein van tenant B nooit geldig.
+3. **Sessies in Redis**, als vluchtige state volgens ADR 0017, met de tenant als gecontroleerd sessieattribuut
+   (`nlp.tenant`, door de backend gezet bij het opslaan; zie "Correctie na de bouw"). Een sessie van tenant A is
+   op het domein van tenant B nooit geldig.
 4. **CSRF-bescherming is verplicht** (RFC 10017 §6.1.3.3, ASVS 3.5). Het mechanisme (anti-forgery-token of
    een verplichte eigen header met strikte CORS) wordt in de spec gekozen. Muterende functies gaan nooit via
    `GET`.
@@ -116,6 +117,22 @@ en wie de OAuth-client is.
     `Bearer`-configuratie, geen `JwtDecoder` en geen token exchange in de code; de identiteit wordt alleen
     via de sessie gelezen, via één leesroute in de authenticatiemodule; geen module bouwt zelf een
     `Authentication`.
+
+## Correctie na de bouw
+
+- **Tenant als sessieattribuut, niet in de Redis-sleutel.** De sleutel is de sessie-ID zelf (256 bit, door Spring Session
+  onder één vaste naamruimte). Een tenant in de sleutel zou de sleutel voorspelbaar maken en dwingt de Redis-ACL per
+  tenant af, terwijl de sessie-ID uit een cookie komt dat al aan het domein van de tenant gebonden is. In plaats daarvan
+  slaat de backend bij het opslaan de tenant (OIN) op als attribuut, en vergelijkt `SessieBewakingFilter` dat bij elk
+  request met de tenant van de host. Een afwijking maakt de sessie ongeldig (401) en wordt als securityevent gelogd. De
+  tenant is dus een gecontroleerd attribuut van de sessie, geen onderdeel van haar adres.
+- **`SameSite=Strict` met een tussenpagina.** De sessiecookie (`__Host-Http-NLP`) is `Strict`. De callback zet hem op een
+  cross-site redirect; daarom antwoordt de callback met een tussenpagina met `meta refresh` naar het terugkeerpad, zodat de
+  eerste navigatie al first-party is. De flowcookie (`__Host-nlp-flow`) is `Lax`, wordt bij de callback eenmalig gelezen
+  (`GETDEL`) en bevat alleen een verwijzing.
+- **Niveau per inlogmiddel.** De callback zet de `acr` van het ID-token om via een vaste tabel (arc42 8.1) en weigert een
+  onbekende of lege waarde; het minimum per tenant komt uit het tenantbestand.
+- **Back-channel logout is nog niet gebouwd.** De realm kent de URL; de backend beantwoordt hem nog niet (404).
 
 ## Gevolgen
 

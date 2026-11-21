@@ -24,6 +24,16 @@ capabilities:
       - {type: rest, naam: "GET /api/public/frontend", frontend_gebruikt: true}
       - {type: rest, naam: "GET /api/public/ping", frontend_gebruikt: false}
 
+  - id: inloggen-sessie
+    naam: Inloggen en portaalsessie
+    beschrijving: De backend is de OIDC-client (BFF); de browser krijgt alleen een sessiecookie. Het sessie-endpoint zegt of er is ingelogd, zonder tokens of BSN.
+    status: actief
+    bewijs: SessionProvider in de frontend vraagt GET /api/public/sessie bij opstart; login, callback en uitloggen zijn Spring-Security-routes (/oauth2, /login, /logout).
+    modules: [backend/zgw/common-ground-authentication]
+    signalen: {in_assembly: true, tests: true, laatste_commit: 2026-11-21, commits_12m: 12, deprecated_markers: false}
+    ingangen:
+      - {type: rest, naam: "GET /api/public/sessie", frontend_gebruikt: true}
+
   - id: zaken-inzien
     naam: Zaken inzien
     beschrijving: Burger/ondernemer ziet zijn lopende en afgeronde zaken met status, documenten en besluiten.
@@ -205,7 +215,6 @@ capabilities:
 modules_zonder_ingang:
   - {module: backend/graphql, rol: library (GraphQL-config, scalars, exceptionhandler)}
   - {module: backend/portal-authentication, rol: infra (authenticatie-basis)}
-  - {module: backend/zgw/common-ground-authentication, rol: infra (Keycloak/OIDC)}
   - {module: backend/zgw/common-ground-authentication-test, rol: test-library}
   - {module: backend/zgw/objectenapi, rol: library (client Objecten API)}
   - {module: backend/zgw/catalogi-api, rol: library (client Catalogi API)}

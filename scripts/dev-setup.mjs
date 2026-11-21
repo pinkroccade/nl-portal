@@ -101,8 +101,13 @@ export function render(template, values, source = "template") {
   });
 }
 
-export function withManagedBlock(existing, values) {
-  const block = [BLOCK_START, ...SECRET_NAMES.map((name) => `${name}=${values[name]}`), BLOCK_END].join("\n");
+/**
+ * De private clientsleutel is 0600 van de gebruiker die dev:setup draait. De backend-container leest hem alleen als dezelfde uid
+ * (compose: `user: ${LOCAL_UID}:${LOCAL_GID}`), dus het blok legt die uid vast. Windows kent geen uid; compose valt dan terug op 1000.
+ */
+export function withManagedBlock(existing, values, gebruiker = {}) {
+  const gebruikerRegels = gebruiker.uid === undefined ? [] : [`LOCAL_UID=${gebruiker.uid}`, `LOCAL_GID=${gebruiker.gid}`];
+  const block = [BLOCK_START, ...SECRET_NAMES.map((name) => `${name}=${values[name]}`), ...gebruikerRegels, BLOCK_END].join("\n");
   const pattern = new RegExp(`${BLOCK_START}[\\s\\S]*?${BLOCK_END}`);
   if (pattern.test(existing)) return existing.replace(pattern, () => block);
   return `${existing.replace(/\s*$/, "")}\n\n${block}\n`;
@@ -129,6 +134,8 @@ export function genereerTenantRealms(root, sleutelMaker = maakClientSleutel) {
   });
 }
 
+const huidigeGebruiker = () => (process.getuid ? { uid: process.getuid(), gid: process.getgid() } : {});
+
 export function devSetup(root, secrets = generateSecrets()) {
   const written = [];
   const values = { ...secrets, OPENKLANT_ADMIN_PASSWORD_HASH: djangoPasswordHash(secrets.OPENKLANT_ADMIN_PASSWORD) };
@@ -141,7 +148,7 @@ export function devSetup(root, secrets = generateSecrets()) {
 
   // Eigen regels in een bestaande docker-compose/.env (RUN_MODE, NETWERK, ...) blijven staan.
   const base = existsSync(join(root, COMPOSE_ENV)) ? COMPOSE_ENV : COMPOSE_ENV_EXAMPLE;
-  write(root, COMPOSE_ENV, withManagedBlock(readFileSync(join(root, base), "utf8"), secrets));
+  write(root, COMPOSE_ENV, withManagedBlock(readFileSync(join(root, base), "utf8"), secrets, huidigeGebruiker()));
   written.push(COMPOSE_ENV);
 
   write(

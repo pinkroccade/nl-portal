@@ -24,6 +24,22 @@ The GraphQL endpoint is served at `/graphql`. Keycloak and ZGW service URLs (and
 users to log in with) are provided by the `docker-compose/` stack - see its
 [README](../../docker-compose/README.md) for service ports and credentials.
 
+### Authentication (BFF)
+
+The app is the OIDC client of the tenant's Keycloak realm and keeps a session in Redis (ADR 0022, arc42 8.1); it accepts no bearer tokens.
+It needs, besides the tenant files:
+
+| Setting | Meaning |
+|---|---|
+| `KEYCLOAK_BROKER_URL` | public base URL of Keycloak; every tenant `authenticatie.issuer` must lie under it |
+| `NL_PORTAL_SLEUTELMAP` | base directory with one directory per tenant (named by OIN) holding the `private_key_jwt` client key; the `authenticatie.sleutelBestand` path is relative to it and must resolve under `<sleutelmap>/<oin>/` |
+| `REDIS_HOST`, `REDIS_PORT`, `REDIS_USERNAME`, `REDIS_PASSWORD`, `REDIS_SSL` | session store (the compose stack runs `nl-portal-sessies`) |
+
+The tenant is chosen by the `Host` header, so call the app through a tenant domain: with the demo tenant that is
+`debosrand.localhost` (for example `http://debosrand.localhost:8080`, or through the frontend dev server on `:3000`). Mutating requests need
+the `X-XSRF-TOKEN` header and a same-origin `Origin`. `GET /api/public/sessie` tells the frontend whether a session exists. Details:
+[Keycloak configuratie](../../site/hosting-en-configuratie/keycloak.md).
+
 ## Configuration
 
 The app has a single config surface: **`src/main/resources/config/application.yml`** - the
@@ -38,7 +54,7 @@ the *only* config source for a from-source run - it is independent of
 [`docker-compose/imports/backend.env`](../../docker-compose/imports/backend.env), which configures
 the *containerised* backend under `RUN_MODE=local`/`remote`.
 
-`.env.properties` is **gitignored** (it holds the random Keycloak client secret and the secrets and tokens of the ZGW components). `mise run dev:setup` renders
+`.env.properties` is **gitignored** (it holds the random Redis password for the sessions and the secrets and tokens of the ZGW components). `mise run dev:setup` renders
 the tracked template `.env.properties.example` into it, with fresh secrets on every run; adjust the
 result for your machine:
 

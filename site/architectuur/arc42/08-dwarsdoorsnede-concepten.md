@@ -6,13 +6,61 @@ Concepten die meerdere bouwblokken overstijgen en dus niet in één bouwblok thu
 
 Zie [`site/architectuur/authentication-en-authorization.md`](../authentication-en-authorization.md).
 
-> **Besloten, nog niet gebouwd:** [ADR 0022](../../development/adr/0022-backend-for-frontend-als-authenticatiepatroon.md)
-> vervangt het patroon hieronder door een backend-for-frontend. Tot de bouw klaar is, beschrijft deze paragraaf de
-> huidige werking.
-Samengevat: DigiD (burgers) en eHerkenning (ondernemers/ketenpartners), gefedereerd via een OIDC-
-broker (Keycloak in de huidige stack). De backend valideert het token op elke GraphQL-aanroep; de
-frontend bewaart geen eigen sessie-state buiten wat de OIDC-flow vereist
-(`@nl-portal/nl-portal-authentication`).
+> **Gebouwd (T7, #506):** [ADR 0022](../../development/adr/0022-backend-for-frontend-als-authenticatiepatroon.md)
+> beschrijft de backend-for-frontend die hieronder staat. De tokenvalidatie op elke GraphQL-aanroep, de token exchange en de
+> publieke SPA-client bestaan niet meer.
+
+**BFF-sessie.** De backend is de enige OIDC-client (`nl-portal-backend`, vertrouwelijk, `private_key_jwt` PS256, PKCE, `state`,
+`nonce`, RFC 9207 `iss`) van het realm van de tenant die bij de host hoort. De browser heeft alleen cookies en nooit een token;
+de frontend vraagt `GET /api/public/sessie` om te weten of en als wie de gebruiker is ingelogd (zonder tokens of BSN). Na de
+callback toetst de `Inlogbeslisser` issuer, client, inlogmiddel, niveau, BSN (negen cijfers, elfproef) en vertegenwoordiging; een
+weigering is een securityevent met OIN en actor, nooit met BSN. De sessie staat in Redis (vluchtig, ADR 0017: ACL, geen
+persistentie, `noeviction`, TTL op elke sleutel) en bevat alleen de afgeleide identiteit en het ID-token voor RP-initiated logout.
+De tenant is een gecontroleerd sessieattribuut (`nlp.tenant`), geen onderdeel van de sleutel; een sessie die op de host van een
+andere tenant binnenkomt, wordt afgewezen.
+
+**Cookies.**
+
+| Cookie | Doel | Attributen |
+|---|---|---|
+| `__Host-Http-NLP` | de portaalsessie | `HttpOnly`, `Secure`, `Path=/`, geen `Domain`, `SameSite=Strict`; nieuw sessie-ID bij elke login |
+| `__Host-nlp-flow` | verwijst naar de lopende login in Redis (eenmalig, `GETDEL`, tenantgebonden, korte levensduur) | `HttpOnly`, `Secure`, `SameSite=Lax` (de callback is cross-site) |
+| `__Host-XSRF-TOKEN` | CSRF-token (double submit) | leesbaar voor de SPA, `Secure`, `SameSite=Strict` |
+
+Alle drie de cookies zijn altijd `Secure`. Voor lokale ontwikkeling over http werkt dat omdat browsers `localhost` en `*.localhost` als
+veilige context behandelen.
+
+**CSRF en Origin-regel.** Elk muterend request (`POST`, `PUT`, `PATCH`, `DELETE`; ook `POST /graphql`) moet het CSRF-token in
+`X-XSRF-TOKEN` meesturen (formulier-POST van uitloggen: parameter `_csrf`) en een `Origin` hebben die gelijk is aan de origin van de
+host-tenant, of `Sec-Fetch-Site: same-origin`. GraphQL accepteert alleen `application/json`. Een Bearer-header wordt niet
+gelezen: er is geen resource-server. **Uitzondering:** de postsale-webhook van payment-direct (`POST /api/public/payment/direct/postsale`)
+komt niet uit een browser en authenticeert met zijn eigen handtekening/`keyId`; die ene route is vrijgesteld van CSRF- en Origin-controle.
+Back-channel logout is nog niet gebouwd en dus ook geen uitzondering.
+
+**Niveau (`acr`) per inlogmiddel.** De callback zet de `acr` van het ID-token om via een vaste tabel; een onbekende of lege waarde
+(ook `""`) geldt als afwezig en wordt geweigerd. Daarna geldt het minimum van de tenant. Keycloak laat zelf een lager niveau door,
+dus de backend toetst altijd.
+
+| Inlogmiddel | `acr`-waarde | Niveau |
+|---|---|---|
+| DigiD | `urn:oasis:names:tc:SAML:2.0:ac:classes:PasswordProtectedTransport` | Basis |
+| DigiD | `...:MobileTwoFactorContract` | Midden |
+| DigiD | `...:Smartcard` | Substantieel |
+| DigiD | `...:SmartcardPKI` | Hoog |
+| Wallet (nog uit) | `http://eidas.europa.eu/LoA/low`, `substantial`, `high` | Basis, Substantieel, Hoog |
+| eHerkenning | (nog geen waarden: geweigerd) | n.v.t. |
+| Test (alleen ontwikkeling) | `Basis` | Basis |
+
+**Sleutelmap.** De private clientsleutel van elke tenant (RSA van minimaal 3072 bit, `alg: PS256`, met `kid`) staat als bestand onder
+`nl-portal.sleutelmap` (`NL_PORTAL_SLEUTELMAP`) in een map met de OIN als naam; `authenticatie.sleutelBestand` in het tenantbestand
+is relatief daaraan. Bij het opstarten moet het echte pad (symlinks opgelost) onder `<sleutelmap>/<oin>/` liggen, anders weigert de
+backend. Het bestand is alleen leesbaar voor het uid van de backend (0600).
+
+**Sessietijden.** Standaard 15 minuten inactiviteit en 8 uur absoluut; per tenant strenger in te stellen. `GET /api/public/sessie`
+telt niet als activiteit. Uitloggen is een `POST /logout` (CSRF) dat de sessie beëindigt en bij Keycloak uitlogt met `id_token_hint`.
+
+Samengevat is het doelbeeld voor de authenticatie dat DigiD (burgers) en eHerkenning (ondernemers/ketenpartners) via een
+OIDC-broker (Keycloak) lopen; zie ook [authentication-en-authorization](../authentication-en-authorization.md).
 
 ## 8.2 Het ZGW-integratiepatroon
 
