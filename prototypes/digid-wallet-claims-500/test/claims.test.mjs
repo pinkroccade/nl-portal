@@ -1,14 +1,20 @@
 // Prototype T1 (#500). Wat komt er in het ID-token van `nl-portal-backend` na een login via een DigiD-koppeling
 // (SAML, gesimuleerd) en een wallet-koppeling (OIDC, gesimuleerd)? Elke test is een bevinding voor de notitie.
-import { after, before, beforeEach, describe, it } from "node:test";
+import { before, beforeEach, describe, it } from "node:test";
 import assert from "node:assert/strict";
 import {
   DIGID,
+  Jar,
+  addPortalClientMapper,
   addPortalIdpMapper,
   clearDigidRequestedLevel,
+  createPortalUser,
   decodeJwt,
+  deletePortalClientMapper,
   deletePortalIdpMapper,
+  deletePortalUsers,
   exchange,
+  portalUsers,
   portalUsersWithAttribute,
   login,
   loginForIdToken,
@@ -24,6 +30,9 @@ before(async () => {
   await provisionDigidSigningCert();
 });
 
+// Een claim die er niet is of leeg is, geldt voor de backend als afwezig.
+const afwezig = (waarde) => waarde === undefined || waarde === "";
+
 describe("DigiD via SAML-broker", () => {
   beforeEach(() => setDigidRequestedLevel(DIGID.midden));
 
@@ -32,11 +41,11 @@ describe("DigiD via SAML-broker", () => {
     assert.equal(idToken.inlogmiddel, "digid");
     assert.equal(idToken.acr, DIGID.midden);
     assert.equal(idToken.acting_subject_id, "999990008");
-    assert.equal(idToken.legal_subject_id, undefined);
+    assert.ok(afwezig(idToken.legal_subject_id));
   });
 
-  it("levert het niveau dat de koppeling bij DigiD opvraagt, ook Substantieel en Basis", async () => {
-    for (const level of ["substantieel", "basis"]) {
+  it("levert het niveau dat de koppeling bij DigiD opvraagt, van Basis tot Hoog", async () => {
+    for (const level of ["substantieel", "basis", "hoog"]) {
       await setDigidRequestedLevel(DIGID[level]);
       const { idToken } = await loginForIdToken({ idp: "digid", username: "jan", password: "jan" });
       assert.equal(idToken.acr, DIGID[level], level);
@@ -53,9 +62,9 @@ describe("DigiD via SAML-broker", () => {
 
   it("neemt acr_values van de BFF niet over in de AuthnRequest: het minimum staat in de koppeling, niet in de login-start", async () => {
     await setDigidRequestedLevel(DIGID.midden);
-    const result = await login({ idp: "digid", username: "jan", password: "jan", acrValues: "urn:test:hoger-niveau" });
+    const result = await login({ idp: "digid", username: "jan", password: "jan", acrValues: DIGID.substantieel });
     const request = samlAuthnRequest(result);
-    assert.doesNotMatch(request, /hoger-niveau/);
+    assert.doesNotMatch(request, new RegExp(DIGID.substantieel));
     assert.match(request, new RegExp(DIGID.midden));
   });
 
@@ -65,13 +74,13 @@ describe("DigiD via SAML-broker", () => {
     assert.equal(idToken.legal_subject_id, "999990008");
   });
 
-  it("laat legal_subject_id vervallen bij een volgende login zonder LegalSubjectID (geen restant van een eerdere login)", async () => {
+  it("laat legal_subject_id vervallen bij een volgende login in een nieuwe browsersessie zonder LegalSubjectID", async () => {
     try {
       const eerste = await loginForIdToken({ idp: "digid", username: "maria", password: "maria" });
       assert.equal(eerste.idToken.legal_subject_id, "999990008");
       await setSimUserAttribute("maria", "legal_subject_id", null);
       const tweede = await loginForIdToken({ idp: "digid", username: "maria", password: "maria" });
-      assert.equal(tweede.idToken.legal_subject_id, undefined);
+      assert.ok(afwezig(tweede.idToken.legal_subject_id));
     } finally {
       await setSimUserAttribute("maria", "legal_subject_id", ["999990008"]);
     }
@@ -81,8 +90,11 @@ describe("DigiD via SAML-broker", () => {
 describe("Beperkingen en randgevallen van Keycloak", () => {
   beforeEach(() => setDigidRequestedLevel(DIGID.midden));
 
-  it("weigert een login met een lager niveau dan het minimum zelf niet: de backend moet het niveau uit de claim toetsen", async () => {
-    await clearDigidRequestedLevel(); // een koppeling die niets opvraagt, of een IdP die het verzoek negeert
+  // Bewezen is alleen dit: Keycloak eist zelf geen niveau van een koppeling die niets opvraagt. Dat een IdP die het
+  // minimum negeert (Basis geleverd bij minimum Midden) ook slaagt, is niet te simuleren: de Keycloak-simulator levert
+  // altijd het gevraagde niveau of weigert. Die laatste stap dekt de backend-toets, niet deze test.
+  it("laat een login zonder gevraagd niveau slagen op Basis: Keycloak toetst het niveau zelf niet, de backend moet de claim toetsen", async () => {
+    await clearDigidRequestedLevel();
     const { idToken } = await loginForIdToken({ idp: "digid", username: "jan", password: "jan" });
     assert.equal(idToken.acr, DIGID.basis);
   });
@@ -122,10 +134,161 @@ describe("Beperkingen en randgevallen van Keycloak", () => {
       const b = await loginForIdToken({ idp: "digid", username: "maria", password: "maria" });
       const tokenA = decodeJwt((await exchange(a)).id_token);
       assert.equal(tokenA.legal_subject_id, "999990008");
-      assert.equal(b.idToken.legal_subject_id, undefined);
+      assert.ok(afwezig(b.idToken.legal_subject_id));
     } finally {
       await setSimUserAttribute("maria", "legal_subject_id", ["999990008"]);
     }
+  });
+  it("laat een login met twee waarden voor LegalSubjectID falen in plaats van een waarde te kiezen", async () => {
+    try {
+      await setSimUserAttribute("maria", "legal_subject_id", ["999990008", "999990016"]);
+      const result = await login({ idp: "digid", username: "maria", password: "maria" });
+      assert.equal(result.code, null);
+    } finally {
+      await setSimUserAttribute("maria", "legal_subject_id", ["999990008"]);
+    }
+  });
+
+  // Een gebruikersattribuut is per gebruiker, niet per login: dit is het scenario waarom sessienotities nodig zijn.
+  it("lekt met een gebruikersattribuut de LegalSubjectID van de ene login in het token van een andere", async () => {
+    const idpMapper = await addPortalIdpMapper({
+      name: "legal-als-gebruikersattribuut",
+      identityProviderAlias: "digid",
+      identityProviderMapper: "saml-user-attribute-idp-mapper",
+      config: {
+        syncMode: "FORCE",
+        "attribute.name": "urn:nl-eid-gdi:1.0:LegalSubjectID",
+        "attribute.name.format": "ATTRIBUTE_FORMAT_URI",
+        "user.attribute": "legal_attr",
+      },
+    });
+    const clientMapper = await addPortalClientMapper({
+      name: "legal-attr",
+      protocol: "openid-connect",
+      protocolMapper: "oidc-usermodel-attribute-mapper",
+      config: {
+        "user.attribute": "legal_attr",
+        "claim.name": "legal_attr",
+        "jsonType.label": "String",
+        "id.token.claim": "true",
+        "access.token.claim": "false",
+        "userinfo.token.claim": "false",
+      },
+    });
+    try {
+      await setSimUserAttribute("maria", "legal_subject_id", null);
+      const zonder = await login({ idp: "digid", username: "maria", password: "maria" }); // code nog niet ingewisseld
+      await setSimUserAttribute("maria", "legal_subject_id", ["999990008"]);
+      const met = await loginForIdToken({ idp: "digid", username: "maria", password: "maria" });
+      assert.equal(met.idToken.legal_attr, "999990008");
+      const tokenZonder = decodeJwt((await exchange(zonder)).id_token);
+      assert.equal(tokenZonder.legal_attr, "999990008", "het token van de login zonder LegalSubjectID kreeg de waarde van de andere login");
+      assert.ok(afwezig(tokenZonder.legal_subject_id), "met sessienotities lekt dat niet");
+    } finally {
+      await setSimUserAttribute("maria", "legal_subject_id", ["999990008"]);
+      await deletePortalClientMapper(clientMapper);
+      await deletePortalIdpMapper("digid", idpMapper);
+    }
+  });
+});
+
+describe("Eerste login van een nieuwe gebruiker", () => {
+  beforeEach(() => setDigidRequestedLevel(DIGID.midden));
+
+  it("zet bij DigiD acr, inlogmiddel en de BSN's ook als de Keycloak-gebruiker nog niet bestaat", async () => {
+    await deletePortalUsers();
+    const { idToken } = await loginForIdToken({ idp: "digid", username: "maria", password: "maria" });
+    assert.equal(idToken.acr, DIGID.midden);
+    assert.equal(idToken.inlogmiddel, "digid");
+    assert.equal(idToken.acting_subject_id, "999990020");
+    assert.equal(idToken.legal_subject_id, "999990008");
+  });
+
+  it("zet bij de wallet acr, inlogmiddel en de BSN ook als de Keycloak-gebruiker nog niet bestaat", async () => {
+    await deletePortalUsers();
+    const { idToken } = await loginForIdToken({ idp: "wallet", username: "jan", password: "jan" });
+    assert.equal(idToken.acr, "http://eidas.europa.eu/LoA/high");
+    assert.equal(idToken.inlogmiddel, "wallet");
+    assert.equal(idToken.acting_subject_id, "999990008");
+  });
+});
+
+describe("Herauthenticatie in dezelfde Keycloak-sessie", () => {
+  beforeEach(() => setDigidRequestedLevel(DIGID.midden));
+
+  it("laat legal_subject_id niet blijven hangen als dezelfde gebruiker met prompt=login opnieuw inlogt zonder LegalSubjectID", async () => {
+    const jar = new Jar(); // één browser: de SSO-sessie van Keycloak blijft staan
+    try {
+      const eerste = await loginForIdToken({ idp: "digid", username: "maria", password: "maria", jar });
+      assert.equal(eerste.idToken.legal_subject_id, "999990008");
+      await setSimUserAttribute("maria", "legal_subject_id", null);
+      const tweede = await loginForIdToken({ idp: "digid", username: "maria", password: "maria", jar, prompt: "login" });
+      assert.ok(afwezig(tweede.idToken.legal_subject_id), `restant van de eerdere login: ${tweede.idToken.legal_subject_id}`);
+    } finally {
+      await setSimUserAttribute("maria", "legal_subject_id", ["999990008"]);
+    }
+  });
+
+  // Zonder prompt=login is er geen nieuwe login: Keycloak geeft de bestaande sessie terug, ook als de IdP inmiddels
+  // andere gegevens zou leveren. Daarom start de BFF elke login met prompt=login en toetst auth_time.
+  it("geeft zonder prompt=login binnen een lopende sessie geen nieuwe login maar het token van de eerdere", async () => {
+    const jar = new Jar();
+    try {
+      const eerste = await loginForIdToken({ idp: "digid", username: "maria", password: "maria", jar });
+      await setSimUserAttribute("maria", "legal_subject_id", null);
+      const tweede = await loginForIdToken({ idp: "digid", username: "maria", password: "maria", jar });
+      assert.equal(tweede.idToken.sid, eerste.idToken.sid);
+      assert.equal(tweede.idToken.auth_time, eerste.idToken.auth_time);
+      assert.equal(tweede.idToken.legal_subject_id, "999990008");
+    } finally {
+      await setSimUserAttribute("maria", "legal_subject_id", ["999990008"]);
+    }
+  });
+
+  // Dit is een gedrag van Keycloak dat de BFF moet afvangen (prompt=login, auth_time-toets), geen fout van de mapper.
+  it("geeft zonder prompt=login binnen een lopende DigiD-sessie geen nieuwe login: kc_idp_hint=wallet levert inlogmiddel digid", async () => {
+    const jar = new Jar();
+    await loginForIdToken({ idp: "digid", username: "jan", password: "jan", jar });
+    const wallet = await loginForIdToken({ idp: "wallet", username: "jan", password: "jan", jar });
+    assert.equal(wallet.idToken.inlogmiddel, "digid");
+  });
+
+  it("weigert met prompt=login een login via een ander inlogmiddel binnen een lopende sessie van een andere identiteit", async () => {
+    const jar = new Jar();
+    await loginForIdToken({ idp: "digid", username: "jan", password: "jan", jar });
+    const wallet = await login({ idp: "wallet", username: "jan", password: "jan", jar, prompt: "login" });
+    assert.equal(wallet.code, null);
+  });
+});
+
+describe("Koppeling van identiteiten en browserflow", () => {
+  it("koppelt een tweede inlogmiddel met hetzelfde e-mailadres of dezelfde naam niet aan een bestaande gebruiker", async () => {
+    await deletePortalUsers();
+    const bestaand = await createPortalUser({ username: "jan", email: "jan@example.invalid", firstName: "Jan", lastName: "Jansen" });
+    try {
+      const result = await loginForIdToken({ idp: "wallet", username: "jan", password: "jan" });
+      if (result.idToken) assert.notEqual(result.idToken.sub, bestaand, "de wallet-login is bij de bestaande gebruiker uitgekomen");
+      else assert.equal(result.code, null);
+    } finally {
+      await deletePortalUsers();
+    }
+  });
+
+  it("geeft elke koppeling een eigen gebruikersnaam: de naam van de IdP-gebruiker is niet de sleutel", async () => {
+    await deletePortalUsers();
+    await setDigidRequestedLevel(DIGID.midden);
+    await loginForIdToken({ idp: "wallet", username: "jan", password: "jan" });
+    await loginForIdToken({ idp: "digid", username: "jan", password: "jan" });
+    const namen = (await portalUsers()).map((u) => u.username).sort();
+    assert.equal(namen.length, 2);
+    assert.match(namen[0], /^digid\./);
+    assert.match(namen[1], /^wallet\./);
+  });
+
+  it("biedt zonder koppeling in de login-start geen wachtwoordformulier aan", async () => {
+    const result = await login({ idp: undefined, username: "jan", password: "jan" });
+    assert.equal(result.code, null);
+    assert.ok(!result.pages.some((p) => /name="password"/.test(p)), "er is een wachtwoordformulier getoond");
   });
 });
 
@@ -156,5 +319,3 @@ describe("Wallet via OIDC-broker", () => {
     assert.equal(new URL(naarWallet).searchParams.get("acr_values"), "http://eidas.europa.eu/LoA/substantial");
   });
 });
-
-after(() => {});

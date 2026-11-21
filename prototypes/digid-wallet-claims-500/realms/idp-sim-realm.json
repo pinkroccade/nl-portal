@@ -65,7 +65,7 @@
         "saml_name_id_format": "persistent",
         "saml_force_name_id_format": "true",
         "saml_assertion_consumer_url_post": "http://localhost:18080/realms/portal/broker/digid/endpoint",
-        "acr.loa.map": "{\"urn:oasis:names:tc:SAML:2.0:ac:classes:PasswordProtectedTransport\":1,\"urn:oasis:names:tc:SAML:2.0:ac:classes:MobileTwoFactorContract\":2,\"urn:oasis:names:tc:SAML:2.0:ac:classes:Smartcard\":3}"
+        "acr.loa.map": "{\"urn:oasis:names:tc:SAML:2.0:ac:classes:PasswordProtectedTransport\":1,\"urn:oasis:names:tc:SAML:2.0:ac:classes:MobileTwoFactorContract\":2,\"urn:oasis:names:tc:SAML:2.0:ac:classes:Smartcard\":3,\"urn:oasis:names:tc:SAML:2.0:ac:classes:SmartcardPKI\":4}"
       },
       "protocolMappers": [
         {
@@ -121,12 +121,12 @@
           }
         },
         {
-          "name": "bsn",
+          "name": "acting-subject-id",
           "protocol": "openid-connect",
           "protocolMapper": "oidc-usermodel-attribute-mapper",
           "config": {
             "user.attribute": "acting_subject_id",
-            "claim.name": "bsn",
+            "claim.name": "acting_subject_id",
             "jsonType.label": "String",
             "id.token.claim": "true",
             "access.token.claim": "false",
@@ -163,6 +163,13 @@
           "flowAlias": "sim-loa-3",
           "requirement": "CONDITIONAL",
           "priority": 30,
+          "userSetupAllowed": false,
+          "autheticatorFlow": true
+        },
+        {
+          "flowAlias": "sim-loa-4",
+          "requirement": "CONDITIONAL",
+          "priority": 40,
           "userSetupAllowed": false,
           "autheticatorFlow": true
         }
@@ -239,6 +246,30 @@
           "autheticatorFlow": false
         }
       ]
+    },
+    {
+      "alias": "sim-loa-4",
+      "description": "",
+      "providerId": "basic-flow",
+      "topLevel": false,
+      "builtIn": false,
+      "authenticationExecutions": [
+        {
+          "authenticatorConfig": "loa-4",
+          "authenticator": "conditional-level-of-authentication",
+          "requirement": "REQUIRED",
+          "priority": 10,
+          "userSetupAllowed": false,
+          "autheticatorFlow": false
+        },
+        {
+          "authenticator": "auth-username-password-form",
+          "requirement": "REQUIRED",
+          "priority": 20,
+          "userSetupAllowed": false,
+          "autheticatorFlow": false
+        }
+      ]
     }
   ],
   "authenticatorConfig": [
@@ -260,6 +291,13 @@
       "alias": "loa-3",
       "config": {
         "loa-condition-level": "3",
+        "loa-max-age": "0"
+      }
+    },
+    {
+      "alias": "loa-4",
+      "config": {
+        "loa-condition-level": "4",
         "loa-max-age": "0"
       }
     }

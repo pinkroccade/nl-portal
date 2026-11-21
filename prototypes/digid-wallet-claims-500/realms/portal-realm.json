@@ -8,20 +8,36 @@
   "authenticationFlows": [
     {
       "alias": "auto-broker-login",
-      "description": "Eerste login via een broker: gebruiker zonder profielcontrole aanmaken of koppelen",
+      "description": "Eerste login via een broker: alleen een nieuwe gebruiker aanmaken, nooit een bestaande koppelen",
       "providerId": "basic-flow",
       "topLevel": true,
       "builtIn": false,
       "authenticationExecutions": [
         {
           "authenticator": "idp-create-user-if-unique",
+          "requirement": "REQUIRED",
+          "priority": 10,
+          "userSetupAllowed": false,
+          "authenticatorFlow": false
+        }
+      ]
+    },
+    {
+      "alias": "alleen-koppelingen",
+      "description": "Geen wachtwoordformulier, geen registratie: alleen een bestaande sessie of een koppeling",
+      "providerId": "basic-flow",
+      "topLevel": true,
+      "builtIn": false,
+      "authenticationExecutions": [
+        {
+          "authenticator": "auth-cookie",
           "requirement": "ALTERNATIVE",
           "priority": 10,
           "userSetupAllowed": false,
           "authenticatorFlow": false
         },
         {
-          "authenticator": "idp-auto-link",
+          "authenticator": "identity-provider-redirector",
           "requirement": "ALTERNATIVE",
           "priority": 20,
           "userSetupAllowed": false,
@@ -92,19 +108,6 @@
           }
         },
         {
-          "name": "acting-subject-id-wallet",
-          "protocol": "openid-connect",
-          "protocolMapper": "oidc-usersessionmodel-note-mapper",
-          "config": {
-            "user.session.note": "bsn",
-            "claim.name": "acting_subject_id",
-            "jsonType.label": "String",
-            "id.token.claim": "true",
-            "access.token.claim": "false",
-            "userinfo.token.claim": "false"
-          }
-        },
-        {
           "name": "legal-subject-id",
           "protocol": "openid-connect",
           "protocolMapper": "oidc-usersessionmodel-note-mapper",
@@ -118,6 +121,14 @@
           }
         }
       ]
+    },
+    {
+      "clientId": "account",
+      "enabled": false
+    },
+    {
+      "clientId": "account-console",
+      "enabled": false
     }
   ],
   "identityProviders": [
@@ -166,7 +177,7 @@
         "providerId": "declarative-user-profile",
         "config": {
           "kc.user.profile.config": [
-            "{\"attributes\":[{\"name\":\"username\",\"displayName\":\"${username}\",\"validations\":{\"length\":{\"min\":3,\"max\":255}},\"permissions\":{\"view\":[\"admin\",\"user\"],\"edit\":[\"admin\",\"user\"]}},{\"name\":\"email\",\"displayName\":\"${email}\",\"validations\":{\"email\":{},\"length\":{\"max\":255}},\"permissions\":{\"view\":[\"admin\",\"user\"],\"edit\":[\"admin\",\"user\"]}},{\"name\":\"firstName\",\"displayName\":\"${firstName}\",\"permissions\":{\"view\":[\"admin\",\"user\"],\"edit\":[\"admin\",\"user\"]}},{\"name\":\"lastName\",\"displayName\":\"${lastName}\",\"permissions\":{\"view\":[\"admin\",\"user\"],\"edit\":[\"admin\",\"user\"]}}],\"unmanagedAttributePolicy\":\"ENABLED\"}"
+            "{\"attributes\":[{\"name\":\"username\",\"displayName\":\"${username}\",\"validations\":{\"length\":{\"min\":3,\"max\":255}},\"permissions\":{\"view\":[\"admin\",\"user\"],\"edit\":[\"admin\"]}},{\"name\":\"email\",\"displayName\":\"${email}\",\"validations\":{\"email\":{},\"length\":{\"max\":255}},\"permissions\":{\"view\":[\"admin\",\"user\"],\"edit\":[\"admin\"]}},{\"name\":\"firstName\",\"displayName\":\"${firstName}\",\"permissions\":{\"view\":[\"admin\",\"user\"],\"edit\":[\"admin\"]}},{\"name\":\"lastName\",\"displayName\":\"${lastName}\",\"permissions\":{\"view\":[\"admin\",\"user\"],\"edit\":[\"admin\"]}}],\"unmanagedAttributePolicy\":\"ADMIN_VIEW\"}"
           ]
         }
       }
@@ -188,7 +199,7 @@
       "identityProviderMapper": "oidc-user-session-note-idp-mapper",
       "config": {
         "syncMode": "FORCE",
-        "claims": "[{\"key\":\"acr\",\"value\":\".*\"},{\"key\":\"bsn\",\"value\":\".*\"}]",
+        "claims": "[{\"key\":\"acr\",\"value\":\".*\"},{\"key\":\"acting_subject_id\",\"value\":\".*\"}]",
         "are.claim.values.regex": "true"
       }
     },
@@ -211,6 +222,28 @@
         "attribute.name": "urn:nl-eid-gdi:1.0:LegalSubjectID",
         "note": "legal_subject_id"
       }
+    },
+    {
+      "name": "gebruikersnaam",
+      "identityProviderAlias": "digid",
+      "identityProviderMapper": "saml-username-idp-mapper",
+      "config": {
+        "syncMode": "IMPORT",
+        "template": "${ALIAS}.${NAMEID}",
+        "target": "LOCAL"
+      }
+    },
+    {
+      "name": "gebruikersnaam",
+      "identityProviderAlias": "wallet",
+      "identityProviderMapper": "oidc-username-idp-mapper",
+      "config": {
+        "syncMode": "IMPORT",
+        "template": "${ALIAS}.${CLAIM.sub}",
+        "target": "LOCAL"
+      }
     }
-  ]
+  ],
+  "browserFlow": "alleen-koppelingen",
+  "registrationAllowed": false
 }

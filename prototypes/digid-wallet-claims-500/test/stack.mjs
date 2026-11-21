@@ -46,7 +46,7 @@ export async function provisionDigidSigningCert() {
   await admin("/portal/identity-provider/instances/digid", { method: "PUT", body: JSON.stringify(idp) });
 }
 
-class Jar {
+export class Jar {
   cookies = new Map();
 
   store(res) {
@@ -95,8 +95,7 @@ function parseForm(html) {
  * Doorloopt een authorization-code-login zoals de BFF en een browser dat zouden doen, bij `nl-portal-backend` in
  * realm `portal`, tot de redirect naar de BFF. Geeft de code of het foutantwoord terug.
  */
-export async function login({ idp, username, password, acrValues, claimsParam, extra = {} }) {
-  const jar = new Jar();
+export async function login({ idp, username, password, acrValues, prompt, jar = new Jar() }) {
   const verifier = randomBytes(32).toString("base64url");
   const challenge = createHash("sha256").update(verifier).digest("base64url");
   const state = randomBytes(8).toString("hex");
@@ -109,11 +108,10 @@ export async function login({ idp, username, password, acrValues, claimsParam, e
     nonce: randomBytes(8).toString("hex"),
     code_challenge: challenge,
     code_challenge_method: "S256",
-    kc_idp_hint: idp,
-    ...extra,
+    ...(idp ? { kc_idp_hint: idp } : {}),
   });
   if (acrValues) params.set("acr_values", acrValues);
-  if (claimsParam) params.set("claims", JSON.stringify(claimsParam));
+  if (prompt) params.set("prompt", prompt);
 
   let url = `${KC}/realms/portal/protocol/openid-connect/auth?${params}`;
   let init = { method: "GET" };
@@ -137,7 +135,11 @@ export async function login({ idp, username, password, acrValues, claimsParam, e
     const html = await res.text();
     pages.push(html);
     const form = parseForm(html);
-    if (!form) throw new Error(`Geen formulier op ${url}: ${html.slice(0, 800)}`);
+    // Het eigen wachtwoordformulier van de portal-realm: de koppeling is mislukt en Keycloak valt terug op de browserflow.
+    if (form && url.includes("/realms/portal/login-actions/authenticate")) {
+      return { code: null, error: null, wachtwoordformulier: true, pageText: textOf(html).trim(), trace, pages, urls };
+    }
+    if (!form) return { code: null, error: null, pageText: textOf(html).trim(), trace, pages, urls };
     const target = new URL(form.action, url).toString();
     if (form.fields.username !== undefined) form.fields.username = username;
     if (form.fields.password !== undefined) form.fields.password = password;
@@ -185,6 +187,7 @@ export const DIGID = {
   basis: `${SAML_CLASSES}PasswordProtectedTransport`,
   midden: `${SAML_CLASSES}MobileTwoFactorContract`,
   substantieel: `${SAML_CLASSES}Smartcard`,
+  hoog: `${SAML_CLASSES}SmartcardPKI`,
 };
 
 /** Wat de koppeling bij DigiD opvraagt (de RequestedAuthnContext), per tenant in de IdP-instelling. */
@@ -231,4 +234,27 @@ export async function deletePortalIdpMapper(alias, id) {
 
 export async function portalUsersWithAttribute(attribute, value) {
   return (await admin(`/portal/users?q=${attribute}:${value}`)).json();
+}
+
+export async function portalUsers() {
+  return (await admin("/portal/users?max=100")).json();
+}
+
+export async function deletePortalUsers() {
+  for (const user of await portalUsers()) await admin(`/portal/users/${user.id}`, { method: "DELETE" });
+}
+
+export async function createPortalUser(user) {
+  const r = await admin("/portal/users", { method: "POST", body: JSON.stringify({ enabled: true, ...user }) });
+  return r.headers.get("location").split("/").pop();
+}
+
+export async function addPortalClientMapper(mapper) {
+  const clients = await (await admin("/portal/clients?clientId=nl-portal-backend")).json();
+  const r = await admin(`/portal/clients/${clients[0].id}/protocol-mappers/models`, { method: "POST", body: JSON.stringify(mapper) });
+  return { clientUuid: clients[0].id, id: r.headers.get("location").split("/").pop() };
+}
+
+export async function deletePortalClientMapper({ clientUuid, id }) {
+  await admin(`/portal/clients/${clientUuid}/protocol-mappers/models/${id}`, { method: "DELETE" });
 }

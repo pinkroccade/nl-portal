@@ -17,6 +17,8 @@ import org.keycloak.provider.ProviderConfigProperty;
  * Prototype (#500): zet de AuthnContextClassRef uit de AuthnStatement van de SAML-assertion in een
  * gebruikerssessie-notitie. Een notitie hoort bij de sessie, niet bij de gebruiker, en kan daarom via de mapper
  * "User Session Note" als claim in het token (anders dan een gebruikersattribuut, dat delen sessies met elkaar).
+ * Ontbreekt de AuthnContextClassRef, dan zet de mapper een lege notitie (geen oude waarde van een eerdere login in
+ * dezelfde Keycloak-sessie); de backend weigert een lege of onbekende acr.
  */
 public class SamlAuthnContextClassRefMapper extends AbstractIdentityProviderMapper {
     public static final String PROVIDER_ID = "nlportal-saml-authncontext-note-mapper";
@@ -57,7 +59,7 @@ public class SamlAuthnContextClassRefMapper extends AbstractIdentityProviderMapp
         ProviderConfigProperty p = new ProviderConfigProperty();
         p.setName(NOTE);
         p.setLabel("Sessienotitie");
-        p.setHelpText("Naam van de notitie, bijvoorbeeld idp_acr.");
+        p.setHelpText("Naam van de notitie, bijvoorbeeld acr (de naam die de client-mapper in het token leest).");
         p.setType(ProviderConfigProperty.STRING_TYPE);
         return List.of(p);
     }
@@ -70,12 +72,15 @@ public class SamlAuthnContextClassRefMapper extends AbstractIdentityProviderMapp
     public void preprocessFederatedIdentity(
             KeycloakSession session, RealmModel realm, IdentityProviderMapperModel mapperModel, BrokeredIdentityContext context) {
         Object statement = context.getContextData().get(SAMLEndpoint.SAML_AUTHN_STATEMENT);
-        if (statement instanceof AuthnStatementType authn
-                && authn.getAuthnContext() != null
-                && authn.getAuthnContext().getSequence() != null
-                && authn.getAuthnContext().getSequence().getClassRef() != null) {
-            context.getContextData()
-                    .put(CONTEXT_KEY, authn.getAuthnContext().getSequence().getClassRef().getValue().toString());
+        if (statement != null || !context.getContextData().containsKey(CONTEXT_KEY)) {
+            String classRef = "";
+            if (statement instanceof AuthnStatementType authn
+                    && authn.getAuthnContext() != null
+                    && authn.getAuthnContext().getSequence() != null
+                    && authn.getAuthnContext().getSequence().getClassRef() != null) {
+                classRef = authn.getAuthnContext().getSequence().getClassRef().getValue().toString();
+            }
+            context.getContextData().put(CONTEXT_KEY, classRef);
         }
         applyNote(mapperModel, context);
     }
@@ -94,6 +99,6 @@ public class SamlAuthnContextClassRefMapper extends AbstractIdentityProviderMapp
 
     private void applyNote(IdentityProviderMapperModel mapperModel, BrokeredIdentityContext context) {
         Object value = context.getContextData().get(CONTEXT_KEY);
-        if (value != null) context.setSessionNote(mapperModel.getConfig().get(NOTE), value.toString());
+        context.setSessionNote(mapperModel.getConfig().get(NOTE), value == null ? "" : value.toString());
     }
 }

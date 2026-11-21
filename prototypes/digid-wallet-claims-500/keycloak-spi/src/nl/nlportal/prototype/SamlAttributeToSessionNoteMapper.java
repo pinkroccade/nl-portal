@@ -1,13 +1,16 @@
 package nl.nlportal.prototype;
 
+import java.util.ArrayList;
 import java.util.List;
 import org.keycloak.broker.provider.AbstractIdentityProviderMapper;
 import org.keycloak.broker.provider.BrokeredIdentityContext;
+import org.keycloak.broker.provider.IdentityBrokerException;
 import org.keycloak.broker.saml.SAMLEndpoint;
 import org.keycloak.broker.saml.SAMLIdentityProviderFactory;
 import org.keycloak.dom.saml.v2.assertion.AssertionType;
 import org.keycloak.dom.saml.v2.assertion.AttributeStatementType;
 import org.keycloak.dom.saml.v2.assertion.AttributeType;
+import org.keycloak.dom.saml.v2.assertion.NameIDType;
 import org.keycloak.models.IdentityProviderMapperModel;
 import org.keycloak.models.IdentityProviderSyncMode;
 import org.keycloak.models.KeycloakSession;
@@ -17,8 +20,11 @@ import org.keycloak.provider.ProviderConfigProperty;
 
 /**
  * Prototype (#500): zet een SAML-attribuut (bijvoorbeeld ActingSubjectID of LegalSubjectID) in een
- * gebruikerssessie-notitie in plaats van in een gebruikersattribuut. Een gebruikersattribuut blijft staan als een
- * volgende login het attribuut niet meer meestuurt; een notitie hoort bij precies een login.
+ * gebruikerssessie-notitie in plaats van in een gebruikersattribuut. Een gebruikersattribuut is per gebruiker en dus
+ * gedeeld door gelijktijdige logins (het lekt van de ene login naar het token van de andere); een notitie hoort bij
+ * precies een login. Ontbreekt het attribuut, dan zet de mapper een lege notitie, zodat een waarde van een eerdere login
+ * in dezelfde Keycloak-sessie niet blijft staan. Het attribuut moet precies een waarde hebben van een ondersteund type;
+ * anders faalt de login (liever geen login dan een gekozen waarde).
  */
 public class SamlAttributeToSessionNoteMapper extends AbstractIdentityProviderMapper {
     public static final String PROVIDER_ID = "nlportal-saml-attribute-note-mapper";
@@ -79,16 +85,20 @@ public class SamlAttributeToSessionNoteMapper extends AbstractIdentityProviderMa
             KeycloakSession session, RealmModel realm, IdentityProviderMapperModel model, BrokeredIdentityContext context) {
         if (context.getContextData().get(SAMLEndpoint.SAML_ASSERTION) instanceof AssertionType assertion) {
             String wanted = model.getConfig().get(ATTRIBUTE_NAME);
+            List<String> values = new ArrayList<>();
             for (AttributeStatementType statement : assertion.getAttributeStatements()) {
                 for (AttributeStatementType.ASTChoiceType choice : statement.getAttributes()) {
                     AttributeType attribute = choice.getAttribute();
-                    if (attribute != null
-                            && wanted.equals(attribute.getName())
-                            && !attribute.getAttributeValue().isEmpty()) {
-                        context.getContextData().put(contextKey(model), attribute.getAttributeValue().get(0).toString());
+                    if (attribute != null && wanted.equals(attribute.getName())) {
+                        for (Object value : attribute.getAttributeValue()) values.add(text(wanted, value));
                     }
                 }
             }
+            if (values.size() > 1) {
+                throw new IdentityBrokerException("Attribuut " + wanted + " heeft meer dan een waarde");
+            }
+            // Geen waarde: expliciet leeg, niet weglaten (zie de Javadoc).
+            context.getContextData().put(contextKey(model), values.isEmpty() ? "" : values.get(0));
         }
         apply(model, context);
     }
@@ -105,8 +115,20 @@ public class SamlAttributeToSessionNoteMapper extends AbstractIdentityProviderMa
         apply(model, context);
     }
 
+    // Alleen tekst of een NameID (BSN in de NameID zonder versleuteling); een EncryptedID of een ander type laat de login
+    // falen. Ontsleutelen en het NameQualifier-type (BSN of pseudoniem) controleren staat open (zie de notitie).
+    private static String text(String attribute, Object value) {
+        String text = null;
+        if (value instanceof String s) text = s;
+        else if (value instanceof NameIDType nameId) text = nameId.getValue();
+        if (text == null || text.isBlank()) {
+            throw new IdentityBrokerException("Attribuut " + attribute + " heeft een lege of niet-ondersteunde waarde");
+        }
+        return text;
+    }
+
     private void apply(IdentityProviderMapperModel model, BrokeredIdentityContext context) {
         Object value = context.getContextData().get(contextKey(model));
-        if (value != null) context.setSessionNote(model.getConfig().get(NOTE), value.toString());
+        context.setSessionNote(model.getConfig().get(NOTE), value == null ? "" : value.toString());
     }
 }
