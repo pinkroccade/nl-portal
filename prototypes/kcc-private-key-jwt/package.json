@@ -1,0 +1,1 @@
+{ "name": "kcc-private-key-jwt-prototype", "private": true, "type": "module", "scripts": { "test": "node --test test/" } }

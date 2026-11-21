@@ -1,0 +1,29 @@
+{
+  "realm": "$(realm)",
+  "enabled": true,
+  "sslRequired": "external",
+  "clients": [
+    {
+      "clientId": "$(clientId)",
+      "enabled": true,
+      "protocol": "openid-connect",
+      "publicClient": false,
+      "clientAuthenticatorType": "client-jwt",
+      "standardFlowEnabled": true,
+      "implicitFlowEnabled": false,
+      "directAccessGrantsEnabled": false,
+      "serviceAccountsEnabled": true,
+      "redirectUris": "$(redirectUris)",
+      "webOrigins": [],
+      "attributes": {
+        "use.jwks.string": "true",
+        "jwks.string": "$(jwks)",
+        "token.endpoint.auth.signing.alg": "$(clientAuthAlg)",
+        "pkce.code.challenge.method": "S256",
+        "access.token.header.type.rfc9068": "true",
+        "client_credentials.use_refresh_token": "false",
+        "oauth2.device.authorization.grant.enabled": "false"
+      }
+    }
+  ]
+}
