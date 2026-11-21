@@ -15,7 +15,9 @@ Zie [`site/architectuur/authentication-en-authorization.md`](../authentication-e
 de frontend vraagt `GET /api/public/sessie` om te weten of en als wie de gebruiker is ingelogd (zonder tokens of BSN). Na de
 callback toetst de `Inlogbeslisser` issuer, client, inlogmiddel, niveau, BSN (negen cijfers, elfproef) en vertegenwoordiging; een
 weigering is een securityevent met OIN en actor, nooit met BSN. De sessie staat in Redis (vluchtig, ADR 0017: ACL, geen
-persistentie, `noeviction`, TTL op elke sleutel) en bevat alleen de afgeleide identiteit en het ID-token voor RP-initiated logout.
+persistentie, `noeviction`, TTL op elke sleutel) en bevat de afgeleide identiteit (met het BSN van de vertegenwoordigde: een restrisico, zie ADR 0022) en het ID-token voor RP-initiated logout.
+Het BSN komt bij de callback uit de userinfo van Keycloak en staat niet in het ID-token; het ID-token bevat alleen `sub` (Keycloak-gebruikers-ID),
+`acr`, `inlogmiddel`, `auth_time`, `sid` en de standaardclaims, geen `preferred_username`, `name` of `email`.
 De tenant is een gecontroleerd sessieattribuut (`nlp.tenant`), geen onderdeel van de sleutel; een sessie die op de host van een
 andere tenant binnenkomt, wordt afgewezen.
 
@@ -51,10 +53,19 @@ dus de backend toetst altijd.
 | eHerkenning | (nog geen waarden: geweigerd) | n.v.t. |
 | Test (alleen ontwikkeling) | `Basis` | Basis |
 
+**Sessiecookie na de tussenpagina.** De callback antwoordt met een tussenpagina (`meta refresh`) zodat de sessiecookie `Strict` kan blijven. Dat is
+niet in een echte browser getoetst; de Playwright-toets hoort bij T25 (#524).
+
+**Nginx-sidecar: headers en proxy.** De nginx van de frontend overschrijft `X-Forwarded-Host` (met `$http_host`) en `Forwarded` (leeg), zodat een
+client de hostbepaling van de tenant niet kan sturen, en zet per location een CSP (`default-src 'self'`, `object-src 'none'`, `base-uri 'self'`,
+`frame-ancestors 'none'`), `X-Content-Type-Options: nosniff`, `Referrer-Policy: same-origin` en HSTS (alleen als de ingress `X-Forwarded-Proto: https`
+doorgeeft). `form-action` ontbreekt bewust: het uitloggen stuurt door naar Keycloak en de sidecar kent de broker-URL niet. Het adres van de sidecar hoort nooit in
+`nl-portal.tenancy.trusted-proxies` (`NL_PORTAL_TRUSTED_PROXIES`): dan zou de backend `X-Forwarded-*` van de browser vertrouwen. Alleen de eigen ingress mag daar staan.
+
 **Sleutelmap.** De private clientsleutel van elke tenant (RSA van minimaal 3072 bit, `alg: PS256`, met `kid`) staat als bestand onder
 `nl-portal.sleutelmap` (`NL_PORTAL_SLEUTELMAP`) in een map met de OIN als naam; `authenticatie.sleutelBestand` in het tenantbestand
 is relatief daaraan. Bij het opstarten moet het echte pad (symlinks opgelost) onder `<sleutelmap>/<oin>/` liggen, anders weigert de
-backend. Het bestand is alleen leesbaar voor het uid van de backend (0600).
+backend. Het bestand is alleen leesbaar voor het uid van de backend (0600); dit is niet op Linux met een tweede uid getoetst.
 
 **Sessietijden.** Standaard 15 minuten inactiviteit en 8 uur absoluut; per tenant strenger in te stellen. `GET /api/public/sessie`
 telt niet als activiteit. Uitloggen is een `POST /logout` (CSRF) dat de sessie beëindigt en bij Keycloak uitlogt met `id_token_hint`.

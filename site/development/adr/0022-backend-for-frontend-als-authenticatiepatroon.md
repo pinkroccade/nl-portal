@@ -121,17 +121,32 @@ en wie de OAuth-client is.
 ## Correctie na de bouw
 
 - **Tenant als sessieattribuut, niet in de Redis-sleutel.** De sleutel is de sessie-ID zelf (256 bit, door Spring Session
-  onder één vaste naamruimte). Een tenant in de sleutel zou de sleutel voorspelbaar maken en dwingt de Redis-ACL per
-  tenant af, terwijl de sessie-ID uit een cookie komt dat al aan het domein van de tenant gebonden is. In plaats daarvan
+  onder één vaste naamruimte). Spring Session beheert die sleutel; een eigen sleutelopbouw met de tenant erin zou tegen
+  dat beheer ingaan (opschonen, verlopen, indexen) en dwingt de Redis-ACL per tenant af, terwijl de sessie-ID uit een cookie
+  komt dat al aan het domein van de tenant gebonden is. De sleutel was en blijft niet geheim; de bescherming zit in de
+  entropie van de sessie-ID en in de tenantcontrole. In plaats daarvan
   slaat de backend bij het opslaan de tenant (OIN) op als attribuut, en vergelijkt `SessieBewakingFilter` dat bij elk
   request met de tenant van de host. Een afwijking maakt de sessie ongeldig (401) en wordt als securityevent gelogd. De
   tenant is dus een gecontroleerd attribuut van de sessie, geen onderdeel van haar adres.
 - **`SameSite=Strict` met een tussenpagina.** De sessiecookie (`__Host-Http-NLP`) is `Strict`. De callback zet hem op een
   cross-site redirect; daarom antwoordt de callback met een tussenpagina met `meta refresh` naar het terugkeerpad, zodat de
-  eerste navigatie al first-party is. De flowcookie (`__Host-nlp-flow`) is `Lax`, wordt bij de callback eenmalig gelezen
+  eerste navigatie al first-party is. **Niet in een browser getoetst:** dit gedrag is alleen op protocolniveau getoetst (de
+  rooktest volgt de `meta refresh` zonder browser); de toets in Chromium, Firefox en WebKit (Playwright) hoort bij T25
+  ([#524](https://github.com/pinkroccade/nl-portal/issues/524)). De flowcookie (`__Host-nlp-flow`) is `Lax`, wordt bij de callback eenmalig gelezen
   (`GETDEL`) en bevat alleen een verwijzing.
 - **Niveau per inlogmiddel.** De callback zet de `acr` van het ID-token om via een vaste tabel (arc42 8.1) en weigert een
   onbekende of lege waarde; het minimum per tenant komt uit het tenantbestand.
+- **BSN alleen via userinfo.** Het BSN (`acting_subject_id`) zit niet in het ID-token en niet in het access-token; de backend
+  haalt het bij de callback uit het userinfo-antwoord van Keycloak. Het ID-token dat in de sessie blijft voor
+  `id_token_hint` bevat daardoor geen BSN en geen identificerende claims (`preferred_username`, `name`, `email`); `sub` is het
+  Keycloak-gebruikers-ID. De rooktest `keycloak:bff-login-test` toetst dat.
+- **Restrisico: BSN in de Redis-sessie.** De afgeleide identiteit, met het BSN van de vertegenwoordigde, staat in de sessie in Redis,
+  omdat modulecalls het BSN nodig hebben. Besluit (21-11): dit is een restrisico. Mitigaties: Redis-ACL, TLS naar Redis buiten
+  ontwikkeling, geen persistentie, TTL op elke sleutel en een allowlist-serializer. Versleuteling op applicatieniveau (AES-GCM, de
+  sessie-ID als AAD) is een criterium in T26 ([#525](https://github.com/pinkroccade/nl-portal/issues/525)) en moet vóór de eerste
+  productie-uitrol af zijn.
+- **NameQualifier-controle van het BSN** is niet gebouwd; het BSN-pad controleert nu de sectorprefix. Dit blokkeert de livegang
+  met DigiD en heeft een eigen ticket ([#550](https://github.com/pinkroccade/nl-portal/issues/550)).
 - **Back-channel logout is nog niet gebouwd.** De realm kent de URL; de backend beantwoordt hem nog niet (404).
 
 ## Gevolgen

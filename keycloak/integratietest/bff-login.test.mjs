@@ -166,6 +166,14 @@ describe("echte login van de BFF tegen Keycloak", () => {
     assert.equal(claims.inlogmiddel, "test");
     assert.equal(claims.acting_subject_id, undefined, "het BSN staat niet in het ID-token: id_token_hint gaat de browser in");
     assert.ok(!eind.toString().includes(BSN), "geen BSN in de logout-redirect");
+    // Het ID-token blijft in de Redis-sessie en gaat als `id_token_hint` de browser in: geen identificerende claims. `nl-portal-backend` heeft alleen
+    // de clientscope `basic` (sub, auth_time), niet `profile`, `email` of `roles`; `sub` is het Keycloak-gebruikers-ID, niet de NameID of het BSN.
+    for (const naam of ["preferred_username", "name", "given_name", "family_name", "email", "email_verified", "realm_access", "resource_access"]) {
+      assert.equal(claims[naam], undefined, `het ID-token bevat de identificerende claim ${naam}`);
+    }
+    assert.match(claims.sub, /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/, "sub is het Keycloak-gebruikers-ID (UUID), niet de NameID");
+    const payload = JSON.stringify(claims);
+    assert.ok(!payload.includes(BSN) && !payload.includes("s00000000:"), "geen BSN of NameID-sectorprefix in het ID-token");
     assert.ok(claims.auth_time, "auth_time ontbreekt");
     assert.equal(eind.searchParams.get("post_logout_redirect_uri"), `${PUBLIEK}/`);
     const klaar = await b.volg(eind.toString(), {}, { stop: (u) => u.startsWith(PUBLIEK) });
