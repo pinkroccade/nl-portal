@@ -33,8 +33,7 @@ import java.util.UUID
 class CatalogiApiClient(
     private val register: KoppelingRegister,
 ) {
-    suspend fun getStatusTypes(zaakType: String): List<StatusType> =
-        haal<ResultPage<StatusType>>("statustypen", mapOf("zaaktype" to listOf(zaakType), "status" to listOf("definitief"))).results
+    suspend fun getStatusTypes(zaakType: String): List<StatusType> = haal<ResultPage<StatusType>>("statustypen", mapOf("zaaktype" to listOf(zaakType), "status" to listOf("definitief"))).results
 
     suspend fun getStatusType(statusTypeId: UUID): ZaakStatusType = haal("statustypen/$statusTypeId")
 

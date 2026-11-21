@@ -446,20 +446,24 @@ class ZakenApiTenantTest {
         override fun dispatch(request: RecordedRequest): MockResponse {
             val pad = request.requestUrl!!.encodedPath
             return when {
-                pad.endsWith("/rollen") -> pagina("""{"uuid":"a1b2c3d4-0000-4000-8000-000000000001","zaak":"x"}""", count = 1)
+                pad.endsWith("/rollen") -> {
+                    pagina("""{"uuid":"a1b2c3d4-0000-4000-8000-000000000001","zaak":"x"}""", count = 1)
+                }
 
-                pad.contains("/zaakinformatieobjecten/") ->
+                pad.contains("/zaakinformatieobjecten/") -> {
                     MockResponse()
                         .setHeader("Content-Type", "application/json")
                         .setBody("""{"uuid":"$ZAAKDOCUMENT_ID","informatieobject":"https://eigen.example.nl/documenten/api/v1/enkelvoudiginformatieobjecten/$ZAAKDOCUMENT_ID","zaak":"https://eigen.example.nl/zaken/api/v1/zaken/$zaakId"}""")
+                }
 
-                else ->
+                else -> {
                     MockResponse()
                         .setHeader("Content-Type", "application/json")
                         .setBody(
                             """{"uuid":"$zaakId","url":"https://eigen.example.nl/zaken/$zaakId","identificatie":"Z1","omschrijving":"o",""" +
                                 """"zaaktype":"$zaaktypeUrl","startdatum":"2026-01-01","einddatum":null,"status":null}""",
                         )
+                }
             }
         }
     }
