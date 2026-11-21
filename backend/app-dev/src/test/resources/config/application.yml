@@ -22,7 +22,7 @@ spring:
 
 nl-portal:
     tenancy:
-        directory: src/test/resources/tenants
+        directory: ../app/src/test/resources/tenants
     # De secret store van de test: het geheim van de koppeling `zakenapi` in het tenantbestand (minstens 32 tekens voor een ZGW-JWT).
     geheimen:
         "00000099000000000001.zaken-secret": testwaarde-zaken-geheim-voor-de-app-test-0123456789

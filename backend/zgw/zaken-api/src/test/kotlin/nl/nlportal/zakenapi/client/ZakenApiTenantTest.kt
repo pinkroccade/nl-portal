@@ -23,8 +23,6 @@ import nl.nlportal.core.koppeling.KoppelingFoutsoort
 import nl.nlportal.core.modulestatus.ModuleState
 import nl.nlportal.core.modulestatus.ModuleStatusRegistry
 import nl.nlportal.core.tenancy.TenantDefinition
-import nl.nlportal.core.tenancy.TenantKoppelingAuth
-import nl.nlportal.core.tenancy.TenantKoppelingAuthType
 import nl.nlportal.core.testing.TestTenants
 import nl.nlportal.core.testing.TestTenants.BOSRAND
 import nl.nlportal.core.testing.TestTenants.WIJDE_VELD
@@ -92,10 +90,9 @@ class ZakenApiTenantTest {
         clientId: String,
         configuratie: ZakenApiConfiguratie = ZakenApiConfiguratie(),
     ): TenantDefinition {
-        val auth = TenantKoppelingAuth(TenantKoppelingAuthType.ZGW_JWT, clientId = clientId, secret = TestTenants.geheim("zaken-secret", oin))
         return TestTenants.tenant(
             oin,
-            koppelingen = mapOf("zakenapi" to TestTenants.koppeling(url(bron), auth, oin = oin)),
+            koppelingen = mapOf("zakenapi" to TestTenants.zgwKoppeling(url(bron), clientId, oin = oin)),
             modules = mapOf("zakenapi" to configuratie),
         )
     }

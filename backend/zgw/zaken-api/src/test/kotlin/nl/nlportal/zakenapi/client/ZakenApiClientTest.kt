@@ -20,8 +20,6 @@ import kotlinx.coroutines.test.runTest
 import nl.nlportal.commonground.authentication.JwtBuilder
 import nl.nlportal.core.modulestatus.ModuleState
 import nl.nlportal.core.modulestatus.ModuleStatusRegistry
-import nl.nlportal.core.tenancy.TenantKoppelingAuth
-import nl.nlportal.core.tenancy.TenantKoppelingAuthType
 import nl.nlportal.core.testing.TestTenants
 import nl.nlportal.zakenapi.client.request.ObjectType
 import okhttp3.mockwebserver.MockResponse
@@ -53,10 +51,9 @@ class ZakenApiClientTest {
 
     /** De Zaken API van tenant Bosrand: koppeling met ZGW-JWT naar de nepserver en de modulegegevens uit het tenantbestand. */
     private fun bouwClient(configuratie: ZakenApiConfiguratie = ZakenApiConfiguratie()): ZakenApiClient {
-        val auth = TenantKoppelingAuth(TenantKoppelingAuthType.ZGW_JWT, clientId = "gzac", secret = TestTenants.geheim("zaken-secret"))
         val tenant =
             TestTenants.tenant(
-                koppelingen = mapOf("zakenapi" to TestTenants.koppeling(host, auth)),
+                koppelingen = mapOf("zakenapi" to TestTenants.zgwKoppeling(host, "gzac")),
                 modules = mapOf("zakenapi" to configuratie),
             )
         return ZakenApiClient(TestTenants.register(tenant), TestTenants.directory(tenant), { "$host/catalogi/api/v1/zaaktypen/$it" }, moduleStatus)

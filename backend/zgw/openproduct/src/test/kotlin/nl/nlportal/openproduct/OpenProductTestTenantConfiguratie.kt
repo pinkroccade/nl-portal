@@ -17,8 +17,6 @@ package nl.nlportal.openproduct
 
 import nl.nlportal.core.tenancy.GeheimenBron
 import nl.nlportal.core.tenancy.TenantDirectory
-import nl.nlportal.core.tenancy.TenantKoppelingAuth
-import nl.nlportal.core.tenancy.TenantKoppelingAuthType
 import nl.nlportal.core.testing.TestTenants
 import nl.nlportal.core.testing.VasteTenantWebFilter
 import nl.nlportal.zakenapi.client.ZakenApiConfiguratie
@@ -38,14 +36,7 @@ open class OpenProductTestTenantConfiguratie {
         TenantDirectory(
             listOf(
                 TestTenants.tenant(
-                    koppelingen =
-                        mapOf(
-                            "zakenapi" to
-                                TestTenants.koppeling(
-                                    url,
-                                    TenantKoppelingAuth(TenantKoppelingAuthType.ZGW_JWT, clientId = "valtimo_client", secret = TestTenants.geheim("zaken-secret")),
-                                ),
-                        ),
+                    koppelingen = mapOf("zakenapi" to TestTenants.zgwKoppeling(url, "valtimo_client")),
                     modules = mapOf("zakenapi" to ZakenApiConfiguratie()),
                 ),
             ),

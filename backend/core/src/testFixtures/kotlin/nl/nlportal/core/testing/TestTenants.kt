@@ -97,6 +97,14 @@ object TestTenants {
         versie,
     )
 
+    /** Een koppeling naar [url] met ZGW-JWT: het geheim is `<oin>.<geheimnaam>` (minstens 32 tekens in [ALLE_GEHEIMEN]). */
+    fun zgwKoppeling(
+        url: String,
+        clientId: String,
+        geheimnaam: String = "zaken-secret",
+        oin: Oin = BOSRAND,
+    ) = koppeling(url, TenantKoppelingAuth(TenantKoppelingAuthType.ZGW_JWT, clientId = clientId, secret = geheim(geheimnaam, oin)), oin = oin)
+
     fun directory(vararg tenants: TenantDefinition) = TenantDirectory(tenants.toList())
 
     /**
