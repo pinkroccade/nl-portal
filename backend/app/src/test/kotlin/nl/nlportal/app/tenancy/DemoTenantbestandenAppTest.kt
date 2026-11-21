@@ -16,28 +16,18 @@
 package nl.nlportal.app.tenancy
 
 import nl.nlportal.core.tenancy.TenantFileLoader
-<<<<<<<< HEAD:backend/app/src/test/kotlin/nl/nlportal/app/tenancy/DemoTenantbestandenTest.kt
-========
 import nl.nlportal.core.tenancy.TenantModules
->>>>>>>> feat/multitenancy-bff-499:backend/app/src/test/kotlin/nl/nlportal/app/tenancy/DemoTenantbestandenAppTest.kt
 import org.assertj.core.api.Assertions.assertThat
 import org.junit.jupiter.api.Test
 import java.nio.file.Path
 
 /**
-<<<<<<<< HEAD:backend/app/src/test/kotlin/nl/nlportal/app/tenancy/DemoTenantbestandenTest.kt
- * Seam: de validator over de tenantbestanden die de repo meelevert. Draait in `:app`: alleen daar staan alle modules op het klassenpad,
- * en dus kent de validator hun `modules.<naam>`.
- */
-class DemoTenantbestandenTest {
-========
  * Seam: de validator, met de moduleconfiguraties van alle modules op het klassenpad van de app, over de tenantbestanden die de repo
  * meelevert (de CI-stap "validator over de demo-tenantbestanden"). Staat hier en niet in core: core kent de modules niet.
  */
 class DemoTenantbestandenAppTest {
     private val modules = TenantModules.ontdek()
 
->>>>>>>> feat/multitenancy-bff-499:backend/app/src/test/kotlin/nl/nlportal/app/tenancy/DemoTenantbestandenAppTest.kt
     @Test
     fun `de demo-tenantbestanden van docker-compose voldoen aan de validator`() {
         val result = TenantFileLoader(modules = modules).load(Path.of("../../docker-compose/imports/tenants"))

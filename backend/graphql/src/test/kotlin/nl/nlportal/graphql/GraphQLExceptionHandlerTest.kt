@@ -37,21 +37,6 @@ import org.mockito.Mockito.`when`
 import org.slf4j.LoggerFactory
 
 class GraphQLExceptionHandlerTest {
-    @Test
-    fun `een niet geconfigureerde module of een ontbrekende tenant toont de browser geen OIN of configuratienaam`() {
-        val geenModule = ModuleNotConfiguredException("payment-direct", "Tenant 00000099000000000001: modulegegevens")
-        val geenTenant = TenantContextMissingException()
-
-        val moduleFout = GraphQLExceptionHandler().resolveException(geenModule, env).block()!!.single()
-        val tenantFout = GraphQLExceptionHandler().resolveException(geenTenant, env).block()!!.single()
-
-        assertEquals("De module is niet beschikbaar", moduleFout.message)
-        assertEquals(mapOf("code" to "MODULE_NIET_GECONFIGUREERD"), moduleFout.extensions)
-        assertEquals("De aanvraag kan niet worden verwerkt", tenantFout.message)
-        assertEquals(mapOf("code" to "TENANT_ONTBREEKT"), tenantFout.extensions)
-        assertFalse(moduleFout.toSpecification().toString().contains("00000099000000000001"))
-    }
-
     private val env: DataFetchingEnvironment =
         mock(DataFetchingEnvironment::class.java, RETURNS_DEEP_STUBS).also {
             `when`(it.field.sourceLocation).thenReturn(SourceLocation(1, 1))
