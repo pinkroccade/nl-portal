@@ -111,7 +111,7 @@ Eisen aan de omgeving (ook als acceptatiecriterium voor de ingress in #191):
 - **De managementpoort is alleen intern bereikbaar** (Service en NetworkPolicy, #191); hij luistert op alle interfaces.
 - Er is geen `base.yaml` én `base.yml` tegelijk: dat weigert het opstarten.
 
-Het JSON-schema staat in `backend/app/schema/tenant.schema.json` en wordt uit de Kotlin-typen gegenereerd
+Het JSON-schema staat in `backend/schema/tenant.schema.json` en wordt uit de Kotlin-typen gegenereerd
 (`mise run backend:tenant-schema`). De validator draait bij opstarten en als CLI voor CI:
 `mise run backend:tenant-validator` bouwt `backend/core/build/libs/nl-portal-tenant-validator.jar`, en
 `java -jar nl-portal-tenant-validator.jar <map>` geeft exitcode 0 bij een geldige map.

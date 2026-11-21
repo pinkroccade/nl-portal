@@ -58,11 +58,11 @@ dependencies {
 // als het gecommitte bestand verouderd is. `mise run backend:tenant-schema` werkt het bij.
 tasks.register<JavaExec>("generateTenantSchema") {
     group = "tenancy"
-    description = "Genereert schema/tenant.schema.json uit de typen van het tenantbestand en van alle modules"
+    description = "Genereert backend/schema/tenant.schema.json uit de typen van het tenantbestand en van alle modules"
     classpath = sourceSets["main"].runtimeClasspath
     mainClass.set("nl.nlportal.core.tenancy.TenantSchemaGenerator")
     args(
-        layout.projectDirectory
+        rootProject.layout.projectDirectory
             .file("schema/tenant.schema.json")
             .asFile.absolutePath,
     )

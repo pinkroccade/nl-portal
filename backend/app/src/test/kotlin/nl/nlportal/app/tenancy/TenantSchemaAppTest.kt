@@ -25,7 +25,7 @@ import java.nio.file.Path
 class TenantSchemaAppTest {
     @Test
     fun `het gecommitte schema is actueel`() {
-        assertThat(Files.readString(Path.of("schema/tenant.schema.json")).replace("\r\n", "\n"))
+        assertThat(Files.readString(Path.of("../schema/tenant.schema.json")).replace("\r\n", "\n"))
             .describedAs("Schema verouderd: draai `mise run backend:tenant-schema` en commit het resultaat")
             .isEqualTo(TenantSchemaGenerator.generate())
     }

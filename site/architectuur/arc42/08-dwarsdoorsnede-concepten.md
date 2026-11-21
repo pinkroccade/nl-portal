@@ -133,7 +133,7 @@ via een rolling update wordt uitgerold, niet via hot reload; een andere OpenFeat
   geheimen zijn alleen een `GeheimVerwijzing` (de naam in de secret store, opgelost via `GeheimenBron`, standaard `nl-portal.geheimen.<naam>` uit
   de omgeving); een waarde die geen naam is, een onvolledige koppeling (per auth type de verplichte velden), een ongeldige url of een geheim dat in de secret
   store ontbreekt weigert het opstarten, met de OIN in de melding (story 14). Credentials (elke `GeheimVerwijzing`, en elk veld met `@NietErfbaar`)
-  worden nooit uit de gedeelde basis geërfd (story 11). Het gepubliceerde schema (`backend/app/schema/tenant.schema.json`) wordt in `:app` gegenereerd,
+  worden nooit uit de gedeelde basis geërfd (story 11). Het gepubliceerde schema (`backend/schema/tenant.schema.json`) wordt in `:app` gegenereerd,
   waar alle modules op het klassenpad staan.
 - **Drie lagen configuratie.** Het *tenantbestand* (Git: domeinen, URL's, thema, verwijzingen naar secrets;
   rolling restart), de *flag* (alleen aan/uit per module en tenant; `ops.<module>.enabled`, ook via een rolling restart) en de *secret store* (de secrets

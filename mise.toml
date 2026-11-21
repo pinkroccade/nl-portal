@@ -125,7 +125,7 @@ run = "./gradlew :core:pitest"
 # backend:pitest-changed staat in mise-tasks/backend/pitest-changed
 
 [tasks."backend:tenant-schema"]
-description = "Genereer backend/app/schema/tenant.schema.json uit de Kotlin-typen van het tenantbestand en van alle modules (commit het resultaat)"
+description = "Genereer backend/schema/tenant.schema.json uit de Kotlin-typen van het tenantbestand en van alle modules (commit het resultaat)"
 dir = "backend"
 shell = "bash -c"
 run = "./gradlew :app:generateTenantSchema"
