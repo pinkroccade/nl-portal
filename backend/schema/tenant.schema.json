@@ -1,0 +1,238 @@
+{
+  "$schema" : "https://json-schema.org/draft/2020-12/schema",
+  "$id" : "https://nl-portal.nl/schema/tenant.schema.json",
+  "title" : "NL Portal tenantbestand",
+  "description" : "Niet-geheime inrichting van een tenant in een omgeving. Een OIN moet tussen aanhalingstekens staan. Het bestand heet <oin>.yaml; base.yaml in dezelfde map is de gedeelde basis voor die omgeving.",
+  "type" : "object",
+  "properties" : {
+    "oin" : {
+      "type" : "string",
+      "pattern" : "^[0-9]{20}$"
+    },
+    "naam" : {
+      "type" : "string",
+      "minLength" : 1
+    },
+    "omgevingstype" : {
+      "type" : "string",
+      "enum" : [ "productie", "acceptatie", "test", "ontwikkeling" ]
+    },
+    "domeinen" : {
+      "type" : "array",
+      "items" : {
+        "type" : "string",
+        "pattern" : "^(?=.{1,253}$)(?![0-9.]+$)[a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?(\\.[a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?)*$"
+      },
+      "minItems" : 1
+    },
+    "thema" : {
+      "type" : "object",
+      "properties" : {
+        "titel" : {
+          "type" : "string",
+          "minLength" : 1
+        },
+        "logo" : {
+          "type" : "string",
+          "minLength" : 1
+        },
+        "favicon" : {
+          "type" : "string",
+          "minLength" : 1
+        },
+        "stijl" : {
+          "type" : "string",
+          "minLength" : 1
+        }
+      },
+      "required" : [ "titel" ],
+      "additionalProperties" : false
+    },
+    "inlogmiddelen" : {
+      "type" : "array",
+      "items" : {
+        "type" : "string",
+        "enum" : [ "digid", "eherkenning", "wallet", "test" ]
+      },
+      "minItems" : 1
+    },
+    "minimumNiveau" : {
+      "type" : "string",
+      "enum" : [ "basis", "midden", "substantieel", "hoog" ]
+    },
+    "sessie" : {
+      "type" : "object",
+      "properties" : {
+        "inactiviteit" : {
+          "type" : "string",
+          "pattern" : "^P(?!$)(\\d+D)?(T(?=\\d)(\\d+H)?(\\d+M)?(\\d+S)?)?$",
+          "description" : "ISO-8601-duur, bijvoorbeeld PT15M"
+        },
+        "absoluut" : {
+          "type" : "string",
+          "pattern" : "^P(?!$)(\\d+D)?(T(?=\\d)(\\d+H)?(\\d+M)?(\\d+S)?)?$",
+          "description" : "ISO-8601-duur, bijvoorbeeld PT15M"
+        }
+      },
+      "additionalProperties" : false
+    },
+    "koppelingen" : {
+      "type" : "object",
+      "additionalProperties" : {
+        "type" : "object",
+        "properties" : {
+          "url" : {
+            "type" : "string",
+            "minLength" : 1
+          },
+          "auth" : {
+            "type" : "object",
+            "properties" : {
+              "type" : {
+                "type" : "string",
+                "enum" : [ "api-key", "bearer", "zgw-jwt", "oauth2-client-credentials", "oauth2-private-key-jwt", "gcs-v1-hmac", "geen" ]
+              },
+              "headerNaam" : {
+                "type" : "string",
+                "minLength" : 1
+              },
+              "waarde" : {
+                "type" : "string",
+                "pattern" : "^[a-z0-9]+([._-][a-z0-9]+)*$"
+              },
+              "token" : {
+                "type" : "string",
+                "pattern" : "^[a-z0-9]+([._-][a-z0-9]+)*$"
+              },
+              "clientId" : {
+                "type" : "string",
+                "minLength" : 1
+              },
+              "secret" : {
+                "type" : "string",
+                "pattern" : "^[a-z0-9]+([._-][a-z0-9]+)*$"
+              },
+              "tokenUrl" : {
+                "type" : "string",
+                "minLength" : 1
+              },
+              "privateKeyBestand" : {
+                "type" : "string",
+                "minLength" : 1
+              }
+            },
+            "required" : [ "type" ],
+            "additionalProperties" : false
+          },
+          "leverancier" : {
+            "type" : "string",
+            "minLength" : 1
+          },
+          "versie" : {
+            "type" : "string",
+            "minLength" : 1
+          }
+        },
+        "required" : [ "url", "auth" ],
+        "additionalProperties" : false
+      }
+    },
+    "modules" : {
+      "type" : "object",
+      "properties" : {
+        "brp" : {
+          "type" : "object",
+          "properties" : {
+            "velden" : {
+              "type" : "array",
+              "items" : {
+                "type" : "string",
+                "minLength" : 1
+              }
+            },
+            "toegestaneWoonplaatsenBewoning" : {
+              "type" : "array",
+              "items" : {
+                "type" : "string",
+                "minLength" : 1
+              }
+            },
+            "aanvullendeHeaders" : {
+              "type" : "object",
+              "additionalProperties" : {
+                "type" : "string",
+                "minLength" : 1
+              }
+            }
+          },
+          "additionalProperties" : false
+        },
+        "payment-direct" : {
+          "type" : "object",
+          "properties" : {
+            "webhookUrl" : {
+              "type" : "string",
+              "minLength" : 1
+            },
+            "customTemplateUrl" : {
+              "type" : "string",
+              "minLength" : 1
+            },
+            "toonResultaatPagina" : {
+              "type" : "boolean"
+            },
+            "profielen" : {
+              "type" : "object",
+              "additionalProperties" : {
+                "type" : "object",
+                "properties" : {
+                  "pspId" : {
+                    "type" : "string",
+                    "minLength" : 1
+                  },
+                  "taal" : {
+                    "type" : "string",
+                    "minLength" : 1
+                  },
+                  "valuta" : {
+                    "type" : "string",
+                    "minLength" : 1
+                  },
+                  "returnUrl" : {
+                    "type" : "string",
+                    "minLength" : 1
+                  },
+                  "koppeling" : {
+                    "type" : "string",
+                    "minLength" : 1
+                  },
+                  "webhookSleutelId" : {
+                    "type" : "string",
+                    "minLength" : 1
+                  },
+                  "webhookGeheim" : {
+                    "type" : "string",
+                    "pattern" : "^[a-z0-9]+([._-][a-z0-9]+)*$"
+                  },
+                  "creditcardAan" : {
+                    "type" : "boolean"
+                  },
+                  "aantalPogingen" : {
+                    "type" : "integer"
+                  }
+                },
+                "required" : [ "pspId", "returnUrl" ],
+                "additionalProperties" : false
+              }
+            }
+          },
+          "required" : [ "profielen" ],
+          "additionalProperties" : false
+        }
+      },
+      "additionalProperties" : false
+    }
+  },
+  "required" : [ "oin", "naam", "omgevingstype", "domeinen", "thema", "inlogmiddelen" ],
+  "additionalProperties" : false
+}

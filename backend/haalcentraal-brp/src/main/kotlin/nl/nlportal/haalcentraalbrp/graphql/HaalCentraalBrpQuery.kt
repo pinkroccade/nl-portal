@@ -15,7 +15,7 @@
  */
 package nl.nlportal.haalcentraalbrp.graphql
 
-import nl.nlportal.commonground.authentication.CommonGroundAuthentication
+import nl.nlportal.portal.authentication.domain.PortalAuthentication
 import nl.nlportal.haalcentraalbrp.domain.brp.BrpPersoon
 import nl.nlportal.haalcentraalbrp.service.HaalCentraalBrpService
 import org.springframework.graphql.data.method.annotation.QueryMapping
@@ -27,14 +27,14 @@ class HaalCentraalBrpQuery(
     val haalCentraalBrpService: HaalCentraalBrpService,
 ) {
     @QueryMapping
-    suspend fun getPersoonV2(authentication: CommonGroundAuthentication): BrpPersoon? =
+    suspend fun getPersoonV2(authentication: PortalAuthentication): BrpPersoon? =
         haalCentraalBrpService.getPersoon(
             authentication = authentication,
         )
 
     @SchemaMapping(typeName = "BrpPersoon", field = "bewonersAantal")
     suspend fun bewonersAantal(
-        authentication: CommonGroundAuthentication,
+        authentication: PortalAuthentication,
         persoon: BrpPersoon,
     ): Int? =
         persoon.verblijfplaats?.adresseerbaarObjectIdentificatie?.let {

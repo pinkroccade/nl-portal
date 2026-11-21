@@ -75,7 +75,7 @@ class OpenKlant2ServiceTest {
             mockServer.enqueue(MockResponse().setResponseCode(204))
 
             service.deleteDigitaleAdresById(
-                authentication = JwtBuilder().aanvragerBsn(OWNER_BSN).buildBurgerAuthentication(),
+                authentication = JwtBuilder().vertegenwoordigdeBsn(OWNER_BSN).buildAuthentication(),
                 digitaleAdresId = UUID.fromString(DIGITALE_ADRES_ID),
             )
 
@@ -98,7 +98,7 @@ class OpenKlant2ServiceTest {
             val exception =
                 assertThrows<ResponseStatusException> {
                     service.deleteDigitaleAdresById(
-                        authentication = JwtBuilder().aanvragerBsn(OTHER_BSN).buildBurgerAuthentication(),
+                        authentication = JwtBuilder().vertegenwoordigdeBsn(OTHER_BSN).buildAuthentication(),
                         digitaleAdresId = UUID.fromString(DIGITALE_ADRES_ID),
                     )
                 }
@@ -117,7 +117,7 @@ class OpenKlant2ServiceTest {
 
             val result =
                 service.findDigitaleAdressen(
-                    JwtBuilder().aanvragerBsn(OWNER_BSN).buildBurgerAuthentication(),
+                    JwtBuilder().vertegenwoordigdeBsn(OWNER_BSN).buildAuthentication(),
                 )
 
             assertEquals(emptyList<Any>(), result)

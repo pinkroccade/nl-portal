@@ -16,7 +16,7 @@
 package nl.nlportal.openproduct.graphql
 
 import java.util.UUID
-import nl.nlportal.commonground.authentication.CommonGroundAuthentication
+import nl.nlportal.portal.authentication.domain.PortalAuthentication
 import nl.nlportal.core.util.Mapper
 import nl.nlportal.openproduct.client.domain.OpenProductActie
 import nl.nlportal.openproduct.client.domain.OpenProductPrefillResponse
@@ -37,7 +37,7 @@ class OpenProductActieQuery(
 ) {
     @QueryMapping
     suspend fun getOpenProductActies(
-        authentication: CommonGroundAuthentication,
+        authentication: PortalAuthentication,
         @Argument pageNumber: Int? = null,
         @Argument pageSize: Int? = null,
     ): ActiesPage =
@@ -53,7 +53,7 @@ class OpenProductActieQuery(
 
     @QueryMapping
     suspend fun getOpenProductActie(
-        authentication: CommonGroundAuthentication,
+        authentication: PortalAuthentication,
         @Argument id: UUID,
     ): OpenProductActie? =
         openProductService.getActie(
@@ -62,7 +62,7 @@ class OpenProductActieQuery(
 
     @QueryMapping
     suspend fun getOpenProductActieDecision(
-        authentication: CommonGroundAuthentication,
+        authentication: PortalAuthentication,
         @Argument productId: UUID,
         @Argument naam: String,
     ): List<ObjectNode> {
@@ -78,7 +78,7 @@ class OpenProductActieQuery(
 
     @QueryMapping
     suspend fun getOpenProductActiePrefill(
-        authentication: CommonGroundAuthentication,
+        authentication: PortalAuthentication,
         @Argument productId: UUID,
         @Argument naam: String,
     ): OpenProductPrefillResponse =

@@ -1,15 +1,21 @@
 #!/usr/bin/env node
 // Genereert de lokale dev-omgeving met willekeurige secrets (mise run dev:setup).
-// Rendert dezelfde waarden uit templates in de Keycloak-realms, de compose-omgeving (docker-compose/.env)
-// en de lokale omgeving van :app (backend/app/.env.properties). Alles wat dit script schrijft is gitignored.
-// Opnieuw uitvoeren geeft nieuwe secrets; draai daarna `docker compose down -v` en `up`, zodat de
+// Rendert dezelfde waarden uit templates in de compose-omgeving (docker-compose/.env), de seed-gegevens van de
+// ZGW-componenten en de lokale omgeving van :app (backend/app/.env.properties). De Keycloak-realms genereert het niet
+// meer zelf: per tenantbestand (docker-compose/imports/tenants) komen er de per-tenant-waarden en een sleutelpaar voor
+// `private_key_jwt`, en het ene realm-template (keycloak/realm-template) wordt daarmee tot een realm dat
+// keycloak-config-cli laadt (service nl-portal-keycloak-config in de compose). Alles wat dit script schrijft is gitignored.
+// Opnieuw uitvoeren geeft nieuwe secrets en sleutels; draai daarna `docker compose down -v` en `up`, zodat de
 // services opnieuw starten met de nieuwe realms en fixtures en met lege databases.
 // Usage: node scripts/dev-setup.mjs [--root <repo-root>]
 
 import { pbkdf2Sync, randomBytes } from "node:crypto";
-import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
+import { chmodSync, existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
+import { maakClientSleutel } from "./lib/clientsleutel.mjs";
+import { genereerRealm } from "./lib/realm.mjs";
+import { leesTenantbestanden } from "./lib/tenantbestand.mjs";
 
 export const SECRET_NAMES = [
   "KEYCLOAK_M2M_CLIENT_SECRET",
@@ -48,14 +54,6 @@ export const SECRET_NAMES = [
 
 // Template -> uitvoer. Alle uitvoerpaden moeten gitignored zijn; de rooktest (dev-setup.test.mjs) bewaakt dat.
 export const TEMPLATES = [
-  {
-    template: "docker-compose/templates/keycloak/nlportal-realm.json",
-    output: "docker-compose/.generated/keycloak/nlportal-realm.json",
-  },
-  {
-    template: "docker-compose/templates/keycloak/master-realm.json",
-    output: "docker-compose/.generated/keycloak/master-realm.json",
-  },
   { template: "docker-compose/templates/openzaak/configuration.json", output: "docker-compose/.generated/openzaak/configuration.json" },
   { template: "docker-compose/templates/open-object/configuration.json", output: "docker-compose/.generated/open-object/configuration.json" },
   { template: "docker-compose/templates/open-notificaties/configuration.json", output: "docker-compose/.generated/open-notificaties/configuration.json" },
@@ -69,6 +67,14 @@ export const TEMPLATES = [
 // (als KEYCLOAK_CLIENT_SECRET) en de secrets en tokens waarmee het de ZGW-componenten aanroept.
 export const APP_DEV_SECRETS = ["OPENZAAK_NLPORTAL_SECRET", "OBJECTS_API_TOKEN", "OPENKLANT_API_TOKEN", "OPENPRODUCT_API_TOKEN"];
 export const APP_DEV_OUTPUT = "backend/app-dev/.env.properties";
+// Tenants: waar de tenantbestanden staan en waar het realm en de clientsleutel per tenant terechtkomen (gitignored).
+export const TENANTS_MAP = "docker-compose/imports/tenants";
+export const REALM_UITVOER = (oin) => `docker-compose/.generated/keycloak/${oin}.json`;
+export const CLIENTSLEUTEL_UITVOER = (oin) => `docker-compose/.generated/tenants/${oin}/clientsleutel.jwk.json`;
+// Tot de BFF van #506 gebruiken de bestaande configuratie, de SPA en de perf-seed de realmnaam `nlportal`; met één tenant is
+// dat geen conflict. Een tweede tenant (stap 8) krijgt zijn OIN als realmnaam (ADR 0021 besluit 3).
+export const DEV_REALM = "nlportal";
+export const DEV_BROKER_URL = "http://localhost:8082";
 export const COMPOSE_ENV = "docker-compose/.env";
 export const COMPOSE_ENV_EXAMPLE = "docker-compose/.env.example";
 
@@ -100,10 +106,25 @@ export function withManagedBlock(existing, values) {
   return `${existing.replace(/\s*$/, "")}\n\n${block}\n`;
 }
 
-function write(root, path, content) {
+function write(root, path, content, mode) {
   const target = join(root, path);
   mkdirSync(dirname(target), { recursive: true });
   writeFileSync(target, content);
+  // writeFileSync past de modus van een bestaand bestand niet aan; chmod ook dan.
+  if (mode !== undefined) chmodSync(target, mode);
+}
+
+/** Genereert per tenant het realm en het sleutelpaar voor `private_key_jwt`; geeft de geschreven paden terug. */
+export function genereerTenantRealms(root, sleutelMaker = maakClientSleutel) {
+  const tenants = leesTenantbestanden(join(root, TENANTS_MAP));
+  if (tenants.length > 1) throw new Error("Met meer dan een tenant moet elk realm zijn OIN als naam krijgen; dat bouwt de tweede-tenantstap (#499 stap 8)");
+  return tenants.flatMap((tenant) => {
+    const sleutel = sleutelMaker();
+    const realm = genereerRealm({ tenant, realm: DEV_REALM, brokerUrl: DEV_BROKER_URL, clientSleutels: [sleutel.publiek] });
+    write(root, REALM_UITVOER(tenant.oin), `${JSON.stringify(realm, null, 2)}\n`);
+    write(root, CLIENTSLEUTEL_UITVOER(tenant.oin), `${JSON.stringify(sleutel.prive, null, 2)}\n`, 0o600);
+    return [REALM_UITVOER(tenant.oin), CLIENTSLEUTEL_UITVOER(tenant.oin)];
+  });
 }
 
 export function devSetup(root, secrets = generateSecrets()) {
@@ -113,6 +134,8 @@ export function devSetup(root, secrets = generateSecrets()) {
     write(root, output, render(readFileSync(join(root, template), "utf8"), values, template));
     written.push(output);
   }
+
+  written.push(...genereerTenantRealms(root));
 
   // Eigen regels in een bestaande docker-compose/.env (RUN_MODE, NETWERK, ...) blijven staan.
   const base = existsSync(join(root, COMPOSE_ENV)) ? COMPOSE_ENV : COMPOSE_ENV_EXAMPLE;

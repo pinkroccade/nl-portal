@@ -15,7 +15,7 @@
  */
 package nl.nlportal.openklant.graphql
 
-import nl.nlportal.commonground.authentication.CommonGroundAuthentication
+import nl.nlportal.portal.authentication.domain.PortalAuthentication
 import nl.nlportal.openklant.graphql.domain.DigitaleAdresResponse
 import nl.nlportal.openklant.service.OpenKlant2Service
 import nl.nlportal.verificatie.autoconfigure.VerificatieModuleConfiguration
@@ -32,7 +32,7 @@ class DigitaleAdresQuery(
 ) {
     @QueryMapping
     suspend fun getUserDigitaleAdressen(
-        authentication: CommonGroundAuthentication,
+        authentication: PortalAuthentication,
         @Argument isStandaardAdres: Boolean? = false,
     ): List<DigitaleAdresResponse>? {
         val userDigitaleAdressen =

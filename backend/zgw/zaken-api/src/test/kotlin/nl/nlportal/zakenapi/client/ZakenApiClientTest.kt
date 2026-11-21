@@ -139,7 +139,6 @@ class ZakenApiClientTest {
                 .ofZaakType("https://localhost:1000/type")
                 .withBsn("BSN")
                 .withKvk("KVK")
-                .withUid("UID")
                 .retrieve()
 
             val request = mockServer.takeRequest()
@@ -150,10 +149,6 @@ class ZakenApiClientTest {
             assertEquals(
                 "KVK",
                 request.requestUrl?.queryParameter("rol__betrokkeneIdentificatie__nietNatuurlijkPersoon__annIdentificatie"),
-            )
-            assertEquals(
-                "UID",
-                request.requestUrl?.queryParameter("rol__betrokkeneIdentificatie__natuurlijkPersoon__anpIdentificatie"),
             )
             assertEquals("https://localhost:1000/type", request.requestUrl?.queryParameter("zaaktype"))
         }
@@ -167,7 +162,7 @@ class ZakenApiClientTest {
             zakenApiClient
                 .zaken()
                 .search()
-                .withAuthentication(JwtBuilder().aanvragerBsn("123").buildBurgerAuthentication())
+                .withAuthentication(JwtBuilder().vertegenwoordigdeBsn("123").buildAuthentication())
                 .retrieve()
 
             val request = mockServer.takeRequest()
@@ -186,7 +181,7 @@ class ZakenApiClientTest {
             zakenApiClient
                 .zaken()
                 .search()
-                .withAuthentication(JwtBuilder().aanvragerKvk("123").buildBedrijfAuthentication())
+                .withAuthentication(JwtBuilder().vertegenwoordigdeKvk("123").buildAuthentication())
                 .retrieve()
 
             val request = mockServer.takeRequest()
@@ -194,6 +189,41 @@ class ZakenApiClientTest {
                 "123",
                 request.requestUrl?.queryParameter("rol__betrokkeneIdentificatie__nietNatuurlijkPersoon__annIdentificatie"),
             )
+        }
+    }
+
+    @Test
+    fun `zaken search - a bedrijf with a vestiging is searched by vestiging`() {
+        mockServer.enqueue(emptyZakenResponse())
+
+        return runTest {
+            zakenApiClient
+                .zaken()
+                .search()
+                .withAuthentication(JwtBuilder().vestigingsNummerKvk("123", "000012345678").buildAuthentication())
+                .retrieve()
+
+            val url = mockServer.takeRequest().requestUrl
+            assertEquals("000012345678", url?.queryParameter("rol__betrokkeneIdentificatie__vestiging__vestigingsNummer"))
+            assertEquals("123", url?.queryParameter("rol__betrokkeneIdentificatie__vestiging__kvkNummer"))
+        }
+    }
+
+    @Test
+    fun `zaken search - a bedrijf with a vestiging is searched as niet-natuurlijk persoon when configured so`() {
+        zakenApiConfigProperties.useNnpKvkQueryIdentificators = true
+        mockServer.enqueue(emptyZakenResponse())
+
+        return runTest {
+            zakenApiClient
+                .zaken()
+                .search()
+                .withAuthentication(JwtBuilder().vestigingsNummerKvk("123", "000012345678").buildAuthentication())
+                .retrieve()
+
+            val url = mockServer.takeRequest().requestUrl
+            assertEquals("000012345678", url?.queryParameter("rol__betrokkeneIdentificatie__nietNatuurlijkPersoon__vestigingsNummer"))
+            assertEquals("123", url?.queryParameter("rol__betrokkeneIdentificatie__nietNatuurlijkPersoon__kvkNummer"))
         }
     }
 
@@ -370,7 +400,6 @@ class ZakenApiClientTest {
                     .forZaak("http://localhost/zaak")
                     .withBsn("BSN")
                     .withKvk("KVK")
-                    .withUid("UID")
                     .retrieveAll()
 
             assertEquals(2, response.size)
@@ -387,11 +416,7 @@ class ZakenApiClientTest {
                 "KVK",
                 request.requestUrl?.queryParameter("betrokkeneIdentificatie__nietNatuurlijkPersoon__annIdentificatie"),
             )
-            assertEquals(
-                "UID",
-                request.requestUrl?.queryParameter("betrokkeneIdentificatie__natuurlijkPersoon__anpIdentificatie"),
-            )
-            assertEquals(4, request.requestUrl?.queryParameterNames?.size)
+            assertEquals(3, request.requestUrl?.queryParameterNames?.size)
             assertEquals(true, request.path?.startsWith("/zaken/api/v1/rollen"))
         }
     }

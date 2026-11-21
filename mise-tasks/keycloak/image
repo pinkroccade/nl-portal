@@ -1,0 +1,9 @@
+#!/usr/bin/env bash
+#MISE description="Bouw het eigen Keycloak-image nl-portal-keycloak:dev (provider-jar, versiecontrole, kc.sh build; zie keycloak/README.md)"
+#MISE depends=["keycloak:build", "keycloak:check-version"]
+set -euo pipefail
+
+cd "$(dirname "$0")/../.."
+VERSION="$(sed -n 's/^keycloakVersion=//p' keycloak/provider/gradle.properties | tr -d '\r')"
+PROVIDER_SHA256="$(sha256sum keycloak/provider/build/libs/nlportal-keycloak-provider.jar | cut -d' ' -f1)"
+docker build --build-arg "KEYCLOAK_VERSION=${VERSION}" --build-arg "PROVIDER_SHA256=${PROVIDER_SHA256}" -t nl-portal-keycloak:dev keycloak

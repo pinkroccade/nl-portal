@@ -1,0 +1,35 @@
+# Integratietest van de Keycloak-provider (#527): het eigen image (nl-portal-keycloak:dev, `mise run keycloak:image`) tegen
+# twee realms: `portal` (de gemeente-realm met `nl-portal-backend`) en `idp-sim` (simuleert DigiD via SAML en de wallet
+# via OIDC). Poort gelijk binnen en buiten de container, zodat de broker zichzelf bereikt zonder hostname-trucs.
+# Draaien: `mise run keycloak:integration-test`. De waarden hier zijn wegwerpwaarden voor deze test.
+name: nlp-keycloak-it
+services:
+  database:
+    image: postgres:15
+    environment:
+      POSTGRES_DB: keycloak
+      POSTGRES_USER: keycloak
+      POSTGRES_PASSWORD: integratietest
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U keycloak"]
+      interval: 2s
+      retries: 30
+  keycloak:
+    image: nl-portal-keycloak:dev
+    depends_on:
+      database:
+        condition: service_healthy
+    command: ["start", "--optimized", "--import-realm"]
+    environment:
+      KC_DB_URL: jdbc:postgresql://database/keycloak
+      KC_DB_USERNAME: keycloak
+      KC_DB_PASSWORD: integratietest
+      KC_BOOTSTRAP_ADMIN_USERNAME: admin
+      KC_BOOTSTRAP_ADMIN_PASSWORD: admin
+      KC_HTTP_ENABLED: "true"
+      KC_HTTP_PORT: "18080"
+      KC_HOSTNAME: http://localhost:18080
+    ports:
+      - "18080:18080"
+    volumes:
+      - ./realms:/opt/keycloak/data/import:ro

@@ -24,8 +24,6 @@ import java.lang.annotation.Inherited
 @WithSecurityContext(factory = WithBedrijfUserSecurityContextFactory::class)
 annotation class WithBedrijfUser(
     val kvkNummer: String,
-    val gemachtigdeBsn: String = "",
-    val gemachtigdeKvk: String = "",
     val vestigingsNummer: String = "",
     val machtigingsDienst: String = "",
 )

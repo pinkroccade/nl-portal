@@ -16,7 +16,7 @@
 package nl.nlportal.app.security
 
 import nl.nlportal.app.TestApplication
-import nl.nlportal.commonground.authentication.CommonGroundAuthentication
+import nl.nlportal.portal.authentication.domain.PortalAuthentication
 import org.junit.jupiter.api.DynamicTest
 import org.junit.jupiter.api.Tag
 import org.junit.jupiter.api.TestFactory
@@ -93,12 +93,12 @@ class GraphQLEndpointAuthorizationIT {
             controller.value.javaClass.declaredMethods.mapNotNull { method ->
                 if (method.isAnnotationPresent(QueryMapping::class.java)) {
                     DynamicTest.dynamicTest("QueryMapping: ${method.name} should not be public") {
-                        val isProtected = method.parameters.find { it.type == CommonGroundAuthentication::class.java } != null
+                        val isProtected = method.parameters.find { it.type == PortalAuthentication::class.java } != null
                         val isAllowedPublic = ALLOWED_PUBLIC_OPERATIONS.find { method.name.startsWith(it) } != null
 
                         assert(isProtected || isAllowedPublic) {
                             """
-                            QueryMapping: ${controller.key} - ${method.name} does not have a CommonGroundAuthentication and therefore is
+                            QueryMapping: ${controller.key} - ${method.name} does not have a PortalAuthentication and therefore is
                             publicly accessible if this is correct, add the function to the exclusion list.
                             """.trimIndent()
                         }
@@ -118,12 +118,12 @@ class GraphQLEndpointAuthorizationIT {
             controller.value.javaClass.declaredMethods.mapNotNull { method ->
                 if (method.isAnnotationPresent(MutationMapping::class.java)) {
                     DynamicTest.dynamicTest("MutationMapping: ${method.name} should not be public") {
-                        val isProtected = method.parameters.find { it.type == CommonGroundAuthentication::class.java } != null
+                        val isProtected = method.parameters.find { it.type == PortalAuthentication::class.java } != null
                         val isAllowedPublic = ALLOWED_PUBLIC_OPERATIONS.find { method.name.startsWith(it) } != null
 
                         assert(isProtected || isAllowedPublic) {
                             """
-                            MutationMapping: ${controller.key} - ${method.name} does not have a CommonGroundAuthentication and therefore is
+                            MutationMapping: ${controller.key} - ${method.name} does not have a PortalAuthentication and therefore is
                             publicly accessible if this is correct, add the function to the exclusion list.
                             """.trimIndent()
                         }
@@ -143,12 +143,12 @@ class GraphQLEndpointAuthorizationIT {
             controller.value.javaClass.declaredMethods.mapNotNull { method ->
                 if (method.isAnnotationPresent(SubscriptionMapping::class.java)) {
                     DynamicTest.dynamicTest("SubscriptionMapping: ${method.name} should not be public") {
-                        val isProtected = method.parameters.find { it.type == CommonGroundAuthentication::class.java } != null
+                        val isProtected = method.parameters.find { it.type == PortalAuthentication::class.java } != null
                         val isAllowedPublic = ALLOWED_PUBLIC_OPERATIONS.find { method.name.startsWith(it) } != null
 
                         assert(isProtected || isAllowedPublic) {
                             """
-                            SubscriptionMapping: ${controller.key} - ${method.name} does not have a CommonGroundAuthentication and therefore is
+                            SubscriptionMapping: ${controller.key} - ${method.name} does not have a PortalAuthentication and therefore is
                             publicly accessible if this is correct, add the function to the exclusion list.
                             """.trimIndent()
                         }

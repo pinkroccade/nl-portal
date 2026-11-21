@@ -16,6 +16,7 @@
 plugins {
     kotlin("jvm")
     id("info.solidsoft.pitest")
+    `java-test-fixtures`
 }
 
 val jar: Jar by tasks
@@ -23,6 +24,9 @@ val bootJar: org.springframework.boot.gradle.tasks.bundling.BootJar by tasks
 
 bootJar.enabled = false
 jar.enabled = true
+
+// core is een bibliotheek met twee main-klassen (validator-CLI en schemagenerator): Spring Boot hoeft er geen te kiezen.
+tasks.named("resolveMainClassName") { enabled = false }
 
 dependencies {
     implementation(kotlin("stdlib-jdk8"))
@@ -37,6 +41,13 @@ dependencies {
 
     // Jackson
     api(Dependencies.jacksonKotlinModule)
+    implementation("io.micrometer:context-propagation")
+    implementation(Dependencies.kotlinCoroutinesReactor)
+
+    // Limiet en circuit breaker per tenant en koppeling (epic #499, #507)
+    implementation(Dependencies.resilience4jCircuitBreaker)
+    implementation(Dependencies.resilience4jBulkhead)
+    implementation(Dependencies.resilience4jReactor)
 
     api(Dependencies.commonsCodec)
 
@@ -54,10 +65,16 @@ dependencies {
 
     // Logging for Kotlin
     api(Dependencies.kotlinLogging)
+
+    // Testhulp voor module-tests (tenant in de context, register): testImplementation(testFixtures(project(":core")))
+    testFixturesApi(Dependencies.springWebFlux)
+    testFixturesImplementation(Dependencies.kotlinCoroutinesReactor)
+    testFixturesImplementation(Dependencies.kotlinCoroutines)
     testImplementation(TestDependencies.springBootTest)
     testImplementation(TestDependencies.springBootTestWebClient)
     testImplementation(TestDependencies.kotlinCoroutines)
     testImplementation(TestDependencies.mockitoKotlin)
+    testImplementation(TestDependencies.okHttpMockWebserver)
 }
 
 // Mutation testing (#95, ADR 0011). Bewust een eigen taak, niet onderdeel van `build`/`check`.
@@ -108,4 +125,23 @@ tasks.named("pitest") {
         println("Overlevende mutanten: ${survivors.size} (details: build/reports/pitest/index.html)")
         survivors.forEach { (file, line, what) -> println("  $file:$line  $what") }
     }
+}
+// De tenantvalidator als releaseartefact: een zelfstandige jar met alleen wat de validator nodig heeft (geen Spring).
+tasks.register<Jar>("tenantValidatorJar") {
+    group = "tenancy"
+    description = "Bouwt build/libs/nl-portal-tenant-validator.jar, de CLI voor CI van tenantbestanden"
+    archiveFileName.set("nl-portal-tenant-validator.jar")
+    manifest { attributes["Main-Class"] = "nl.nlportal.core.tenancy.TenantValidatorCli" }
+    dependsOn(tasks.named("classes"))
+    from(sourceSets["main"].output)
+    val nodig = setOf("org.jetbrains.kotlin", "org.jetbrains", "tools.jackson.core", "tools.jackson.module", "com.fasterxml.jackson.core", "org.yaml")
+    from({
+        configurations.runtimeClasspath
+            .get()
+            .resolvedConfiguration.resolvedArtifacts
+            .filter { it.moduleVersion.id.group in nodig }
+            .map { zipTree(it.file) }
+    })
+    exclude("META-INF/*.SF", "META-INF/*.RSA", "META-INF/*.DSA", "META-INF/spring/**", "META-INF/MANIFEST.MF", "module-info.class", "META-INF/versions/**/module-info.class")
+    duplicatesStrategy = DuplicatesStrategy.EXCLUDE
 }

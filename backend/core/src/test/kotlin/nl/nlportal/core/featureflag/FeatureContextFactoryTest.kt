@@ -45,6 +45,7 @@ class FeatureContextFactoryTest {
     ) : JwtAuthenticationToken(jwt, listOf(SimpleGrantedAuthority("SCOPE_openid"))),
         UserTypeAware {
         override val userType = "bsn"
+        override val subject: String get() = token.subject!!
     }
 
     private val citizen =

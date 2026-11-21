@@ -30,6 +30,15 @@
 > Docker's package repo, e.g. `sudo apt-get install docker-buildx-plugin` (Debian/Ubuntu) or the
 > equivalent `docker-buildx` package for your distro. The `remote` and `sources` modes do not need it.
 
+### Keycloak: own image and realm as code
+Keycloak runs from the own image `nl-portal-keycloak:dev` (the NL Portal mappers, `start --optimized`, on path `/`, so
+`http://localhost:8082`). Build it once with `mise run keycloak:image` (Compose never pulls it). `mise run dev:setup` generates,
+per tenant file in `imports/tenants`, a realm from the one template in `../keycloak/realm-template` plus a key pair for
+`private_key_jwt` (the private JWK lands in `.generated/tenants/<oin>/clientsleutel.jwk.json`), and the `nl-portal-keycloak-config`
+service loads the realm with keycloak-config-cli and exits. After changing a tenant file or the template: run `mise run dev:setup`
+and `docker compose run --rm nl-portal-keycloak-config` (it also undoes manual changes in the console). The realm keeps the
+name `nlportal` until the BFF ticket (#506); details are in [keycloak/README.md](../keycloak/README.md).
+
 ### Compose structure and profiles
 The compose file is built up out of sets of containers (profiles) that each enable a piece of
 functionality, so you only start what you need. A service without a profile is a core

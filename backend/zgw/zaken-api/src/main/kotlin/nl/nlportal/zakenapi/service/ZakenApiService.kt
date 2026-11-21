@@ -20,7 +20,7 @@ import java.util.Locale
 import java.util.UUID
 import kotlinx.coroutines.flow.Flow
 import nl.nlportal.commonground.authentication.AuthenticationMachtigingsDienstService
-import nl.nlportal.commonground.authentication.CommonGroundAuthentication
+import nl.nlportal.portal.authentication.domain.PortalAuthentication
 import nl.nlportal.core.util.ZgwUrls.extractId
 import nl.nlportal.documentenapi.domain.Document
 import nl.nlportal.documentenapi.service.DocumentenApiService
@@ -52,7 +52,7 @@ class ZakenApiService(
     suspend fun getZaken(
         page: Int,
         pageSize: Int? = null,
-        authentication: CommonGroundAuthentication,
+        authentication: PortalAuthentication,
         zaakTypeUrl: String? = null,
         isOpen: Boolean? = null,
         identificatie: String? = null,
@@ -105,7 +105,7 @@ class ZakenApiService(
 
     suspend fun getZaak(
         id: UUID,
-        authentication: CommonGroundAuthentication,
+        authentication: PortalAuthentication,
     ): Zaak {
         // Get rollen of zaak to check if user has access
         val zaakRollenRequest =
@@ -208,7 +208,7 @@ class ZakenApiService(
 
     suspend fun getZaakDocumentContent(
         zaakDocumentId: String,
-        commonGroundAuthentication: CommonGroundAuthentication,
+        commonGroundAuthentication: PortalAuthentication,
     ): Pair<Document?, Flow<DataBuffer>?> {
         val zaakDocument =
             zakenApiClient

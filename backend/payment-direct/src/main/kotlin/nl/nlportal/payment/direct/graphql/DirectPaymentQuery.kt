@@ -15,7 +15,7 @@
  */
 package nl.nlportal.payment.direct.graphql
 
-import nl.nlportal.commonground.authentication.CommonGroundAuthentication
+import nl.nlportal.portal.authentication.domain.PortalAuthentication
 import nl.nlportal.payment.direct.domain.DirectPaymentStatus
 import nl.nlportal.payment.direct.service.DirectPaymentService
 import org.springframework.graphql.data.method.annotation.Argument
@@ -28,7 +28,7 @@ class DirectPaymentQuery(
 ) {
     @QueryMapping
     suspend fun getDirectPaymentStatus(
-        authentication: CommonGroundAuthentication,
+        authentication: PortalAuthentication,
         @Argument identifier: String,
         @Argument hostedCheckoutId: String,
     ): DirectPaymentStatus =

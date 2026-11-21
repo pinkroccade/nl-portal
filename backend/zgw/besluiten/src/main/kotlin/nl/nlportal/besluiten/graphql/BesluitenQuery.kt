@@ -21,7 +21,7 @@ import nl.nlportal.besluiten.domain.BesluitDocument
 import nl.nlportal.besluiten.service.BesluitenService
 import nl.nlportal.catalogiapi.domain.BesluitType
 import nl.nlportal.catalogiapi.service.CatalogiApiService
-import nl.nlportal.commonground.authentication.CommonGroundAuthentication
+import nl.nlportal.portal.authentication.domain.PortalAuthentication
 import nl.nlportal.core.util.ZgwUrls
 import nl.nlportal.documentenapi.domain.Document
 import org.springframework.graphql.data.method.annotation.SchemaMapping
@@ -34,13 +34,13 @@ class BesluitenQuery(
 ) {
     @SchemaMapping(typeName = "Besluit", field = "audittrails")
     suspend fun auditTrails(
-        authentication: CommonGroundAuthentication,
+        authentication: PortalAuthentication,
         besluit: Besluit,
     ): List<BesluitAuditTrail> = besluitenService.getBesluitAuditTrails(ZgwUrls.extractId(besluit.url))
 
     @SchemaMapping(typeName = "Besluit", field = "documenten")
     suspend fun documenten(
-        authentication: CommonGroundAuthentication,
+        authentication: PortalAuthentication,
         besluit: Besluit,
     ): List<Document> =
         besluitenService.getBesluitDocumenten(
@@ -50,7 +50,7 @@ class BesluitenQuery(
 
     @SchemaMapping(typeName = "Besluit", field = "besluittype")
     suspend fun besluittype(
-        authentication: CommonGroundAuthentication,
+        authentication: PortalAuthentication,
         besluit: Besluit,
     ): BesluitType =
         catalogiApiService.getBesluitType(

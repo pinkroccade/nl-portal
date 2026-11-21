@@ -19,10 +19,9 @@ import com.fasterxml.jackson.annotation.JsonProperty
 import com.fasterxml.jackson.annotation.JsonValue
 import io.github.oshai.kotlinlogging.KotlinLogging
 import nl.nlportal.commonground.authentication.exception.TokenExchangeException
-import nl.nlportal.commonground.authentication.exception.UserTypeUnsupportedException
+import nl.nlportal.commonground.authentication.exception.OngeldigTokenException
 import nl.nlportal.portal.authentication.domain.PortalAuthentication
-import nl.nlportal.portal.authentication.domain.SUB_KEY
-import nl.nlportal.portal.authentication.service.PortalAuthenticationConverter
+import org.springframework.core.convert.converter.Converter
 import org.springframework.security.oauth2.jwt.Jwt
 import org.springframework.security.oauth2.jwt.ReactiveJwtDecoder
 import org.springframework.security.oauth2.server.resource.authentication.JwtGrantedAuthoritiesConverter
@@ -38,45 +37,23 @@ class CommonGroundAuthenticationConverter(
     val decoder: ReactiveJwtDecoder,
     val keycloakConfig: KeycloakConfig,
     val tokenEndpoint: URI,
-) : PortalAuthenticationConverter() {
+) : Converter<Jwt, Mono<PortalAuthentication>> {
     private val jwtGrantedAuthoritiesConverter = JwtGrantedAuthoritiesConverter()
     private val webClient = WebClient.create()
 
-    override fun convert(jwt: Jwt): Mono<PortalAuthentication> {
-        return tokenExchange(jwt).flatMap {
+    override fun convert(jwt: Jwt): Mono<PortalAuthentication> =
+        tokenExchange(jwt).flatMap {
             decoder.decode(it.accessToken).map { exchangedJwt ->
-                val aanvrager = exchangedJwt.claims[AANVRAGER_KEY]
-
-                if (aanvrager is Map<*, *>) {
-                    if (aanvrager[BSN_KEY] != null) {
-                        return@map BurgerAuthentication(exchangedJwt, jwtGrantedAuthoritiesConverter.convert(exchangedJwt))
-                    } else if (aanvrager[KVK_NUMMER_KEY] != null) {
-                        return@map BedrijfAuthentication(exchangedJwt, jwtGrantedAuthoritiesConverter.convert(exchangedJwt))
-                    } else if (aanvrager[SUB_KEY] != null) {
-                        return@map KeycloakUserAuthentication(exchangedJwt, jwtGrantedAuthoritiesConverter.convert(exchangedJwt))
+                val identiteit =
+                    try {
+                        IdentiteitUitToken.lees(exchangedJwt)
+                    } catch (e: OngeldigTokenException) {
+                        logger.error { "Token of user ${exchangedJwt.subject ?: "unknown"} rejected: ${e.message}" }
+                        throw e
                     }
-                }
-
-                // This block is for temporary backwards compatibility
-                if (exchangedJwt.claims[BSN_KEY] != null) {
-                    return@map BurgerAuthentication(exchangedJwt, jwtGrantedAuthoritiesConverter.convert(exchangedJwt))
-                } else if (exchangedJwt.claims[KVK_NUMMER_KEY] != null) {
-                    return@map BedrijfAuthentication(exchangedJwt, jwtGrantedAuthoritiesConverter.convert(exchangedJwt))
-                } else if (jwt.claims[SUB_KEY] != null) {
-                    return@map KeycloakUserAuthentication(jwt, jwtGrantedAuthoritiesConverter.convert(jwt))
-                }
-
-                val subject = exchangedJwt.subject
-                if (subject == null) {
-                    logger.error { "User with unknown subject has no bsn or kvk nummer assigned" }
-                } else {
-                    logger.error { "User with subject $subject has no bsn or kvk nummer assigned" }
-                }
-
-                throw UserTypeUnsupportedException("User type not supported")
+                PortalAuthentication(identiteit, exchangedJwt.tokenValue, jwtGrantedAuthoritiesConverter.convert(exchangedJwt).orEmpty())
             }
         }
-    }
 
     fun tokenExchange(jwt: Jwt): Mono<TokenResponse> =
         webClient

@@ -35,4 +35,7 @@ dependencies {
 
     // Logging for Kotlin
     api(Dependencies.kotlinLogging)
+
+    testImplementation(TestDependencies.springBootTest)
+    testImplementation(TestDependencies.mockitoKotlin)
 }

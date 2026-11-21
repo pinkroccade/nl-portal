@@ -1,9 +1,12 @@
 server:
     port: 8080
+    # De tenantresolutie volgt Forwarded alleen van vertrouwde proxies; Spring zelf volgt niets (ForwardedHeadersGuard).
+    forward-headers-strategy: none
 
 management:
-    # Beheerpoort apart zetten: MANAGEMENT_SERVER_PORT=8091 (zie site/hosting-en-configuratie/beheer-modulestatus.md)
-    # Beheerpoort apart zetten: MANAGEMENT_SERVER_PORT=8091 (zie site/hosting-en-configuratie/beheer-modulestatus.md)
+    server:
+        # De actuator staat op een eigen poort, nooit op de applicatiepoort (ManagementExposureGuard, ADR 0021 besluit 8).
+        port: ${MANAGEMENT_SERVER_PORT:8091}
     endpoint:
         health:
             access: read_only
@@ -25,8 +28,8 @@ spring:
         oauth2:
             resourceserver:
                 jwt:
-                    jwk-set-uri: http://localhost:8082/auth/realms/nlportal/protocol/openid-connect/certs
-                    issuer-uri: http://localhost:8082/auth/realms/nlportal
+                    jwk-set-uri: http://localhost:8082/realms/nlportal/protocol/openid-connect/certs
+                    issuer-uri: http://localhost:8082/realms/nlportal
     graphql:
         graphiql:
             enabled: true
@@ -44,6 +47,9 @@ logging:
         root: DEBUG
 
 nl-portal:
+    tenancy:
+        # De demo-tenant van de compose-stack; bootRun draait in deze moduleomgeving.
+        directory: ../../docker-compose/imports/tenants
     support:
         ping-endpoint:
             enabled: false
@@ -124,9 +130,6 @@ nl-portal:
                 token: ${OPENKLANT_API_TOKEN}
         haalcentraal-brp:
             enabled: true
-            properties:
-                brp-api-url: http://localhost:5010/haalcentraal/api/brp/
-                bewoning-api-url: http://localhost:5011/haalcentraal/api/bewoning/
         kvk:
             enabled: true
         taak:
@@ -162,21 +165,6 @@ nl-portal:
             enabled: true
             properties:
                 type-url: http://localhost:8010/api/v2/objecttypes/3e852115-277a-4570-873a-9a64be3aeb37
-        payment:
-            direct:
-                enabled: true
-                properties:
-                    url: https://payment.preprod.direct.worldline-solutions.com
-                    sha-out-parameters: AAVADDRESS,AAVCHECK,AAVMAIL,AAVNAME,AAVPHONE,AAVZIP,ACCEPTANCE,ALIAS,AMOUNT,BIC,BIN,BRAND,CARDNO,CCCTY,CN,COLLECTOR_BIC,COLLECTOR_IBAN,COMPLUS,CREATION_STATUS,CREDITDEBIT,CURRENCY,CVCCHECK,DCC_COMMPERCENTAGE,DCC_CONVAMOUNT,DCC_CONVCCY,DCC_EXCHRATE,DCC_EXCHRATESOURCE,DCC_EXCHRATETS,DCC_INDICATOR,DCC_MARGINPERCENTAGE,DCC_VALIDHOURS,DIGESTCARDNO,ECI,ED,EMAIL,ENCCARDNO,FXAMOUNT,FXCURRENCY,IP,IPCTY,MANDATEID,MOBILEMODE,NBREMAILUSAGE,NBRIPUSAGE,NBRIPUSAGE_ALLTX,NBRUSAGE,NCERROR,ORDERID,PAYID,PAYIDSUB,PAYMENT_REFERENCE,PM,SCO_CATEGORY,SCORING,SEQUENCETYPE,SIGNDATE,STATUS,SUBBRAND,SUBSCRIPTION_ID,TRXDATE,VC
-                    configurations:
-                        belastingzaken:
-                            pspId: TAX
-                            language: "nl_NL"
-                            returnUrl: http://localhost:3000
-                            apiKey: dummy
-                            apiSecret: dummy
-                            webhookApiKey: dummy
-                            webhookApiSecret: dummy
         verificatie:
             enabled: true
     frontend:

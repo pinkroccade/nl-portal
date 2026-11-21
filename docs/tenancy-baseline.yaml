@@ -15,6 +15,8 @@
 # Na een wijziging: `mise run arch:diagram` en de bijgewerkte .puml/.svg committen.
 version: 1
 beoordeeld: {datum: 2026-11-06, bron: "onderzoek #146, commit 9300129ac", status: voorlopig}
+# Opnieuw gemeten bij #504 (T5, tenantmodel en -resolutie): geen nieuwe signalen; de nieuwe TenancyProperties wordt alleen door
+# TenancyAutoConfiguration gelezen, en de actuator/metrics-aanpassing raakt geen van de vier signalen.
 modules:
   ":core":
     omvang: L
@@ -119,20 +121,16 @@ modules:
     signalen:
       config: FormConfig is een singleton.
   ":payment-direct":
-    omvang: L
-    risico: hoog
-    toelichting: Postsale-webhook heeft geen tenantrouting; JVM-globale sleutelstore laat keyId's van tenants elkaar overschrijven.
-    signalen:
-      config: DirectPaymentModuleConfiguration is een singleton.
-      webclient: Client bouwt zelf een WebClient.
-      globaal: InMemorySecretKeyStore.INSTANCE is JVM-breed.
-      anoniem: POST /api/public/payment/direct/postsale is anoniem (HMAC); heeft tenantrouting nodig via host van webhookUrl en tenant van de keyId.
-  ":haalcentraal-brp":
     omvang: M
     risico: middel
-    toelichting: Twee clients per tenant; allowedCitiesForBewoning en brpFields per tenant (doelbinding BRP).
+    toelichting: Gemigreerd naar modules.payment-direct en een eigen koppeling per profiel; de webhook haalt de tenant uit het hostdomein en toetst de keyId aan die tenant. De taak bijwerken loopt nog via de Objecten API (T12).
     signalen:
-      config: HaalCentraalBrpModuleConfiguration is een singleton.
+      anoniem: POST /api/public/payment/direct/postsale is anoniem (HMAC); de tenant volgt uit het hostdomein en moet gelijk zijn aan de tenant van de keyId.
+  ":haalcentraal-brp":
+    omvang: S
+    risico: laag
+    toelichting: Gemigreerd (T9 #508); brpFields en allowedCitiesForBewoning zijn tenantconfiguratie (modules.brp), de bron loopt via de koppelingen brp en brp-bewoning.
+    signalen: {}
   ":kvk":
     omvang: S
     risico: middel
