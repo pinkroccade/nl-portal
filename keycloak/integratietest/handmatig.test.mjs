@@ -191,8 +191,8 @@ describe("Ondertekende SAML-assertions via de mappers van het eigen image", () =
   });
 });
 
-// Security M1 (#505): het BSN (de NameID van DigiD is `s00000000:<bsn>`) staat niet in de gebruikersnaam en dus niet als
-// `preferred_username` in een token of in Keycloak-logregels. Dezelfde gebruikersnaamtemplate als het gegenereerde realm
+// ASVS 14.2.6 (#505): het BSN (de NameID van DigiD is `s00000000:<bsn>`) staat niet in de gebruikersnaam en dus niet als
+// `preferred_username` in een token (opgeslagen events: zie de test hieronder). Dezelfde gebruikersnaamtemplate als het gegenereerde realm
 // (`${ALIAS}.${UUID}`); de koppeling met DigiD loopt via de federated identity, dus een tweede login vindt dezelfde gebruiker.
 describe("Het BSN komt niet in de gebruikersnaam of in tokens", () => {
   const NAME_ID = "s00000000:999990008";
@@ -229,6 +229,32 @@ describe("Het BSN komt niet in de gebruikersnaam of in tokens", () => {
     assert.equal(tweede.id.sub, eerste.id.sub, "een tweede login moet dezelfde gebruiker vinden");
     const daarna = (await (await admin("/portal/users?max=100")).json()).filter((u) => u.username.startsWith("digid-handmatig."));
     assert.equal(daarna.length, 1);
+  });
+});
+
+// Gebruikersevents van Keycloak bevatten bij een brokerlogin de NameID (`identity_provider_identity` = `s00000000:<bsn>`) en het
+// IP-adres van de burger: een inloghistorie per BSN. ADR 0022 besluit 11 (actor is (iss, sub), nooit het BSN) en ASVS 5.0 16.2.5/14.2.6
+// verbieden dat. Het template slaat daarom geen gebruikersevents op tot er een filter is (realm-chart #191); admin-events zonder
+// representaties mogen aan blijven. De fixture volgt het template en de test vraagt Keycloak zelf wat er bewaard is (een filter dat later
+// events toelaat moet dit BSN en IP-adres weglaten); de gegenereerde realms worden statisch getoetst (realm.test.mjs).
+describe("Opgeslagen events bevatten het BSN of het IP-adres niet", () => {
+  it("heeft na een DigiD-brokerlogin geen BSN, NameID of IP-adres in de gebruikers- of admin-events", async () => {
+    respons = ({ requestId }) =>
+      response({
+        requestId,
+        endpoint: ENDPOINT,
+        idp: IDP,
+        assertions: assertion({ id: nieuwId(), requestId, endpoint: ENDPOINT, sp: SP, idp: IDP, subject: "s00000000:999990008", authn: [MIDDEN], attributen: [{ naam: ACTING, waarden: ["999990008"] }], sleutel }),
+      });
+    const result = await login({ idp: "digid-handmatig", username: "x", password: "x" });
+    assert.ok(result.code, `geen code: ${result.pageText}`);
+    const events = await (await admin("/portal/events?max=1000")).json();
+    const tekst = JSON.stringify(events);
+    assert.ok(!tekst.includes("999990008"), `BSN in opgeslagen events: ${tekst}`);
+    assert.ok(!tekst.includes("s00000000"), `NameID in opgeslagen events: ${tekst}`);
+    assert.ok(events.every((e) => e.ipAddress === undefined), `IP-adres in opgeslagen events: ${tekst}`);
+    const adminEvents = JSON.stringify(await (await admin("/portal/admin-events?max=1000")).json());
+    assert.ok(!adminEvents.includes("999990008"), "BSN in admin-events");
   });
 });
 
@@ -329,7 +355,7 @@ describe("Aanvallen op de vertrouwensgrens", () => {
     assert.ok(opnieuw.status >= 400 || /error|sorry|expired|already/i.test(tekst + location), `niet geweigerd: ${opnieuw.status} ${location}`);
   });
 
-  // ASVS 6.8.3 (criterium op #505, review H1): een eerder gebruikte, nog geldige en correct ondertekende response wordt in een
+  // ASVS 6.8.3 (criterium op #505): een eerder gebruikte, nog geldige en correct ondertekende response wordt in een
   // NIEUWE authenticatiesessie (nieuw AuthnRequest, nieuwe sessiecookies, nieuwe RelayState) opnieuw gepost. Keycloak moet hem
   // weigeren: `InResponseTo` hoort bij het eerdere AuthnRequest. Controle dat de test niet leeg is: dezelfde response volgt
   // wel normaal als hij bij het huidige verzoek hoort (eerste login hieronder).

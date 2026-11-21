@@ -181,6 +181,10 @@ zonder testinlogmiddel heeft de flow `alleen-koppelingen` en geen gebruikers. Bu
 directe grant (ROPC), geen wildcard-redirect en geen `offline_access`; offline sessies zijn begrensd op 8 uur en refresh-tokens roteren.
 `nl-portal-backend` krijgt alleen de scope `basic`, geen `profile` of `email`: de gebruikersnaam van een gebrokerde gebruiker is `<alias>.<UUID>`
 (nooit de NameID of een ander nummer) en staat niet in een token; wat Keycloak per koppeling onthoudt (de federated identity) is de NameID.
+Gebruikersevents worden niet opgeslagen en niet gelogd (`eventsEnabled: false`, geen `eventsListeners`): een event van een brokerlogin bevat
+de NameID (`identity_provider_identity` = `s00000000:<bsn>`) en het IP-adres, dus een inloghistorie per BSN (ADR 0022 besluit 11, ASVS 5.0
+16.2.5 en 14.2.6). Dat blijft zo tot er een filter is dat die details weglaat (realm-chart, #191); admin-events staan aan zonder
+representaties. `integratietest/handmatig.test.mjs` vraagt Keycloak na een DigiD-brokerlogin zelf wat er bewaard is.
 Verder weigert de generator: een metadata-URL bij een koppeling (alleen een vastgepind certificaat), `$(` in tenant- of koppelingsgegevens
 (kcc-substitutie), een domein dat geen hostnaam is, een niet-https-broker buiten ontwikkeling, een onbekend minimumniveau of onder
 substantieel in productie, en sessietijden van nul of met een inactiviteit boven de absolute duur.

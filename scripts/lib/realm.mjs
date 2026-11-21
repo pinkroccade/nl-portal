@@ -21,6 +21,7 @@ export const DIGID_NIVEAU = {
 const STANDAARD_NIVEAU = "substantieel";
 /** In productie geldt minimaal Substantieel (spec #499, "Testinlogmiddel"); `basis` en `midden` zijn alleen buiten productie toegestaan. */
 const PRODUCTIE_NIVEAUS = new Set(["substantieel", "hoog"]);
+const OIN = /^[0-9]{20}$/;
 const DOMEIN = /^[a-z0-9]([a-z0-9-]*[a-z0-9])?(\.[a-z0-9]([a-z0-9-]*[a-z0-9])?)*$/;
 const MAX_INACTIVITEIT = 15 * 60;
 const MAX_ABSOLUUT = 8 * 60 * 60;
@@ -115,7 +116,8 @@ export function genereerRealm({ tenant, realm, brokerUrl, clientSleutels, idp = 
   if (!Array.isArray(domeinen) || domeinen.length === 0) throw new Error("De tenant heeft minstens één domein nodig");
   const productie = omgevingstype === "productie";
   const ontwikkeling = omgevingstype === "ontwikkeling";
-  weigerSubstitutie({ naam, domeinen, idp }, "De tenant of de koppelingsgegevens");
+  if (!OIN.test(String(oin))) throw new Error(`Ongeldig OIN ${JSON.stringify(oin)}: precies 20 cijfers`);
+  weigerSubstitutie({ tenant, idp }, "De tenant of de koppelingsgegevens");
   for (const d of domeinen) if (typeof d !== "string" || !DOMEIN.test(d)) throw new Error(`Ongeldig domein ${JSON.stringify(d)}: alleen een hostnaam in kleine letters`);
   if (!ontwikkeling && !String(brokerUrl).startsWith("https://")) throw new Error("De broker-URL moet https zijn buiten ontwikkeling");
   for (const middel of inlogmiddelen) if (!BEKEND.has(middel)) throw new Error(`Inlogmiddel ${middel} heeft nog geen realm-fragment`);
@@ -132,7 +134,7 @@ export function genereerRealm({ tenant, realm, brokerUrl, clientSleutels, idp = 
   if (inactiviteit > MAX_INACTIVITEIT || absoluut > MAX_ABSOLUUT) throw new Error("De sessietijden mogen niet langer zijn dan 15 minuten inactiviteit en 8 uur absoluut");
   if (inactiviteit <= 0 || absoluut <= 0 || inactiviteit > absoluut) throw new Error("De sessietijden moeten positief zijn en de inactiviteit mag niet langer zijn dan de absolute duur");
   const niveau = tenant.minimumNiveau ?? STANDAARD_NIVEAU;
-  if (!(niveau in DIGID_NIVEAU)) throw new Error(`Onbekend minimumNiveau ${JSON.stringify(niveau)}`);
+  if (typeof niveau !== "string" || !Object.hasOwn(DIGID_NIVEAU, niveau)) throw new Error(`Onbekend minimumNiveau ${JSON.stringify(niveau)}`);
   if (productie && !PRODUCTIE_NIVEAUS.has(niveau)) throw new Error("In productie is het minimumNiveau minstens substantieel");
 
   const context = {

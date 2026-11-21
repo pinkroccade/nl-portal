@@ -30,6 +30,8 @@ function kccInstellingenUitCompose() {
     if (m[1] === "IMPORT_FILES_LOCATIONS") continue; // hier een andere (tijdelijke) map
     uit.push("-e", `${m[1]}=${m[2]}`);
   }
+  // Een andere opmaak van de compose mag de test niet stil zonder kcc-instellingen laten draaien.
+  assert.ok(uit.includes("IMPORT_VAR_SUBSTITUTION_ENABLED=true"), "de kcc-instellingen uit de compose zijn niet gelezen: opmaak veranderd?");
   return uit;
 }
 const NETWERK = "nlp-keycloak-it_default";
@@ -242,7 +244,7 @@ describe("code-flow met private_key_jwt tegen het geladen realm", () => {
   });
 });
 
-describe("tussenfase (security M2): geen lokale login, geen SPA-client en geen offline tokens buiten ontwikkeling", () => {
+describe("tussenfase (ASVS 10.4/V13): geen lokale login, geen SPA-client en geen offline tokens buiten ontwikkeling", () => {
   const tokenEndpoint = (realm) => `${KC}/realms/${realm}/protocol/openid-connect/token`;
 
   it("het acceptatierealm heeft geen SPA-client en geen client met directe grants, wildcard-redirect of offline_access", async () => {
@@ -264,11 +266,17 @@ describe("tussenfase (security M2): geen lokale login, geen SPA-client en geen o
     }
   });
 
-  it("offline_access wordt niet uitgegeven aan de SPA in het ontwikkelrealm", async () => {
-    const r = await fetch(tokenEndpoint("nlportal"), { method: "POST", body: new URLSearchParams({ grant_type: "password", client_id: "nl-portal", username: "burger", password: "demo-wachtwoord-1", scope: "openid offline_access" }) });
-    const body = await r.json();
-    const claims = body.access_token ? decodeJwt(body.access_token) : {};
-    assert.ok(!String(claims.scope ?? "").split(" ").includes("offline_access"), `scope: ${claims.scope}`);
+  it("offline_access is voor de SPA in het ontwikkelrealm geen bestaande scope en wordt dus niet uitgegeven", async () => {
+    const [burger] = await rep("nlportal", "/users?username=burger&exact=true");
+    await admin(`/nlportal/users/${burger.id}/reset-password`, { method: "PUT", body: JSON.stringify({ type: "password", value: "demo-wachtwoord-1", temporary: false }) });
+    const vraag = (scope) => fetch(tokenEndpoint("nlportal"), { method: "POST", body: new URLSearchParams({ grant_type: "password", client_id: "nl-portal", username: "burger", password: "demo-wachtwoord-1", scope }) });
+    const weigering = await vraag("openid offline_access");
+    assert.equal(weigering.status, 400);
+    assert.equal((await weigering.json()).error, "invalid_scope");
+    // Controle op de controle: dezelfde aanvraag zonder offline_access slaagt wel, dus de weigering hierboven ligt aan de scope.
+    const body = await (await vraag("openid")).json();
+    assert.ok(body.access_token, `de aanvraag zonder offline_access moet slagen: ${JSON.stringify(body)}`);
+    assert.ok(!String(decodeJwt(body.access_token).scope ?? "").split(" ").includes("offline_access"));
     if (body.refresh_token) assert.notEqual(decodeJwt(body.refresh_token).typ, "Offline");
   });
 });

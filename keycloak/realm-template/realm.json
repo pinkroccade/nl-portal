@@ -29,9 +29,8 @@
   "offlineSessionMaxLifespan": 28800,
   "revokeRefreshToken": true,
   "refreshTokenMaxReuse": 0,
-  "eventsEnabled": true,
-  "eventsExpiration": 2592000,
-  "eventsListeners": ["jboss-logging"],
+  "eventsEnabled": false,
+  "eventsListeners": [],
   "adminEventsEnabled": true,
   "adminEventsDetailsEnabled": false,
   "attributes": {

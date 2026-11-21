@@ -4,7 +4,7 @@ import assert from "node:assert/strict";
 import { test } from "node:test";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
-import { DEV_BROKER_URL, DEV_REALM, TENANTS_MAP } from "../dev-setup.mjs";
+import { DEV_BROKER_URL, TENANTS_MAP } from "../dev-setup.mjs";
 import { maakClientSleutel } from "./clientsleutel.mjs";
 import { genereerRealm } from "./realm.mjs";
 import { leesTenantbestanden } from "./tenantbestand.mjs";
@@ -272,7 +272,7 @@ test("het realm-id volgt uit de parameter en een tenant zonder domein wordt gewe
   assert.throws(() => realm({ ...PRD, domeinen: [] }), /domein/i);
 });
 
-// --- Tussenfase (security M2): de SPA-client alleen in ontwikkeling; geen lokale login, wildcard-redirect of offline token elders ---
+// --- Tussenfase (ASVS 10.4/V13): de SPA-client alleen in ontwikkeling; geen lokale login, wildcard-redirect of offline token elders ---
 
 for (const [naam, tenant] of Object.entries(NIET_DEV)) {
   test(`${naam}: geen SPA-client, geen directe grants, geen wildcard-redirect, geen offline tokens`, () => {
@@ -284,7 +284,6 @@ for (const [naam, tenant] of Object.entries(NIET_DEV)) {
       for (const uri of [...(c.redirectUris ?? []), ...(c.attributes?.["post.logout.redirect.uris"] ?? "").split("##")]) {
         assert.doesNotMatch(uri, /[*+]/, `${c.clientId}: wildcard in ${uri}`);
       }
-      for (const scope of [...(c.defaultClientScopes ?? []), ...(c.optionalClientScopes ?? [])]) assert.notEqual(scope, "offline_access", c.clientId);
     }
   });
 }
@@ -301,7 +300,7 @@ test("in elk omgevingstype: geen offline_access op een client; offline sessies z
   }
 });
 
-// --- BSN niet in gebruikersnaam of tokens (security M1, review M4) ---
+// --- BSN niet in gebruikersnaam of tokens (ASVS 14.2.6, ADR 0022 besluit 11) ---
 
 for (const [naam, tenant] of Object.entries(ALLE)) {
   test(`${naam}: nl-portal-backend heeft geen scope die gebruikersgegevens in het token zet (profile, email); geen refresh-token; audience`, () => {
@@ -346,6 +345,7 @@ test("de generator weigert sessietijden van nul, negatieve of een inactiviteit b
 
 test("de generator weigert een onbekend minimumniveau en, in productie, een niveau onder substantieel", () => {
   assert.throws(() => realm({ ...ACC, minimumNiveau: "laag" }), /minimumNiveau/);
+  for (const spook of ["toString", "constructor", "__proto__", 7]) assert.throws(() => realm({ ...ACC, minimumNiveau: spook }), /minimumNiveau/, String(spook));
   assert.throws(() => realm({ ...PRD, minimumNiveau: "basis" }), /substantieel/);
   assert.throws(() => realm({ ...PRD, minimumNiveau: "midden" }), /substantieel/);
   assert.doesNotThrow(() => realm({ ...PRD, minimumNiveau: "substantieel" }));
@@ -368,7 +368,7 @@ test("buiten ontwikkeling moet de broker-URL https zijn", () => {
 // --- Overig uit de securitytoets (L2, L7, L8) ---
 
 for (const [naam, tenant] of Object.entries(ALLE)) {
-  test(`${naam}: brute-force-detectie staat expliciet in het realm en events worden bewaard met een eindtijd`, () => {
+  test(`${naam}: brute-force-detectie staat expliciet in het realm en gebruikersevents worden niet opgeslagen (BSN en IP-adres, ASVS 16.2.5/14.2.6; filter volgt in #191)`, () => {
     const r = realm(tenant);
     assert.equal(r.bruteForceProtected, true);
     assert.equal(r.permanentLockout, false);
@@ -376,13 +376,19 @@ for (const [naam, tenant] of Object.entries(ALLE)) {
     assert.ok(r.waitIncrementSeconds >= 60);
     assert.ok(r.maxFailureWaitSeconds >= r.waitIncrementSeconds);
     assert.ok(r.maxDeltaTimeSeconds >= 3600);
-    assert.equal(r.eventsEnabled, true);
+    assert.equal(r.eventsEnabled, false, "gebruikersevents bevatten bij een DigiD-login de NameID (BSN) en het IP-adres");
+    assert.deepEqual(r.eventsListeners, [], "ook geen logregel per event (error-events bevatten dezelfde details)");
     assert.equal(r.adminEventsEnabled, true);
-    assert.ok(r.eventsExpiration > 0 && r.eventsExpiration <= 90 * 86400, "bewaartermijn van login-events");
+    assert.equal(r.adminEventsDetailsEnabled, false, "admin-events zonder representaties (die kunnen een federated identity met BSN bevatten)");
   });
 }
 
 test("de wallet-mapper voor legal_subject_id leest een sentinel-claim die een wallet nooit levert", () => {
   const legal = idpMappers(realm(PRD_WALLET), "wallet").find((m) => m.config.note === "legal_subject_id");
   assert.equal(legal.config["claim.name"], "nlportal-nooit-legal_subject_id");
+});
+
+test("het OIN is precies twintig cijfers (het gaat in redirect-URI's en de back-channel-URL)", () => {
+  for (const oin of ["123", "0000009900000000000a", "00000099000000000001/../x", "$(env:A)", "000000990000000000011", undefined]) assert.throws(() => realm({ ...ACC, oin }), /OIN/, String(oin));
+  assert.doesNotThrow(() => realm(ACC));
 });

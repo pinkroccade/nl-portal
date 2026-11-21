@@ -2,6 +2,10 @@
   "realm": "portal",
   "enabled": true,
   "sslRequired": "none",
+  "eventsEnabled": false,
+  "eventsListeners": [],
+  "adminEventsEnabled": true,
+  "adminEventsDetailsEnabled": false,
   "attributes": {
     "frontendUrl": "http://localhost:18080"
   },

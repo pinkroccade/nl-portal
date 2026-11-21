@@ -25,7 +25,7 @@ export function clientAssertion(prive, { clientId, audience }) {
   const nu = Math.floor(Date.now() / 1000);
   const kop = b64({ alg: prive.alg, typ: "JWT", kid: prive.kid });
   const claims = b64({ iss: clientId, sub: clientId, aud: audience, jti: randomBytes(32).toString("base64url"), iat: nu, exp: nu + 60 });
-  const opties = prive.alg === CLIENT_AUTH_ALG ? { padding: constants.RSA_PKCS1_PSS_PADDING, saltLength: 32 } : {};
+  const opties = prive.alg === "PS256" ? { padding: constants.RSA_PKCS1_PSS_PADDING, saltLength: 32 } : {};
   const sleutel = createPrivateKey({ key: prive, format: "jwk" });
   return `${kop}.${claims}.${sign("sha256", Buffer.from(`${kop}.${claims}`), { key: sleutel, ...opties }).toString("base64url")}`;
 }
