@@ -22,6 +22,7 @@ spring:
 
 nl-portal:
     tenancy:
+        # Zelfde tenantbestanden als :app (zelfde mockpoort 56789): een tenantbestand minder om bij elke migratie bij te werken.
         directory: ../app/src/test/resources/tenants
     geheimen:
         "00000099000000000001":
@@ -77,9 +78,6 @@ nl-portal:
                 token: 0000000000000000000000000000000000000000
         haalcentraal-brp:
             enabled: true
-            properties:
-                brp-api-url: http://localhost:56789/haalcentraal/api/brp/
-                bewoning-api-url: http://localhost:56789/haalcentraal/api/bewoning/
         kvk:
             enabled: true
             properties:

@@ -22,15 +22,15 @@ import org.junit.jupiter.api.Test
 import java.nio.file.Path
 
 /**
- * Seam: de validator over de tenantbestanden die de repo meelevert (de CI-stap "validator over de demo-tenantbestanden"), met de
- * configuratie die alle modules bijdragen; alleen hier staan alle modules op het klassenpad.
+ * Seam: de validator, met de moduleconfiguraties van alle modules op het klassenpad van de app, over de tenantbestanden die de repo
+ * meelevert (de CI-stap "validator over de demo-tenantbestanden"). Staat hier en niet in core: core kent de modules niet.
  */
 class DemoTenantbestandenAppTest {
-    private val loader = TenantFileLoader(modules = TenantModules.ontdek())
+    private val modules = TenantModules.ontdek()
 
     @Test
     fun `de demo-tenantbestanden van docker-compose voldoen aan de validator`() {
-        val result = loader.load(Path.of("../../docker-compose/imports/tenants"))
+        val result = TenantFileLoader(modules = modules).load(Path.of("../../docker-compose/imports/tenants"))
 
         assertThat(result.violations).isEmpty()
         assertThat(result.tenants).hasSize(1)
@@ -38,7 +38,7 @@ class DemoTenantbestandenAppTest {
 
     @Test
     fun `de tenantbestanden van de app-tests voldoen aan de validator`() {
-        val result = loader.load(Path.of("src/test/resources/tenants"))
+        val result = TenantFileLoader(modules = modules).load(Path.of("src/test/resources/tenants"))
 
         assertThat(result.violations).isEmpty()
     }

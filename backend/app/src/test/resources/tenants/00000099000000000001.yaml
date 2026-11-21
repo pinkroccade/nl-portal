@@ -13,6 +13,18 @@ koppelingen:
             type: zgw-jwt
             clientId: test-client
             secret: 00000099000000000001.documenten-api-secret
+    brp:
+        url: http://localhost:56789/haalcentraal/api/brp
+        leverancier: Haal Centraal BRP-mock
+        auth:
+            # Geen sleutel: de mocks vragen er geen; in productie authenticeert de cloud gateway.
+            type: geen
+    brp-bewoning:
+        url: http://localhost:56789/haalcentraal/api/bewoning
+        leverancier: Haal Centraal Bewoning-mock
+        auth:
+            # Geen sleutel: de mocks vragen er geen; in productie authenticeert de cloud gateway.
+            type: geen
 modules:
     documenten-api:
         standaardDocumentApi: documenten-api
@@ -22,3 +34,6 @@ modules:
                 documentTypeUrl: http://localhost:56789/catalogi/api/v1/informatieobjecttypen/00000000-0000-0000-0000-000000000000
         vertrouwelijkheidsaanduidingWitlijst: [openbaar, beperkt_openbaar, intern, zaakvertrouwelijk, vertrouwelijk, confidentieel, geheim, zeer_geheim]
         statusWitlijst: [ter_vaststelling, in_bewerking, definitief, gearchiveerd]
+    brp:
+        # Doelbinding BRP per gemeente; leeg of weglaten geeft de standaardvelden en alle woonplaatsen.
+        toegestaneWoonplaatsenBewoning: []

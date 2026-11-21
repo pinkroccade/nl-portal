@@ -17,6 +17,13 @@ package nl.nlportal.haalcentraalbrp.graphql
 
 import tools.jackson.databind.JsonNode
 import nl.nlportal.commonground.authentication.WithBurgerUser
+import nl.nlportal.core.tenancy.GeheimenBron
+import nl.nlportal.core.tenancy.TenantDirectory
+import nl.nlportal.core.tenancy.TenantKoppelingAuth
+import nl.nlportal.core.tenancy.TenantKoppelingAuthType
+import nl.nlportal.core.testing.TestTenants
+import nl.nlportal.core.testing.VasteTenantWebFilter
+import nl.nlportal.haalcentraalbrp.tenant.BrpConfiguratie
 import nl.nlportal.haalcentraalbrp.TestHelper
 import okhttp3.mockwebserver.Dispatcher
 import okhttp3.mockwebserver.MockResponse
@@ -24,7 +31,7 @@ import okhttp3.mockwebserver.MockWebServer
 import okhttp3.mockwebserver.RecordedRequest
 import org.junit.jupiter.api.AfterAll
 import org.junit.jupiter.api.Assertions.assertEquals
-import org.junit.jupiter.api.BeforeAll
+import org.junit.jupiter.api.Assertions.assertNull
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.TestInstance
@@ -33,9 +40,10 @@ import org.springframework.boot.graphql.test.autoconfigure.tester.AutoConfigureH
 import org.springframework.boot.webtestclient.autoconfigure.AutoConfigureWebTestClient
 
 import org.springframework.boot.test.context.SpringBootTest
+import org.springframework.boot.test.context.TestConfiguration
+import org.springframework.context.annotation.Bean
 import org.springframework.graphql.test.tester.HttpGraphQlTester
-import org.springframework.test.context.DynamicPropertyRegistry
-import org.springframework.test.context.DynamicPropertySource
+import java.util.concurrent.TimeUnit
 
 @SpringBootTest
 @AutoConfigureHttpGraphQlTester
@@ -45,7 +53,7 @@ internal class HaalCentraalBrpQueryIT(
     @Autowired private val httpGraphQlTester: HttpGraphQlTester,
 ) {
     companion object {
-        private val passThroughHeaders =
+        internal val passThroughHeaders =
             mapOf(
                 "x-origin-oin" to "test-origin-oin",
                 "x-doelbinding" to "test-doelbinding",
@@ -54,42 +62,53 @@ internal class HaalCentraalBrpQueryIT(
             )
 
         @JvmStatic
-        var server: MockWebServer? = null
-
-        @JvmStatic
-        var url: String = ""
-
-        @JvmStatic
-        var url2: String = ""
-
-        @JvmStatic
-        @DynamicPropertySource
-        fun properties(propsRegistry: DynamicPropertyRegistry) {
-            propsRegistry.add("nl-portal.config.haalcentraal-brp.properties.brp-api-url") { url }
-            propsRegistry.add("nl-portal.config.haalcentraal-brp.properties.bewoning-api-url") { url2 }
-            passThroughHeaders.forEach { (name, value) ->
-                propsRegistry.add("nl-portal.config.haalcentraal-brp.properties.additional-headers.$name") { value }
-            }
-        }
-
-        @JvmStatic
-        @BeforeAll
-        fun beforeAll() {
-            server = MockWebServer()
-            server?.start()
-            url = server?.url("/brp").toString()
-            url2 = server?.url("/bewoning").toString()
-        }
+        val server: MockWebServer = MockWebServer().also { it.start() }
 
         @JvmStatic
         @AfterAll
         fun afterAll() {
-            server?.shutdown()
+            server.shutdown()
         }
+    }
+
+    /** Eén tenant met koppelingen naar de mockserver; elk request draait als die tenant (zoals de tenantresolutie dat doet). */
+    @TestConfiguration
+    class TenantConfiguration {
+        @Bean
+        fun tenantDirectory(): TenantDirectory {
+            val basis = server.url("/").toString().trimEnd('/')
+            return TestTenants.directory(
+                TestTenants.tenant(
+                    koppelingen =
+                        mapOf(
+                            "brp" to TestTenants.koppeling("$basis/brp", TenantKoppelingAuth(TenantKoppelingAuthType.GEEN)),
+                            "brp-bewoning" to TestTenants.koppeling("$basis/bewoning", TenantKoppelingAuth(TenantKoppelingAuthType.GEEN)),
+                        ),
+                    modules =
+                        mapOf(
+                            "brp" to
+                                BrpConfiguratie(
+                                    toegestaneWoonplaatsenBewoning = listOf("'s-Gravenhage", "Ypenburg"),
+                                    aanvullendeHeaders = passThroughHeaders,
+                                ),
+                        ),
+                ),
+            )
+        }
+
+        @Bean
+        fun geheimenBron(): GeheimenBron = TestTenants.ALLE_GEHEIMEN
+
+        @Bean
+        fun vasteTenantWebFilter() = VasteTenantWebFilter()
     }
 
     @BeforeEach
     internal fun setUp() {
+        // De server is gedeeld: leeg de wachtrij, anders leest takeRequest() het verzoek van een eerdere test.
+        while (server.takeRequest(0, TimeUnit.MILLISECONDS) != null) {
+            // leegmaken
+        }
         setupMockServer()
     }
 
@@ -136,6 +155,12 @@ internal class HaalCentraalBrpQueryIT(
         assertEquals("999993847", responseBody.get("burgerservicenummer").stringValue())
         assertEquals("Pieter Jan de Vries", responseBody.requiredAt("/naam/volledigeNaam")?.stringValue())
         assertEquals("Vries", responseBody.requiredAt("/naam/geslachtsnaam")?.stringValue())
+        val verzoek = server.takeRequest(5, TimeUnit.SECONDS)!!
+        assertEquals("/brp/personen", verzoek.path)
+        assertEquals("test-doelbinding", verzoek.getHeader("x-doelbinding"))
+        assertEquals("application/json", verzoek.getHeader("Accept"))
+        assertNull(verzoek.getHeader("X-Api-Key"))
+        assertNull(verzoek.getHeader("Authorization"))
     }
 
     @Test
@@ -292,6 +317,6 @@ internal class HaalCentraalBrpQueryIT(
                     return response
                 }
             }
-        server?.dispatcher = dispatcher
+        server.dispatcher = dispatcher
     }
 }

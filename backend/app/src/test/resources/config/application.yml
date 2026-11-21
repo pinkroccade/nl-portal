@@ -71,9 +71,6 @@ nl-portal:
                 token: 0000000000000000000000000000000000000000
         haalcentraal-brp:
             enabled: true
-            properties:
-                brp-api-url: http://localhost:56789/haalcentraal/api/brp/
-                bewoning-api-url: http://localhost:56789/haalcentraal/api/bewoning/
         kvk:
             enabled: true
             properties:

@@ -1,11 +1,11 @@
 server:
     port: 8080
-    # De tenantresolutie volgt Forwarded en X-Forwarded-* alleen van vertrouwde proxies; Spring zelf niet (ForwardedHeadersGuard).
+    # De tenantresolutie volgt Forwarded alleen van vertrouwde proxies; Spring zelf volgt niets (ForwardedHeadersGuard).
     forward-headers-strategy: none
 
 management:
     server:
-        # De actuator staat op een eigen poort; de tenancy start niet zonder (zie site/hosting-en-configuratie/beheer-modulestatus.md).
+        # De actuator staat op een eigen poort, nooit op de applicatiepoort (ManagementExposureGuard, ADR 0021 besluit 8).
         port: ${MANAGEMENT_SERVER_PORT:8091}
     endpoint:
         health:
@@ -47,7 +47,7 @@ logging:
         root: DEBUG
 
 nl-portal:
-    # De tenantbestanden van de lokale stack (koppelingen en modulegegevens, zoals de Documenten API); de geheimen komen uit .env.properties.
+    # De demo-tenant van de compose-stack (koppelingen en modulegegevens, zoals de Documenten API); de geheimen komen uit .env.properties.
     tenancy:
         directory: ${NL_PORTAL_TENANTS_DIRECTORY:../../docker-compose/imports/tenants}
     geheimen:
@@ -111,9 +111,6 @@ nl-portal:
                 token: ${OPENKLANT_API_TOKEN}
         haalcentraal-brp:
             enabled: true
-            properties:
-                brp-api-url: http://localhost:5010/haalcentraal/api/brp/
-                bewoning-api-url: http://localhost:5011/haalcentraal/api/bewoning/
         kvk:
             enabled: true
         taak:

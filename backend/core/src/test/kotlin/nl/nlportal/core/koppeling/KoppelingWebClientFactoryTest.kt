@@ -114,6 +114,22 @@ class KoppelingWebClientFactoryTest {
     }
 
     @Test
+    fun `auth type geen stuurt geen enkele inloggegeven mee`() {
+        val verzoek = aanroep(koppeling { auth.type = KoppelingAuthType.GEEN })
+
+        assertEquals(null, verzoek.headers().getFirst("Authorization"))
+        assertEquals(null, verzoek.headers().getFirst("X-Api-Key"))
+        assertEquals("https://api.example.nl/ping", verzoek.url().toString())
+    }
+
+    @Test
+    fun `elk verzoek vraagt om application json zoals de oude clients deden`() {
+        val verzoek = aanroep(koppeling { auth.type = KoppelingAuthType.GEEN })
+
+        assertEquals("application/json", verzoek.headers().getFirst("Accept"))
+    }
+
+    @Test
     fun `een vast bearer-token wordt als Authorization-header meegestuurd`() {
         val verzoek =
             aanroep(

@@ -31,6 +31,8 @@ data class ModuleOvertreding(
  */
 data class ModuleContext(
     val koppelingen: Set<String> = emptySet(),
+    /** Per koppelingnaam de naam van de header waarmee de koppeling zelf authenticeert (alleen `api-key`); die mag een module niet zetten. */
+    val authHeaders: Map<String, String> = emptyMap(),
     val koppelingUrls: Map<String, String> = emptyMap(),
 )
 

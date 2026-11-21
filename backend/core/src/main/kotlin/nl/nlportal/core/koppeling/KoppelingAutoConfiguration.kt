@@ -20,6 +20,7 @@ import nl.nlportal.core.tenancy.OmgevingGeheimenBron
 import nl.nlportal.core.tenancy.TenancyAutoConfiguration
 import nl.nlportal.core.tenancy.TenantDirectory
 import nl.nlportal.core.tenancy.TenantModules
+import nl.nlportal.core.tenancy.VervallenProperties
 import org.springframework.beans.factory.ObjectProvider
 import org.springframework.boot.autoconfigure.AutoConfiguration
 import org.springframework.boot.autoconfigure.condition.ConditionalOnBean
@@ -46,8 +47,10 @@ class KoppelingAutoConfiguration {
         resilience: KoppelingResilienceInstellingen,
         geheimenBron: ObjectProvider<GeheimenBron>,
         modules: ObjectProvider<TenantModules>,
+        vervallen: ObjectProvider<VervallenProperties>,
         environment: Environment,
     ): KoppelingRegister {
+        vervallen.orderedStream().forEach { it.controleer(environment) }
         // Tussenfase: een nog niet gemigreerde module leest `nl-portal.koppelingen`. Dat zijn dezelfde koppelingen en
         // credentials voor elke tenant, dus er mag maar één tenant zijn zolang dat blok gebruikt wordt.
         check(koppelingen.koppelingen.isEmpty() || directory.tenants.size <= 1) {
