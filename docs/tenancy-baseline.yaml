@@ -121,14 +121,11 @@ modules:
     signalen:
       config: FormConfig is een singleton.
   ":payment-direct":
-    omvang: L
-    risico: hoog
-    toelichting: Postsale-webhook heeft geen tenantrouting; JVM-globale sleutelstore laat keyId's van tenants elkaar overschrijven.
+    omvang: M
+    risico: middel
+    toelichting: Gemigreerd naar modules.payment-direct en een eigen koppeling per profiel; de webhook haalt de tenant uit het hostdomein en toetst de keyId aan die tenant. De taak bijwerken loopt nog via de Objecten API (T12).
     signalen:
-      config: DirectPaymentModuleConfiguration is een singleton.
-      webclient: Client bouwt zelf een WebClient.
-      globaal: InMemorySecretKeyStore.INSTANCE is JVM-breed.
-      anoniem: POST /api/public/payment/direct/postsale is anoniem (HMAC); heeft tenantrouting nodig via host van webhookUrl en tenant van de keyId.
+      anoniem: POST /api/public/payment/direct/postsale is anoniem (HMAC); de tenant volgt uit het hostdomein en moet gelijk zijn aan de tenant van de keyId.
   ":haalcentraal-brp":
     omvang: S
     risico: laag

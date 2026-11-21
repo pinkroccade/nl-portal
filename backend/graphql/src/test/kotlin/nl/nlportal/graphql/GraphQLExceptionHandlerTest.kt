@@ -24,6 +24,7 @@ import nl.nlportal.core.koppeling.KoppelingConfiguratieException
 import nl.nlportal.core.koppeling.KoppelingException
 import nl.nlportal.core.koppeling.KoppelingFoutsoort
 import nl.nlportal.core.koppeling.KoppelingProblem
+import nl.nlportal.core.modulegate.ModuleNotAvailableException
 import nl.nlportal.core.tenancy.TenantContextMissingException
 import nl.nlportal.core.util.ModuleNotConfiguredException
 import org.junit.jupiter.api.Assertions.assertEquals
@@ -43,6 +44,14 @@ class GraphQLExceptionHandlerTest {
         mock(DataFetchingEnvironment::class.java, RETURNS_DEEP_STUBS).also {
             `when`(it.field.sourceLocation).thenReturn(SourceLocation(1, 1))
         }
+
+    @Test
+    fun `een module die uit staat geeft de code MODULE_NOT_AVAILABLE met de modulenaam en de eigen melding`() {
+        val graphqlFout = GraphQLExceptionHandler().resolveException(ModuleNotAvailableException("berichten"), env).block()!!.single()
+
+        assertEquals("Module 'berichten' is niet beschikbaar", graphqlFout.message)
+        assertEquals(mapOf("code" to "MODULE_NOT_AVAILABLE", "module" to "berichten"), graphqlFout.extensions)
+    }
 
     @Test
     fun `een fout van een koppeling toont de browser alleen een generieke melding en de referentie, nooit de details van de bron`() {

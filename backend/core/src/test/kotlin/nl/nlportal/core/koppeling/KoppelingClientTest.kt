@@ -595,6 +595,44 @@ class KoppelingClientTest {
         assertThat(bron.requestCount).isEqualTo(1)
     }
 
+    @Test
+    fun `een post met body wordt als json verstuurd en een gcs-v1-hmac-koppeling ondertekent dat content-type mee`() {
+        bron.enqueue(json("""{"id":"ok"}"""))
+        val hmac =
+            Koppeling().apply {
+                url = bron.url("/").toString().trimEnd('/')
+                auth.type = KoppelingAuthType.GCS_V1_HMAC
+                auth.clientId = "sleutel-id"
+                auth.secret = "geheime-sleutel"
+            }
+        val register = register(koppelingen = mapOf(bosrand to mapOf("betalen" to hmac)))
+
+        alsTenant(bosrand) { register.current("betalen").post<Map<String, String>, Zaak>("/v2/TAX/hostedcheckouts", mapOf("a" to "b")) }
+
+        val verzoek = bron.takeRequest()
+        assertThat(verzoek.getHeader("Content-Type")).isEqualTo("application/json")
+        val mac =
+            javax.crypto.Mac
+                .getInstance("HmacSHA256")
+                .apply { init(javax.crypto.spec.SecretKeySpec("geheime-sleutel".toByteArray(), "HmacSHA256")) }
+        val teOndertekenen = listOf("POST", "application/json", verzoek.getHeader("Date"), "/v2/TAX/hostedcheckouts").joinToString("\n", postfix = "\n")
+        val handtekening = Base64.getEncoder().encodeToString(mac.doFinal(teOndertekenen.toByteArray()))
+        assertThat(verzoek.getHeader("Authorization")).isEqualTo("GCS v1HMAC:sleutel-id:$handtekening")
+    }
+
+    @Test
+    fun `een content-type dat de aanroeper zelf meegeeft blijft staan, ook bij een koppeling zonder handtekening`() {
+        bron.enqueue(json("""{"id":"ok"}"""))
+        val register = register()
+
+        alsTenant(bosrand) {
+            register.current("zaken").patch("/zaken/1", Zaak("deel"), typeReferentie<Zaak>(), mapOf("content-type" to "application/merge-patch+json"))
+        }
+
+        val verzoek = bron.takeRequest()
+        assertThat(verzoek.headers.values("Content-Type")).containsExactly("application/merge-patch+json")
+    }
+
     // Overige bewerkingen
 
     @Test

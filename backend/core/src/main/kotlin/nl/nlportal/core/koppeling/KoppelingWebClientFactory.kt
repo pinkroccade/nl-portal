@@ -28,13 +28,23 @@ import org.springframework.web.reactive.function.client.ExchangeFilterFunction
 import org.springframework.web.reactive.function.client.WebClient
 import reactor.core.publisher.Mono
 import reactor.netty.http.client.HttpClient
+import java.net.URI
+import java.time.Clock
 import java.time.Duration
 import java.time.Instant
+import java.time.ZoneOffset
+import java.time.ZonedDateTime
+import java.time.format.DateTimeFormatter
+import java.util.Base64
+import java.util.Locale
+import javax.crypto.Mac
+import javax.crypto.spec.SecretKeySpec
 
 /** Bouwt uit een [Koppeling] een [WebClient] met de authenticatie van die koppeling; alleen het register gebruikt hem (epic #499, #507). */
 internal class KoppelingWebClientFactory(
     private val webClientBuilder: WebClient.Builder,
     private val zgwJwtGenerator: ZgwJwtGenerator = ZgwJwtGenerator(),
+    private val klok: Clock = Clock.systemUTC(),
 ) {
     /**
      * Elke client van een koppeling krijgt een eigen connector die redirects nooit volgt. Dat staat hier in code, niet in
@@ -50,10 +60,11 @@ internal class KoppelingWebClientFactory(
         modulenaam: String,
         koppeling: Koppeling,
     ): WebClient {
+        val url = koppeling.url.requireConfigured(modulenaam, "url")
         // De oude clients vroegen om JSON; een strikte bron of de gateway kan zonder Accept anders antwoorden.
         val builder =
             basisBuilder()
-                .baseUrl(koppeling.url.requireConfigured(modulenaam, "url"))
+                .baseUrl(url)
                 .defaultHeader(HttpHeaders.ACCEPT, MediaType.APPLICATION_JSON_VALUE)
         if (koppeling.isOnbeveiligd()) {
             logger.warn { "Koppeling van module '$modulenaam' gebruikt http naar een publiek adres; gebruik https." }
@@ -112,8 +123,72 @@ internal class KoppelingWebClientFactory(
                     ),
                 )
             }
+
+            KoppelingAuthType.GCS_V1_HMAC -> {
+                val sleutelId = auth.clientId.requireConfigured(modulenaam, "auth.client-id")
+                val secret = auth.secret.requireConfigured(modulenaam, "auth.secret")
+                builder.filter(gcsHmac(sleutelId, secret, URI(url).rawPath.orEmpty().trimEnd('/')))
+            }
         }
         return builder.build()
+    }
+
+    /**
+     * Ondertekent elk verzoek volgens Worldline Direct (`GCS v1HMAC`), op dezelfde manier als de Worldline-SDK
+     * (`V1HmacAuthenticator`): HMAC-SHA256 over methode, content-type (leeg als het ontbreekt), datum, de `X-GCS-*`-headers van het
+     * verzoek (naam in kleine letters, waarde met regeleinden vervangen door een spatie en getrimd, gesorteerd op naam) en het pad
+     * relatief aan de basis-URL. Het pad blijft gecodeerd, de query is gedecodeerd (zoals `URI.getQuery()` in de SDK).
+     * `Date` en `Authorization` worden gezet (vervangen, niet toegevoegd): een `Date` van de aanroeper telt niet.
+     */
+    private fun gcsHmac(
+        sleutelId: String,
+        secret: String,
+        basisPad: String,
+    ) = ExchangeFilterFunction.ofRequestProcessor { verzoek ->
+        val datum = GCS_DATUM.format(ZonedDateTime.now(klok).withZoneSameInstant(ZoneOffset.UTC))
+        val koppen = verzoek.headers()
+        val teOndertekenen =
+            (
+                listOf(verzoek.method().name(), koppen.getFirst(HttpHeaders.CONTENT_TYPE).orEmpty(), datum) +
+                    canoniekeGcsHeaders(koppen) +
+                    relatiefPad(verzoek.url(), basisPad)
+            ).joinToString("\n", postfix = "\n")
+        val handtekening = hmacSha256Base64(secret, teOndertekenen)
+        Mono.just(
+            ClientRequest
+                .from(verzoek)
+                .headers {
+                    it.set(HttpHeaders.DATE, datum)
+                    it.set(HttpHeaders.AUTHORIZATION, "GCS v1HMAC:$sleutelId:$handtekening")
+                }.build(),
+        )
+    }
+
+    /** De `X-GCS-*`-headers als `naam:waarde`: naam in kleine letters, waarde met regeleinden vervangen door een spatie en getrimd, gesorteerd op naam. */
+    private fun canoniekeGcsHeaders(koppen: HttpHeaders): List<String> =
+        koppen
+            .headerNames()
+            .flatMap { naam -> koppen[naam].orEmpty().map { naam.lowercase(Locale.ENGLISH) to it.replace(HEADER_REGELEINDE, " ").trim() } }
+            .filter { (naam, _) -> naam.startsWith("x-gcs") }
+            .sortedBy { (naam, _) -> naam }
+            .map { (naam, waarde) -> "$naam:$waarde" }
+
+    /** Het gecodeerde pad zonder het pad van de basis-URL (alleen op een segmentgrens), plus de gedecodeerde query. */
+    private fun relatiefPad(
+        url: URI,
+        basisPad: String,
+    ): String {
+        val pad = url.rawPath.orEmpty()
+        val relatief = if (pad == basisPad || pad.startsWith("$basisPad/")) pad.removePrefix(basisPad) else pad
+        return relatief + (url.query?.let { "?$it" } ?: "")
+    }
+
+    private fun hmacSha256Base64(
+        secret: String,
+        tekst: String,
+    ): String {
+        val mac = Mac.getInstance("HmacSHA256").apply { init(SecretKeySpec(secret.toByteArray(), "HmacSHA256")) }
+        return Base64.getEncoder().encodeToString(mac.doFinal(tekst.toByteArray()))
     }
 
     private fun bearer(token: () -> Mono<String>) =
@@ -166,6 +241,10 @@ internal class KoppelingWebClientFactory(
 
     private companion object {
         val logger = KotlinLogging.logger {}
+
+        /** IMF-fixdate (RFC 9110): tweecijferige dag, altijd Engelse namen en `GMT`. */
+        val GCS_DATUM: DateTimeFormatter = DateTimeFormatter.ofPattern("EEE, dd MMM yyyy HH:mm:ss 'GMT'", Locale.US)
+        val HEADER_REGELEINDE = Regex("\r?\n[\\s&&[^\r\n]]*")
         const val DEFAULT_GELDIGHEID_SECONDEN = 60L
         val MARGE: Duration = Duration.ofSeconds(30)
     }

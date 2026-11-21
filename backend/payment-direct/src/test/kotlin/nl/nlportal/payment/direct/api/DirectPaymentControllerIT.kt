@@ -16,7 +16,8 @@
 package nl.nlportal.payment.direct.api
 
 import nl.nlportal.payment.direct.TestHelper
-import nl.nlportal.payment.direct.autoconfiguration.DirectPaymentModuleConfiguration
+import nl.nlportal.payment.direct.PaymentTestConfiguration
+import nl.nlportal.payment.direct.PaymentTestTenants
 import nl.nlportal.payment.direct.service.DirectPaymentService
 import nl.nlportal.zgw.objectenapi.autoconfiguration.ObjectsApiClientConfig
 import okhttp3.mockwebserver.Dispatcher
@@ -31,21 +32,22 @@ import org.junit.jupiter.api.TestInstance
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.webtestclient.autoconfigure.AutoConfigureWebTestClient
 import org.springframework.boot.test.context.SpringBootTest
+import org.springframework.context.annotation.Import
 import org.springframework.http.HttpHeaders
 import org.springframework.http.MediaType
 import org.springframework.test.web.reactive.server.WebTestClient
 import java.nio.charset.Charset
 import javax.crypto.Mac
 import javax.crypto.spec.SecretKeySpec
-import nl.nlportal.payment.direct.service.DirectPaymentWebhookService
+import nl.nlportal.payment.direct.service.WebhookHandtekeningen
 
 @SpringBootTest
+@Import(PaymentTestConfiguration::class)
 @AutoConfigureWebTestClient(timeout = "36000")
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 internal class DirectPaymentControllerIT(
     @Autowired private val webTestClient: WebTestClient,
     @Autowired private val objectsApiClientConfig: ObjectsApiClientConfig,
-    @Autowired private val directPaymentModuleConfiguration: DirectPaymentModuleConfiguration,
 ) {
     lateinit var server: MockWebServer
 
@@ -101,15 +103,13 @@ internal class DirectPaymentControllerIT(
             createSignature(
                 body = body,
                 secretKey =
-                    directPaymentModuleConfiguration.properties.configurations["belastingzaken"]
-                        ?.webhookApiSecret
-                        .toString(),
+                    PaymentTestTenants.WEBHOOK_GEHEIM,
             )
         val headers = HttpHeaders()
-        headers.add(DirectPaymentWebhookService.HEADER_X_GCS_SIGNATURE, signature)
+        headers.add(WebhookHandtekeningen.HEADER_X_GCS_SIGNATURE, signature)
         headers.add(
-            DirectPaymentWebhookService.HEADER_X_GCS_KEYID,
-            directPaymentModuleConfiguration.properties.configurations["belastingzaken"]?.webhookApiKey,
+            WebhookHandtekeningen.HEADER_X_GCS_KEYID,
+            PaymentTestTenants.WEBHOOK_SLEUTEL,
         )
         webTestClient
             .post()
@@ -167,15 +167,13 @@ internal class DirectPaymentControllerIT(
             createSignature(
                 body = body,
                 secretKey =
-                    directPaymentModuleConfiguration.properties.configurations["belastingzaken"]
-                        ?.webhookApiSecret
-                        .toString(),
+                    PaymentTestTenants.WEBHOOK_GEHEIM,
             )
         val headers = HttpHeaders()
-        headers.add(DirectPaymentWebhookService.HEADER_X_GCS_SIGNATURE, signature)
+        headers.add(WebhookHandtekeningen.HEADER_X_GCS_SIGNATURE, signature)
         headers.add(
-            DirectPaymentWebhookService.HEADER_X_GCS_KEYID,
-            directPaymentModuleConfiguration.properties.configurations["belastingzaken"]?.webhookApiKey,
+            WebhookHandtekeningen.HEADER_X_GCS_KEYID,
+            PaymentTestTenants.WEBHOOK_SLEUTEL,
         )
         webTestClient
             .post()
@@ -230,14 +228,12 @@ internal class DirectPaymentControllerIT(
             """.trimIndent()
 
         val signature =
-            directPaymentModuleConfiguration.properties.configurations["belastingzaken"]
-                ?.webhookApiSecret
-                .toString()
+            PaymentTestTenants.WEBHOOK_GEHEIM
         val headers = HttpHeaders()
-        headers.add(DirectPaymentWebhookService.HEADER_X_GCS_SIGNATURE, signature)
+        headers.add(WebhookHandtekeningen.HEADER_X_GCS_SIGNATURE, signature)
         headers.add(
-            DirectPaymentWebhookService.HEADER_X_GCS_KEYID,
-            directPaymentModuleConfiguration.properties.configurations["belastingzaken"]?.webhookApiKey,
+            WebhookHandtekeningen.HEADER_X_GCS_KEYID,
+            PaymentTestTenants.WEBHOOK_SLEUTEL,
         )
         webTestClient
             .post()
@@ -295,15 +291,13 @@ internal class DirectPaymentControllerIT(
             createSignature(
                 body = body,
                 secretKey =
-                    directPaymentModuleConfiguration.properties.configurations["belastingzaken"]
-                        ?.webhookApiSecret
-                        .toString(),
+                    PaymentTestTenants.WEBHOOK_GEHEIM,
             )
         val headers = HttpHeaders()
-        headers.add(DirectPaymentWebhookService.HEADER_X_GCS_SIGNATURE, signature)
+        headers.add(WebhookHandtekeningen.HEADER_X_GCS_SIGNATURE, signature)
         headers.add(
-            DirectPaymentWebhookService.HEADER_X_GCS_KEYID,
-            directPaymentModuleConfiguration.properties.configurations["belastingzaken"]?.webhookApiKey,
+            WebhookHandtekeningen.HEADER_X_GCS_KEYID,
+            PaymentTestTenants.WEBHOOK_SLEUTEL,
         )
         webTestClient
             .post()

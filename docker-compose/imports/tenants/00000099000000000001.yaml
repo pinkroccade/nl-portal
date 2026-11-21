@@ -24,7 +24,22 @@ koppelingen:
         auth:
             # Geen sleutel: de mocks vragen er geen; in productie authenticeert de cloud gateway.
             type: geen
+    # Betalen via Worldline Direct (optioneel): haal de commentaartekens weg, ook bij modules hieronder, en zet de geheimen in backend.env.
+    # payment-direct:
+    #     url: https://payment.preprod.direct.worldline-solutions.com
+    #     auth:
+    #         type: gcs-v1-hmac
+    #         clientId: <API-sleutel-ID van de provider>
+    #         secret: 00000099000000000001.payment-direct-api-geheim
 modules:
     brp:
         # Doelbinding BRP per gemeente; leeg of weglaten geeft de standaardvelden en alle woonplaatsen.
         toegestaneWoonplaatsenBewoning: []
+    # payment-direct:
+    #     webhookUrl: https://<domein van de tenant>/api/public/payment/direct/postsale
+    #     profielen:
+    #         belastingzaken:
+    #             pspId: <PSP-ID>
+    #             returnUrl: https://<domein van de tenant>
+    #             webhookSleutelId: <sleutel-ID van de webhook>
+    #             webhookGeheim: 00000099000000000001.payment-direct-webhook-geheim
