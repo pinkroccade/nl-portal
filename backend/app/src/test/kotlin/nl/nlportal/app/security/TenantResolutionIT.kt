@@ -41,7 +41,13 @@ class TenantResolutionIT(
 ) {
     private val bosrand = "00000099000000000001"
 
-    private fun client(port: Int = serverPort) = WebTestClient.bindToServer().baseUrl("http://localhost:$port").build()
+    // Ruime responstimeout: onder 50 gelijktijdige requests op een CI-runner is de standaard van 5 s te krap.
+    private fun client(port: Int = serverPort) =
+        WebTestClient
+            .bindToServer()
+            .baseUrl("http://localhost:$port")
+            .responseTimeout(Duration.ofSeconds(30))
+            .build()
 
     private fun get(
         pad: String,

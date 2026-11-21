@@ -94,15 +94,16 @@ function parseForm(html) {
 
 /**
  * Doorloopt een authorization-code-login zoals de BFF en een browser dat zouden doen, bij `nl-portal-backend` in
- * realm `portal`, tot de redirect naar de BFF. Geeft de code of het foutantwoord terug.
+ * realm `portal` (of `realm`/`clientId`/`redirectUri`), tot de redirect naar de BFF. Geeft de code of het foutantwoord terug.
+ * Met `formulier` vult de login het wachtwoordformulier van het realm in (een realm met het testinlogmiddel) in plaats van het te weigeren.
  */
-export async function login({ idp, username, password, acrValues, prompt, jar = new Jar() }) {
+export async function login({ idp, username, password, acrValues, prompt, jar = new Jar(), realm = "portal", clientId = "nl-portal-backend", redirectUri = REDIRECT_URI, formulier = false }) {
   const verifier = randomBytes(32).toString("base64url");
   const challenge = createHash("sha256").update(verifier).digest("base64url");
   const state = randomBytes(8).toString("hex");
   const params = new URLSearchParams({
-    client_id: "nl-portal-backend",
-    redirect_uri: REDIRECT_URI,
+    client_id: clientId,
+    redirect_uri: redirectUri,
     response_type: "code",
     scope: "openid",
     state,
@@ -114,7 +115,7 @@ export async function login({ idp, username, password, acrValues, prompt, jar = 
   if (acrValues) params.set("acr_values", acrValues);
   if (prompt) params.set("prompt", prompt);
 
-  let url = `${KC}/realms/portal/protocol/openid-connect/auth?${params}`;
+  let url = `${KC}/realms/${realm}/protocol/openid-connect/auth?${params}`;
   let init = { method: "GET" };
   const trace = [];
   const urls = [];
@@ -126,7 +127,7 @@ export async function login({ idp, username, password, acrValues, prompt, jar = 
     urls.push(url);
     if (res.status >= 300 && res.status < 400) {
       url = new URL(res.headers.get("location"), url).toString();
-      if (url.startsWith(REDIRECT_URI)) {
+      if (url.startsWith(redirectUri)) {
         const q = new URL(url).searchParams;
         return { code: q.get("code"), error: q.get("error"), errorDescription: q.get("error_description"), verifier, trace, pages, urls };
       }
@@ -137,7 +138,7 @@ export async function login({ idp, username, password, acrValues, prompt, jar = 
     pages.push(html);
     const form = parseForm(html);
     // Het eigen wachtwoordformulier van de portal-realm: de koppeling is mislukt en Keycloak valt terug op de browserflow.
-    if (form && url.includes("/realms/portal/login-actions/authenticate")) {
+    if (!formulier && form && url.includes(`/realms/${realm}/login-actions/authenticate`)) {
       return { code: null, error: null, wachtwoordformulier: true, pageText: textOf(html).trim(), trace, pages, urls };
     }
     if (!form) return { code: null, error: null, pageText: textOf(html).trim(), trace, pages, urls };

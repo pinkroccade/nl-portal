@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-window.OIDC_URL = "http://localhost:8082/auth";
+window.OIDC_URL = "http://localhost:8082";
 window.OIDC_REALM = "nlportal";
 window.OIDC_CLIENT_ID = "nl-portal";
 window.OIDC_REDIRECT_URI = "http://localhost:3000/keycloak/callback";

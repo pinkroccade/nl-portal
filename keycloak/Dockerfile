@@ -19,13 +19,18 @@ ENV KC_DB=postgres \
 # Faalt als het basisimage een andere Keycloak-versie heeft dan waartegen de provider is gebouwd.
 RUN test -f "/opt/keycloak/lib/lib/main/org.keycloak.keycloak-services-${KEYCLOAK_VERSION}.jar" \
     || { echo "Keycloak ${KEYCLOAK_VERSION} verwacht, het basisimage heeft een andere versie" >&2; exit 1; }
-COPY --chown=1000:0 provider/build/libs/nlportal-keycloak-provider.jar /opt/keycloak/providers/nlportal-keycloak-provider.jar
+COPY --chown=1000:0 --chmod=0644 provider/build/libs/nlportal-keycloak-provider.jar /opt/keycloak/providers/nlportal-keycloak-provider.jar
 RUN /opt/keycloak/bin/kc.sh build
 # Rechten vastleggen: het basisimage geeft groep 0 schrijfrechten overal (`chmod -R g+rwX`) en het proces (uid 1000) zit in
 # groep 0. Hier gaat alles naar root met modus 755/644 (geen schrijfrechten voor groep of anderen); alleen data/ (met
 # data/tmp, waar `start --optimized` naar schrijft) blijft van uid 1000. Het uitvoerbit van scripts blijft staan.
 USER root
-RUN chown -R 0:0 /opt/keycloak     && chmod -R u=rwX,go=rX /opt/keycloak     && chmod u=rwx,go=rx /opt/keycloak     && mkdir -p /opt/keycloak/data/tmp     && chown -R 1000:0 /opt/keycloak/data     && chmod -R u=rwX,g=rwX,o= /opt/keycloak/data
+# De map /opt/keycloak zelf telt hier niet mee: de finale stage kopieert alleen de inhoud en zet de rechten van de map zelf (zie onderaan).
+RUN chown -R 0:0 /opt/keycloak \
+    && chmod -R u=rwX,go=rX /opt/keycloak \
+    && mkdir -p /opt/keycloak/data/tmp \
+    && chown -R 1000:0 /opt/keycloak/data \
+    && chmod -R u=rwX,g=rwX,o= /opt/keycloak/data
 
 # --- image ---
 FROM quay.io/keycloak/keycloak:${KEYCLOAK_VERSION}@${KEYCLOAK_DIGEST}

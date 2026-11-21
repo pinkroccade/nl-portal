@@ -2,6 +2,10 @@
   "realm": "portal",
   "enabled": true,
   "sslRequired": "none",
+  "eventsEnabled": false,
+  "eventsListeners": [],
+  "adminEventsEnabled": true,
+  "adminEventsDetailsEnabled": false,
   "attributes": {
     "frontendUrl": "http://localhost:18080"
   },
@@ -58,16 +62,25 @@
         "http://localhost:18081/bff/callback"
       ],
       "attributes": {
-        "pkce.code.challenge.method": "S256"
+        "pkce.code.challenge.method": "S256",
+        "use.refresh.tokens": "false"
       },
       "defaultClientScopes": [
-        "basic",
-        "web-origins",
-        "profile",
-        "email",
-        "roles"
+        "basic"
       ],
       "protocolMappers": [
+        {
+          "name": "audience",
+          "protocol": "openid-connect",
+          "protocolMapper": "oidc-audience-mapper",
+          "config": {
+            "included.client.audience": "nl-portal-backend",
+            "id.token.claim": "false",
+            "access.token.claim": "true",
+            "introspection.token.claim": "true",
+            "lightweight.claim": "false"
+          }
+        },
         {
           "name": "acr-van-idp",
           "protocol": "openid-connect",
@@ -257,7 +270,7 @@
       "identityProviderMapper": "saml-username-idp-mapper",
       "config": {
         "syncMode": "IMPORT",
-        "template": "${ALIAS}.${NAMEID}",
+        "template": "${ALIAS}.${UUID}",
         "target": "LOCAL"
       }
     },
@@ -267,7 +280,7 @@
       "identityProviderMapper": "oidc-username-idp-mapper",
       "config": {
         "syncMode": "IMPORT",
-        "template": "${ALIAS}.${CLAIM.sub}",
+        "template": "${ALIAS}.${UUID}",
         "target": "LOCAL"
       }
     },
@@ -306,7 +319,7 @@
       "identityProviderMapper": "saml-username-idp-mapper",
       "config": {
         "syncMode": "IMPORT",
-        "template": "${ALIAS}.${NAMEID}",
+        "template": "${ALIAS}.${UUID}",
         "target": "LOCAL"
       }
     }
