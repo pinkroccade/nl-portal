@@ -15,14 +15,10 @@
  */
 package nl.nlportal.payment.direct.service
 
-import com.onlinepayments.communication.RequestHeader
-import com.onlinepayments.json.DefaultMarshaller
-import com.onlinepayments.webhooks.InMemorySecretKeyStore
-import com.onlinepayments.webhooks.SignatureValidationException
-import com.onlinepayments.webhooks.WebhooksHelper
+import io.github.oshai.kotlinlogging.KotlinLogging
 import java.util.UUID
+import nl.nlportal.core.tenancy.TenantContext
 import nl.nlportal.core.util.Mapper
-import nl.nlportal.payment.direct.autoconfiguration.DirectPaymentModuleConfiguration
 import nl.nlportal.payment.direct.constants.DirectPaymentState
 import nl.nlportal.payment.direct.domain.DirectPaymentWebhookRequest
 import nl.nlportal.zgw.objectenapi.client.ObjectsApiClient
@@ -35,17 +31,9 @@ import org.springframework.http.HttpStatus
 import org.springframework.web.server.ResponseStatusException
 
 class DirectPaymentWebhookService(
-    private val directPaymentModuleConfiguration: DirectPaymentModuleConfiguration,
+    private val handtekeningen: WebhookHandtekeningen,
     private val objectsApiClient: ObjectsApiClient,
 ) {
-    val webhookHelper = WebhooksHelper(DefaultMarshaller.INSTANCE, InMemorySecretKeyStore.INSTANCE)
-
-    init {
-        directPaymentModuleConfiguration.properties.configurations.forEach {
-            InMemorySecretKeyStore.INSTANCE.storeSecretKey(it.value.webhookApiKey, it.value.webhookApiSecret)
-        }
-    }
-
     /**
      * Handle Postsale webhook server to server call from payment provider
      * @param: httpHeaders, headers from the request
@@ -58,7 +46,9 @@ class DirectPaymentWebhookService(
         httpHeaders: HttpHeaders,
         jsonBody: String,
     ): String {
-        if (!isValidDirectRequest(httpHeaders, jsonBody)) {
+        // De tenant volgt uit het hostdomein; alleen de sleutels van die tenant gelden. Een keyId van een andere tenant is hier onbekend.
+        if (!handtekeningen.isGeldig(TenantContext.current(), httpHeaders, jsonBody)) {
+            logger.warn { "Postsale-webhook geweigerd: ongeldige handtekening, of de sleutel hoort niet bij de tenant van dit domein" }
             return "Request is not valid"
         }
         val directPaymentWebhookRequest =
@@ -102,27 +92,10 @@ class DirectPaymentWebhookService(
         return objectsApiTask
     }
 
-    private fun isValidDirectRequest(
-        httpHeaders: HttpHeaders,
-        bodyOfRequest: String,
-    ): Boolean {
-        val requestHeaders =
-            listOf<RequestHeader>(
-                RequestHeader(HEADER_X_GCS_SIGNATURE, httpHeaders[HEADER_X_GCS_SIGNATURE]?.get(0)),
-                RequestHeader(HEADER_X_GCS_KEYID, httpHeaders[HEADER_X_GCS_KEYID]?.get(0)),
-            )
-
-        try {
-            webhookHelper.unmarshal(bodyOfRequest, requestHeaders)
-            return true
-        } catch (e: SignatureValidationException) {
-            return false
-        }
-    }
-
     companion object {
-        const val HEADER_X_GCS_SIGNATURE: String = "X-GCS-Signature"
-        const val HEADER_X_GCS_KEYID: String = "X-GCS-KeyId"
+        private val logger = KotlinLogging.logger {}
+        const val HEADER_X_GCS_SIGNATURE: String = WebhookHandtekeningen.HEADER_X_GCS_SIGNATURE
+        const val HEADER_X_GCS_KEYID: String = WebhookHandtekeningen.HEADER_X_GCS_KEYID
 
         fun isUUID(orderId: String?): Boolean =
             try {

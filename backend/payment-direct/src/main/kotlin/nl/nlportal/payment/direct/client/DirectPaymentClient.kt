@@ -1,5 +1,5 @@
 /*
- * Copyright 2015-2025 Den Haag, Ritense, the Netherlands.
+ * Copyright 2015-2026 Den Haag, Ritense, the Netherlands.
  *
  * Licensed under EUPL, Version 1.2 (the "License");
  * you may not use this file except in compliance with the License.
@@ -15,141 +15,39 @@
  */
 package nl.nlportal.payment.direct.client
 
-import nl.nlportal.core.util.requireConfigured
 import com.onlinepayments.domain.CreateHostedCheckoutRequest
 import com.onlinepayments.domain.CreateHostedCheckoutResponse
-import io.github.oshai.kotlinlogging.KLogger
-import io.github.oshai.kotlinlogging.KotlinLogging
-import io.netty.handler.logging.LogLevel
-import java.io.UnsupportedEncodingException
-import java.security.InvalidKeyException
-import java.security.NoSuchAlgorithmException
-import java.time.ZoneId
-import java.time.ZonedDateTime
-import java.time.format.DateTimeFormatter
-import javax.crypto.Mac
-import javax.crypto.spec.SecretKeySpec
-import nl.nlportal.core.ssl.ClientSslContextResolver
-import nl.nlportal.payment.direct.autoconfiguration.DirectPaymentModuleConfiguration.DirectPaymentProfile
-import nl.nlportal.payment.direct.autoconfiguration.DirectPaymentModuleConfiguration.DirectPaymentProperties
+import nl.nlportal.core.koppeling.KoppelingRegister
+import nl.nlportal.core.koppeling.get
+import nl.nlportal.core.koppeling.post
+import nl.nlportal.payment.direct.configuratie.DirectPaymentProfiel
+import nl.nlportal.payment.direct.configuratie.DirectPaymentTenantConfiguratie
 import nl.nlportal.payment.direct.domain.DirectPaymentStatusResponse
-import org.apache.commons.codec.binary.Base64
-import org.springframework.http.HttpHeaders
-import org.springframework.http.HttpMethod
-import org.springframework.http.MediaType
-import org.springframework.http.client.reactive.ReactorClientHttpConnector
-import org.springframework.web.reactive.function.client.WebClient
-import org.springframework.web.reactive.function.client.awaitBody
-import reactor.netty.http.client.HttpClient
-import reactor.netty.transport.logging.AdvancedByteBufFormat
+import org.springframework.web.util.UriUtils
+import java.nio.charset.StandardCharsets
 
+/**
+ * De aanroepen naar Worldline Direct, via de koppeling van het profiel van de huidige tenant. De koppeling ondertekent elk verzoek
+ * (`gcs-v1-hmac`) met de API-sleutel van het profiel; deze klasse bewaart geen client en kent geen sleutel.
+ */
 class DirectPaymentClient(
-    private val directPaymentProperties: DirectPaymentProperties,
-    private val clientSslContextResolver: ClientSslContextResolver? = null,
+    private val register: KoppelingRegister,
 ) {
-    val webClient: WebClient by lazy {
-        WebClient
-            .builder()
-            .clientConnector(
-                ReactorClientHttpConnector(
-                    HttpClient
-                        .create()
-                        .wiretap(
-                            "reactor.netty.http.client.HttpClient",
-                            LogLevel.TRACE,
-                            AdvancedByteBufFormat.TEXTUAL,
-                        ).let { client ->
-                            var result = client
-                            if (clientSslContextResolver != null) {
-                                directPaymentProperties.ssl?.let {
-                                    val sslContext =
-                                        clientSslContextResolver.resolve(
-                                            it.key,
-                                            it.trustedCertificate,
-                                        )
-
-                                    result = client.secure { builder -> builder.sslContext(sslContext) }
-
-                                    logger.debug { "Client SSL context was set: private key=${it.key != null}, trusted certificate=${it.trustedCertificate != null}." }
-                                }
-                            }
-                            result
-                        },
-                ),
-            ).baseUrl(directPaymentProperties.url.requireConfigured("payment-direct", "url"))
-            .build()
-    }
-
     suspend fun hostedCheckout(
-        directPaymentProfile: DirectPaymentProfile,
+        profiel: DirectPaymentProfiel,
         checkoutRequest: CreateHostedCheckoutRequest,
-    ): CreateHostedCheckoutResponse {
-        val endpointUrl = "/v2/${directPaymentProfile.pspId}/hostedcheckouts"
-        val dateTime = ZonedDateTime.now().withZoneSameInstant(ZoneId.of("UTC")).format(DateTimeFormatter.RFC_1123_DATE_TIME)
-        val hmacHeader =
-            createHmacHeader(
-                endpointUrl = endpointUrl,
-                directPaymentProfile = directPaymentProfile,
-                dateTime = dateTime,
-                contentType = MediaType.APPLICATION_JSON.toString(),
-                httpMethod = HttpMethod.POST,
-            )
-
-        return webClient
-            .post()
-            .uri(endpointUrl)
-            .headers {
-                it.add(HttpHeaders.AUTHORIZATION, hmacHeader)
-                it.add(HttpHeaders.DATE, dateTime)
-            }.contentType(MediaType.APPLICATION_JSON)
-            .accept(MediaType.APPLICATION_JSON)
-            .bodyValue(checkoutRequest)
-            .retrieve()
-            .awaitBody<CreateHostedCheckoutResponse>()
-    }
+    ): CreateHostedCheckoutResponse = koppeling(profiel).post("/v2/${segment(profiel.pspId)}/hostedcheckouts", checkoutRequest, JSON)
 
     suspend fun hostedCheckoutStatus(
-        directPaymentProfile: DirectPaymentProfile,
+        profiel: DirectPaymentProfiel,
         hostedCheckoutId: String,
-    ): DirectPaymentStatusResponse {
-        val endpointUrl = "/v2/${directPaymentProfile.pspId}/hostedcheckouts/$hostedCheckoutId"
-        val dateTime = ZonedDateTime.now().withZoneSameInstant(ZoneId.of("UTC")).format(DateTimeFormatter.RFC_1123_DATE_TIME)
-        val hmacHeader =
-            createHmacHeader(
-                endpointUrl = endpointUrl,
-                directPaymentProfile = directPaymentProfile,
-                dateTime = dateTime,
-                contentType = "",
-                httpMethod = HttpMethod.GET,
-            )
+    ): DirectPaymentStatusResponse = koppeling(profiel).get("/v2/${segment(profiel.pspId)}/hostedcheckouts/${segment(hostedCheckoutId)}", headers = JSON)
 
-        return webClient
-            .get()
-            .uri(endpointUrl)
-            .headers {
-                it.add(HttpHeaders.AUTHORIZATION, hmacHeader)
-                it.add(HttpHeaders.DATE, dateTime)
-            }.retrieve()
-            .awaitBody<DirectPaymentStatusResponse>()
-    }
+    private suspend fun koppeling(profiel: DirectPaymentProfiel) = register.current(DirectPaymentTenantConfiguratie.NAAM, profiel.koppelingNaam())
 
-    @Throws(NoSuchAlgorithmException::class, InvalidKeyException::class, UnsupportedEncodingException::class)
-    fun createHmacHeader(
-        endpointUrl: String,
-        directPaymentProfile: DirectPaymentProfile,
-        dateTime: String,
-        contentType: String,
-        httpMethod: HttpMethod,
-    ): String {
-        val stringToHash = "${httpMethod}\n${contentType}\n$dateTime\n$endpointUrl\n"
-        val sha256HMAC = Mac.getInstance("HmacSHA256")
-        val secretKey = SecretKeySpec(directPaymentProfile.apiSecret.toByteArray(), "HmacSHA256")
-        sha256HMAC.init(secretKey)
-        val hash = Base64.encodeBase64String(sha256HMAC.doFinal(stringToHash.toByteArray()))
-        return "GCS v1HMAC:" + directPaymentProfile.apiKey + ":" + hash
-    }
+    private fun segment(waarde: String) = UriUtils.encodePathSegment(waarde, StandardCharsets.UTF_8)
 
-    companion object {
-        private val logger: KLogger = KotlinLogging.logger {}
+    private companion object {
+        val JSON = mapOf("Accept" to "application/json")
     }
 }

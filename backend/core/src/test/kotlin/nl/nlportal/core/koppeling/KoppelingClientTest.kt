@@ -611,7 +611,10 @@ class KoppelingClientTest {
 
         val verzoek = bron.takeRequest()
         assertThat(verzoek.getHeader("Content-Type")).isEqualTo("application/json")
-        val mac = javax.crypto.Mac.getInstance("HmacSHA256").apply { init(javax.crypto.spec.SecretKeySpec("geheime-sleutel".toByteArray(), "HmacSHA256")) }
+        val mac =
+            javax.crypto.Mac
+                .getInstance("HmacSHA256")
+                .apply { init(javax.crypto.spec.SecretKeySpec("geheime-sleutel".toByteArray(), "HmacSHA256")) }
         val teOndertekenen = listOf("POST", "application/json", verzoek.getHeader("Date"), "/v2/TAX/hostedcheckouts").joinToString("\n", postfix = "\n")
         val handtekening = Base64.getEncoder().encodeToString(mac.doFinal(teOndertekenen.toByteArray()))
         assertThat(verzoek.getHeader("Authorization")).isEqualTo("GCS v1HMAC:sleutel-id:$handtekening")

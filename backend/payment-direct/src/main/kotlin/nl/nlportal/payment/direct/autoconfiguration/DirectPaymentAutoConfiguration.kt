@@ -1,5 +1,5 @@
 /*
- * Copyright 2015-2023 Den Haag, Ritense, the Netherlands.
+ * Copyright 2015-2026 Den Haag, Ritense, the Netherlands.
  *
  * Licensed under EUPL, Version 1.2 (the "License");
  * you may not use this file except in compliance with the License.
@@ -15,58 +15,57 @@
  */
 package nl.nlportal.payment.direct.autoconfiguration
 
-import nl.nlportal.core.ssl.ClientSslContextResolver
+import nl.nlportal.core.koppeling.KoppelingAutoConfiguration
+import nl.nlportal.core.koppeling.KoppelingRegister
+import nl.nlportal.core.tenancy.GeheimenBron
+import nl.nlportal.core.tenancy.TenancyAutoConfiguration
+import nl.nlportal.core.tenancy.TenantDirectory
 import nl.nlportal.payment.direct.api.DirectPaymentController
 import nl.nlportal.payment.direct.client.DirectPaymentClient
 import nl.nlportal.payment.direct.graphql.DirectPaymentMutation
 import nl.nlportal.payment.direct.graphql.DirectPaymentQuery
 import nl.nlportal.payment.direct.service.DirectPaymentService
 import nl.nlportal.payment.direct.service.DirectPaymentWebhookService
+import nl.nlportal.payment.direct.service.WebhookHandtekeningen
 import nl.nlportal.zgw.objectenapi.client.ObjectsApiClient
-import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.autoconfigure.AutoConfiguration
+import org.springframework.boot.autoconfigure.condition.ConditionalOnBean
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty
-import org.springframework.boot.context.properties.EnableConfigurationProperties
 import org.springframework.context.annotation.Bean
 
-@AutoConfiguration
-@EnableConfigurationProperties(DirectPaymentModuleConfiguration::class)
-@ConditionalOnProperty(prefix = "nl-portal.config", name = ["payment.direct.enabled"], havingValue = "true")
+/**
+ * De module leest zijn gegevens per tenant uit `modules.payment-direct` en praat alleen via de [KoppelingRegister]; of de module voor
+ * een tenant bruikbaar is volgt uit die configuratie (en de permission-flag, T22), niet uit een eigenschap van de applicatie.
+ */
+@AutoConfiguration(after = [TenancyAutoConfiguration::class, KoppelingAutoConfiguration::class])
+@ConditionalOnBean(KoppelingRegister::class)
 class DirectPaymentAutoConfiguration {
     @Bean
     @ConditionalOnMissingBean(DirectPaymentClient::class)
-    fun directPaymentClient(
-        directPaymentModuleConfiguration: DirectPaymentModuleConfiguration,
-        @Autowired(required = false) clientSslContextResolver: ClientSslContextResolver? = null,
-    ): DirectPaymentClient =
-        DirectPaymentClient(
-            directPaymentProperties = directPaymentModuleConfiguration.properties,
-            clientSslContextResolver = clientSslContextResolver,
-        )
+    fun directPaymentClient(register: KoppelingRegister): DirectPaymentClient = DirectPaymentClient(register)
 
     @Bean
     @ConditionalOnMissingBean(DirectPaymentService::class)
     fun directPaymentService(
-        directPaymentModuleConfiguration: DirectPaymentModuleConfiguration,
+        directory: TenantDirectory,
         directPaymentClient: DirectPaymentClient,
-    ): DirectPaymentService =
-        DirectPaymentService(
-            directPaymentModuleConfiguration = directPaymentModuleConfiguration,
-            directPaymentClient = directPaymentClient,
-        )
+    ): DirectPaymentService = DirectPaymentService(directory, directPaymentClient)
+
+    @Bean
+    @ConditionalOnMissingBean(WebhookHandtekeningen::class)
+    fun webhookHandtekeningen(
+        directory: TenantDirectory,
+        bron: GeheimenBron,
+    ): WebhookHandtekeningen = WebhookHandtekeningen(directory, bron)
 
     @Bean
     @ConditionalOnMissingBean(DirectPaymentWebhookService::class)
     @ConditionalOnProperty(prefix = "nl-portal.config", name = ["objectenapi.enabled"], havingValue = "true")
     fun directPaymentWebhookService(
-        directPaymentModuleConfiguration: DirectPaymentModuleConfiguration,
+        handtekeningen: WebhookHandtekeningen,
         objectsApiClient: ObjectsApiClient,
-    ): DirectPaymentWebhookService =
-        DirectPaymentWebhookService(
-            directPaymentModuleConfiguration = directPaymentModuleConfiguration,
-            objectsApiClient = objectsApiClient,
-        )
+    ): DirectPaymentWebhookService = DirectPaymentWebhookService(handtekeningen, objectsApiClient)
 
     @Bean
     fun directPaymentMutation(directPaymentService: DirectPaymentService): DirectPaymentMutation = DirectPaymentMutation(directPaymentService)

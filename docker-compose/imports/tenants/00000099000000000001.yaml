@@ -5,3 +5,21 @@ domeinen:
     - localhost
 thema:
     titel: Mijn De Bosrand
+
+# Betalen via Worldline Direct (optioneel): haal de commentaartekens weg en zet de geheimen in backend.env.
+# koppelingen:
+#     payment-direct:
+#         url: https://payment.preprod.direct.worldline-solutions.com
+#         auth:
+#             type: gcs-v1-hmac
+#             clientId: <API-sleutel-ID van de provider>
+#             secret: 00000099000000000001.payment-direct-api-geheim
+# modules:
+#     payment-direct:
+#         webhookUrl: https://<domein van de tenant>/api/public/payment/direct/postsale
+#         profielen:
+#             belastingzaken:
+#                 pspId: <PSP-ID>
+#                 returnUrl: https://<domein van de tenant>
+#                 webhookSleutelId: <sleutel-ID van de webhook>
+#                 webhookGeheim: 00000099000000000001.payment-direct-webhook-geheim

@@ -24,8 +24,10 @@ import com.onlinepayments.domain.Order
 import com.onlinepayments.domain.OrderReferences
 import io.github.oshai.kotlinlogging.KLogger
 import io.github.oshai.kotlinlogging.KotlinLogging
-import nl.nlportal.payment.direct.autoconfiguration.DirectPaymentModuleConfiguration
+import nl.nlportal.core.tenancy.TenantDirectory
 import nl.nlportal.payment.direct.client.DirectPaymentClient
+import nl.nlportal.payment.direct.configuratie.DirectPaymentConfiguratie
+import nl.nlportal.payment.direct.configuratie.DirectPaymentProfiel
 import nl.nlportal.payment.direct.domain.DirectPaymentRequest
 import nl.nlportal.payment.direct.domain.DirectPaymentResponse
 import nl.nlportal.payment.direct.domain.DirectPaymentStatus
@@ -33,24 +35,27 @@ import org.springframework.http.HttpStatus
 import org.springframework.web.server.ResponseStatusException
 
 open class DirectPaymentService(
-    private val directPaymentModuleConfiguration: DirectPaymentModuleConfiguration,
+    private val directory: TenantDirectory,
     private val directPaymentClient: DirectPaymentClient,
 ) {
+    /** Het profiel van de huidige tenant (fail-closed: zonder tenant of zonder moduleconfiguratie volgt een fout). */
+    private suspend fun profiel(identificatie: String): Pair<DirectPaymentConfiguratie, DirectPaymentProfiel> {
+        val configuratie = directory.module<DirectPaymentConfiguratie>()
+        val profiel =
+            configuratie.profiel(identificatie)
+                ?: throw ResponseStatusException(HttpStatus.BAD_REQUEST, "Could not found direct payment profile for the identifier $identificatie")
+        return configuratie to profiel
+    }
+
     suspend fun getDirectPaymentStatus(
         identifier: String,
         hostedCheckoutId: String,
     ): DirectPaymentStatus {
-        val paymentDirectProfile =
-            directPaymentModuleConfiguration.properties.getPaymentProfile(identifier)
-                ?: directPaymentModuleConfiguration.properties.getPaymentProfileByPspPid(identifier)
-                ?: throw ResponseStatusException(
-                    HttpStatus.BAD_REQUEST,
-                    "Could not found direct payment profile for the identifier $identifier",
-                )
+        val (_, paymentDirectProfile) = profiel(identifier)
 
         val directPaymentStatusResponse =
             directPaymentClient.hostedCheckoutStatus(
-                directPaymentProfile = paymentDirectProfile,
+                profiel = paymentDirectProfile,
                 hostedCheckoutId = hostedCheckoutId,
             )
 
@@ -66,22 +71,16 @@ open class DirectPaymentService(
      */
     suspend fun doDirectPayment(paymentRequest: DirectPaymentRequest): DirectPaymentResponse {
         try {
-            val paymentDirectProfile =
-                directPaymentModuleConfiguration.properties.getPaymentProfile(paymentRequest.identifier)
-                    ?: directPaymentModuleConfiguration.properties.getPaymentProfileByPspPid(paymentRequest.identifier)
-                    ?: throw ResponseStatusException(
-                        HttpStatus.BAD_REQUEST,
-                        "Could not found direct payment profile for the identifier $paymentRequest.identifier",
-                    )
+            val (configuratie, paymentDirectProfile) = profiel(paymentRequest.identifier)
 
             val hostedCheckoutSpecificInput =
                 HostedCheckoutSpecificInput()
-                    .withLocale(paymentRequest.langId ?: paymentDirectProfile.language)
+                    .withLocale(paymentRequest.langId ?: paymentDirectProfile.taal)
                     .withReturnUrl(paymentRequest.returnUrl ?: paymentDirectProfile.returnUrl)
-                    .withShowResultPage(directPaymentModuleConfiguration.properties.showResultPage)
-                    .withAllowedNumberOfPaymentAttempts(paymentDirectProfile.allowedNumberOfPayments)
+                    .withShowResultPage(configuratie.toonResultaatPagina)
+                    .withAllowedNumberOfPaymentAttempts(paymentDirectProfile.aantalPogingen)
 
-            directPaymentModuleConfiguration.properties.customTemplateUrl?.let {
+            configuratie.customTemplateUrl?.let {
                 hostedCheckoutSpecificInput.variant = it
             }
 
@@ -92,7 +91,7 @@ open class DirectPaymentService(
                             .withAmountOfMoney(
                                 AmountOfMoney()
                                     .withAmount((paymentRequest.amount * 100).toLong())
-                                    .withCurrencyCode(paymentDirectProfile.currency),
+                                    .withCurrencyCode(paymentDirectProfile.valuta),
                             ).withReferences(
                                 OrderReferences()
                                     .withDescriptor(paymentRequest.reference)
@@ -103,7 +102,7 @@ open class DirectPaymentService(
                     )
 
             // only enable creditcard support if creditcardEnabled is enabled
-            if (paymentDirectProfile.creditcardEnabled) {
+            if (paymentDirectProfile.creditcardAan) {
                 checkoutRequest.withCardPaymentMethodSpecificInput(
                     CardPaymentMethodSpecificInputBase()
                         .withAuthorizationMode("SALE"),
@@ -111,7 +110,7 @@ open class DirectPaymentService(
             }
 
             // if webhookUrl property is configured, set webhook url in the request. Benefit is dynamically set the webhook url per environment.
-            directPaymentModuleConfiguration.properties.webhookUrl?.let {
+            configuratie.webhookUrl?.let {
                 checkoutRequest.withFeedbacks(
                     Feedbacks().withWebhooksUrls(listOf(it)),
                 )
@@ -119,7 +118,7 @@ open class DirectPaymentService(
 
             val response =
                 directPaymentClient.hostedCheckout(
-                    directPaymentProfile = paymentDirectProfile,
+                    profiel = paymentDirectProfile,
                     checkoutRequest = checkoutRequest,
                 )
 

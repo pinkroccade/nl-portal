@@ -133,7 +133,12 @@ internal class KoppelingWebClientFactory(
     ) = ExchangeFilterFunction.ofRequestProcessor { verzoek ->
         val datum = DateTimeFormatter.RFC_1123_DATE_TIME.format(ZonedDateTime.now(klok).withZoneSameInstant(ZoneOffset.UTC))
         val pad = verzoek.url().rawPath.removePrefix(basisPad) + (verzoek.url().rawQuery?.let { "?$it" } ?: "")
-        val contentType = verzoek.headers().contentType?.toString().orEmpty()
+        val contentType =
+            verzoek
+                .headers()
+                .contentType
+                ?.toString()
+                .orEmpty()
         val teOndertekenen = listOf(verzoek.method().name(), contentType, datum, pad).joinToString("\n", postfix = "\n")
         val mac = Mac.getInstance("HmacSHA256").apply { init(SecretKeySpec(secret.toByteArray(), "HmacSHA256")) }
         val handtekening = Base64.getEncoder().encodeToString(mac.doFinal(teOndertekenen.toByteArray()))

@@ -82,7 +82,7 @@ koppelingen:
         url: https://zaken.example.nl
         leverancier: Open Zaak
         auth:
-            type: zgw-jwt     # api-key | bearer | zgw-jwt | oauth2-client-credentials | oauth2-private-key-jwt
+            type: zgw-jwt     # api-key | bearer | zgw-jwt | oauth2-client-credentials | oauth2-private-key-jwt | gcs-v1-hmac
             clientId: bosrand # per tenant, nooit uit base.yaml
             secret: 00000099000000000001.zaken-secret   # naam van het geheim, altijd met de eigen OIN vooraan; de waarde staat in de secret store
 modules:
@@ -101,6 +101,43 @@ meldingen noemen het veld en de OIN, nooit de naam of waarde van een geheim. Voo
 in de secret store staan. `url` en `tokenUrl` zijn in een productieomgeving alleen `https`. Let op: de controle "is dit een naam" is een heuristiek (een
 geheim van alleen kleine letters en cijfers past in het patroon); de OIN-prefix en de Git-review zijn de echte bewaking. De validator-CLI kent de modules die op het
 klassenpad staan: `java -cp nl-portal-tenant-validator.jar:<module-jars> nl.nlportal.core.tenancy.TenantValidatorCli <map>`.
+
+### Betalen via Worldline Direct (`payment-direct`)
+
+Een tenant die betaalt via Worldline Direct heeft een koppeling `payment-direct` en een sectie `modules.payment-direct`. De koppeling ondertekent elk
+uitgaand verzoek zelf (`type: gcs-v1-hmac`, `clientId` is het API-sleutel-ID, `secret` verwijst naar het API-geheim); de module bewaart geen sleutel.
+Een profiel dat een eigen API-sleutel heeft, noemt een eigen koppeling in `koppeling` (standaard `payment-direct`).
+
+```yaml
+koppelingen:
+    payment-direct:
+        url: https://payment.preprod.direct.worldline-solutions.com
+        auth:
+            type: gcs-v1-hmac
+            clientId: <API-sleutel-ID>
+            secret: 00000099000000000001.payment-direct-api-geheim
+modules:
+    payment-direct:
+        webhookUrl: https://bosrand.example/api/public/payment/direct/postsale   # optioneel
+        customTemplateUrl: <hosted checkout-variant>                             # optioneel
+        toonResultaatPagina: false
+        profielen:
+            belastingzaken:       # naam van het profiel, ook te vinden op pspId
+                pspId: TAX
+                taal: nl_NL
+                valuta: EUR
+                returnUrl: https://bosrand.example/terug
+                koppeling: payment-direct          # optioneel
+                webhookSleutelId: <sleutel-ID van de webhook>    # samen met webhookGeheim
+                webhookGeheim: 00000099000000000001.payment-direct-webhook-geheim
+                creditcardAan: false
+                aantalPogingen: 1
+```
+
+De postsale-webhook (`POST /api/public/payment/direct/postsale`) is publiek en anoniem; de handtekening (`X-GCS-Signature`, `X-GCS-KeyId`) is de enige
+controle. De tenant volgt uit het hostdomein waarop de webhook binnenkomt en moet gelijk zijn aan de tenant van de `keyId`: alleen de `webhookSleutelId`'s uit het
+eigen tenantbestand gelden, een sleutel van een andere tenant is onbekend en geeft `Request is not valid`. De webhook is een benoemde uitzondering op de CSRF- en
+Origin-regel van de BFF. Een `webhookSleutelId` staat bij een tenant bij hoogstens een profiel.
 
 Eisen aan de omgeving (ook als acceptatiecriterium voor de ingress in #191):
 

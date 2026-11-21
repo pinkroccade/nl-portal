@@ -29,6 +29,7 @@ dependencies {
     implementation("org.springframework.data:spring-data-commons")
 
     api(Dependencies.commonsCodec)
+    testImplementation(testFixtures(project(":core")))
     testImplementation(project(":zgw:common-ground-authentication-test"))
     testImplementation(TestDependencies.springBootTest)
     testImplementation(TestDependencies.springBootWebClientTest)
