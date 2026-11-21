@@ -103,13 +103,12 @@ class InlogbeslisserTest {
     }
 
     @Test
-    fun `het BSN komt uit de userinfo en nooit uit het ID-token`() {
+    fun `het BSN komt uit de userinfo en een BSN in het ID-token weigert de login`() {
         val metBsnInIdToken = token { put("acting_subject_id", "s00000000:999993653") }
 
-        assertThat(reden(metBsnInIdToken, userInfo = userInfo(null))).isEqualTo(Reden.BSN_ONGELDIG)
-
-        val andereInUserinfo = beslisser.beslis(tenant(), token { put("acting_subject_id", "s00000000:123456789") }, userInfo("s00000000:999993653"), nu) as Inlogbeslissing.Toegestaan
-        assertThat(andereInUserinfo.identiteit.vertegenwoordigde.identificatie).isEqualTo("999993653")
+        assertThat(reden(metBsnInIdToken, userInfo = userInfo(null))).isEqualTo(Reden.BSN_IN_ID_TOKEN)
+        assertThat(reden(metBsnInIdToken, userInfo = userInfo())).isEqualTo(Reden.BSN_IN_ID_TOKEN)
+        assertThat(reden(token(), userInfo = userInfo(null))).isEqualTo(Reden.BSN_ONGELDIG)
     }
 
     @Test

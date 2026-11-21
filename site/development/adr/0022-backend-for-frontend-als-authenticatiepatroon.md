@@ -140,14 +140,14 @@ en wie de OAuth-client is.
   haalt het bij de callback uit het userinfo-antwoord van Keycloak. Het ID-token dat in de sessie blijft voor
   `id_token_hint` bevat daardoor geen BSN en geen identificerende claims (`preferred_username`, `name`, `email`); `sub` is het
   Keycloak-gebruikers-ID. De rooktest `keycloak:bff-login-test` toetst dat.
-- **Restrisico: BSN in de Redis-sessie.** De afgeleide identiteit, met het BSN van de vertegenwoordigde, staat in de sessie in Redis,
+- **Restrisico: BSN in de Redis-sessie.** De afgeleide identiteit, met het BSN van de ingelogde burger, staat in de sessie in Redis,
   omdat modulecalls het BSN nodig hebben. Besluit (21-11): dit is een restrisico. Mitigaties: Redis-ACL, TLS naar Redis buiten
   ontwikkeling, geen persistentie, TTL op elke sleutel en een allowlist-serializer. Versleuteling op applicatieniveau (AES-GCM, de
   sessie-ID als AAD) is een criterium in T26 ([#525](https://github.com/pinkroccade/nl-portal/issues/525)) en moet vóór de eerste
   productie-uitrol af zijn.
 - **NameQualifier-controle van het BSN** is niet gebouwd; het BSN-pad controleert nu de sectorprefix. Dit blokkeert de livegang
   met DigiD en heeft een eigen ticket ([#550](https://github.com/pinkroccade/nl-portal/issues/550)).
-- **Back-channel logout is nog niet gebouwd.** De realm kent de URL; de backend beantwoordt hem nog niet (404).
+- **Back-channel logout is nog niet gebouwd.** De back-channel-URL staat niet meer in het realm; hij komt terug met T24 (#523), samen met de backend die hem beantwoordt.
 
 ## Gevolgen
 

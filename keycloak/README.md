@@ -131,7 +131,7 @@ het pad `/` (geen `/auth`): de compose-stack en de backend- en frontendconfigura
 | Realm-template en keycloak-config-cli met de mappers; realmtest (beide handtekeningvlaggen en vastgepind certificaat per SAML-koppeling, wissende mapper per notitie, geen identiteitskoppeling, accountconsole uit, scope `acr` van de client af, OIDC-koppeling van de wallet) | #505 |
 | Renovate-regex-manager (eigen groep) voor versie, digest en `gradle.properties`; CI-job voor `keycloak:test`, `check-version` en de integratietest; SBOM en grype in CI; cosign en SLSA-provenance; controlepunt voor de herzieningsdatum van `.grype.yaml` (2027-01-31); SonarCloud-dekking voor `keycloak/provider` | #524 |
 | `acr`-volgordetabel (Basis < Midden < Substantieel < Hoog), onbekende en lege `acr` weigeren, niveau-afdwinging | #506 |
-| BSN uit `NameID`/`ActingSubjectID`/`LegalSubjectID`: `NameQualifier`, format en sectorprefix `s00000000:` controleren, elfproef; blokkeert livegang | #506 |
+| BSN uit `NameID`/`ActingSubjectID`/`LegalSubjectID`: `NameQualifier`, format en sectorprefix `s00000000:` controleren, elfproef; blokkeert livegang | #550 |
 | Echte DigiD (artifact-binding, `EncryptedID`) en echte wallet zijn niet getest; de simulator en de eigen IdP van de test zijn dat niet | #505, #506 |
 
 ## Terugvalplan

@@ -55,6 +55,7 @@ enum class Reden(
     NIVEAU_ONBEKEND("niveau_onbekend"),
     NIVEAU_TE_LAAG("niveau_te_laag"),
     BSN_ONGELDIG("bsn_ongeldig"),
+    BSN_IN_ID_TOKEN("bsn_in_id_token"),
     AUTH_TIME("auth_time"),
     SUBJECT("subject"),
     PROTOCOL("protocol"),

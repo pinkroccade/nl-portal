@@ -52,6 +52,9 @@ import org.springframework.web.bind.annotation.PostMapping
 import org.springframework.web.bind.annotation.RestController
 import org.springframework.web.reactive.function.client.WebClient
 import reactor.core.publisher.Mono
+import com.sun.net.httpserver.HttpServer
+import java.net.InetAddress
+import java.net.InetSocketAddress
 import java.nio.file.Files
 import java.time.Clock
 import java.time.Duration
@@ -124,7 +127,6 @@ class GestuurdeTokens(
             put("sid", spec.sid)
             spec.inlogmiddel?.let { put("inlogmiddel", it) }
             spec.acr?.let { put("acr", it) }
-            spec.actingSubjectId?.let { put("acting_subject_id", it) }
             if (spec.metAuthTime) put("auth_time", klok.instant().plus(spec.authTimeOffset).epochSecond)
             putAll(spec.extra)
         }
@@ -153,6 +155,29 @@ object BffTestOmgeving {
     private val tokenCallbacks = listOf("bosrand", "wijdeveld").associateWith { GestuurdeTokens(it, klok) }
 
     val provider: MockOAuth2Server = MockOAuth2Server(OAuth2Config(tokenCallbacks = tokenCallbacks.values.toSet())).also { it.start() }
+
+    /**
+     * De userinfo van de testprovider. De mock zet alle claims van `addClaims` zowel in het ID-token als in het access
+     * token (en dus in de userinfo); de echte realm zet het BSN alleen in de userinfo. Daarom een eigen eindpunt per tenant.
+     */
+    private val userinfoServer: HttpServer =
+        HttpServer.create(InetSocketAddress(InetAddress.getLoopbackAddress(), 0), 0).also { server ->
+            tokenCallbacks.forEach { (naam, tokens) ->
+                server.createContext("/userinfo/$naam") { uitwisseling ->
+                    val bsn =
+                        tokens.spec.actingSubjectId
+                            ?.let { ",\"acting_subject_id\":\"$it\"" }
+                            .orEmpty()
+                    val antwoord = "{\"sub\":\"${tokens.spec.subject}\"$bsn}".toByteArray()
+                    uitwisseling.responseHeaders.add("Content-Type", "application/json")
+                    uitwisseling.sendResponseHeaders(200, antwoord.size.toLong())
+                    uitwisseling.responseBody.use { it.write(antwoord) }
+                }
+            }
+            server.start()
+        }
+
+    val userinfoPoort: Int get() = userinfoServer.address.port
 
     /** De sleutelmap (`nl-portal.sleutelmap`): per tenant een map met de OIN als naam. */
     val sleutelMap: java.nio.file.Path = Files.createTempDirectory("bff-test-sleutels")
@@ -300,7 +325,7 @@ class BffTestConfiguratie {
                 server.tokenEndpointUrl(id).toString(),
                 server.jwksUrl(id).toString(),
                 server.endSessionEndpointUrl(id).toString(),
-                server.userInfoUrl(id).toString(),
+                "http://127.0.0.1:${BffTestOmgeving.userinfoPoort}/userinfo/$id",
             )
         }
 

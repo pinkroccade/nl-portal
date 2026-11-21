@@ -43,6 +43,7 @@ sealed interface Inlogbeslissing {
  *
  *  - inlogmiddel uit een claim die een IdP-mapper zet (nooit uit de hint), en het middel staat aan voor de tenant;
  *  - wallet en eHerkenning worden geweigerd (wallet tot #529; eHerkenning is nog niet gebouwd);
+ *  - geen BSN-claim (`acting_subject_id`) in het ID-token: die hoort alleen in de userinfo, anders weigert de login;
  *  - geen vertegenwoordiging (`legal_subject_id`) en geen KvK-identiteit zolang machtigen en eHerkenning uit staan;
  *  - betrouwbaarheidsniveau uit `acr` via de volgordetabel van het inlogmiddel, minstens het minimum van de tenant; een
  *    onbekende of lege waarde geldt als afwezig en wordt geweigerd;
@@ -77,6 +78,8 @@ class Inlogbeslisser {
         if (middel !in tenant.inlogmiddelen) return weiger(Reden.INLOGMIDDEL_UIT)
         if (middel !in ONDERSTEUND) return weiger(Reden.INLOGMIDDEL_NIET_ONDERSTEUND)
 
+        // Defense in depth: het ID-token gaat als `id_token_hint` de browser in en hoort geen BSN te dragen (realm-drift).
+        if (idToken.claims.containsKey(CLAIM_ACTING_SUBJECT)) return weiger(Reden.BSN_IN_ID_TOKEN)
         if (idToken.claims[CLAIM_VERTEGENWOORDIGDE] != null) return weiger(Reden.VERTEGENWOORDIGING)
         if (idToken.claims[CLAIM_KVK] != null) return weiger(Reden.KVK_IDENTITEIT)
 

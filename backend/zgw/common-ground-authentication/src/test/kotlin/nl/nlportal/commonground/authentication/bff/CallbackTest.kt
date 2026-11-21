@@ -121,10 +121,11 @@ class CallbackTest : BffTestBasis() {
 
     @Test
     fun `een replay van dezelfde callback faalt en levert geen sessie`() {
+        bosrand.tokens.spec = TokenSpec()
         val browser = Browser(bosrand)
         val start = get(browser, "${BffNamen.INLOGPAD}${bosrand.oin}?inlogmiddel=digid")
         val flowCookie = browser.jar.getValue(BffNamen.FLOW_COOKIE)
-        val terug = idpAutoriseer(start.responseHeaders.location!!)
+        val terug = idpAutoriseer(start.responseHeaders.location!!, bosrand.tokens.spec.subject)
         slaagt(Inlog(browser, start, callback(browser, terug, bosrand.issuer)))
 
         val herhaling = Browser(bosrand)
@@ -228,6 +229,7 @@ class CallbackTest : BffTestBasis() {
                 Arguments.of("geen inlogmiddel-claim", "bosrand", TokenSpec(inlogmiddel = null), Reden.INLOGMIDDEL_ONBEKEND),
                 Arguments.of("LegalSubjectID (vertegenwoordiging)", "bosrand", TokenSpec(extra = mapOf("legal_subject_id" to "s00000000:999993847")), Reden.VERTEGENWOORDIGING),
                 Arguments.of("lege LegalSubjectID telt als aanwezig", "bosrand", TokenSpec(extra = mapOf("legal_subject_id" to "")), Reden.VERTEGENWOORDIGING),
+                Arguments.of("BSN in het ID-token (realm-drift: het ID-token gaat als id_token_hint de browser in)", "bosrand", TokenSpec(extra = mapOf("acting_subject_id" to BSN_GOED)), Reden.BSN_IN_ID_TOKEN),
                 Arguments.of("KvK-identiteit", "bosrand", TokenSpec(extra = mapOf("kvk" to "14127293")), Reden.KVK_IDENTITEIT),
                 Arguments.of("BSN met een foute elfproef", "bosrand", TokenSpec(actingSubjectId = "s00000000:123456789"), Reden.BSN_ONGELDIG),
                 Arguments.of("BSN zonder sectorprefix bij DigiD", "bosrand", TokenSpec(actingSubjectId = "999993653"), Reden.BSN_ONGELDIG),

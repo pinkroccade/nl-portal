@@ -25,7 +25,8 @@ spring:
 nl-portal:
     sleutelmap: build/test-sleutels
     tenancy:
-        directory: src/test/resources/tenants
+        # Zelfde tenantbestanden als :app (zelfde mockpoort 56789): een tenantbestand minder om bij elke migratie bij te werken.
+        directory: ../app/src/test/resources/tenants
     # De secret store van de test: de geheimen van de koppelingen `zakenapi` en `payment-direct` in het tenantbestand (zaken: minstens 32 tekens voor een ZGW-JWT).
     geheimen:
         "00000099000000000001.zaken-secret": testwaarde-zaken-geheim-voor-de-app-test-0123456789
