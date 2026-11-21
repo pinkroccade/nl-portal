@@ -24,7 +24,7 @@ import java.nio.charset.StandardCharsets
  * Host-binding: een URL wordt alleen gevolgd als hij onder de basis-URL van dezelfde koppeling valt (schema, host,
  * poort en padprefix). Anders volgt een fout en gaat er niets over de lijn, dus ook geen credentials.
  */
-internal object HostBinding {
+object HostBinding {
     /** Een fout als [IllegalArgumentException]: de aanroeper zet hem om, met de naam van de koppeling. */
     fun oplossen(
         basis: URI,

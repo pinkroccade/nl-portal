@@ -15,6 +15,7 @@
  */
 package nl.nlportal.zgw.objectenapi.service
 
+import nl.nlportal.core.koppeling.HostBinding
 import nl.nlportal.zgw.objectenapi.autoconfiguration.ObjectsApiClientConfig.ObjectsApiClientConfigProperties
 import nl.nlportal.zgw.objectenapi.client.ObjectsApiClient
 import nl.nlportal.zgw.objectenapi.domain.CreateObjectsApiObjectRequest
@@ -50,12 +51,24 @@ class ObjectenApiService(
     ): ObjectsApiObject<T>? = objectsApiClient.updateObject(objectUuid, objectsApiObject)
 
     suspend inline fun <reified T> getObjectByUrl(url: String): ObjectsApiObject<T>? {
-        val requestedObjectenApiHost = URI.create(url).host
-        val configuredObjectenApiHost = objectsApiClientConfig.url.host
-        if (!requestedObjectenApiHost.equals(configuredObjectenApiHost)) {
-            throw IllegalArgumentException("Configured Objects API hostname does not match the requested object")
-        }
+        controleerObjectUrl(url)
         return objectsApiClient.getObjectByUrl(url)
+    }
+
+    /**
+     * Een object-URL komt uit het antwoord van een andere bron en krijgt het token van de Objecten API alleen als hij onder
+     * de basis-URL van die API valt: schema, host, poort en padvoorvoegsel (op segmentgrens). Dezelfde regel als de
+     * host-binding van de koppelingen.
+     */
+    @PublishedApi
+    internal fun controleerObjectUrl(url: String) {
+        val basis = objectsApiClientConfig.url
+        require(runCatching { URI(url).isAbsolute }.getOrDefault(false)) { "De object-URL is geen absolute URL" }
+        try {
+            HostBinding.oplossen(basis, url)
+        } catch (e: IllegalArgumentException) {
+            throw IllegalArgumentException("De object-URL valt buiten de geconfigureerde Objecten API: ${e.message}", e)
+        }
     }
 
     suspend inline fun <reified T> createObject(createObjectsApiObjectRequest: CreateObjectsApiObjectRequest<T>): ObjectsApiObject<T> =
