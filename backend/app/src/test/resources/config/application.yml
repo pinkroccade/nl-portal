@@ -26,6 +26,7 @@ nl-portal:
     geheimen:
         # Geheimen van de testtenant (zie tenants/00000099000000000001.yaml): <oin>.<naam>
         "00000099000000000001":
+            kvk-sleutel: test-kvk-sleutel
             payment-direct-api-geheim: test-api-geheim
             payment-direct-webhook-geheim: test-webhook-geheim
     security:
@@ -98,11 +99,6 @@ nl-portal:
             enabled: true
         kvk:
             enabled: true
-            properties:
-                url: http://localhost:56789
-                apiKey: test-api-key
-                ssl:
-                    enabled: false
         taak:
             enabled: true
             properties:

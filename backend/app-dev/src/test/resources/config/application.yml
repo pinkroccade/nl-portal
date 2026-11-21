@@ -24,6 +24,12 @@ nl-portal:
     tenancy:
         # Zelfde tenantbestanden als :app (zelfde mockpoort 56789): een tenantbestand minder om bij elke migratie bij te werken.
         directory: ../app/src/test/resources/tenants
+    geheimen:
+        # Geheimen van de testtenant van :app (tenants/00000099000000000001.yaml): <oin>.<naam>
+        "00000099000000000001":
+            kvk-sleutel: test-kvk-sleutel
+            payment-direct-api-geheim: test-api-geheim
+            payment-direct-webhook-geheim: test-webhook-geheim
     security:
         cors:
             -   path: "/**"
@@ -100,11 +106,6 @@ nl-portal:
             enabled: true
         kvk:
             enabled: true
-            properties:
-                url: http://localhost:56789
-                apiKey: test-api-key
-                ssl:
-                    enabled: false
         taak:
             enabled: true
             properties:

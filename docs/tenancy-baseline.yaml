@@ -133,11 +133,9 @@ modules:
     signalen: {}
   ":kvk":
     omvang: S
-    risico: middel
-    toelichting: Client per tenant.
-    signalen:
-      config: KvkConfig is een singleton.
-      webclient: Client bouwt zelf een WebClient.
+    risico: laag
+    toelichting: Gemigreerd (T10 #509); de bron is de koppeling kvk van de tenant (url en sleutel in het tenantbestand), er is geen eigen moduleconfiguratie.
+    signalen: {}
   ":app":
     omvang: M
     risico: middel

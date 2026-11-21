@@ -90,6 +90,8 @@ modules:
         velden: [naam, geboortedatum]
 ```
 
+De KvK-module (`kvk`) heeft geen eigen moduleconfiguratie: de bron staat onder `koppelingen.kvk` (`url` en een `api-key` met `headerNaam: X-API-KEY` en het geheim `<oin>.kvk-sleutel`; een bron achter de cloud gateway zonder sleutel gebruikt `auth.type: geen`). Een tenant zonder `koppelingen.kvk` krijgt op elke KvK-aanroep een fout (`MODULE_NIET_GECONFIGUREERD`), nooit een leeg antwoord; alleen een fout van de bron geeft `null`. De module-schakelaar `nl-portal.config.kvk.enabled` blijft bestaan; de oude properties `...kvk.properties.*` (`url`, `apiKey`, `ssl`) zijn vervallen en weigeren het opstarten zolang ze nog gezet zijn (ook als omgevingsvariabele); uitgaande clientcertificaten (`ssl`) vervallen omdat de cloud gateway ze beheert.
+
 De BRP-module (`haalcentraal-brp`) is zo gemigreerd: de bron staat onder `koppelingen.brp` (personen) en, voor het aantal bewoners, `koppelingen.brp-bewoning`
 (optioneel), met `auth.type: geen`: de bron zit achter de cloud gateway, die per gemeente zelf authenticeert, dus er is geen sleutel en geen geheim. Een leverancier die wel een sleutel vraagt, gebruikt `api-key`. `modules.brp` bevat de doelbinding van de gemeente: `velden` (de velden die bij de BRP
 worden opgevraagd; standaard 24 velden), `toegestaneWoonplaatsenBewoning` (leeg betekent alle woonplaatsen) en `aanvullendeHeaders` (vaste headers zoals `x-doelbinding`,
