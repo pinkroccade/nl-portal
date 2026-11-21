@@ -1,5 +1,5 @@
 /*
- * Copyright 2015-2026 Den Haag, Ritense, the Netherlands.
+ * Copyright 2015-2023 Den Haag, Ritense, the Netherlands.
  *
  * Licensed under EUPL, Version 1.2 (the "License");
  * you may not use this file except in compliance with the License.
@@ -93,7 +93,8 @@ class ZakenApiClient(
      * Voert [aanroep] uit op de koppeling van de huidige tenant en legt de uitkomst vast als passieve modulestatus. Een 404 en
      * een 401 van de bron komen als [ResponseStatusException] bij de aanroeper, zoals voor de migratie.
      */
-    suspend fun <T> uitvoeren(aanroep: suspend (KoppelingClient) -> T): T {
+    @PublishedApi
+    internal suspend fun <T> uitvoeren(aanroep: suspend (KoppelingClient) -> T): T {
         val koppeling = koppeling()
         return try {
             aanroep(koppeling).also { moduleStatus.recordSuccess(MODULE, API) }

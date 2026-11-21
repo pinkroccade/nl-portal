@@ -78,7 +78,7 @@ class KoppelingClient internal constructor(
         var volgende: String? = pad
         var pagina = 0
         while (volgende != null) {
-            if (++pagina > maxPaginas) throw fout(KoppelingFoutsoort.ANTWOORD_ONBRUIKBAAR, null)
+            if (++pagina > maxPaginas) throw paginaLimietBereikt()
             val antwoord = getPage(volgende, type, if (pagina == 1) query else emptyMap(), headers)
             resultaat += antwoord.results
             volgende = antwoord.next
@@ -233,18 +233,23 @@ class KoppelingClient internal constructor(
         return fout
     }
 
+    /** De fout voor een bron die meer dan [MAX_PAGINAS] pagina's blijft geven; ook voor een aanroeper die zelf over pagina's loopt. */
+    fun paginaLimietBereikt(): KoppelingException = fout(KoppelingFoutsoort.ANTWOORD_ONBRUIKBAAR, null)
+
     private fun fout(
         soort: KoppelingFoutsoort,
         oorzaak: Throwable?,
     ) = KoppelingException.gesynthetiseerd(naam, soort, cause = oorzaak)
 
-    private companion object {
-        val logger = KotlinLogging.logger {}
-        val MAPPER: JsonMapper = JsonMapper.builder().build()
-        val PROBLEM_JSON: MediaType = MediaType.APPLICATION_PROBLEM_JSON
-        val VERBODEN_HEADERS =
-            setOf(HttpHeaders.AUTHORIZATION, HttpHeaders.PROXY_AUTHORIZATION, HttpHeaders.COOKIE, HttpHeaders.HOST).map { it.lowercase() }.toSet()
+    companion object {
+        /** Het maximum aantal pagina's dat [getAllPages] volgt; een bron die blijft doorverwijzen geeft daarna een fout. */
         const val MAX_PAGINAS = 100
+
+        private val logger = KotlinLogging.logger {}
+        private val MAPPER: JsonMapper = JsonMapper.builder().build()
+        private val PROBLEM_JSON: MediaType = MediaType.APPLICATION_PROBLEM_JSON
+        private val VERBODEN_HEADERS =
+            setOf(HttpHeaders.AUTHORIZATION, HttpHeaders.PROXY_AUTHORIZATION, HttpHeaders.COOKIE, HttpHeaders.HOST).map { it.lowercase() }.toSet()
     }
 }
 

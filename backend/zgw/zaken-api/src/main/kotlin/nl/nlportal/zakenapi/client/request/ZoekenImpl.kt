@@ -1,5 +1,5 @@
 /*
- * Copyright 2015-2026 Den Haag, Ritense, the Netherlands.
+ * Copyright 2015-2025 Den Haag, Ritense, the Netherlands.
  *
  * Licensed under EUPL, Version 1.2 (the "License");
  * you may not use this file except in compliance with the License.
@@ -15,6 +15,7 @@
  */
 package nl.nlportal.zakenapi.client.request
 
+import nl.nlportal.core.koppeling.KoppelingClient
 import nl.nlportal.core.koppeling.ResultPage
 import nl.nlportal.zakenapi.client.ZakenApiClient
 import nl.nlportal.zakenapi.client.ZakenApiClient.Companion.ZAKEN_PAD
@@ -126,9 +127,10 @@ class SearchZoekenImpl(
     override suspend fun retrieveAll(): List<Zaak> {
         val resultaat = mutableListOf<Zaak>()
         var nummer = page ?: 1
-        var pagina = 0
+        var opgehaald = 0
         do {
-            check(++pagina <= MAX_PAGINAS) { "Meer dan $MAX_PAGINAS pagina's zaken; afgebroken" }
+            // Dezelfde foutvorm als KoppelingClient.getAllPages: correlatie-ID, generieke code en modulestatus.
+            if (++opgehaald > KoppelingClient.MAX_PAGINAS) zakenApiClient.uitvoeren { throw it.paginaLimietBereikt() }
             val antwoord = pagina(nummer++)
             resultaat += antwoord.results
         } while (antwoord.next != null)
@@ -142,9 +144,5 @@ class SearchZoekenImpl(
                 pageSize?.let { put("pageSize", listOf(it.toString())) }
             }
         return zakenApiClient.zoek("$ZAKEN_PAD/zaken/_zoek", criteria.bouw(), query)
-    }
-
-    private companion object {
-        const val MAX_PAGINAS = 100
     }
 }

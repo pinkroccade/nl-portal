@@ -21,6 +21,7 @@ import java.util.UUID
 import kotlinx.coroutines.flow.Flow
 import nl.nlportal.commonground.authentication.AuthenticationMachtigingsDienstService
 import nl.nlportal.portal.authentication.domain.PortalAuthentication
+import nl.nlportal.core.koppeling.KoppelingException
 import nl.nlportal.core.tenancy.TenantContextMissingException
 import nl.nlportal.core.util.ModuleNotConfiguredException
 import nl.nlportal.core.util.ZgwUrls.extractId
@@ -99,10 +100,20 @@ class ZakenApiService(
             request.ofZaakTypes(zaakTypeUUIDs.toList())
         }
 
-        return request.retrieve().let {
-            ZaakPage.fromResultPage(page, pageSize ?: 20, it)
+        // De bron past zaaktype__not_in toe met zaaktype-URL's uit de Catalogi API; heeft de tenant een eigen Catalogi, dan
+        // komen die URL's niet overeen. Daarom filteren we ook op zaaktype-UUID, onafhankelijk van de URL-basis.
+        return request.retrieve().let { resultaat ->
+            val toegestaan = resultaat.results.filterNot { uitgesloten.isNotEmpty() && isUitgesloten(it.zaaktype, uitgesloten) }
+            val verwijderd = resultaat.results.size - toegestaan.size
+            ZaakPage.fromResultPage(page, pageSize ?: 20, resultaat.copy(count = (resultaat.count - verwijderd).coerceAtLeast(0), results = toegestaan))
         }
     }
+
+    /** Een zaaktype-URL zonder herkenbare UUID geldt als uitgesloten: bij twijfel niet tonen. */
+    private fun isUitgesloten(
+        zaaktypeUrl: String,
+        uitgesloten: List<UUID>,
+    ): Boolean = runCatching { extractId(zaaktypeUrl) }.map { it in uitgesloten }.getOrDefault(true)
 
     suspend fun getZaak(
         id: UUID,
@@ -160,7 +171,9 @@ class ZakenApiService(
         } catch (ex: TenantContextMissingException) {
             throw ex
         } catch (ex: Exception) {
-            logger.warn { "Could not get zak sub statussen for $zaakUrl and $statusUrl: $ex" }
+            // Geen zaak- of status-URL in de log: een zaak-URL geldt als gevoelig. Bij een koppelingsfout volstaat de referentie.
+            val referentie = (ex as? KoppelingException)?.correlatieId
+            logger.warn { "Could not get zaak sub statussen: ${ex::class.simpleName}, referentie $referentie" }
         }
         return emptyList()
     }

@@ -33,13 +33,17 @@ import nl.nlportal.zakenapi.service.ZakenApiService
 import nl.nlportal.zgw.objectenapi.autoconfiguration.ObjectsApiClientConfig.ObjectsApiClientConfigProperties
 import nl.nlportal.zgw.objectenapi.client.ObjectsApiClient
 import nl.nlportal.zgw.objectenapi.service.ObjectenApiService
+import okhttp3.mockwebserver.Dispatcher
 import okhttp3.mockwebserver.MockResponse
 import okhttp3.mockwebserver.MockWebServer
+import okhttp3.mockwebserver.RecordedRequest
 import org.assertj.core.api.Assertions.assertThat
 import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertThrows
+import org.mockito.kotlin.any
+import org.mockito.kotlin.doReturn
 import org.mockito.kotlin.mock
 import org.mockito.kotlin.never
 import org.mockito.kotlin.verify
@@ -53,6 +57,7 @@ import java.util.UUID
  */
 class ZakenApiTenantTest {
     private val bsn = "123456782"
+    private val BSN_PARAMETER = "rol__betrokkeneIdentificatie__natuurlijkPersoon__inpBsn"
     private lateinit var bosrandBron: MockWebServer
     private lateinit var wijdeVeldBron: MockWebServer
     private lateinit var buitenstaander: MockWebServer
@@ -76,9 +81,10 @@ class ZakenApiTenantTest {
     private fun pagina(
         results: String,
         next: String? = null,
+        count: Int = 0,
     ) = MockResponse()
         .setHeader("Content-Type", "application/json")
-        .setBody("""{"count":0,"next":${next?.let { "\"$it\"" }},"previous":null,"results":[$results]}""")
+        .setBody("""{"count":$count,"next":${next?.let { "\"$it\"" }},"previous":null,"results":[$results]}""")
 
     private fun tenant(
         oin: nl.nlportal.core.tenancy.Oin,
@@ -122,7 +128,7 @@ class ZakenApiTenantTest {
             assertThat(bosrandBron.requestCount).isEqualTo(1)
             assertThat(wijdeVeldBron.requestCount).isZero()
             val verzoek = bosrandBron.takeRequest()
-            assertThat(verzoek.headers.toString()).contains("Content-Type: application/json")
+            assertThat(verzoek.getHeader("Content-Type")).startsWith("application/json")
             assertThat(verzoek.body.readUtf8()).isEqualTo("""{"rol__betrokkeneIdentificatie__natuurlijkPersoon__inpBsn":["$bsn"]}""")
 
             TestTenants.alsTenant(WIJDE_VELD) {
@@ -135,7 +141,30 @@ class ZakenApiTenantTest {
 
             assertThat(wijdeVeldBron.requestCount).isEqualTo(1)
             assertThat(bosrandBron.requestCount).isEqualTo(1)
-            assertThat(buitenstaander.requestCount).isZero()
+            assertThat(wijdeVeldBron.takeRequest().body.readUtf8()).isEqualTo("""{"$BSN_PARAMETER":["$bsn"]}""")
+        }
+
+    @Test
+    fun `het BSN van een GET-vraag en van de rollen gaat als query alleen naar de koppeling van de eigen tenant`() =
+        runTest {
+            val client = client(tenant(BOSRAND, bosrandBron, "bosrand"), tenant(WIJDE_VELD, wijdeVeldBron, "wijdeveld"))
+            val burger = JwtBuilder().vertegenwoordigdeBsn(bsn).buildAuthentication()
+            repeat(2) { bosrandBron.enqueue(leeg()) }
+            wijdeVeldBron.enqueue(leeg())
+
+            TestTenants.alsTenant(BOSRAND) {
+                client.zaken().search().withBsn(bsn).retrieve()
+                client.zaakRollen().search().forZaak(UUID.randomUUID()).withAuthentication(burger).retrieveAll()
+            }
+
+            assertThat(wijdeVeldBron.requestCount).isZero()
+            assertThat(bosrandBron.takeRequest().requestUrl?.queryParameter(BSN_PARAMETER)).isEqualTo(bsn)
+            assertThat(bosrandBron.takeRequest().requestUrl?.query).contains(bsn)
+
+            TestTenants.alsTenant(WIJDE_VELD) { client.zaken().search().withBsn(bsn).retrieve() }
+
+            assertThat(bosrandBron.requestCount).isEqualTo(2)
+            assertThat(wijdeVeldBron.takeRequest().requestUrl?.queryParameter(BSN_PARAMETER)).isEqualTo(bsn)
         }
 
     @Test
@@ -180,7 +209,8 @@ class ZakenApiTenantTest {
                     tenant(BOSRAND, bosrandBron, "bosrand", ZakenApiConfiguratie(uitgeslotenZaaktypen = listOf(uitgesloten))),
                     tenant(WIJDE_VELD, wijdeVeldBron, "wijdeveld"),
                 )
-            val service = ZakenApiService(client, mock<DocumentenApiService>(), mock<ObjectenApiService>(), mock<AuthenticationMachtigingsDienstService>())
+            val machtigingen = mock<AuthenticationMachtigingsDienstService> { on { zaakTypes(any()) } doReturn null }
+            val service = ZakenApiService(client, mock<DocumentenApiService>(), mock<ObjectenApiService>(), machtigingen)
             bosrandBron.enqueue(leeg())
             wijdeVeldBron.enqueue(leeg())
             val burger = JwtBuilder().vertegenwoordigdeBsn(bsn).buildAuthentication()
@@ -188,8 +218,57 @@ class ZakenApiTenantTest {
             TestTenants.alsTenant(BOSRAND) { service.getZaken(1, authentication = burger) }
             TestTenants.alsTenant(WIJDE_VELD) { service.getZaken(1, authentication = burger) }
 
-            assertThat(bosrandBron.takeRequest().body.readUtf8()).contains("zaaktype__not_in", "https://catalogi.example.nl/catalogi/api/v1/zaaktypen/$uitgesloten")
+            assertThat(bosrandBron.takeRequest().body.readUtf8())
+                .isEqualTo("""{"$BSN_PARAMETER":["$bsn"],"rol__omschrijvingGeneriek":["initiator"],"zaaktype__not_in":["https://catalogi.example.nl/catalogi/api/v1/zaaktypen/$uitgesloten"]}""")
             assertThat(wijdeVeldBron.takeRequest().body.readUtf8()).doesNotContain("zaaktype__not_in")
+        }
+
+    @Test
+    fun `een zaak van een uitgesloten zaaktype komt niet in de lijst, ook niet als de bron het filter niet toepast`() =
+        runTest {
+            val uitgesloten = "c2d3e114-bbe4-478d-80de-e8a8c8f8a948"
+            val toegestaan = "5f1c9a3e-2b7d-4c58-9d6a-0e8f4b1a7c33"
+            val client = client(tenant(BOSRAND, bosrandBron, "bosrand", ZakenApiConfiguratie(uitgeslotenZaaktypen = listOf(uitgesloten))))
+            val service = ZakenApiService(client, mock<DocumentenApiService>(), mock<ObjectenApiService>(), mock<AuthenticationMachtigingsDienstService>())
+
+            // De bron heeft een eigen Catalogi: de zaaktype-URL's in het filter zaaktype__not_in komen daar niet mee overeen.
+            fun zaak(
+                nummer: Int,
+                zaaktype: String,
+            ) = """{"uuid":"a1b2c3d4-0000-4000-8000-00000000000$nummer","url":"https://eigen.example.nl/zaken/api/v1/zaken/a1b2c3d4-0000-4000-8000-00000000000$nummer",""" +
+                """"identificatie":"Z$nummer","omschrijving":"o","zaaktype":"https://eigen-catalogi.example.nl/catalogi/api/v1/zaaktypen/$zaaktype",""" +
+                """"startdatum":"2026-01-01","einddatum":null,"status":null}"""
+            bosrandBron.enqueue(pagina(listOf(zaak(1, uitgesloten), zaak(2, toegestaan), zaak(3, uitgesloten.uppercase())).joinToString(","), count = 3))
+
+            val resultaat = TestTenants.alsTenant(BOSRAND) { service.getZaken(1, authentication = JwtBuilder().vertegenwoordigdeBsn(bsn).buildAuthentication()) }
+
+            assertThat(resultaat.content.map { it.identificatie }).containsExactly("Z2")
+            assertThat(resultaat.totalElements).isEqualTo(1)
+        }
+
+    @Test
+    fun `een bron die altijd een volgende pagina geeft levert na het maximum aan verzoeken een KoppelingException`() =
+        runTest {
+            val client = client(tenant(BOSRAND, bosrandBron, "bosrand"))
+            bosrandBron.dispatcher =
+                object : Dispatcher() {
+                    override fun dispatch(request: RecordedRequest) = pagina("", next = "https://onbelangrijk.example/volgende")
+                }
+
+            val fout =
+                TestTenants.alsTenant(BOSRAND) {
+                    assertThrows<KoppelingException> {
+                        client
+                            .zoeken()
+                            .search()
+                            .withBsn(bsn)
+                            .retrieveAll()
+                    }
+                }
+
+            assertThat(fout.soort).isEqualTo(KoppelingFoutsoort.ANTWOORD_ONBRUIKBAAR)
+            assertThat(fout.correlatieId).isNotBlank()
+            assertThat(bosrandBron.requestCount).isEqualTo(100)
         }
 
     @Test
@@ -247,7 +326,9 @@ class ZakenApiTenantTest {
             bosrandBron.enqueue(pagina(zaakObject))
 
             val zaakUrl = "https://zaken.example.nl/zaken/api/v1/zaken/2941048a-7290-4a78-8c4e-14feaec137dc"
-            TestTenants.alsTenant(BOSRAND) { assertThrows<IllegalArgumentException> { service.getZaakDetails(zaakUrl) } }
+            val fout = TestTenants.alsTenant(BOSRAND) { assertThrows<IllegalArgumentException> { service.getZaakDetails(zaakUrl) } }
+
+            assertThat(fout.message).contains("andere host")
 
             verify(objectsApiClient, never()).webClientWithoutBaseUrl()
         }
@@ -277,7 +358,7 @@ class ZakenApiTenantTest {
             val client = client(tenant(BOSRAND, bosrandBron, "bosrand"), status = status)
             bosrandBron.shutdown()
 
-            TestTenants.alsTenant(BOSRAND) { runCatching { client.zaken().get(UUID.randomUUID()).retrieve() } }
+            TestTenants.alsTenant(BOSRAND) { assertThrows<KoppelingException> { client.zaken().get(UUID.randomUUID()).retrieve() } }
 
             assertThat(status.snapshot().single().status).isEqualTo(ModuleState.DEGRADED)
         }

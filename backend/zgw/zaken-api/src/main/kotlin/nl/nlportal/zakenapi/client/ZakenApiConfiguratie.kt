@@ -15,8 +15,10 @@
  */
 package nl.nlportal.zakenapi.client
 
+import nl.nlportal.core.tenancy.ModuleContext
 import nl.nlportal.core.tenancy.ModuleOvertreding
 import nl.nlportal.core.tenancy.NietErfbaar
+import nl.nlportal.core.tenancy.TenantDirectory
 import nl.nlportal.core.tenancy.TenantModuleConfiguratie
 import java.util.UUID
 import kotlin.reflect.KClass
@@ -43,6 +45,14 @@ class ZakenApiTenantConfiguratie : TenantModuleConfiguratie<ZakenApiConfiguratie
     override val naam = "zakenapi"
     override val klasse: KClass<ZakenApiConfiguratie> = ZakenApiConfiguratie::class
 
+    /** Modulegegevens zonder de koppeling waar ze bij horen, valt bij het laden op en niet pas bij de eerste inwoner. */
+    override fun valideer(
+        configuratie: ZakenApiConfiguratie,
+        context: ModuleContext,
+    ): List<ModuleOvertreding> =
+        valideer(configuratie) +
+            if ("zakenapi" in context.koppelingen) emptyList() else listOf(ModuleOvertreding("", "vereist koppelingen.zakenapi"))
+
     override fun valideer(configuratie: ZakenApiConfiguratie): List<ModuleOvertreding> =
         configuratie.uitgeslotenZaaktypen.mapIndexedNotNull { index, waarde ->
             if (isUuid(waarde)) null else ModuleOvertreding("uitgeslotenZaaktypen[$index]", "is geen geldige UUID")
@@ -50,4 +60,14 @@ class ZakenApiTenantConfiguratie : TenantModuleConfiguratie<ZakenApiConfiguratie
 
     /** `UUID.fromString` accepteert ook korte vormen (`1-1-1-1-1`); een zaaktype-ID is de volledige vorm. */
     private fun isUuid(waarde: String) = runCatching { UUID.fromString(waarde).toString() == waarde.lowercase() }.getOrDefault(false)
+}
+/**
+ * Een tenant met `koppelingen.zakenapi` maar zonder `modules.zakenapi` weigert het opstarten, met de OIN in de melding: zonder
+ * modulegegevens faalt `getZaken` pas bij de eerste inwoner. (Het omgekeerde, modulegegevens zonder koppeling, weigert de loader.)
+ */
+fun controleerKoppelingenHebbenModulegegevens(directory: TenantDirectory) {
+    val zonder = directory.tenants.filter { "zakenapi" in it.koppelingen && it.module(ZakenApiConfiguratie::class) == null }
+    check(zonder.isEmpty()) {
+        "Tenant " + zonder.joinToString { it.oin.value } + ": koppelingen.zakenapi vereist modules.zakenapi (ook `modules.zakenapi: {}` voor de standaardwaarden)"
+    }
 }

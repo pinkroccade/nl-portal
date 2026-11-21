@@ -23,7 +23,7 @@ import org.springframework.util.MultiValueMap
  * van de koppeling, een schakelaar in het tenantbestand): [later] stelt die uit tot [bouw], dat bij het uitvoeren draait.
  */
 internal class Criteria<V : Any> {
-    private val waarden: MultiValueMap<String, V> = LinkedMultiValueMap()
+    private val waarden = LinkedMultiValueMap<String, V>()
     private val uitgesteld = mutableListOf<suspend (MultiValueMap<String, V>) -> Unit>()
 
     fun add(
@@ -45,7 +45,7 @@ internal class Criteria<V : Any> {
     }
 
     suspend fun bouw(): MultiValueMap<String, V> {
-        val resultaat = LinkedMultiValueMap(waarden)
+        val resultaat = waarden.deepCopy()
         uitgesteld.forEach { it(resultaat) }
         return resultaat
     }

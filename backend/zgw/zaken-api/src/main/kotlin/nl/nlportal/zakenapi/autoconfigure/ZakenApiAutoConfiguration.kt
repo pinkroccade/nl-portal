@@ -23,6 +23,7 @@ import nl.nlportal.core.util.requireConfigured
 import nl.nlportal.commonground.authentication.AuthenticationMachtigingsDienstService
 import nl.nlportal.documentenapi.service.DocumentenApiService
 import nl.nlportal.zakenapi.client.ZakenApiClient
+import nl.nlportal.zakenapi.client.controleerKoppelingenHebbenModulegegevens
 import nl.nlportal.zakenapi.service.ZakenApiService
 import nl.nlportal.zgw.objectenapi.service.ObjectenApiService
 import org.springframework.boot.autoconfigure.AutoConfiguration
@@ -54,12 +55,14 @@ class ZakenApiAutoConfiguration {
         tenantDirectory: TenantDirectory,
         catalogiApiConfig: CatalogiApiConfig,
         moduleStatus: ModuleStatusRegistry,
-    ): ZakenApiClient =
-        ZakenApiClient(
+    ): ZakenApiClient {
+        controleerKoppelingenHebbenModulegegevens(tenantDirectory)
+        return ZakenApiClient(
             koppelingRegister,
             tenantDirectory,
             // Gelezen bij elke aanroep: de configuratie van de Catalogi API is (nog) niet per tenant.
             { zaakTypeId -> "${catalogiApiConfig.properties.url.requireConfigured("catalogiapi", "url")}/catalogi/api/v1/zaaktypen/$zaakTypeId" },
             moduleStatus,
         )
+    }
 }

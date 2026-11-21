@@ -37,6 +37,7 @@ class ZakenApiTenantConfiguratieTest {
 
     private val bosrand = "00000099000000000001"
     private val modules = TenantModules.van(listOf(ZakenApiTenantConfiguratie()))
+    private val koppeling = "koppelingen:\n  zakenapi:\n    url: http://localhost:8001\n    auth:\n      type: zgw-jwt\n      clientId: nl-portal\n      secret: $bosrand.zaken-secret\n"
 
     private fun laad(extra: String): TenantFileResult {
         Files.writeString(
@@ -54,8 +55,8 @@ class ZakenApiTenantConfiguratieTest {
 
     @Test
     fun `de modulegegevens worden getypeerd gelezen met standaardwaarden voor wat ontbreekt`() {
-        val volledig = laad("modules:\n  zakenapi:\n    uitgeslotenZaaktypen: [c2d3e114-bbe4-478d-80de-e8a8c8f8a948]\n    nnpKvkQueryIdentificatoren: true\n")
-        val leeg = laad("modules:\n  zakenapi: {}\n")
+        val volledig = laad(koppeling + "modules:\n  zakenapi:\n    uitgeslotenZaaktypen: [c2d3e114-bbe4-478d-80de-e8a8c8f8a948]\n    nnpKvkQueryIdentificatoren: true\n")
+        val leeg = laad(koppeling + "modules:\n  zakenapi: {}\n")
 
         assertThat(volledig.violations).isEmpty()
         assertThat(volledig.tenants.single().requireModule<ZakenApiConfiguratie>())
@@ -65,7 +66,7 @@ class ZakenApiTenantConfiguratieTest {
 
     @Test
     fun `een uitgesloten zaaktype dat geen UUID is weigert het laden, zonder de waarde te noemen`() {
-        val resultaat = laad("modules:\n  zakenapi:\n    uitgeslotenZaaktypen: [c2d3e114-bbe4-478d-80de-e8a8c8f8a948, geheime-waarde, 1-1-1-1-1]\n")
+        val resultaat = laad(koppeling + "modules:\n  zakenapi:\n    uitgeslotenZaaktypen: [c2d3e114-bbe4-478d-80de-e8a8c8f8a948, geheime-waarde, 1-1-1-1-1]\n")
 
         assertThat(resultaat.violations).hasSize(2)
         assertThat(resultaat.violations.map { it.pad }).containsExactly("modules.zakenapi.uitgeslotenZaaktypen[1]", "modules.zakenapi.uitgeslotenZaaktypen[2]")
@@ -74,9 +75,34 @@ class ZakenApiTenantConfiguratieTest {
 
     @Test
     fun `een onbekende eigenschap in de modulegegevens weigert het laden`() {
-        val resultaat = laad("modules:\n  zakenapi:\n    url: https://oud.example.nl\n")
+        val resultaat = laad(koppeling + "modules:\n  zakenapi:\n    url: https://oud.example.nl\n")
 
         assertThat(resultaat.violations).isNotEmpty
+    }
+
+    @Test
+    fun `modulegegevens zonder koppeling weigeren het laden, met de OIN in de melding`() {
+        val resultaat = laad("modules:\n  zakenapi: {}\n")
+
+        assertThat(resultaat.violations).hasSize(1)
+        assertThat(resultaat.violations.single().pad).isEqualTo("modules.zakenapi")
+        assertThat(resultaat.violations.single().bericht).startsWith("Tenant $bosrand:").contains("koppelingen.zakenapi")
+    }
+
+    @Test
+    fun `een koppeling zonder modulegegevens weigert het opstarten, met de OIN in de melding`() {
+        val zonder = TestTenants.tenant(TestTenants.BOSRAND, koppelingen = mapOf("zakenapi" to TestTenants.koppeling("http://localhost:1", oin = TestTenants.BOSRAND)))
+        val met =
+            TestTenants.tenant(
+                TestTenants.WIJDE_VELD,
+                koppelingen = mapOf("zakenapi" to TestTenants.koppeling("http://localhost:1", oin = TestTenants.WIJDE_VELD)),
+                modules = mapOf("zakenapi" to ZakenApiConfiguratie()),
+            )
+
+        controleerKoppelingenHebbenModulegegevens(TestTenants.directory(met))
+        val fout = assertThrows<IllegalStateException> { controleerKoppelingenHebbenModulegegevens(TestTenants.directory(zonder, met)) }
+
+        assertThat(fout.message).contains(TestTenants.BOSRAND.value, "koppelingen.zakenapi", "modules.zakenapi").doesNotContain(TestTenants.WIJDE_VELD.value)
     }
 
     @Test
