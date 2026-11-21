@@ -61,6 +61,7 @@ class ZakenApiTenantConfiguratie : TenantModuleConfiguratie<ZakenApiConfiguratie
     /** `UUID.fromString` accepteert ook korte vormen (`1-1-1-1-1`); een zaaktype-ID is de volledige vorm. */
     private fun isUuid(waarde: String) = runCatching { UUID.fromString(waarde).toString() == waarde.lowercase() }.getOrDefault(false)
 }
+
 /**
  * Een tenant met `koppelingen.zakenapi` maar zonder `modules.zakenapi` weigert het opstarten, met de OIN in de melding: zonder
  * modulegegevens faalt `getZaken` pas bij de eerste inwoner. (Het omgekeerde, modulegegevens zonder koppeling, weigert de loader.)

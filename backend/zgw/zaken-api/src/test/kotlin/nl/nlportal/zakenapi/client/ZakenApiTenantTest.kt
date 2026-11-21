@@ -89,13 +89,12 @@ class ZakenApiTenantTest {
         bron: MockWebServer,
         clientId: String,
         configuratie: ZakenApiConfiguratie = ZakenApiConfiguratie(),
-    ): TenantDefinition {
-        return TestTenants.tenant(
+    ): TenantDefinition =
+        TestTenants.tenant(
             oin,
             koppelingen = mapOf("zakenapi" to TestTenants.zgwKoppeling(url(bron), clientId, oin = oin)),
             modules = mapOf("zakenapi" to configuratie),
         )
-    }
 
     private fun client(
         vararg tenants: TenantDefinition,
@@ -150,15 +149,30 @@ class ZakenApiTenantTest {
             wijdeVeldBron.enqueue(leeg())
 
             TestTenants.alsTenant(BOSRAND) {
-                client.zaken().search().withBsn(bsn).retrieve()
-                client.zaakRollen().search().forZaak(UUID.randomUUID()).withAuthentication(burger).retrieveAll()
+                client
+                    .zaken()
+                    .search()
+                    .withBsn(bsn)
+                    .retrieve()
+                client
+                    .zaakRollen()
+                    .search()
+                    .forZaak(UUID.randomUUID())
+                    .withAuthentication(burger)
+                    .retrieveAll()
             }
 
             assertThat(wijdeVeldBron.requestCount).isZero()
             assertThat(bosrandBron.takeRequest().requestUrl?.queryParameter(BSN_PARAMETER)).isEqualTo(bsn)
             assertThat(bosrandBron.takeRequest().requestUrl?.query).contains(bsn)
 
-            TestTenants.alsTenant(WIJDE_VELD) { client.zaken().search().withBsn(bsn).retrieve() }
+            TestTenants.alsTenant(WIJDE_VELD) {
+                client
+                    .zaken()
+                    .search()
+                    .withBsn(bsn)
+                    .retrieve()
+            }
 
             assertThat(bosrandBron.requestCount).isEqualTo(2)
             assertThat(wijdeVeldBron.takeRequest().requestUrl?.queryParameter(BSN_PARAMETER)).isEqualTo(bsn)
