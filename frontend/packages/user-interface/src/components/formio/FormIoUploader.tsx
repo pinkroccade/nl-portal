@@ -49,7 +49,7 @@ interface PortalFileUploadProps {
   taakId?: string;
 }
 
-const PortalFileUpload = ({
+export const PortalFileUpload = ({
   id,
   label,
   hideLabel,

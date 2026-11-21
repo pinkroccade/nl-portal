@@ -33,6 +33,22 @@ interface ContextProps {
   restUri: string;
 }
 
+/** GraphQL meldt een verlopen sessie met HTTP 200 en `errors[].extensions.code === "UNAUTHENTICATED"`. */
+const isOngeauthenticeerd = async (response: Response): Promise<boolean> => {
+  try {
+    const body = (await response.clone().json()) as {
+      errors?: { extensions?: { code?: string } }[];
+    };
+    return (
+      body.errors?.some(
+        (fout) => fout.extensions?.code === "UNAUTHENTICATED",
+      ) ?? false
+    );
+  } catch {
+    return false;
+  }
+};
+
 const ApiContext = createContext({} as ContextProps);
 
 interface Props {
@@ -68,6 +84,7 @@ export const ApiProvider = ({
             },
           });
           if (response.status === 401) markeerVerlopen?.();
+          else if (await isOngeauthenticeerd(response)) markeerVerlopen?.();
           return response;
         },
       }),
