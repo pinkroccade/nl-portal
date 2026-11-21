@@ -15,6 +15,9 @@
  */
 package nl.nlportal.graphql
 
+import ch.qos.logback.classic.Logger
+import ch.qos.logback.classic.spi.ILoggingEvent
+import ch.qos.logback.core.read.ListAppender
 import graphql.language.SourceLocation
 import graphql.schema.DataFetchingEnvironment
 import nl.nlportal.core.koppeling.KoppelingConfiguratieException
@@ -26,10 +29,12 @@ import nl.nlportal.core.util.ModuleNotConfiguredException
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertFalse
 import org.junit.jupiter.api.Assertions.assertNotNull
+import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
 import org.mockito.Mockito.RETURNS_DEEP_STUBS
 import org.mockito.Mockito.mock
 import org.mockito.Mockito.`when`
+import org.slf4j.LoggerFactory
 
 class GraphQLExceptionHandlerTest {
     private val env: DataFetchingEnvironment =
@@ -83,5 +88,29 @@ class GraphQLExceptionHandlerTest {
         assertEquals("Koppeling is niet beschikbaar", graphqlFout.message)
         assertEquals("KOPPELING_FOUT", graphqlFout.extensions["code"])
         assertNotNull(graphqlFout.extensions["correlatieId"])
+    }
+
+    @Test
+    fun `de log van een interne fout noemt code, klassenaam, melding en correlatieId, zonder stacktrace, en de browser krijgt de melding niet`() {
+        val logger = LoggerFactory.getLogger(GraphQLExceptionHandler::class.java) as Logger
+        val appender = ListAppender<ILoggingEvent>().also { it.start() }
+        logger.addAppender(appender)
+        try {
+            val fout = KoppelingConfiguratieException("Header X-Doelbinding hoort bij de koppeling")
+
+            val graphqlFout = GraphQLExceptionHandler().resolveException(fout, env).block()!!.single()
+
+            val regel = appender.list.single()
+            val correlatieId = graphqlFout.extensions["correlatieId"] as String
+            val tekst = regel.formattedMessage
+            assertTrue(tekst.contains("KOPPELING_FOUT"))
+            assertTrue(tekst.contains("KoppelingConfiguratieException"))
+            assertTrue(tekst.contains("Header X-Doelbinding hoort bij de koppeling"))
+            assertTrue(tekst.contains(correlatieId))
+            assertEquals(null, regel.throwableProxy)
+            assertFalse(graphqlFout.toSpecification().toString().contains("X-Doelbinding"))
+        } finally {
+            logger.detachAppender(appender)
+        }
     }
 }

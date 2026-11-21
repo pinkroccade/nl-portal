@@ -31,7 +31,8 @@ import java.util.UUID
  * Zet een fout uit een data fetcher om naar een GraphQL-fout. Interne configuratiefouten (`ModuleNotConfiguredException`,
  * `TenantContextMissingException`, `KoppelingConfiguratieException`) bevatten OIN, koppeling- of headernamen en gaan dus
  * niet met hun melding naar de browser: de browser krijgt een vaste melding, een generieke code en een correlatieId. De log
- * noemt alleen dat correlatieId, nooit de uitzondering of haar oorzaak.
+ * noemt de code, het correlatieId, de klassenaam en de melding van de uitzondering (voor de beheerder), nooit de oorzaak
+ * (`cause`) of een stacktrace.
  */
 class GraphQLExceptionHandler : DataFetcherExceptionResolverAdapter() {
     override fun resolveToSingleError(
@@ -45,11 +46,11 @@ class GraphQLExceptionHandler : DataFetcherExceptionResolverAdapter() {
                 // Foutdetails van een bron gaan niet naar de browser: alleen een generieke code en de referentie voor de log.
                 is KoppelingException -> Uitkomst(ex.message, mapOf("code" to "KOPPELING_FOUT", "correlatieId" to ex.correlatieId))
 
-                is ModuleNotConfiguredException -> intern("Module is niet beschikbaar", "MODULE_NIET_GECONFIGUREERD")
+                is ModuleNotConfiguredException -> intern(ex, "Module is niet beschikbaar", "MODULE_NIET_GECONFIGUREERD")
 
-                is TenantContextMissingException -> intern("Niet geautoriseerd", "TENANT_ONTBREEKT")
+                is TenantContextMissingException -> intern(ex, "Niet geautoriseerd", "TENANT_ONTBREEKT")
 
-                is KoppelingConfiguratieException -> intern("Koppeling is niet beschikbaar", "KOPPELING_FOUT")
+                is KoppelingConfiguratieException -> intern(ex, "Koppeling is niet beschikbaar", "KOPPELING_FOUT")
 
                 else -> Uitkomst(ex.message, null)
             }
@@ -63,11 +64,12 @@ class GraphQLExceptionHandler : DataFetcherExceptionResolverAdapter() {
     }
 
     private fun intern(
+        ex: Throwable,
         melding: String,
         code: String,
     ): Uitkomst {
         val correlatieId = UUID.randomUUID().toString()
-        log.warn { "Interne fout bij een GraphQL-aanroep ($code), referentie $correlatieId" }
+        log.warn { "Interne fout bij een GraphQL-aanroep ($code, ${ex::class.simpleName}: ${ex.message}), referentie $correlatieId" }
         return Uitkomst(melding, mapOf("code" to code, "correlatieId" to correlatieId))
     }
 
