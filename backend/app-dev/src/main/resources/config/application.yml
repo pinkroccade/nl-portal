@@ -1,9 +1,12 @@
 server:
     port: 8080
+    # Spring volgt zelf geen Forwarded of X-Forwarded-*: de tenantresolutie doet dat alleen van de vertrouwde proxies.
+    forward-headers-strategy: none
 
 management:
-    # Beheerpoort apart zetten: MANAGEMENT_SERVER_PORT=8091 (zie site/hosting-en-configuratie/beheer-modulestatus.md)
-    # Beheerpoort apart zetten: MANAGEMENT_SERVER_PORT=8091 (zie site/hosting-en-configuratie/beheer-modulestatus.md)
+    server:
+        # De actuator staat op een eigen poort (zie site/hosting-en-configuratie/beheer-modulestatus.md); de tenancy eist dat.
+        port: ${MANAGEMENT_SERVER_PORT:8091}
     endpoint:
         health:
             access: read_only
@@ -44,6 +47,12 @@ logging:
         root: DEBUG
 
 nl-portal:
+    tenancy:
+        # De demo-tenant van docker-compose (relatief aan backend/app-dev, de werkmap van bootRun).
+        directory: ${NL_PORTAL_TENANTS_DIRECTORY:../../docker-compose/imports/tenants}
+    # De secret store van deze dev-app: het geheim van de koppeling `zakenapi` in het tenantbestand.
+    geheimen:
+        "00000099000000000001.zaken-secret": ${OPENZAAK_NLPORTAL_SECRET}
     support:
         ping-endpoint:
             enabled: false
@@ -107,10 +116,6 @@ nl-portal:
                     port: 3310
         zakenapi:
             enabled: true
-            properties:
-                url: http://localhost:8001
-                clientId: nl-portal
-                secret: ${OPENZAAK_NLPORTAL_SECRET}
         objectenapi:
             enabled: true
             properties:

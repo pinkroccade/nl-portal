@@ -1,0 +1,19 @@
+# Fictieve demo-tenant Gemeente De Bosrand. Het OIN is fictief en moet tussen aanhalingstekens staan.
+oin: "00000099000000000001"
+naam: Gemeente De Bosrand
+domeinen:
+    - localhost
+    - bosrand.example
+thema:
+    titel: Mijn De Bosrand
+
+koppelingen:
+    zakenapi:
+        url: http://localhost:56789
+        auth:
+            type: zgw-jwt
+            clientId: test-client
+            secret: 00000099000000000001.zaken-secret
+modules:
+    zakenapi:
+        nnpKvkQueryIdentificatoren: false
