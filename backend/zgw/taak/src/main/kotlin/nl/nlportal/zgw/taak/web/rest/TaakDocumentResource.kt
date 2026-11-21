@@ -16,8 +16,12 @@
 package nl.nlportal.zgw.taak.web.rest
 
 import kotlinx.coroutines.reactive.awaitSingle
+import nl.nlportal.core.koppeling.KoppelingException
+import nl.nlportal.core.tenancy.TenantContextMissingException
+import nl.nlportal.core.util.ModuleNotConfiguredException
 import nl.nlportal.portal.authentication.domain.PortalAuthentication
 import nl.nlportal.documentenapi.domain.VirusScanStatus
+import nl.nlportal.documentenapi.exceptions.MimeTypeDeniedException
 import nl.nlportal.documentenapi.service.DocumentenApiService
 import nl.nlportal.documentenapi.service.VirusScanService
 import nl.nlportal.documentenapi.util.FilenameSanitizer
@@ -61,18 +65,24 @@ class TaakDocumentResource(
             return ResponseEntity(virusScanResult, HttpStatus.BAD_REQUEST)
         }
 
-        val documentApi = documentenApiService.standaardDocumentApi()
         return try {
             ResponseEntity.ok(
                 documentenApiService.uploadDocument(
                     bufferedContent,
                     sanitizedFilename,
-                    documentApi,
+                    documentenApiService.standaardDocumentApi(),
                     informatieobjecttype,
                 ),
             )
-        } catch (e: Exception) {
-            ResponseEntity(e.message, HttpStatus.BAD_REQUEST)
+        } catch (e: MimeTypeDeniedException) {
+            ResponseEntity(MIME_TYPE_NIET_TOEGESTAAN, HttpStatus.BAD_REQUEST)
+        } catch (e: KoppelingException) {
+            // Geen e.message naar de browser: alleen een vaste code en de referentie waarmee de beheerder de log vindt.
+            ResponseEntity(mapOf("code" to "KOPPELING_NIET_BESCHIKBAAR", "referentie" to e.correlatieId), HttpStatus.BAD_GATEWAY)
+        } catch (e: ModuleNotConfiguredException) {
+            ResponseEntity(mapOf("code" to "MODULE_NIET_GECONFIGUREERD"), HttpStatus.INTERNAL_SERVER_ERROR)
+        } catch (e: TenantContextMissingException) {
+            ResponseEntity(mapOf("code" to "TENANT_ONTBREEKT"), HttpStatus.INTERNAL_SERVER_ERROR)
         }
     }
 
@@ -85,5 +95,9 @@ class TaakDocumentResource(
         } finally {
             DataBufferUtils.release(dataBuffer)
         }
+    }
+
+    private companion object {
+        const val MIME_TYPE_NIET_TOEGESTAAN = "Dit bestandstype is niet toegestaan voor uploads."
     }
 }

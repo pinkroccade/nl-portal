@@ -25,9 +25,13 @@ data class ModuleOvertreding(
     val bericht: String,
 )
 
-/** Wat een module over de tenant weet bij het valideren van zijn eigen configuratie: de namen van de koppelingen in het tenantbestand. */
+/**
+ * Wat een module over de tenant weet bij het valideren van zijn eigen configuratie: de namen van de koppelingen in het tenantbestand
+ * en per koppeling de basis-URL (voor een regel over overlap tussen koppelingen; het is geen geheim).
+ */
 data class ModuleContext(
     val koppelingen: Set<String> = emptySet(),
+    val koppelingUrls: Map<String, String> = emptyMap(),
 )
 
 /**

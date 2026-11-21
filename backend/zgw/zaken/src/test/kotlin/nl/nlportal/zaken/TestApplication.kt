@@ -48,7 +48,7 @@ class TestApplication {
                 it.anyExchange().permitAll()
             }.build()
 
-    /** De tenant van de tests: de Documenten API staat als koppeling en als module in het tenantbestand (T14, #513). */
+    /** De tenant van de tests: de Documenten API staat als koppeling en als module in het tenantbestand. */
     @Bean
     fun tenantDirectory(): TenantDirectory =
         TestTenants.directory(

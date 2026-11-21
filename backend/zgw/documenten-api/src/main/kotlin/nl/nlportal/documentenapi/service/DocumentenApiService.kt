@@ -46,16 +46,16 @@ class DocumentenApiService(
     suspend fun getDocument(
         documentId: UUID,
         documentApi: String,
-    ): Document = documentenApiClient.getDocument(documentId, documentApi)
+    ): Document = documentenApiClient.getDocument(documentId, documentApiVanModule(documentApi))
 
     suspend fun getDocument(documentUrl: String): Document = documentenApiClient.getDocument(extractId(documentUrl), documentApiVoorUrl(documentUrl))
 
     suspend fun getDocumentContentStreaming(
         documentId: UUID,
         documentApi: String,
-    ): Flow<DataBuffer> = documentenApiClient.getDocumentContentStream(documentId, documentApi)
+    ): Flow<DataBuffer> = documentenApiClient.getDocumentContentStream(documentId, documentApiVanModule(documentApi))
 
-    suspend fun getDocumentContentStreaming(informatieobejctUrl: String): Flow<DataBuffer> = documentenApiClient.getDocumentContentStream(extractId(informatieobejctUrl), documentApiVoorUrl(informatieobejctUrl))
+    suspend fun getDocumentContentStreaming(informatieobjectUrl: String): Flow<DataBuffer> = documentenApiClient.getDocumentContentStream(extractId(informatieobjectUrl), documentApiVoorUrl(informatieobjectUrl))
 
     /** De koppeling waar een upload naartoe gaat als de aanroeper er geen kiest. */
     suspend fun standaardDocumentApi(): String = directory.module<DocumentenApiConfiguratie>().standaardDocumentApi
@@ -113,6 +113,10 @@ class DocumentenApiService(
                 document.vertrouwelijkheidaanduiding in configuratie.vertrouwelijkheidsaanduidingWitlijst
         }
     }
+
+    /** Alleen een koppeling die als document-API van de tenant is aangewezen; een andere koppeling van de tenant krijgt nooit een documentverzoek. */
+    private suspend fun documentApiVanModule(documentApi: String): String =
+        documentApi.also { directory.module<DocumentenApiConfiguratie>().documentApis[it].requireConfigured(DocumentenApiTenantConfiguratie.NAAM, "documentApis.$it") }
 
     private suspend fun documentApiVoorUrl(documentUrl: String): String = documentenApiClient.documentApiVoorUrl(documentUrl, directory.module<DocumentenApiConfiguratie>().documentApis.keys)
 }

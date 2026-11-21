@@ -17,6 +17,7 @@ package nl.nlportal.core.koppeling
 
 import io.github.oshai.kotlinlogging.KotlinLogging
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.buffer
 import kotlinx.coroutines.reactive.asFlow
 import kotlinx.coroutines.reactor.awaitSingleOrNull
 import nl.nlportal.core.tenancy.Oin
@@ -24,6 +25,7 @@ import nl.nlportal.core.tenancy.TenantContext
 import org.springframework.core.ParameterizedTypeReference
 import org.springframework.core.codec.DecodingException
 import org.springframework.core.io.buffer.DataBuffer
+import org.springframework.core.io.buffer.DataBufferUtils
 import org.springframework.http.HttpHeaders
 import org.springframework.http.HttpMethod
 import org.springframework.http.HttpStatusCode
@@ -32,6 +34,7 @@ import org.springframework.web.reactive.function.UnsupportedMediaTypeException
 import org.springframework.web.reactive.function.client.ClientResponse
 import org.springframework.web.reactive.function.client.WebClient
 import reactor.core.publisher.Mono
+import reactor.core.publisher.Sinks
 import tools.jackson.core.JacksonException
 import tools.jackson.databind.JsonNode
 import tools.jackson.databind.json.JsonMapper
@@ -120,8 +123,13 @@ class KoppelingClient internal constructor(
     /**
      * Een groot antwoord (een document) als stroom van [DataBuffer]s, zonder het geheel in het geheugen te laden. Dezelfde garanties
      * als een gewone aanroep: tenantcontrole, host-binding, geen redirects, geen eigen autorisatieheaders en één foutvorm (een foutstatus
-     * wordt een [KoppelingException] zonder de body van de bron). De limiet en de circuit breaker gelden tot de stroom klaar, geannuleerd
-     * of mislukt is; de timeout geldt per brok, dus ook voor het eerste antwoord. De aanroeper geeft elke ontvangen buffer vrij
+     * wordt een [KoppelingException] zonder de body van de bron).
+     *
+     * Een stroom heeft een eigen limiet (`maxGelijktijdigeStromen`) naast die van de metadata-aanroepen. De circuit breaker en de
+     * timeout beoordelen de bron tot en met de eerste respons; daarna geldt alleen een stiltetimeout tussen twee brokken (ook als de
+     * afnemer niet afneemt). Zo'n timeout of een annulering telt niet als storing van de bron; de plek in de limiet komt wel vrij.
+     *
+     * Een buffer die de stroom nog vasthoudt bij annuleren of een fout wordt vrijgegeven. De aanroeper geeft elke ontvangen buffer vrij
      * (bijvoorbeeld met `DataBufferUtils.release`) of geeft de stroom door aan een antwoord dat dat doet.
      */
     suspend fun getStream(
@@ -132,17 +140,36 @@ class KoppelingClient internal constructor(
     ): Flow<DataBuffer> {
         val doel = voorbereiden(pad, query, headers)
         val stroom =
-            webClient
-                .get()
-                .uri(doel)
-                .headers { koppen -> headers.forEach { (naam, waarde) -> koppen.set(naam, waarde) } }
-                .let { if (accept != null) it.accept(accept) else it }
-                .exchangeToFlux { antwoord ->
-                    if (antwoord.statusCode().is2xxSuccessful) antwoord.bodyToFlux(DataBuffer::class.java) else foutAntwoord<DataBuffer>(antwoord).flux()
-                }.timeout(bewaker.timeout)
-                .onErrorMap { zetOm(it) }
-        return bewaker.beschermdStroom(stroom).asFlow()
+            bewaker.beschermdStroom { fase ->
+                val respons = Sinks.empty<Void>()
+                webClient
+                    .get()
+                    .uri(doel)
+                    .headers { koppen -> headers.forEach { (naam, waarde) -> koppen.set(naam, waarde) } }
+                    // Altijd een eigen Accept: een standaard van de koppeling (application/json) past niet bij een download.
+                    .accept(accept ?: MediaType.ALL)
+                    .exchangeToFlux { antwoord ->
+                        if (antwoord.statusCode().is2xxSuccessful) {
+                            fase.koptekstOntvangen()
+                            respons.tryEmitEmpty()
+                            antwoord.bodyToFlux(DataBuffer::class.java)
+                        } else {
+                            foutAntwoord<DataBuffer>(antwoord).flux()
+                        }
+                    }.timeout(eersteResponsTimeout(respons.asMono())) { Mono.delay(bewaker.timeout) }
+                    .doOnDiscard(DataBuffer::class.java) { DataBufferUtils.release(it) }
+                    .onErrorMap { zetOm(it) }
+            }
+        return stroom.asFlow().buffer(STROOM_BUFFER)
     }
+
+    /** Eerst de tijd tot de eerste respons, daarna de stilte tot het eerste brok; de timeout van de eerste respons loopt niet door. */
+    private fun eersteResponsTimeout(respons: Mono<Void>): Mono<Long> =
+        Mono
+            .firstWithSignal(
+                Mono.delay(bewaker.timeout).map { true },
+                respons.then(Mono.just(false)),
+            ).flatMap { teLaat -> if (teLaat) Mono.just(0L) else Mono.delay(bewaker.timeout) }
 
     /** Of [url] een absolute URL onder de basis-URL van deze koppeling is (host-binding); er wordt niets aangeroepen. */
     fun beheertUrl(url: String): Boolean {
@@ -283,6 +310,9 @@ class KoppelingClient internal constructor(
         val VERBODEN_HEADERS =
             setOf(HttpHeaders.AUTHORIZATION, HttpHeaders.PROXY_AUTHORIZATION, HttpHeaders.COOKIE, HttpHeaders.HOST).map { it.lowercase() }.toSet()
         const val MAX_PAGINAS = 100
+
+        /** Brokken die tussen de bron en de afnemer mogen wachten; klein, want bij annuleren gaan ze verloren. */
+        const val STROOM_BUFFER = 4
     }
 }
 

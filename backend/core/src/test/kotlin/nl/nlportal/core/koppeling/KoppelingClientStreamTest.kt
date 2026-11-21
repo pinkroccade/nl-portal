@@ -17,7 +17,9 @@ package nl.nlportal.core.koppeling
 
 import kotlinx.coroutines.CoroutineStart
 import kotlinx.coroutines.async
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.toList
 import kotlinx.coroutines.reactor.ReactorContext
 import kotlinx.coroutines.runBlocking
@@ -40,7 +42,7 @@ import reactor.util.context.Context
 import java.time.Duration
 import java.util.concurrent.TimeUnit
 
-/** De bytes-stroom van de [KoppelingClient] (T14, #513): dezelfde garanties als een gewone aanroep, voor een groot antwoord zoals een document. */
+/** De bytes-stroom van de [KoppelingClient]: dezelfde garanties als een gewone aanroep, voor een groot antwoord zoals een document. */
 class KoppelingClientStreamTest {
     private val bosrand = Oin("00000001234567890000")
     private val wijdeVeld = Oin("00000009876543210000")
@@ -115,6 +117,15 @@ class KoppelingClientStreamTest {
     }
 
     @Test
+    fun `een stroom zonder opgegeven accept vraagt alles, ook als de koppeling JSON als standaard zou zetten`() {
+        bron.enqueue(bytes("x"))
+
+        alsTenant { register().current("documenten").getStream("/download").bytes() }
+
+        assertThat(bron.takeRequest().getHeader("Accept")).isEqualTo("*/*")
+    }
+
+    @Test
     fun `een 4xx op een stroom blijft zichtbaar en lekt de body van de bron niet`() {
         bron.enqueue(MockResponse().setResponseCode(404).setHeader("Content-Type", "text/plain").setBody("BSN 999990755 onbekend"))
 
@@ -185,28 +196,103 @@ class KoppelingClientStreamTest {
         assertThat(e.soort).isEqualTo(KoppelingFoutsoort.NETWERK)
     }
 
-    @Test
-    fun `een stroom houdt zijn plek in de limiet vast tot hij klaar is`() {
-        bron.enqueue(bytes("traag").setBodyDelay(1, TimeUnit.SECONDS))
-        bron.enqueue(bytes("na-de-limiet"))
-        val register = register(KoppelingResilienceInstellingen(maxGelijktijdig = 1, vensterGrootte = 2, minimumAanroepen = 2))
+    private fun grootAntwoord() = bytes("x".repeat(6_000_000))
 
-        val resultaat =
+    /** Start een afnemer die na het eerste brok stilvalt, zodat de stroom open blijft staan; de [Job] annuleert hem. */
+    private fun kotlinx.coroutines.CoroutineScope.stilgezet(
+        register: KoppelingRegister,
+        pauze: Long = 20_000,
+    ) = async(ReactorContext(Context.of(TenantContext.SLEUTEL, bosrand)), start = CoroutineStart.UNDISPATCHED) {
+        runCatching {
+            register.current("documenten").getStream("/groot").collect { buffer ->
+                DataBufferUtils.release(buffer)
+                delay(pauze)
+            }
+        }
+    }
+
+    @Test
+    fun `stromen hebben een eigen limiet en stilgezette downloads blokkeren metadata-aanroepen niet`() {
+        val stromen = 3
+        repeat(stromen) { bron.enqueue(grootAntwoord()) }
+        bron.enqueue(MockResponse().setHeader("Content-Type", "application/json").setBody("{}"))
+        val register = register(KoppelingResilienceInstellingen(maxGelijktijdig = 1, maxGelijktijdigeStromen = stromen, timeout = Duration.ofSeconds(30)))
+
+        val (geweigerd, metadata) =
             runBlocking {
-                val traag =
-                    async(ReactorContext(Context.of(TenantContext.SLEUTEL, bosrand)), start = CoroutineStart.UNDISPATCHED) {
-                        runCatching { register.current("documenten").getStream("/a").bytes() }
-                    }
-                assertThat(bron.takeRequest(5, TimeUnit.SECONDS)).isNotNull()
-                val geweigerd = runCatching { alsTenantSuspend(bosrand) { register.current("documenten").getStream("/b").bytes() } }
-                val eerste = traag.await()
-                val daarna = alsTenantSuspend(bosrand) { register.current("documenten").getStream("/c").bytes() }
-                Triple(eerste, geweigerd, daarna)
+                val afnemers = (1..stromen).map { stilgezet(register) }
+                repeat(stromen) { assertThat(bron.takeRequest(5, TimeUnit.SECONDS)).isNotNull() }
+                val geweigerd = runCatching { alsTenantSuspend(bosrand) { register.current("documenten").getStream("/groot").bytes() } }
+                val metadata = runCatching { alsTenantSuspend(bosrand) { register.current("documenten").get<Map<String, String>>("/metadata") } }
+                afnemers.forEach { it.cancel() }
+                geweigerd to metadata
             }
 
-        assertThat(String(resultaat.first.getOrThrow())).isEqualTo("traag")
-        assertThat((resultaat.second.exceptionOrNull() as KoppelingException).soort).isEqualTo(KoppelingFoutsoort.LIMIET)
-        assertThat(String(resultaat.third)).isEqualTo("na-de-limiet")
+        assertThat((geweigerd.exceptionOrNull() as KoppelingException).soort).isEqualTo(KoppelingFoutsoort.LIMIET)
+        assertThat(metadata.getOrNull()).isEmpty()
+    }
+
+    @Test
+    fun `een trage lezer die de stroom laat stokken opent de circuit breaker niet en geeft zijn plek vrij`() {
+        bron.enqueue(MockResponse().setHeader("Content-Type", "application/json").setBody("{}"))
+        repeat(4) { bron.enqueue(grootAntwoord()) }
+        bron.enqueue(MockResponse().setHeader("Content-Type", "application/json").setBody("{}"))
+        val register =
+            register(
+                KoppelingResilienceInstellingen(maxGelijktijdigeStromen = 1, vensterGrootte = 2, minimumAanroepen = 2, timeout = Duration.ofMillis(600)),
+            )
+        // Een eerste aanroep warmt de verbinding op, zodat de korte timeout alleen de stilte van de lezer meet.
+        alsTenant { register.current("documenten").get<Map<String, String>>("/warm") }
+        bron.takeRequest()
+
+        runBlocking {
+            repeat(4) {
+                val trage = stilgezet(register)
+                assertThat(bron.takeRequest(5, TimeUnit.SECONDS)).isNotNull()
+                // Ruim langer dan de timeout: de stroom is dan door de stiltetimeout afgebroken terwijl de lezer nog stilstaat.
+                delay(1_800)
+                trage.cancel()
+            }
+        }
+        val metadata = alsTenant { register.current("documenten").get<Map<String, String>>("/metadata") }
+
+        assertThat(metadata).isEmpty()
+    }
+
+    @Test
+    fun `annuleren van een stroom geeft de limiet en de circuit breaker vrij`() {
+        repeat(3) { bron.enqueue(grootAntwoord()) }
+        bron.enqueue(bytes("daarna"))
+        val register = register(KoppelingResilienceInstellingen(maxGelijktijdigeStromen = 1, vensterGrootte = 1, minimumAanroepen = 1, foutPercentage = 1f))
+
+        repeat(3) {
+            alsTenant {
+                register.current("documenten").getStream("/groot").first().let { DataBufferUtils.release(it) }
+            }
+        }
+        val daarna = alsTenant { register.current("documenten").getStream("/c").bytes() }
+
+        assertThat(String(daarna)).isEqualTo("daarna")
+    }
+
+    @Test
+    fun `een foutstatus bij de eerste respons telt wel als storing van de bron`() {
+        repeat(2) { bron.enqueue(MockResponse().setResponseCode(500)) }
+        val register = register(KoppelingResilienceInstellingen(vensterGrootte = 2, minimumAanroepen = 2))
+
+        repeat(2) { fout { register.current("documenten").getStream("/a").bytes() } }
+        val derde = fout { register.current("documenten").getStream("/a").bytes() }
+
+        assertThat(derde.soort).isEqualTo(KoppelingFoutsoort.CIRCUIT_OPEN)
+    }
+
+    @Test
+    fun `een bron die niet antwoordt binnen de tijd geeft een timeout vóór de eerste respons`() {
+        bron.enqueue(bytes("laat").setHeadersDelay(3, TimeUnit.SECONDS))
+
+        val e = fout { register(KoppelingResilienceInstellingen(timeout = Duration.ofMillis(300))).current("documenten").getStream("/a").bytes() }
+
+        assertThat(e.soort).isEqualTo(KoppelingFoutsoort.TIMEOUT)
     }
 
     // beheertUrl: het aanwijzen van de koppeling bij een URL die een bron teruggaf

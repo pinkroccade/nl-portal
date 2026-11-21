@@ -1,5 +1,5 @@
 /*
- * Copyright 2026 PinkRoccade Local Government B.V.
+ * Copyright 2015-2023 Den Haag, Ritense, the Netherlands.
  *
  * Licensed under EUPL, Version 1.2 (the "License");
  * you may not use this file except in compliance with the License.
@@ -153,6 +153,20 @@ class DocumentenApiServiceTest {
     }
 
     @Test
+    fun `een koppeling van de tenant die geen document-API is, wordt niet gebruikt voor documenten`() {
+        val service =
+            service(
+                tenant(bosrand, mapOf("openzaak" to bosrandOpenZaak, "zaken" to bosrandArchief), standaard = "openzaak") {
+                    it.copy(documentApis = it.documentApis.filterKeys { naam -> naam == "openzaak" })
+                },
+            )
+
+        assertThatThrownBy { alsTenant(bosrand) { service.getDocument(documentId, "zaken") } }.isInstanceOf(ModuleNotConfiguredException::class.java)
+        assertThatThrownBy { alsTenant(bosrand) { service.getDocumentContentStreaming(documentId, "zaken") } }.isInstanceOf(ModuleNotConfiguredException::class.java)
+        assertThat(bosrandArchief.requestCount).isZero()
+    }
+
+    @Test
     fun `een fout van de bron wordt een KoppelingException zonder de inhoud van de bron`() {
         bosrandOpenZaak.enqueue(MockResponse().setResponseCode(500).setBody("BSN 999990755 stack trace"))
         val service = service(tenant(bosrand, mapOf("openzaak" to bosrandOpenZaak)))
@@ -195,7 +209,7 @@ class DocumentenApiServiceTest {
         assertThat(bosrandOpenZaak.requestCount).isZero()
     }
 
-    // Exacte match van een document-URL (hoog-risicopunt van T14)
+    // Exacte match van een document-URL
 
     @Test
     fun `een document-URL kiest de document-API waar hij exact onder valt`() {
@@ -290,6 +304,7 @@ class DocumentenApiServiceTest {
         val verzoek = bosrandOpenZaak.takeRequest()
         val body = verzoek.body.readUtf8()
         assertThat(verzoek.method).isEqualTo("POST")
+        assertThat(verzoek.getHeader("Accept")).isEqualTo("application/json")
         assertThat(verzoek.path).isEqualTo("/documenten/api/v1/enkelvoudiginformatieobjecten")
         assertThat(body)
             .contains("\"auteur\":\"12345678\"")

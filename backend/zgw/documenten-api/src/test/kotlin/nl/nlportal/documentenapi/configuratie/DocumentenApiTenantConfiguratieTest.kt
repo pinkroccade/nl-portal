@@ -52,11 +52,14 @@ class DocumentenApiTenantConfiguratieTest {
               secret: $bosrand.archief-secret
         """.trimIndent()
 
-    private fun laad(modulesBlok: String): TenantFileResult {
+    private fun laad(
+        modulesBlok: String,
+        extraKoppelingen: String = "",
+    ): TenantFileResult {
         Files.writeString(dir.resolve("base.yaml"), "omgevingstype: acceptatie\ninlogmiddelen: [digid]\n")
         Files.writeString(
             dir.resolve("$bosrand.yaml"),
-            "oin: \"$bosrand\"\nnaam: Gemeente\ndomeinen: [bosrand.example]\nthema:\n  titel: De Bosrand\n$koppelingen\nmodules:\n  documenten-api:\n" +
+            "oin: \"$bosrand\"\nnaam: Gemeente\ndomeinen: [bosrand.example]\nthema:\n  titel: De Bosrand\n$koppelingen\n$extraKoppelingen\nmodules:\n  documenten-api:\n" +
                 modulesBlok.trimIndent().prependIndent("    ") + "\n",
         )
         return TenantFileLoader(modules = modules).load(dir)
@@ -134,6 +137,35 @@ class DocumentenApiTenantConfiguratieTest {
         assertThat(result.violations.map { it.code }).containsExactly(Code.MODULE_CONFIGURATIE_ONGELDIG)
         assertThat(result.violations.single().pad).isEqualTo("modules.documenten-api.documentApis.zonder-koppeling")
         assertThat(result.violations.single().bericht).startsWith("Tenant $bosrand")
+    }
+
+    private fun koppelingMet(
+        naam: String,
+        url: String,
+    ) = "  $naam:\n    url: $url\n    auth:\n      type: zgw-jwt\n      clientId: nl-portal\n      secret: $bosrand.$naam-secret\n"
+
+    @Test
+    fun `een document-API met een basis-URL binnen die van een andere weigert het opstarten met de OIN`() {
+        val result =
+            laad(
+                "standaardDocumentApi: openzaak\ndocumentApis:\n  openzaak: {}\n  geneste: {}",
+                extraKoppelingen = koppelingMet("geneste", "https://OPEN-ZAAK.example:443/documenten/api/v1/sub/"),
+            )
+
+        assertThat(result.violations.map { it.code }).containsExactly(Code.MODULE_CONFIGURATIE_ONGELDIG)
+        assertThat(result.violations.single().pad).isEqualTo("modules.documenten-api.documentApis.geneste")
+        assertThat(result.violations.single().bericht).startsWith("Tenant $bosrand").contains("basis-URL").doesNotContain("open-zaak")
+    }
+
+    @Test
+    fun `een ander padsegment met dezelfde beginletters is geen overlap`() {
+        val result =
+            laad(
+                "standaardDocumentApi: openzaak\ndocumentApis:\n  openzaak: {}\n  vlak: {}",
+                extraKoppelingen = koppelingMet("vlak", "https://open-zaak.example/documenten/api/v10"),
+            )
+
+        assertThat(result.violations).isEmpty()
     }
 
     @Test

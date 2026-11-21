@@ -1,5 +1,5 @@
 /*
- * Copyright 2015-2026 Den Haag, Ritense, the Netherlands.
+ * Copyright 2015-2024 Den Haag, Ritense, the Netherlands.
  *
  * Licensed under EUPL, Version 1.2 (the "License");
  * you may not use this file except in compliance with the License.
@@ -56,7 +56,7 @@ class DocumentenApiClient(
         documentApi: String,
     ): Document {
         request.inhoud = Base64.getEncoder().encodeToString(documentContent)
-        return koppeling(documentApi).post("/enkelvoudiginformatieobjecten", request, headers = CRS)
+        return koppeling(documentApi).post("/enkelvoudiginformatieobjecten", request, headers = CRS + ("Accept" to MediaType.APPLICATION_JSON_VALUE))
     }
 
     /**

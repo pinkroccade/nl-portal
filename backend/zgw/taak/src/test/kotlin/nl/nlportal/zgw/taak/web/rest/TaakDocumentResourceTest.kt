@@ -18,7 +18,13 @@ package nl.nlportal.zgw.taak.web.rest
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.test.runTest
 import nl.nlportal.portal.authentication.domain.PortalAuthentication
+import nl.nlportal.core.koppeling.KoppelingException
+import nl.nlportal.core.koppeling.KoppelingFoutsoort
+import nl.nlportal.core.koppeling.KoppelingProblem
+import nl.nlportal.core.tenancy.TenantContextMissingException
+import nl.nlportal.core.util.ModuleNotConfiguredException
 import nl.nlportal.documentenapi.domain.Document
+import nl.nlportal.documentenapi.exceptions.MimeTypeDeniedException
 import nl.nlportal.documentenapi.domain.VirusScanResult
 import nl.nlportal.documentenapi.domain.VirusScanStatus
 import nl.nlportal.documentenapi.service.DocumentenApiService
@@ -137,6 +143,53 @@ class TaakDocumentResourceTest {
                 anyOrNull(),
             )
             assertSame(scanCaptor.firstValue, uploadCaptor.firstValue)
+        }
+
+    private suspend fun uploadMetFout(fout: Throwable): org.springframework.http.ResponseEntity<Any> {
+        whenever(virusScanService.scan(any<ByteArray>())).thenReturn(VirusScanResult(VirusScanStatus.OK, emptyMap()))
+        whenever(documentenApiService.uploadDocument(any(), any(), any(), anyOrNull())).thenThrow(fout)
+        return resource.uploadDocument(UUID.randomUUID(), filePart("doc.pdf", "x".toByteArray()), null, authentication)
+    }
+
+    @Test
+    fun `een niet-toegestaan bestandstype is een 400 met een vaste tekst`() =
+        runTest {
+            val response = uploadMetFout(MimeTypeDeniedException("application/x-geheim is not allowed for uploads."))
+
+            assertEquals(HttpStatus.BAD_REQUEST, response.statusCode)
+            assertFalse(response.body.toString().contains("x-geheim"))
+        }
+
+    @Test
+    fun `een storing van de koppeling is een 502 met alleen een code en de referentie`() =
+        runTest {
+            val fout = KoppelingException("documenten-api", KoppelingFoutsoort.NETWERK, KoppelingProblem(title = "netwerk", status = 502))
+
+            val response = uploadMetFout(fout)
+
+            assertEquals(HttpStatus.BAD_GATEWAY, response.statusCode)
+            assertEquals(mapOf("code" to "KOPPELING_NIET_BESCHIKBAAR", "referentie" to fout.correlatieId), response.body)
+        }
+
+    @Test
+    fun `een tenant zonder module is een 500 met een vaste code zonder configuratiepad`() =
+        runTest {
+            whenever(documentenApiService.standaardDocumentApi()).thenThrow(ModuleNotConfiguredException("documenten-api", "standaardDocumentApi"))
+            whenever(virusScanService.scan(any<ByteArray>())).thenReturn(VirusScanResult(VirusScanStatus.OK, emptyMap()))
+
+            val response = resource.uploadDocument(UUID.randomUUID(), filePart("doc.pdf", "x".toByteArray()), null, authentication)
+
+            assertEquals(HttpStatus.INTERNAL_SERVER_ERROR, response.statusCode)
+            assertEquals(mapOf("code" to "MODULE_NIET_GECONFIGUREERD"), response.body)
+        }
+
+    @Test
+    fun `zonder tenant is het een 500 met de code TENANT_ONTBREEKT`() =
+        runTest {
+            val response = uploadMetFout(TenantContextMissingException())
+
+            assertEquals(HttpStatus.INTERNAL_SERVER_ERROR, response.statusCode)
+            assertEquals(mapOf("code" to "TENANT_ONTBREEKT"), response.body)
         }
 
     private fun filePart(
