@@ -75,6 +75,72 @@
         }
       },
       "additionalProperties" : false
+    },
+    "koppelingen" : {
+      "type" : "object",
+      "additionalProperties" : {
+        "type" : "object",
+        "properties" : {
+          "url" : {
+            "type" : "string",
+            "minLength" : 1
+          },
+          "auth" : {
+            "type" : "object",
+            "properties" : {
+              "type" : {
+                "type" : "string",
+                "enum" : [ "api-key", "bearer", "zgw-jwt", "oauth2-client-credentials", "oauth2-private-key-jwt" ]
+              },
+              "headerNaam" : {
+                "type" : "string",
+                "minLength" : 1
+              },
+              "waarde" : {
+                "type" : "string",
+                "pattern" : "^[a-z0-9]+([._-][a-z0-9]+)*$"
+              },
+              "token" : {
+                "type" : "string",
+                "pattern" : "^[a-z0-9]+([._-][a-z0-9]+)*$"
+              },
+              "clientId" : {
+                "type" : "string",
+                "minLength" : 1
+              },
+              "secret" : {
+                "type" : "string",
+                "pattern" : "^[a-z0-9]+([._-][a-z0-9]+)*$"
+              },
+              "tokenUrl" : {
+                "type" : "string",
+                "minLength" : 1
+              },
+              "privateKeyBestand" : {
+                "type" : "string",
+                "minLength" : 1
+              }
+            },
+            "required" : [ "type" ],
+            "additionalProperties" : false
+          },
+          "leverancier" : {
+            "type" : "string",
+            "minLength" : 1
+          },
+          "versie" : {
+            "type" : "string",
+            "minLength" : 1
+          }
+        },
+        "required" : [ "url", "auth" ],
+        "additionalProperties" : false
+      }
+    },
+    "modules" : {
+      "type" : "object",
+      "properties" : { },
+      "additionalProperties" : false
     }
   },
   "required" : [ "oin", "naam", "omgevingstype", "domeinen", "thema", "inlogmiddelen" ],

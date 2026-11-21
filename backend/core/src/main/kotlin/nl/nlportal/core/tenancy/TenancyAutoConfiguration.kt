@@ -17,6 +17,7 @@ package nl.nlportal.core.tenancy
 
 import io.github.oshai.kotlinlogging.KotlinLogging
 import org.springframework.boot.autoconfigure.AutoConfiguration
+import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean
 import org.springframework.boot.context.properties.EnableConfigurationProperties
 import org.springframework.beans.factory.ObjectProvider
 import org.springframework.context.annotation.Bean
@@ -53,6 +54,10 @@ class TenancyAutoConfiguration {
         logger.info { "Tenants geladen: ${tenants.joinToString { "${it.oin} (${it.domeinen.joinToString()})" }}" }
         return TenantDirectory(tenants)
     }
+
+    @Bean
+    @ConditionalOnMissingBean(GeheimenBron::class)
+    fun geheimenBron(environment: Environment): GeheimenBron = OmgevingGeheimenBron(environment)
 
     @Bean
     fun tenantWebFilter(

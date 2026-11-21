@@ -119,11 +119,22 @@ via een rolling update wordt uitgerold, niet via hot reload; een andere OpenFeat
   koppeling (Resilience4j; standaardwaarden onder `nl-portal.koppeling-resilience`; alleen storingen van de bron
   tellen, een 4xx of eigen weigering niet). Een client hoort bij één tenant en weigert een aanroep in de context van een andere tenant. Er worden geen headers of bodies gelogd en foutdetails van een bron gaan niet naar de
   browser: het bericht van een `KoppelingException` is generiek met een correlatie-ID, en de GraphQL-foutafhandelaar
-  toont alleen dat. Tussenfase (stap 2 tot en met 6): elke tenant krijgt de koppelingen uit `nl-portal.koppelingen` (bij meer dan één tenant weigert het opstarten); de
-  koppelingen per tenant uit het tenantbestand komen met de migratie van elke module (T9 tot en met T21), die ook zijn
-  pakket uit `HttpClientRules.NOT_YET_MIGRATED` haalt.
+  toont alleen dat. Koppelingen staan per tenant in het tenantbestand (`koppelingen.<naam>`, zie de volgende bullet); het register bouwt `perTenant` uit `TenantDefinition.koppelingen`.
+  Tussenfase (tot de laatste module is gemigreerd): een nog niet gemigreerde module leest nog `nl-portal.koppelingen` (bij meer dan één tenant weigert het opstarten); dezelfde naam in het tenantbestand wint. De migratie van elke module (T9 tot en met T21) haalt ook zijn
+  pakket uit `HttpClientRules.NOT_YET_MIGRATED`.
   Architectuurchecks (`backend/architecture-test`, `HttpClientRules`) bewaken dat buiten `core.koppeling` niemand een
   `WebClient` (of `RestClient`, `RestTemplate`, het JDK-`HttpClient`, OkHttp, Apache of Jetty) bouwt of kent, `wiretap` aanzet, verzoekdetails logt of een `KoppelingClient` in een veld bewaart; elke regel heeft een overtredende fixture. De enige uitzondering is `core.modulestatus`, dat alleen het type `ExchangeFilterFunction` kent (alleen vrijgesteld van de typeregel, niet van de andere). `NOT_YET_MIGRATED` is een ratchet: een test faalt zodra een vermeld pakket geen overtreding meer heeft, en `nl.nlportal.form` en `nl.nlportal.commonground.authentication` staan er nog in zonder migratieticket (aandachtspunt voor het BFF-ticket en de formulieren).
+- **Modulegegevens en koppelingen in het tenantbestand.** Een module draagt zijn getypeerde configuratieklasse bij met de SPI
+  `TenantModuleConfiguratie<T>` (`core.tenancy`): naam, Kotlin-dataclass en eigen validatieregels. De bijdrage wordt gevonden via
+  `ServiceLoader` (`META-INF/services`), dus ook de validator-CLI zonder Spring neemt hem mee; schema, loader en opstartvalidatie
+  lezen dezelfde bijdrage en core kent de module niet. `modules.<naam>` staat onder die sleutel in het tenantbestand en komt gebonden
+  in `TenantDefinition.modules` (`tenant.module<T>()`; `TenantDirectory.module<T>()` leest de tenant uit de context). Een module die niet
+  op het klassenpad staat is een onbekende eigenschap en weigert het opstarten. `koppelingen.<naam>` (url, auth, leverancier, versie) volgt hetzelfde pad:
+  geheimen zijn alleen een `GeheimVerwijzing` (de naam in de secret store, opgelost via `GeheimenBron`, standaard `nl-portal.geheimen.<naam>` uit
+  de omgeving); een waarde die geen naam is, een onvolledige koppeling (per auth type de verplichte velden), een ongeldige url of een geheim dat in de secret
+  store ontbreekt weigert het opstarten, met de OIN in de melding (story 14). Credentials (elke `GeheimVerwijzing`, en elk veld met `@NietErfbaar`)
+  worden nooit uit de gedeelde basis geërfd (story 11). Het gepubliceerde schema (`backend/app/schema/tenant.schema.json`) wordt in `:app` gegenereerd,
+  waar alle modules op het klassenpad staan.
 - **Drie lagen configuratie.** Het *tenantbestand* (Git: domeinen, URL's, thema, verwijzingen naar secrets;
   rolling restart), de *flag* (alleen aan/uit per module en tenant; `ops.<module>.enabled`, ook via een rolling restart) en de *secret store* (de secrets
   zelf, via ESO). Een module is bruikbaar als configuratie aanwezig is én de flag aanstaat. Zie

@@ -15,8 +15,12 @@
  */
 package nl.nlportal.core.koppeling
 
+import nl.nlportal.core.tenancy.GeheimenBron
+import nl.nlportal.core.tenancy.OmgevingGeheimenBron
 import nl.nlportal.core.tenancy.TenancyAutoConfiguration
 import nl.nlportal.core.tenancy.TenantDirectory
+import org.springframework.beans.factory.ObjectProvider
+import org.springframework.core.env.Environment
 import org.springframework.boot.autoconfigure.AutoConfiguration
 import org.springframework.boot.autoconfigure.condition.ConditionalOnBean
 import org.springframework.boot.context.properties.ConfigurationProperties
@@ -40,16 +44,21 @@ class KoppelingAutoConfiguration {
         directory: TenantDirectory,
         koppelingen: KoppelingenProperties,
         resilience: KoppelingResilienceInstellingen,
+        geheimenBron: ObjectProvider<GeheimenBron>,
+        environment: Environment,
     ): KoppelingRegister {
-        // Zolang alle tenants dezelfde koppelingen en credentials krijgen, mag er maar één tenant zijn.
+        // Tussenfase: een nog niet gemigreerde module leest `nl-portal.koppelingen`. Dat zijn dezelfde koppelingen en
+        // credentials voor elke tenant, dus er mag maar één tenant zijn zolang dat blok gebruikt wordt.
         check(koppelingen.koppelingen.isEmpty() || directory.tenants.size <= 1) {
-            "Meerdere tenants en toch koppelingen uit 'nl-portal.koppelingen': dan delen ze bron en credentials; configureer koppelingen per tenant"
+            "Meerdere tenants en toch koppelingen uit 'nl-portal.koppelingen': dan delen ze bron en credentials; zet de koppelingen in het tenantbestand"
         }
+        val bron = geheimenBron.getIfAvailable { OmgevingGeheimenBron(environment) }
         return KoppelingRegister.bouw(
             directory.tenants.associate { it.oin to koppelingen.koppelingen },
             webClientBuilder,
             resilience,
             zgwJwtGenerator,
+            gemigreerd = directory.tenants.associate { tenant -> tenant.oin to tenant.koppelingen.mapValues { (naam, koppeling) -> koppeling.naarKoppeling(tenant.oin, naam, bron) } },
         )
     }
 }

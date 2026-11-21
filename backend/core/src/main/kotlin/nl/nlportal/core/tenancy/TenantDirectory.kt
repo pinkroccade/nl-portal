@@ -38,6 +38,18 @@ class TenantDirectory(
 
     fun forOin(oin: Oin): TenantDefinition? = tenants.firstOrNull { it.oin == oin }
 
+    /**
+     * De configuratie van de module met klasse [klasse] voor de tenant uit de [TenantContext] (fail-closed: zonder tenant een
+     * [TenantContextMissingException], voor een tenant zonder configuratie van deze module een
+     * [nl.nlportal.core.util.ModuleNotConfiguredException]).
+     */
+    suspend fun <T : Any> module(klasse: kotlin.reflect.KClass<T>): T {
+        val oin = TenantContext.current()
+        return (forOin(oin) ?: throw TenantContextMissingException()).requireModule(klasse)
+    }
+
+    suspend inline fun <reified T : Any> module(): T = module(T::class)
+
     companion object {
         /**
          * Normaliseert de waarde van een `Host`-header of forwarded host: kleine letters, zonder poort en zonder één
