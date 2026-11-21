@@ -50,9 +50,10 @@ nl-portal:
     tenancy:
         # De demo-tenant van de compose-stack; bootRun draait in deze moduleomgeving.
         directory: ../../docker-compose/imports/tenants
-    # De secret store van deze dev-app: het geheim van de koppeling `zakenapi` in het tenantbestand.
+    # De secret store van deze dev-app: de geheimen van de koppelingen `zakenapi` en `objectenapi` in het tenantbestand.
     geheimen:
         "00000099000000000001.zaken-secret": ${OPENZAAK_NLPORTAL_SECRET}
+        "00000099000000000001.objectenapi-token": Token ${OBJECTS_API_TOKEN}
     support:
         ping-endpoint:
             enabled: false
@@ -118,9 +119,6 @@ nl-portal:
             enabled: true
         objectenapi:
             enabled: true
-            properties:
-                url: http://localhost:8010
-                token: ${OBJECTS_API_TOKEN}
         openklant2:
             enabled: true
             properties:

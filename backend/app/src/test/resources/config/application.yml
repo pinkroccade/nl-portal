@@ -27,6 +27,7 @@ nl-portal:
         # Geheimen van de testtenant (zie tenants/00000099000000000001.yaml): <oin>.<naam>
         "00000099000000000001":
             zaken-secret: testwaarde-zaken-geheim-voor-de-app-test-0123456789
+            objectenapi-token: Token 0000000000000000000000000000000000000000
             payment-direct-api-geheim: test-api-geheim
             payment-direct-webhook-geheim: test-webhook-geheim
     security:
@@ -83,9 +84,6 @@ nl-portal:
             enabled: true
         objectenapi:
             enabled: true
-            properties:
-                url: http://localhost:56789
-                token: 0000000000000000000000000000000000000000
         openklant2:
             enabled: true
             properties:
