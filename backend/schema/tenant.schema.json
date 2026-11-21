@@ -90,7 +90,7 @@
             "properties" : {
               "type" : {
                 "type" : "string",
-                "enum" : [ "api-key", "bearer", "zgw-jwt", "oauth2-client-credentials", "oauth2-private-key-jwt", "gcs-v1-hmac" ]
+                "enum" : [ "api-key", "bearer", "zgw-jwt", "oauth2-client-credentials", "oauth2-private-key-jwt", "gcs-v1-hmac", "geen" ]
               },
               "headerNaam" : {
                 "type" : "string",
@@ -140,6 +140,33 @@
     "modules" : {
       "type" : "object",
       "properties" : {
+        "brp" : {
+          "type" : "object",
+          "properties" : {
+            "velden" : {
+              "type" : "array",
+              "items" : {
+                "type" : "string",
+                "minLength" : 1
+              }
+            },
+            "toegestaneWoonplaatsenBewoning" : {
+              "type" : "array",
+              "items" : {
+                "type" : "string",
+                "minLength" : 1
+              }
+            },
+            "aanvullendeHeaders" : {
+              "type" : "object",
+              "additionalProperties" : {
+                "type" : "string",
+                "minLength" : 1
+              }
+            }
+          },
+          "additionalProperties" : false
+        },
         "payment-direct" : {
           "type" : "object",
           "properties" : {

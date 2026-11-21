@@ -15,12 +15,12 @@
  */
 package nl.nlportal.graphql
 
-import ch.qos.logback.classic.Level
 import ch.qos.logback.classic.Logger
 import ch.qos.logback.classic.spi.ILoggingEvent
 import ch.qos.logback.core.read.ListAppender
 import graphql.language.SourceLocation
 import graphql.schema.DataFetchingEnvironment
+import nl.nlportal.core.koppeling.KoppelingConfiguratieException
 import nl.nlportal.core.koppeling.KoppelingException
 import nl.nlportal.core.koppeling.KoppelingFoutsoort
 import nl.nlportal.core.koppeling.KoppelingProblem
@@ -29,7 +29,7 @@ import nl.nlportal.core.tenancy.TenantContextMissingException
 import nl.nlportal.core.util.ModuleNotConfiguredException
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertFalse
-import org.junit.jupiter.api.Assertions.assertNull
+import org.junit.jupiter.api.Assertions.assertNotNull
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
 import org.mockito.Mockito.RETURNS_DEEP_STUBS
@@ -38,60 +38,18 @@ import org.mockito.Mockito.`when`
 import org.slf4j.LoggerFactory
 
 class GraphQLExceptionHandlerTest {
-    @Test
-    fun `een niet geconfigureerde module of een ontbrekende tenant toont de browser geen OIN of configuratienaam`() {
-        val geenModule = ModuleNotConfiguredException("payment-direct", "Tenant 00000099000000000001: modulegegevens")
-        val geenTenant = TenantContextMissingException()
-
-        val moduleFout = GraphQLExceptionHandler().resolveException(geenModule, env).block()!!.single()
-        val tenantFout = GraphQLExceptionHandler().resolveException(geenTenant, env).block()!!.single()
-
-        assertEquals("De module is niet beschikbaar", moduleFout.message)
-        assertEquals(mapOf("code" to "MODULE_NIET_GECONFIGUREERD"), moduleFout.extensions)
-        assertEquals("De aanvraag kan niet worden verwerkt", tenantFout.message)
-        assertEquals(mapOf("code" to "TENANT_ONTBREEKT"), tenantFout.extensions)
-        assertFalse(moduleFout.toSpecification().toString().contains("00000099000000000001"))
-    }
-
-    @Test
-    fun `een module die uit staat geeft de code MODULE_NIET_BESCHIKBAAR met de modulenaam en de eigen melding`() {
-        val fout = GraphQLExceptionHandler().resolveException(ModuleNotAvailableException("berichten"), env).block()!!.single()
-
-        assertEquals("Module 'berichten' is niet beschikbaar", fout.message)
-        assertEquals(mapOf("code" to "MODULE_NIET_BESCHIKBAAR", "module" to "berichten"), fout.extensions)
-    }
-
-    @Test
-    fun `een fout zonder eigen afhandeling houdt de eigen melding en krijgt geen code`() {
-        val fout = GraphQLExceptionHandler().resolveException(IllegalArgumentException("ongeldige invoer"), env).block()!!.single()
-
-        assertEquals("ongeldige invoer", fout.message)
-        assertNull(fout.extensions)
-    }
-
-    @Test
-    fun `de details van een configuratiefout gaan alleen naar de log`() {
-        val appender = ListAppender<ILoggingEvent>().apply { start() }
-        val logger = LoggerFactory.getLogger(GraphQLExceptionHandler::class.java) as Logger
-        logger.addAppender(appender)
-        try {
-            GraphQLExceptionHandler().resolveException(ModuleNotConfiguredException("payment-direct", "Tenant 00000099000000000001: modulegegevens"), env).block()
-
-            assertTrue(
-                appender.list
-                    .single { it.level == Level.WARN }
-                    .formattedMessage
-                    .contains("00000099000000000001"),
-            )
-        } finally {
-            logger.detachAppender(appender)
-        }
-    }
-
     private val env: DataFetchingEnvironment =
         mock(DataFetchingEnvironment::class.java, RETURNS_DEEP_STUBS).also {
             `when`(it.field.sourceLocation).thenReturn(SourceLocation(1, 1))
         }
+
+    @Test
+    fun `een module die uit staat geeft de code MODULE_NIET_BESCHIKBAAR met de modulenaam en de eigen melding`() {
+        val graphqlFout = GraphQLExceptionHandler().resolveException(ModuleNotAvailableException("berichten"), env).block()!!.single()
+
+        assertEquals("Module 'berichten' is niet beschikbaar", graphqlFout.message)
+        assertEquals(mapOf("code" to "MODULE_NIET_BESCHIKBAAR", "module" to "berichten"), graphqlFout.extensions)
+    }
 
     @Test
     fun `een fout van een koppeling toont de browser alleen een generieke melding en de referentie, nooit de details van de bron`() {
@@ -107,5 +65,61 @@ class GraphQLExceptionHandlerTest {
         assertEquals("Koppeling 'brp' is niet beschikbaar (referentie ${fout.correlatieId})", graphqlFout.message)
         assertEquals(mapOf("code" to "KOPPELING_FOUT", "correlatieId" to fout.correlatieId), graphqlFout.extensions)
         assertFalse(graphqlFout.toSpecification().toString().contains("999993653"))
+    }
+
+    @Test
+    fun `een module die voor de tenant niet is ingesteld toont de browser geen configuratiedetails zoals de OIN`() {
+        val fout = ModuleNotConfiguredException("BrpConfiguratie", "Tenant Oin(value=00000099000000000001): modulegegevens")
+
+        val graphqlFout = GraphQLExceptionHandler().resolveException(fout, env).block()!!.single()
+
+        assertEquals("Module is niet beschikbaar", graphqlFout.message)
+        assertEquals("MODULE_NIET_GECONFIGUREERD", graphqlFout.extensions["code"])
+        assertNotNull(graphqlFout.extensions["correlatieId"])
+        assertFalse(graphqlFout.toSpecification().toString().contains("00000099000000000001"))
+    }
+
+    @Test
+    fun `een request zonder tenant toont de browser een generieke melding`() {
+        val graphqlFout = GraphQLExceptionHandler().resolveException(TenantContextMissingException(), env).block()!!.single()
+
+        assertEquals("Niet geautoriseerd", graphqlFout.message)
+        assertEquals("TENANT_ONTBREEKT", graphqlFout.extensions["code"])
+        assertNotNull(graphqlFout.extensions["correlatieId"])
+    }
+
+    @Test
+    fun `een configuratiefout van een koppeling toont de browser een generieke melding zonder headernaam`() {
+        val fout = KoppelingConfiguratieException("Header 'X-Doelbinding-Geheim' hoort bij de koppeling")
+
+        val graphqlFout = GraphQLExceptionHandler().resolveException(fout, env).block()!!.single()
+
+        assertEquals("Koppeling is niet beschikbaar", graphqlFout.message)
+        assertEquals("KOPPELING_FOUT", graphqlFout.extensions["code"])
+        assertNotNull(graphqlFout.extensions["correlatieId"])
+    }
+
+    @Test
+    fun `de log van een interne fout noemt code, klassenaam, melding en correlatieId, zonder stacktrace, en de browser krijgt de melding niet`() {
+        val logger = LoggerFactory.getLogger(GraphQLExceptionHandler::class.java) as Logger
+        val appender = ListAppender<ILoggingEvent>().also { it.start() }
+        logger.addAppender(appender)
+        try {
+            val fout = KoppelingConfiguratieException("Header X-Doelbinding hoort bij de koppeling")
+
+            val graphqlFout = GraphQLExceptionHandler().resolveException(fout, env).block()!!.single()
+
+            val regel = appender.list.single()
+            val correlatieId = graphqlFout.extensions["correlatieId"] as String
+            val tekst = regel.formattedMessage
+            assertTrue(tekst.contains("KOPPELING_FOUT"))
+            assertTrue(tekst.contains("KoppelingConfiguratieException"))
+            assertTrue(tekst.contains("Header X-Doelbinding hoort bij de koppeling"))
+            assertTrue(tekst.contains(correlatieId))
+            assertEquals(null, regel.throwableProxy)
+            assertFalse(graphqlFout.toSpecification().toString().contains("X-Doelbinding"))
+        } finally {
+            logger.detachAppender(appender)
+        }
     }
 }

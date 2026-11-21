@@ -53,10 +53,14 @@ class PaymentDirectTenantAppTest {
         val compose = Path.of("../../docker-compose/imports/tenants")
         Files.list(compose).use { bestanden -> bestanden.filter { Files.isRegularFile(it) }.forEach { Files.copy(it, map.resolve(it.fileName)) } }
         val tenantBestand = map.resolve("$oin.yaml")
-        val regels = Files.readAllLines(tenantBestand)
-        val begin = regels.indexOfFirst { it.startsWith("# koppelingen:") }
-        assertThat(begin).describedAs("het voorbeeld staat onder '# koppelingen:'").isGreaterThan(0)
-        Files.write(tenantBestand, regels.take(begin) + regels.drop(begin).map { it.removePrefix("# ").removePrefix("#") })
+        var voorbeeld = false
+        val regels =
+            Files.readAllLines(tenantBestand).map { regel ->
+                voorbeeld = regel == "    # payment-direct:" || (voorbeeld && regel.startsWith("    #     "))
+                if (voorbeeld) regel.replaceFirst("    # ", "    ") else regel
+            }
+        assertThat(regels.count { it == "    payment-direct:" }).describedAs("het voorbeeld staat twee keer: onder koppelingen en onder modules").isEqualTo(2)
+        Files.write(tenantBestand, regels)
 
         val resultaat = TenantFileLoader().load(map)
 

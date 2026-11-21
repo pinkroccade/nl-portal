@@ -11,7 +11,7 @@ package "gedeelde infrastructuur" {
 }
 package "functionaliteit" {
   [:form\n<size:10>omvang S, risico laag, tenancy: config</size>] as form #CFE8CF
-  [:haalcentraal-brp\n<size:10>omvang M, risico middel, tenancy: config</size>] as haalcentraal_brp #FBE3A6
+  [:haalcentraal-brp\n<size:10>omvang S, risico laag</size>] as haalcentraal_brp #CFE8CF
   [:kvk\n<size:10>omvang S, risico middel, tenancy: config, webclient</size>] as kvk #FBE3A6
   [:payment-direct\n<size:10>omvang M, risico middel, tenancy: anoniem</size>] as payment_direct #FBE3A6
   [:zgw:berichten\n<size:10>omvang S, risico middel, tenancy: config</size>] as zgw_berichten #FBE3A6

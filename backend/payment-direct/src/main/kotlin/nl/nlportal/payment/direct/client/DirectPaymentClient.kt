@@ -36,18 +36,14 @@ class DirectPaymentClient(
     suspend fun hostedCheckout(
         profiel: DirectPaymentProfiel,
         checkoutRequest: CreateHostedCheckoutRequest,
-    ): CreateHostedCheckoutResponse = koppeling(profiel).post("/v2/${segment(profiel.pspId)}/hostedcheckouts", checkoutRequest, ACCEPT_JSON)
+    ): CreateHostedCheckoutResponse = koppeling(profiel).post("/v2/${segment(profiel.pspId)}/hostedcheckouts", checkoutRequest)
 
     suspend fun hostedCheckoutStatus(
         profiel: DirectPaymentProfiel,
         hostedCheckoutId: String,
-    ): DirectPaymentStatusResponse = koppeling(profiel).get("/v2/${segment(profiel.pspId)}/hostedcheckouts/${segment(hostedCheckoutId)}", headers = ACCEPT_JSON)
+    ): DirectPaymentStatusResponse = koppeling(profiel).get("/v2/${segment(profiel.pspId)}/hostedcheckouts/${segment(hostedCheckoutId)}")
 
     private suspend fun koppeling(profiel: DirectPaymentProfiel) = register.current(DirectPaymentTenantConfiguratie.NAAM, profiel.koppelingNaam())
 
     private fun segment(waarde: String) = UriUtils.encodePathSegment(waarde, StandardCharsets.UTF_8)
-
-    private companion object {
-        val ACCEPT_JSON = mapOf("Accept" to "application/json")
-    }
 }

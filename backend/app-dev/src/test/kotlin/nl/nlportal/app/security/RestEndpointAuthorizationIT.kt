@@ -62,6 +62,9 @@ class RestEndpointAuthorizationIT {
     @Autowired
     lateinit var webTestClient: WebTestClient
 
+    /** De tenantresolutie vereist een host (het tenantbestand van de test kent `localhost`). */
+    private fun client() = webTestClient.mutate().baseUrl("http://localhost").build()
+
     @Autowired
     lateinit var requestMappingHandlerMapping: RequestMappingHandlerMapping
 
@@ -95,7 +98,7 @@ class RestEndpointAuthorizationIT {
             .filter { (_, _, isPublic) -> !isPublic }
             .map { (method, path, _) ->
                 DynamicTest.dynamicTest("$method $path should require authentication") {
-                    webTestClient
+                    client()
                         .method(method)
                         .uri(path)
                         .exchange()
@@ -114,7 +117,7 @@ class RestEndpointAuthorizationIT {
             .filter { (_, _, isPublic) -> isPublic }
             .map { (method, path, _) ->
                 DynamicTest.dynamicTest("$method $path should be accessible without authentication") {
-                    webTestClient
+                    client()
                         .method(method)
                         .uri(path)
                         .exchange()

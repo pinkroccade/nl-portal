@@ -82,13 +82,20 @@ koppelingen:
         url: https://zaken.example.nl
         leverancier: Open Zaak
         auth:
-            type: zgw-jwt     # api-key | bearer | zgw-jwt | oauth2-client-credentials | oauth2-private-key-jwt | gcs-v1-hmac
+            type: zgw-jwt     # api-key | bearer | zgw-jwt | oauth2-client-credentials | oauth2-private-key-jwt | gcs-v1-hmac | geen
             clientId: bosrand # per tenant, nooit uit base.yaml
             secret: 00000099000000000001.zaken-secret   # naam van het geheim, altijd met de eigen OIN vooraan; de waarde staat in de secret store
 modules:
     brp:                      # de configuratie die de module bijdraagt (TenantModuleConfiguratie)
-        brpFields: [naam, geboortedatum]
+        velden: [naam, geboortedatum]
 ```
+
+De BRP-module (`haalcentraal-brp`) is zo gemigreerd: de bron staat onder `koppelingen.brp` (personen) en, voor het aantal bewoners, `koppelingen.brp-bewoning`
+(optioneel), met `auth.type: geen`: de bron zit achter de cloud gateway, die per gemeente zelf authenticeert, dus er is geen sleutel en geen geheim. Een leverancier die wel een sleutel vraagt, gebruikt `api-key`. `modules.brp` bevat de doelbinding van de gemeente: `velden` (de velden die bij de BRP
+worden opgevraagd; standaard 24 velden), `toegestaneWoonplaatsenBewoning` (leeg betekent alle woonplaatsen) en `aanvullendeHeaders` (vaste headers zoals `x-doelbinding`,
+geen geheimen; ze zijn niet erfbaar uit `base.yaml`, en een headernaam die op een geheim lijkt, of gelijk is aan de auth-header van de koppeling, weigert het opstarten). `modules.brp` zonder `koppelingen.brp` weigert het opstarten. De module-schakelaar `nl-portal.config.haalcentraal-brp.enabled` blijft bestaan;
+de oude properties `...haalcentraal-brp.properties.*` (URL's, `apiKey`, `ssl`, `brpFields`, `allowedCitiesForBewoning`) zijn vervallen en weigeren het opstarten zolang ze nog gezet zijn (ook als omgevingsvariabele). Een bearer-token van de
+inwoner gaat niet meer naar de BRP; uitgaande clientcertificaten (`ssl`) vervallen omdat de cloud gateway de PKIoverheid-certificaten per gemeente beheert.
 
 De runtime weigert te starten bij een koppeling zonder verplichte velden voor haar `auth.type` (de melding noemt de OIN), een geheim dat geen naam
 is (de waarde zelf wordt nooit getoond), een geheim dat niet in de secret store staat, en een `modules.<naam>` zonder bijbehorende module. Credentials en

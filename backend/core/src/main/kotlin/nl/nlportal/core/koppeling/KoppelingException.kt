@@ -99,3 +99,11 @@ class KoppelingException(
         )
     }
 }
+
+/**
+ * Een aanroep van een koppeling die niet kan door een fout in de eigen configuratie (bijvoorbeeld een verboden header). Dit is geen
+ * bronfout: het bericht is voor de log en bevat interne gegevens, dus het gaat niet naar de browser (zie `GraphQLExceptionHandler`).
+ */
+class KoppelingConfiguratieException(
+    message: String,
+) : IllegalArgumentException(message)

@@ -138,6 +138,10 @@ via een rolling update wordt uitgerold, niet via hot reload; een andere OpenFeat
   store ontbreekt weigert het opstarten, met de OIN in de melding (story 14). Credentials (elke `GeheimVerwijzing`, en elk veld met `@NietErfbaar`)
   worden nooit uit de gedeelde basis geërfd (story 11). Het gepubliceerde schema (`backend/schema/tenant.schema.json`) wordt in `:app` gegenereerd,
   waar alle modules op het klassenpad staan.
+  Auth-type `geen` is een bewuste keuze voor een bron achter de cloud gateway (die per gemeente zelf authenticeert); een weggelaten `auth` blijft een weigering.
+  `ModuleContext` geeft een module naast de koppelingnamen ook de auth-headernamen per koppeling, zodat een moduleregel een botsing bij het opstarten weigert.
+  Een gemigreerde module registreert een `VervallenProperties`-bean met haar oude prefix: staat daar nog iets gezet (ook als omgevingsvariabele), dan weigert het opstarten met een verwijzing naar `modules.<naam>`.
+  `GraphQLExceptionHandler` toont een module- of tenantfout (`ModuleNotConfiguredException`, `TenantContextMissingException`, `KoppelingConfiguratieException`) met een generieke code en melding; de details staan alleen in de log.
 - **Drie lagen configuratie.** Het *tenantbestand* (Git: domeinen, URL's, thema, verwijzingen naar secrets;
   rolling restart), de *flag* (alleen aan/uit per module en tenant; `ops.<module>.enabled`, ook via een rolling restart) en de *secret store* (de secrets
   zelf, via ESO). Een module is bruikbaar als configuratie aanwezig is én de flag aanstaat. Zie

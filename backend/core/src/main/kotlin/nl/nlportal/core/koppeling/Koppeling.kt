@@ -44,6 +44,9 @@ enum class KoppelingAuthType {
     OAUTH2_CLIENT_CREDENTIALS,
     OAUTH2_PRIVATE_KEY_JWT,
     GCS_V1_HMAC,
+
+    /** Geen authenticatie door de app (bron achter de cloud gateway). */
+    GEEN,
 }
 
 class KoppelingAuth {

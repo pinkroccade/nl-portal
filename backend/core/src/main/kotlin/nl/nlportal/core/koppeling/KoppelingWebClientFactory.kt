@@ -19,6 +19,7 @@ import io.github.oshai.kotlinlogging.KotlinLogging
 import nl.nlportal.core.util.requireConfigured
 import org.springframework.core.ParameterizedTypeReference
 import org.springframework.http.HttpHeaders
+import org.springframework.http.MediaType
 import org.springframework.http.client.reactive.ReactorClientHttpConnector
 import org.springframework.util.LinkedMultiValueMap
 import org.springframework.web.reactive.function.BodyInserters
@@ -60,12 +61,20 @@ internal class KoppelingWebClientFactory(
         koppeling: Koppeling,
     ): WebClient {
         val url = koppeling.url.requireConfigured(modulenaam, "url")
-        val builder = basisBuilder().baseUrl(url)
+        // De oude clients vroegen om JSON; een strikte bron of de gateway kan zonder Accept anders antwoorden.
+        val builder =
+            basisBuilder()
+                .baseUrl(url)
+                .defaultHeader(HttpHeaders.ACCEPT, MediaType.APPLICATION_JSON_VALUE)
         if (koppeling.isOnbeveiligd()) {
             logger.warn { "Koppeling van module '$modulenaam' gebruikt http naar een publiek adres; gebruik https." }
         }
         val auth = koppeling.auth
         when (auth.type.requireConfigured(modulenaam, "auth.type")) {
+            KoppelingAuthType.GEEN -> {
+                // Geen inloggegeven: de cloud gateway authenticeert. Bewust een eigen keuze, geen weggelaten auth.
+            }
+
             KoppelingAuthType.API_KEY -> {
                 builder.defaultHeader(
                     auth.headerName.requireConfigured(modulenaam, "auth.header-name"),
