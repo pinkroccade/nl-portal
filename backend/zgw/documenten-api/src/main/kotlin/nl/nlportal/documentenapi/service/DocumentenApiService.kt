@@ -115,8 +115,7 @@ class DocumentenApiService(
     }
 
     /** Alleen een koppeling die als document-API van de tenant is aangewezen; een andere koppeling van de tenant krijgt nooit een documentverzoek. */
-    private suspend fun documentApiVanModule(documentApi: String): String =
-        documentApi.also { directory.module<DocumentenApiConfiguratie>().documentApis[it].requireConfigured(DocumentenApiTenantConfiguratie.NAAM, "documentApis.$it") }
+    private suspend fun documentApiVanModule(documentApi: String): String = documentApi.also { directory.module<DocumentenApiConfiguratie>().documentApis[it].requireConfigured(DocumentenApiTenantConfiguratie.NAAM, "documentApis.$it") }
 
     private suspend fun documentApiVoorUrl(documentUrl: String): String = documentenApiClient.documentApiVoorUrl(documentUrl, directory.module<DocumentenApiConfiguratie>().documentApis.keys)
 }

@@ -267,7 +267,11 @@ class KoppelingClientStreamTest {
 
         repeat(3) {
             alsTenant {
-                register.current("documenten").getStream("/groot").first().let { DataBufferUtils.release(it) }
+                register
+                    .current("documenten")
+                    .getStream("/groot")
+                    .first()
+                    .let { DataBufferUtils.release(it) }
             }
         }
         val daarna = alsTenant { register.current("documenten").getStream("/c").bytes() }

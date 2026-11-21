@@ -85,7 +85,11 @@ class DocumentenApiTenantConfiguratie : TenantModuleConfiguratie<DocumentenApiCo
         val uri = runCatching { URI(url) }.getOrNull() ?: return listOf("ongeldig:$url")
         val schema = uri.scheme?.lowercase().orEmpty()
         val poort = uri.port.takeUnless { it == -1 || (schema == "https" && it == 443) || (schema == "http" && it == 80) }
-        return listOf(schema, uri.host?.lowercase().orEmpty(), poort?.toString().orEmpty()) + uri.path.orEmpty().split('/').filter { it.isNotEmpty() }
+        return listOf(schema, uri.host?.lowercase().orEmpty(), poort?.toString().orEmpty()) +
+            uri.path
+                .orEmpty()
+                .split('/')
+                .filter { it.isNotEmpty() }
     }
 
     companion object {
