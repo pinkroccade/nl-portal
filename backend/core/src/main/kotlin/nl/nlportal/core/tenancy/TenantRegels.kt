@@ -73,6 +73,9 @@ internal fun TenantKoppeling.regelovertredingen(
 /** Een geheimverwijzing die niet met de OIN van de tenant begint; het bericht noemt de naam niet (kan een geheim zijn). */
 internal fun buitenNaamruimte(pad: String) = Regelovertreding(Code.GEHEIM_VAN_ANDERE_TENANT, pad, "Een geheimverwijzing begint met de OIN van deze tenant, gevolgd door . - of _ en de naam; een andere naamruimte is niet toegestaan")
 
+/** Omgevingstypen waarin een koppeling alleen https gebruikt (besluit 21-11: productie en acceptatie). */
+private val HTTPS_VERPLICHT = setOf(Omgevingstype.PRODUCTIE, Omgevingstype.ACCEPTATIE)
+
 private fun controleerUrl(
     url: String,
     pad: String,
@@ -86,8 +89,8 @@ private fun controleerUrl(
             Regelovertreding(Code.ONGELDIGE_WAARDE, pad, "$omschrijving is geen http(s)-url met een host en zonder inloggegevens")
         }
 
-        scheme == "http" && omgevingstype == Omgevingstype.PRODUCTIE -> {
-            Regelovertreding(Code.ONGELDIGE_WAARDE, pad, "$omschrijving moet in productie https zijn: gegevens en credentials gaan nooit onversleuteld over het netwerk")
+        scheme == "http" && omgevingstype in HTTPS_VERPLICHT -> {
+            Regelovertreding(Code.ONGELDIGE_WAARDE, pad, "$omschrijving moet in productie en acceptatie https zijn: gegevens en credentials gaan nooit onversleuteld over het netwerk")
         }
 
         else -> {

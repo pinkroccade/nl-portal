@@ -508,7 +508,9 @@ class TenantFileLoaderModulesTest {
                 override val klasse = Interface::class
             }
 
-        assertThrows<IllegalStateException> { TenantModules.van(listOf(module)) }
+        val fout = assertThrows<IllegalStateException> { TenantModules.van(listOf(module)) }
+
+        assertThat(fout.message).contains("geen primaire constructor")
     }
 
     @Test

@@ -91,7 +91,7 @@ class TenantModules private constructor(
             return van(gevonden)
         }
 
-        /** Voor tests en voor wie de bijdragen zelf aanlevert; weigert een ongeldige of dubbele naam, een gedeelde klasse een klasse zonder primaire constructor en een klasse (ook genest) die geen dataclass is. */
+        /** Voor tests en voor wie de bijdragen zelf aanlevert; weigert een ongeldige of dubbele naam, een gedeelde klasse, een klasse zonder primaire constructor en een klasse (ook genest) die geen dataclass is. */
         fun van(configuraties: List<TenantModuleConfiguratie<*>>): TenantModules {
             configuraties.forEach {
                 check(it.naam.matches(NAAM)) { "Modulenaam '${it.naam}' is ongeldig: kleine letters, cijfers en streepjes, beginnend met een letter" }

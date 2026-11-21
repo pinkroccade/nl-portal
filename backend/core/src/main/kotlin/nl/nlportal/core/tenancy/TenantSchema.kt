@@ -74,10 +74,9 @@ internal class TenantSchemaModel(
             "${klasse.simpleName} ('${pad.ifEmpty { "tenantbestand" }}') is geen dataclass; klassen in het tenantbestand zijn dataclasses"
         }
         return SchemaKnoop.Object(
-            (
-                klasse.primaryConstructor
-                    ?: error("${klasse.simpleName} heeft geen primaire constructor en kan niet in het tenantbestand staan")
-            ).parameters
+            // Een dataclass heeft altijd een primaire constructor (hierboven gecontroleerd).
+            klasse.primaryConstructor!!
+                .parameters
                 .associate { parameter ->
                     val naam = parameter.name!!
                     val eigenschapPad = if (pad.isEmpty()) naam else "$pad.$naam"

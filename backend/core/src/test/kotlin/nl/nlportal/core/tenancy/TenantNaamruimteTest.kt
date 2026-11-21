@@ -235,8 +235,27 @@ class TenantNaamruimteTest {
     }
 
     @Test
-    fun `buiten productie blijft http toegestaan en in productie https`() {
+    fun `in acceptatie zijn url en tokenUrl ook alleen https`() {
+        val acceptatie = "omgevingstype: acceptatie\ninlogmiddelen: [digid]\n"
+        tenant(koppeling("$bosrand.zaken", url = "http://zaken.example.nl"), omgeving = acceptatie)
+        val url = laad()
+        tenant(
+            "koppelingen:\n  zaken:\n    url: https://zaken.example.nl\n    auth:\n      type: oauth2-client-credentials\n      tokenUrl: http://idp.example.nl/token\n      clientId: c\n      secret: $bosrand.s\n",
+            omgeving = acceptatie,
+        )
+        val tokenUrl = laad()
+
+        assertThat(url.violations.map { it.pad }).containsExactly("koppelingen.zaken.url")
+        assertThat(url.violations.single().bericht).contains("https")
+        assertThat(tokenUrl.violations.map { it.pad }).containsExactly("koppelingen.zaken.auth.tokenUrl")
+    }
+
+    @Test
+    fun `buiten productie en acceptatie blijft http toegestaan en daarin https`() {
         tenant(koppeling("$bosrand.zaken", url = "http://zaken.example.nl"))
+        assertThat(laad().violations).isEmpty()
+
+        tenant(koppeling("$bosrand.zaken", url = "http://zaken.example.nl"), omgeving = "omgevingstype: ontwikkeling\ninlogmiddelen: [digid]\n")
         assertThat(laad().violations).isEmpty()
 
         tenant(koppeling("$bosrand.zaken", url = "https://zaken.example.nl"), omgeving = productie)
