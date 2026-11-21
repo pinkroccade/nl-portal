@@ -37,9 +37,10 @@ class TenantSchemaTest {
     @Test
     fun `het schema is gesloten en noemt de verplichte eigenschappen`() {
         assertThat(schema["additionalProperties"].asBoolean(true)).isFalse
-        assertThat(schema["required"].strings()).containsExactly("oin", "naam", "omgevingstype", "domeinen", "thema", "inlogmiddelen")
+        assertThat(schema["required"].strings()).containsExactly("oin", "naam", "omgevingstype", "domeinen", "thema", "inlogmiddelen", "authenticatie")
         assertThat(schema["properties"]["thema"]["additionalProperties"].asBoolean(true)).isFalse
         assertThat(schema["properties"]["thema"]["required"].strings()).containsExactly("titel")
+        assertThat(schema["properties"]["authenticatie"]["required"].strings()).containsExactly("issuer", "sleutelBestand")
     }
 
     @Test

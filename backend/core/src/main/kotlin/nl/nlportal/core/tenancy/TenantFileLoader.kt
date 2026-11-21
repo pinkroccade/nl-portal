@@ -53,6 +53,8 @@ data class TenantFileViolation(
         SESSIETIJD_BUITEN_GRENZEN,
         NIET_ERFBARE_WAARDE_IN_BASIS,
         TWEEDE_TENANT_NOG_NIET_TOEGESTAAN,
+        DUBBELE_ISSUER,
+        DUBBEL_SLEUTELBESTAND,
     }
 
     override fun toString() = "$bestand${pad?.let { " ($it)" } ?: ""}: $code - $bericht"
@@ -111,7 +113,7 @@ class TenantFileLoader(
         val map = parse(pad, violations) ?: return null
         val voor = violations.size
         controleerEigenschappen(TenantSchemaModel.tenantBestand, map, "", naam, violations, verplicht = false)
-        NIET_ERFBAAR.filter { it in map }.forEach {
+        NIET_ERFBAAR.filter { heeftPad(map, it) }.forEach {
             violations += TenantFileViolation(Code.NIET_ERFBARE_WAARDE_IN_BASIS, naam, it, "Dit hoort bij één tenant en kan niet uit de gedeelde basis komen")
         }
         return if (violations.size == voor) map else null
@@ -163,6 +165,7 @@ class TenantFileLoader(
         controleerDomeinen(naam, bestand, violations)
         controleerInlogmiddelen(naam, bestand, violations)
         controleerSessie(naam, bestand.sessie, violations)
+        controleerAuthenticatie(naam, bestand, violations)
         if (violations.size != voor) return null
 
         return TenantDefinition(
@@ -172,6 +175,7 @@ class TenantFileLoader(
             domeinen = bestand.domeinen,
             thema = bestand.thema,
             inlogmiddelen = bestand.inlogmiddelen.toSet(),
+            authenticatie = bestand.authenticatie,
             minimumNiveau = bestand.minimumNiveau,
             sessie = bestand.sessie,
         )
@@ -203,6 +207,46 @@ class TenantFileLoader(
         }
     }
 
+    /** De issuer is een absolute https-URL (http alleen in ontwikkeling) zonder userinfo, query, fragment of slot-slash. */
+    private fun controleerAuthenticatie(
+        naam: String,
+        bestand: TenantBestand,
+        violations: MutableList<TenantFileViolation>,
+    ) {
+        val authenticatie = bestand.authenticatie
+        val ontwikkeling = bestand.omgevingstype == Omgevingstype.ONTWIKKELING
+        if (!veiligeUrl(authenticatie.issuer, ontwikkeling, slotSlashToegestaan = false)) {
+            violations += TenantFileViolation(Code.ONGELDIGE_WAARDE, naam, "authenticatie.issuer", "De issuer is een absolute https-URL (http alleen in ontwikkeling) zonder gebruikersinformatie, query, fragment of slot-slash")
+        }
+        authenticatie.interneBasisUrl?.let {
+            if (!veiligeUrl(it, http = true, slotSlashToegestaan = false)) {
+                violations += TenantFileViolation(Code.ONGELDIGE_WAARDE, naam, "authenticatie.interneBasisUrl", "De interne basis-URL is een absolute http(s)-URL zonder gebruikersinformatie, query, fragment of slot-slash")
+            }
+        }
+    }
+
+    private fun veiligeUrl(
+        waarde: String,
+        http: Boolean,
+        slotSlashToegestaan: Boolean,
+    ): Boolean {
+        val uri = runCatching { java.net.URI(waarde) }.getOrNull() ?: return false
+        val schemaOk = uri.scheme == "https" || (http && uri.scheme == "http")
+        return schemaOk && !uri.host.isNullOrEmpty() && uri.rawUserInfo == null && uri.rawQuery == null && uri.rawFragment == null &&
+            (slotSlashToegestaan || !uri.rawPath.orEmpty().endsWith("/"))
+    }
+
+    private fun heeftPad(
+        map: Map<String, Any?>,
+        pad: String,
+    ): Boolean {
+        var huidig: Any? = map
+        for (deel in pad.split('.')) {
+            huidig = (huidig as? Map<*, *>)?.get(deel) ?: return false
+        }
+        return true
+    }
+
     private fun controleerSessie(
         naam: String,
         sessie: Sessie,
@@ -223,6 +267,8 @@ class TenantFileLoader(
         tenants.groupBy { it.definition.oin }.filterValues { it.size > 1 }.forEach { (oin, dubbel) ->
             violations += TenantFileViolation(Code.DUBBELE_OIN, dubbel[1].bestand, "oin", "OIN $oin staat ook in ${dubbel[0].bestand}")
         }
+        controleerUniek(tenants, violations, Code.DUBBELE_ISSUER, "authenticatie.issuer", "Issuer") { it.definition.authenticatie.issuer }
+        controleerUniek(tenants, violations, Code.DUBBEL_SLEUTELBESTAND, "authenticatie.sleutelBestand", "Sleutelbestand") { it.definition.authenticatie.sleutelBestand }
         val eigenaar = mutableMapOf<String, Geladen>()
         tenants.forEach { tenant ->
             tenant.definition.domeinen.distinct().forEach { domein ->
@@ -230,6 +276,24 @@ class TenantFileLoader(
                 if (eerder != null) {
                     violations += TenantFileViolation(Code.DUBBEL_DOMEIN, tenant.bestand, "domeinen", "Domein $domein staat ook in ${eerder.bestand}")
                 }
+            }
+        }
+    }
+
+    private fun controleerUniek(
+        tenants: List<Geladen>,
+        violations: MutableList<TenantFileViolation>,
+        code: Code,
+        pad: String,
+        soort: String,
+        waarde: (Geladen) -> String,
+    ) {
+        val eerder = mutableMapOf<String, Geladen>()
+        tenants.forEach { tenant ->
+            val ander = eerder.putIfAbsent(waarde(tenant), tenant)
+            if (ander != null) {
+                // de waarde zelf staat bewust niet in de melding: een pad of issuer kan een geheim verraden
+                violations += TenantFileViolation(code, tenant.bestand, pad, "$soort wordt al gebruikt in ${ander.bestand}; elke tenant heeft een eigen waarde")
             }
         }
     }
@@ -377,7 +441,7 @@ class TenantFileLoader(
         private const val MAX_BESTAND = 64 * 1024
 
         /** Eigenschappen die bij precies één tenant horen en dus nooit uit de gedeelde basis komen; hier komen later ook credentials en sleutels. */
-        private val NIET_ERFBAAR = listOf("oin", "naam", "domeinen")
+        private val NIET_ERFBAAR = listOf("oin", "naam", "domeinen", "authenticatie.issuer", "authenticatie.sleutelBestand", "authenticatie.interneBasisUrl")
 
         private val HOSTNAAM = Regex(TenantSchemaModel.HOSTNAAM_PATROON)
 

@@ -56,6 +56,29 @@
       },
       "minItems" : 1
     },
+    "authenticatie" : {
+      "type" : "object",
+      "properties" : {
+        "issuer" : {
+          "type" : "string",
+          "minLength" : 1
+        },
+        "sleutelBestand" : {
+          "type" : "string",
+          "minLength" : 1
+        },
+        "clientId" : {
+          "type" : "string",
+          "minLength" : 1
+        },
+        "interneBasisUrl" : {
+          "type" : "string",
+          "minLength" : 1
+        }
+      },
+      "required" : [ "issuer", "sleutelBestand" ],
+      "additionalProperties" : false
+    },
     "minimumNiveau" : {
       "type" : "string",
       "enum" : [ "basis", "midden", "substantieel", "hoog" ]
@@ -77,6 +100,6 @@
       "additionalProperties" : false
     }
   },
-  "required" : [ "oin", "naam", "omgevingstype", "domeinen", "thema", "inlogmiddelen" ],
+  "required" : [ "oin", "naam", "omgevingstype", "domeinen", "thema", "inlogmiddelen", "authenticatie" ],
   "additionalProperties" : false
 }

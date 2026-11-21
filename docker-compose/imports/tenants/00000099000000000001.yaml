@@ -2,6 +2,11 @@
 oin: "00000099000000000001"
 naam: Gemeente De Bosrand
 domeinen:
+    - debosrand.localhost
     - localhost
 thema:
     titel: Mijn De Bosrand
+authenticatie:
+    issuer: http://localhost:8082/realms/nlportal
+    # Relatief aan deze map; `mise run dev:setup` maakt het sleutelpaar (docker-compose/.generated/tenants).
+    sleutelBestand: ../../.generated/tenants/00000099000000000001/clientsleutel.jwk.json

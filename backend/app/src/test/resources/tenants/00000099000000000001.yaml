@@ -6,3 +6,7 @@ domeinen:
     - bosrand.example
 thema:
     titel: Mijn De Bosrand
+authenticatie:
+    issuer: http://localhost:9999/realms/test
+    # Relatief aan deze map; de testrun maakt het bestand (zie TestSleutelInitializer).
+    sleutelBestand: ../../../../build/test-sleutels/clientsleutel.jwk.json

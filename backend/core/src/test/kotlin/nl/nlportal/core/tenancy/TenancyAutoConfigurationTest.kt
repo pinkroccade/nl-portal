@@ -36,7 +36,7 @@ class TenancyAutoConfigurationTest {
         Files.writeString(dir.resolve("base.yaml"), "omgevingstype: test\ninlogmiddelen: [test]\n")
         Files.writeString(
             dir.resolve("00000099000000000001.yaml"),
-            "oin: \"00000099000000000001\"\nnaam: N\ndomeinen: [a.example]\nthema:\n  titel: T\n",
+            "oin: \"00000099000000000001\"\nnaam: N\ndomeinen: [a.example]\nthema:\n  titel: T\nauthenticatie:\n  issuer: https://login.example/realms/k1\n  sleutelBestand: /run/secrets/k0.jwk\n",
         )
     }
 
@@ -61,7 +61,7 @@ class TenancyAutoConfigurationTest {
         geldigeTenant()
         Files.writeString(
             dir.resolve("00000099000000000001.yaml"),
-            "oin: \"00000099000000000001\"\nnaam: N\ndomeinen: [A.example]\nthema:\n  titel: T\n",
+            "oin: \"00000099000000000001\"\nnaam: N\ndomeinen: [A.example]\nthema:\n  titel: T\nauthenticatie:\n  issuer: https://login.example/realms/k2\n  sleutelBestand: /run/secrets/k1.jwk\n",
         )
 
         runner.withPropertyValues("nl-portal.tenancy.directory=$dir").run {

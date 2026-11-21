@@ -97,6 +97,26 @@ data class Sessie(
 }
 
 /**
+ * De client-registratie van de backend (de BFF) bij de Keycloak-realm van de tenant (ADR 0022). De private sleutel staat
+ * niet in het tenantbestand maar in een bestand dat de secret store aanlevert (bestandsmount); alleen het pad staat hier.
+ *
+ * @property issuer publieke issuer van de realm; komt terug in het ID-token en in de `iss`-parameter van de callback.
+ * @property sleutelBestand pad naar de private JWK (RSA, PS256, met `kid`) voor `private_key_jwt`.
+ * @property clientId de enige vertrouwelijke client van de tenant.
+ * @property interneBasisUrl optioneel adres van de realm voor serververkeer (token- en JWKS-endpoint) als de publieke issuer intern niet bereikbaar is.
+ */
+data class Authenticatie(
+    val issuer: String,
+    val sleutelBestand: String,
+    val clientId: String = STANDAARD_CLIENT_ID,
+    val interneBasisUrl: String? = null,
+) {
+    companion object {
+        const val STANDAARD_CLIENT_ID = "nl-portal-backend"
+    }
+}
+
+/**
  * De vorm van het tenantbestand, bron van het gegenereerde JSON-schema en van de validator. Bewust gescheiden van
  * [TenantDefinition]: dit is wat de beheerder schrijft, dat is wat de runtime gebruikt.
  */
@@ -107,6 +127,7 @@ data class TenantBestand(
     val domeinen: List<String>,
     val thema: Thema,
     val inlogmiddelen: List<Inlogmiddel>,
+    val authenticatie: Authenticatie,
     val minimumNiveau: Betrouwbaarheidsniveau = Betrouwbaarheidsniveau.SUBSTANTIEEL,
     val sessie: Sessie = Sessie(),
 )
@@ -119,6 +140,7 @@ data class TenantDefinition(
     val domeinen: List<String>,
     val thema: Thema,
     val inlogmiddelen: Set<Inlogmiddel>,
+    val authenticatie: Authenticatie,
     val minimumNiveau: Betrouwbaarheidsniveau,
     val sessie: Sessie,
 )
