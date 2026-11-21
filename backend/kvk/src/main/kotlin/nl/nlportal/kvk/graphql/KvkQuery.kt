@@ -15,7 +15,7 @@
  */
 package nl.nlportal.kvk.graphql
 
-import nl.nlportal.commonground.authentication.CommonGroundAuthentication
+import nl.nlportal.portal.authentication.domain.PortalAuthentication
 import nl.nlportal.kvk.domain.MaatschappelijkeActiviteit
 import nl.nlportal.kvk.service.KvkService
 import org.springframework.graphql.data.method.annotation.QueryMapping
@@ -26,7 +26,7 @@ class KvkQuery(
     val kvkService: KvkService,
 ) {
     @QueryMapping
-    suspend fun getBedrijf(authentication: CommonGroundAuthentication): MaatschappelijkeActiviteit? =
+    suspend fun getBedrijf(authentication: PortalAuthentication): MaatschappelijkeActiviteit? =
         kvkService.getMaatschappelijkeActiviteit(
             authentication = authentication,
         )

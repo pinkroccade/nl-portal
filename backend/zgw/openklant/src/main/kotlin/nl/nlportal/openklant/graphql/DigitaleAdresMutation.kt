@@ -17,7 +17,7 @@ package nl.nlportal.openklant.graphql
 
 import java.time.LocalDate
 import java.util.UUID
-import nl.nlportal.commonground.authentication.CommonGroundAuthentication
+import nl.nlportal.portal.authentication.domain.PortalAuthentication
 import nl.nlportal.openklant.graphql.domain.DigitaleAdresRequest
 import nl.nlportal.openklant.graphql.domain.DigitaleAdresResponse
 import nl.nlportal.openklant.graphql.domain.DigitaleAdresType
@@ -41,7 +41,7 @@ class DigitaleAdresMutation(
 ) {
     @MutationMapping
     suspend fun createUserDigitaleAdres(
-        authentication: CommonGroundAuthentication,
+        authentication: PortalAuthentication,
         @Argument digitaleAdresRequest: DigitaleAdresRequest,
     ): DigitaleAdresResponse? {
         if (verificatieService != null &&
@@ -64,7 +64,7 @@ class DigitaleAdresMutation(
 
     @MutationMapping
     suspend fun updateUserDigitaleAdres(
-        authentication: CommonGroundAuthentication,
+        authentication: PortalAuthentication,
         @Argument digitaleAdresRequest: DigitaleAdresRequest,
     ): DigitaleAdresResponse? {
         if (verificatieService != null &&
@@ -88,7 +88,7 @@ class DigitaleAdresMutation(
 
     @MutationMapping
     suspend fun deleteUserDigitaleAdres(
-        authentication: CommonGroundAuthentication,
+        authentication: PortalAuthentication,
         @Argument digitaleAdresId: UUID,
     ): Boolean? {
         openklant2Service

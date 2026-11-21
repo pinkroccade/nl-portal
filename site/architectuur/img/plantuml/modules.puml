@@ -41,22 +41,22 @@ end note
 form --> zgw_objectenapi #green : bewaakt
 graphql --> core #grey
 haalcentraal_brp --> core #grey
-haalcentraal_brp ..> zgw_common_ground_authentication #orange : gat
+haalcentraal_brp --> portal_authentication #grey
 kvk --> core #grey
-kvk ..> zgw_common_ground_authentication #orange : gat
+kvk --> portal_authentication #grey
 payment_direct --> core #grey
-payment_direct ..> zgw_common_ground_authentication #orange : gat
+payment_direct --> portal_authentication #grey
 payment_direct ..> zgw_objectenapi #orange : gat
 payment_direct ..> zgw_taak #orange : gat
 portal_authentication --> core #grey
 zgw_berichten --> core #grey
 zgw_berichten --> graphql #grey
-zgw_berichten --> zgw_common_ground_authentication #green : bewaakt
+zgw_berichten --> portal_authentication #grey
 zgw_berichten --> zgw_documenten_api #green : bewaakt
 zgw_berichten --> zgw_objectenapi #green : bewaakt
 zgw_besluiten --> core #grey
+zgw_besluiten --> portal_authentication #grey
 zgw_besluiten --> zgw_catalogi_api #green : bewaakt
-zgw_besluiten --> zgw_common_ground_authentication #green : bewaakt
 zgw_besluiten --> zgw_documenten_api #green : bewaakt
 zgw_catalogi_api --> core #grey
 zgw_common_ground_authentication --> core #grey
@@ -65,10 +65,11 @@ zgw_documenten_api --> core #grey
 zgw_documenten_api --> portal_authentication #grey
 zgw_objectenapi --> core #grey
 zgw_openklant --> core #grey
-zgw_openklant --> zgw_common_ground_authentication #green : bewaakt
+zgw_openklant --> portal_authentication #grey
 zgw_openklant --> zgw_verificatie #green : bewaakt
 zgw_openproduct --> core #grey
 zgw_openproduct --> graphql #grey
+zgw_openproduct --> portal_authentication #grey
 zgw_openproduct --> zgw_common_ground_authentication #green : bewaakt
 zgw_openproduct --> zgw_documenten_api #green : bewaakt
 zgw_openproduct --> zgw_objectenapi #green : bewaakt
@@ -77,18 +78,20 @@ zgw_openproduct --> zgw_zaken_api #green : bewaakt
 zgw_taak --> core #grey
 zgw_taak --> form #green : bewaakt
 zgw_taak --> graphql #grey
+zgw_taak --> portal_authentication #grey
 zgw_taak --> zgw_common_ground_authentication #green : bewaakt
 zgw_taak --> zgw_documenten_api #green : bewaakt
 zgw_taak --> zgw_objectenapi #green : bewaakt
 zgw_verificatie --> core #grey
 zgw_zaken --> core #grey
+zgw_zaken --> portal_authentication #grey
 zgw_zaken --> zgw_besluiten #green : bewaakt
 zgw_zaken --> zgw_catalogi_api #green : bewaakt
-zgw_zaken --> zgw_common_ground_authentication #green : bewaakt
 zgw_zaken --> zgw_documenten_api #green : bewaakt
 zgw_zaken --> zgw_zaken_api #green : bewaakt
 zgw_zaken_api --> core #grey
 zgw_zaken_api --> graphql #grey
+zgw_zaken_api --> portal_authentication #grey
 zgw_zaken_api --> zgw_catalogi_api #green : bewaakt
 zgw_zaken_api --> zgw_common_ground_authentication #green : bewaakt
 zgw_zaken_api --> zgw_documenten_api #green : bewaakt

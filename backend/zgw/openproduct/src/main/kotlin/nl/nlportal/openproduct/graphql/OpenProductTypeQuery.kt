@@ -16,7 +16,7 @@
 package nl.nlportal.openproduct.graphql
 
 import java.util.UUID
-import nl.nlportal.commonground.authentication.CommonGroundAuthentication
+import nl.nlportal.portal.authentication.domain.PortalAuthentication
 import nl.nlportal.openproduct.client.domain.OpenProductContentElement
 import nl.nlportal.openproduct.client.domain.OpenProductProductType
 import nl.nlportal.openproduct.service.OpenProductService
@@ -31,7 +31,7 @@ class OpenProductTypeQuery(
 ) {
     @QueryMapping
     suspend fun getOpenProductTypes(
-        authentication: CommonGroundAuthentication,
+        authentication: PortalAuthentication,
         @Argument pageNumber: Int? = null,
         @Argument pageSize: Int? = null,
         @Argument language: String? = null,
@@ -49,7 +49,7 @@ class OpenProductTypeQuery(
 
     @QueryMapping
     suspend fun getOpenProductType(
-        authentication: CommonGroundAuthentication,
+        authentication: PortalAuthentication,
         @Argument id: UUID,
         @Argument language: String? = null,
     ): OpenProductProductType? =

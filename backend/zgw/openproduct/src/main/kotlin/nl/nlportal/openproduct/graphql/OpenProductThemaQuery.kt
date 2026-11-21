@@ -16,7 +16,7 @@
 package nl.nlportal.openproduct.graphql
 
 import java.util.UUID
-import nl.nlportal.commonground.authentication.CommonGroundAuthentication
+import nl.nlportal.portal.authentication.domain.PortalAuthentication
 import nl.nlportal.openproduct.client.domain.OpenProductLink
 import nl.nlportal.openproduct.client.domain.OpenProductProduct
 import nl.nlportal.openproduct.client.domain.OpenProductThema
@@ -35,7 +35,7 @@ class OpenProductThemaQuery(
 ) {
     @QueryMapping
     suspend fun getOpenProductThemas(
-        authentication: CommonGroundAuthentication,
+        authentication: PortalAuthentication,
         @Argument pageNumber: Int? = null,
         @Argument pageSize: Int? = null,
     ): ThemasPage =
@@ -52,7 +52,7 @@ class OpenProductThemaQuery(
 
     @QueryMapping
     suspend fun getOpenProductHoofdThemas(
-        authentication: CommonGroundAuthentication,
+        authentication: PortalAuthentication,
     ): List<OpenProductThema> =
         openProductService.getHoofdThemas(
             authentication = authentication,
@@ -60,7 +60,7 @@ class OpenProductThemaQuery(
 
     @QueryMapping
     suspend fun getOpenProductHoofdThemasByProducten(
-        authentication: CommonGroundAuthentication,
+        authentication: PortalAuthentication,
     ): List<OpenProductThema> =
         openProductService.getHoofdThemasByProducten(
             authentication = authentication,
@@ -68,7 +68,7 @@ class OpenProductThemaQuery(
 
     @QueryMapping
     suspend fun getOpenProductThemasHierarchy(
-        authentication: CommonGroundAuthentication,
+        authentication: PortalAuthentication,
     ): List<OpenProductThemaHierarchy> =
         openProductService.getThemasHierarchy(
             authentication = authentication,
@@ -76,7 +76,7 @@ class OpenProductThemaQuery(
 
     @QueryMapping
     suspend fun getOpenProductThemaHierarchy(
-        authentication: CommonGroundAuthentication,
+        authentication: PortalAuthentication,
         @Argument id: UUID,
     ): List<OpenProductThemaHierarchy> =
         openProductService.getThemaHierarchy(
@@ -86,7 +86,7 @@ class OpenProductThemaQuery(
 
     @QueryMapping
     suspend fun getOpenProductThema(
-        authentication: CommonGroundAuthentication,
+        authentication: PortalAuthentication,
         @Argument id: UUID,
     ): OpenProductThema? {
         val response =
@@ -99,7 +99,7 @@ class OpenProductThemaQuery(
 
     @QueryMapping
     suspend fun getOpenProductThemaZaken(
-        authentication: CommonGroundAuthentication,
+        authentication: PortalAuthentication,
         @Argument id: UUID,
         @Argument language: String? = null,
         @Argument isOpen: Boolean? = null,
@@ -115,7 +115,7 @@ class OpenProductThemaQuery(
 
     @QueryMapping
     suspend fun getOpenProductThemaTaken(
-        authentication: CommonGroundAuthentication,
+        authentication: PortalAuthentication,
         @Argument id: UUID,
         @Argument language: String? = null,
         @Argument pageSize: Int? = null,
@@ -129,7 +129,7 @@ class OpenProductThemaQuery(
 
     @SchemaMapping(typeName = "OpenProductThema", field = "zaken")
     suspend fun zaken(
-        authentication: CommonGroundAuthentication,
+        authentication: PortalAuthentication,
         openProductThema: OpenProductThema,
     ): List<Zaak>? =
         openProductService.getThemaZaken(
@@ -139,7 +139,7 @@ class OpenProductThemaQuery(
 
     @SchemaMapping(typeName = "OpenProductThema", field = "taken")
     suspend fun taken(
-        authentication: CommonGroundAuthentication,
+        authentication: PortalAuthentication,
         openProductThema: OpenProductThema,
     ): List<TaakV2>? =
         openProductService.getThemaTaken(
@@ -149,7 +149,7 @@ class OpenProductThemaQuery(
 
     @SchemaMapping(typeName = "OpenProductThema", field = "producten")
     suspend fun producten(
-        authentication: CommonGroundAuthentication,
+        authentication: PortalAuthentication,
         openProductThema: OpenProductThema,
     ): List<OpenProductProduct>? =
         openProductService.getThemaProducten(

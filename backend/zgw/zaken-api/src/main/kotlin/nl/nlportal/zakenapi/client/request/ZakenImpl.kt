@@ -68,11 +68,6 @@ class SearchZakenImpl(
         return this
     }
 
-    override fun withUid(uid: String): SearchZaken {
-        queryParams.add("rol__betrokkeneIdentificatie__natuurlijkPersoon__anpIdentificatie", uid)
-        return this
-    }
-
     override fun isOpen(open: Boolean): SearchZaken {
         queryParams.add("einddatum__isnull", open.toString())
         return this

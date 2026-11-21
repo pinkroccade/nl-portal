@@ -15,7 +15,7 @@
  */
 package nl.nlportal.payment.direct.graphql
 
-import nl.nlportal.commonground.authentication.CommonGroundAuthentication
+import nl.nlportal.portal.authentication.domain.PortalAuthentication
 import nl.nlportal.payment.direct.domain.DirectPaymentRequest
 import nl.nlportal.payment.direct.domain.DirectPaymentResponse
 import nl.nlportal.payment.direct.service.DirectPaymentService
@@ -29,7 +29,7 @@ class DirectPaymentMutation(
 ) {
     @MutationMapping
     suspend fun doDirectPayment(
-        authentication: CommonGroundAuthentication,
+        authentication: PortalAuthentication,
         @Argument paymentRequest: DirectPaymentRequest,
     ): DirectPaymentResponse =
         directPaymentService.doDirectPayment(

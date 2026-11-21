@@ -16,13 +16,11 @@
 package nl.nlportal.openklant.service
 
 import io.github.oshai.kotlinlogging.KotlinLogging
-import nl.nlportal.commonground.authentication.BedrijfAuthentication
-import nl.nlportal.commonground.authentication.BurgerAuthentication
-import nl.nlportal.commonground.authentication.CommonGroundAuthentication
+import nl.nlportal.portal.authentication.domain.PortalAuthentication
+import nl.nlportal.portal.authentication.domain.Vertegenwoordigde
 import nl.nlportal.openklant.autoconfigure.OpenKlantModuleConfiguration.OpenKlantConfigurationProperties
 import nl.nlportal.openklant.client.OpenKlant2KlantinteractiesClient
 import nl.nlportal.openklant.client.domain.Contactnaam
-import nl.nlportal.openklant.client.domain.ContactpersoonIdentificatie
 import nl.nlportal.openklant.client.domain.OpenKlant2DigitaleAdres
 import nl.nlportal.openklant.client.domain.OpenKlant2DigitaleAdresUpdate
 import nl.nlportal.openklant.client.domain.OpenKlant2DigitaleAdressenFilters
@@ -58,7 +56,7 @@ class OpenKlant2Service(
     private val openKlant2Client: OpenKlant2KlantinteractiesClient,
     private val openKlantConfigurationProperties: OpenKlantConfigurationProperties,
 ) {
-    suspend fun findPartijByAuthentication(authentication: CommonGroundAuthentication): OpenKlant2Partij? {
+    suspend fun findPartijByAuthentication(authentication: PortalAuthentication): OpenKlant2Partij? {
         val searchVariables = searchVariablesPartij(authentication)
 
         try {
@@ -111,7 +109,7 @@ class OpenKlant2Service(
     }
 
     suspend fun createPartijWithIdentificatorFromAuthentication(
-        authentication: CommonGroundAuthentication,
+        authentication: PortalAuthentication,
         partij: OpenKlant2Partij,
     ): OpenKlant2Partij? {
         var partijIdentificator =
@@ -120,7 +118,7 @@ class OpenKlant2Service(
                     createPartijIndicator(authentication),
             )
 
-        val vestigingsNummer = authentication.getVestigingsNummer()
+        val vestigingsNummer = (authentication.identiteit.vertegenwoordigde as? Vertegenwoordigde.Bedrijf)?.vestigingsnummer
         // if vestigingsnummer is not null, find the partijIdentificator of the kvknummer or create it (including a partij)
         if (vestigingsNummer != null) {
             val partijIdentificatorKvk =
@@ -130,7 +128,7 @@ class OpenKlant2Service(
                         OpenKlant2PartijIdentificatorenFilters.PARTIJ_IDENTIFICATOR_CODEREGISTER to PartijIdentificatorCodeRegister.HR.register,
                         OpenKlant2PartijIdentificatorenFilters.PARTIJ_IDENTIFICATOR_CODEOBJECTTYPE to PartijIdentificatorCodeType.NIETNATUURLIJKPERSOON.type,
                         OpenKlant2PartijIdentificatorenFilters.PARTIJ_IDENTIFICATOR_CODESOORTOBJECTID to PartijIdentificatorCodeSoort.KVKNUMMER.soort,
-                        OpenKlant2PartijIdentificatorenFilters.PARTIJ_IDENTIFICATOR_OBJECTID to authentication.userId,
+                        OpenKlant2PartijIdentificatorenFilters.PARTIJ_IDENTIFICATOR_OBJECTID to authentication.identiteit.vertegenwoordigde.identificatie,
                     ),
                 )?.firstOrNull()
 
@@ -142,7 +140,7 @@ class OpenKlant2Service(
                             OpenKlant2PartijIdentificator(
                                 partijIdentificator =
                                     OpenKlant2Identificator(
-                                        objectId = authentication.userId,
+                                        objectId = authentication.identiteit.vertegenwoordigde.identificatie,
                                         codeSoortObjectId = PartijIdentificatorCodeSoort.KVKNUMMER.soort,
                                         codeObjecttype = PartijIdentificatorCodeType.NIETNATUURLIJKPERSOON.type,
                                         codeRegister = PartijIdentificatorCodeRegister.HR.register,
@@ -168,42 +166,28 @@ class OpenKlant2Service(
         )
     }
 
-    suspend fun findPartijIdentificatorenFromAuthentication(authentication: CommonGroundAuthentication): List<OpenKlant2PartijIdentificator>? {
+    suspend fun findPartijIdentificatorenFromAuthentication(authentication: PortalAuthentication): List<OpenKlant2PartijIdentificator>? {
         val searchFilters: List<Pair<OpenKlant2PartijIdentificatorenFilters, Any>> =
-            when (authentication) {
-                is BurgerAuthentication -> {
+            when (val vertegenwoordigde = authentication.identiteit.vertegenwoordigde) {
+                is Vertegenwoordigde.Burger -> {
                     listOf(
                         OpenKlant2PartijIdentificatorenFilters.PAGE to 1,
                         OpenKlant2PartijIdentificatorenFilters.PARTIJ_IDENTIFICATOR_CODEREGISTER to PartijIdentificatorCodeRegister.BRP.register,
                         OpenKlant2PartijIdentificatorenFilters.PARTIJ_IDENTIFICATOR_CODEOBJECTTYPE to PartijIdentificatorCodeType.NATUURLIJKPERSOON.type,
                         OpenKlant2PartijIdentificatorenFilters.PARTIJ_IDENTIFICATOR_CODESOORTOBJECTID to PartijIdentificatorCodeSoort.BSN.soort,
-                        OpenKlant2PartijIdentificatorenFilters.PARTIJ_IDENTIFICATOR_OBJECTID to authentication.userId,
+                        OpenKlant2PartijIdentificatorenFilters.PARTIJ_IDENTIFICATOR_OBJECTID to vertegenwoordigde.bsn,
                     )
                 }
 
-                is BedrijfAuthentication -> {
-                    val vestigingsNummer = authentication.getVestigingsNummer()
-                    if (vestigingsNummer != null) {
-                        listOf(
-                            OpenKlant2PartijIdentificatorenFilters.PAGE to 1,
-                            OpenKlant2PartijIdentificatorenFilters.PARTIJ_IDENTIFICATOR_CODEREGISTER to PartijIdentificatorCodeRegister.HR.register,
-                            OpenKlant2PartijIdentificatorenFilters.PARTIJ_IDENTIFICATOR_CODEOBJECTTYPE to PartijIdentificatorCodeType.VESTIGING.type,
-                            OpenKlant2PartijIdentificatorenFilters.PARTIJ_IDENTIFICATOR_CODESOORTOBJECTID to PartijIdentificatorCodeSoort.VESTIGINGSNUMMER.soort,
-                            OpenKlant2PartijIdentificatorenFilters.PARTIJ_IDENTIFICATOR_OBJECTID to vestigingsNummer,
-                        )
-                    } else {
-                        listOf(
-                            OpenKlant2PartijIdentificatorenFilters.PAGE to 1,
-                            OpenKlant2PartijIdentificatorenFilters.PARTIJ_IDENTIFICATOR_CODEREGISTER to PartijIdentificatorCodeRegister.HR.register,
-                            OpenKlant2PartijIdentificatorenFilters.PARTIJ_IDENTIFICATOR_CODEOBJECTTYPE to PartijIdentificatorCodeType.NIETNATUURLIJKPERSOON.type,
-                            OpenKlant2PartijIdentificatorenFilters.PARTIJ_IDENTIFICATOR_CODESOORTOBJECTID to PartijIdentificatorCodeSoort.KVKNUMMER.soort,
-                            OpenKlant2PartijIdentificatorenFilters.PARTIJ_IDENTIFICATOR_OBJECTID to authentication.userId,
-                        )
-                    }
-                }
-
-                else -> {
-                    throw IllegalArgumentException("Unsupported authentication type: ${authentication::class.qualifiedName}")
+                is Vertegenwoordigde.Bedrijf -> {
+                    val identificator = vertegenwoordigde.identificator()
+                    listOf(
+                        OpenKlant2PartijIdentificatorenFilters.PAGE to 1,
+                        OpenKlant2PartijIdentificatorenFilters.PARTIJ_IDENTIFICATOR_CODEREGISTER to PartijIdentificatorCodeRegister.HR.register,
+                        OpenKlant2PartijIdentificatorenFilters.PARTIJ_IDENTIFICATOR_CODEOBJECTTYPE to identificator.codeType.type,
+                        OpenKlant2PartijIdentificatorenFilters.PARTIJ_IDENTIFICATOR_CODESOORTOBJECTID to identificator.codeSoort.soort,
+                        OpenKlant2PartijIdentificatorenFilters.PARTIJ_IDENTIFICATOR_OBJECTID to identificator.objectId,
+                    )
                 }
             }
 
@@ -222,7 +206,7 @@ class OpenKlant2Service(
     }
 
     suspend fun findDigitaleAdressen(
-        authentication: CommonGroundAuthentication,
+        authentication: PortalAuthentication,
         isGeverifieerd: Boolean? = false,
         isStandaardAdres: Boolean? = false,
     ): List<OpenKlant2DigitaleAdres> {
@@ -252,7 +236,7 @@ class OpenKlant2Service(
     }
 
     suspend fun createDigitaleAdres(
-        authentication: CommonGroundAuthentication,
+        authentication: PortalAuthentication,
         digitaleAdres: OpenKlant2DigitaleAdres,
     ): OpenKlant2DigitaleAdres? {
         var userPartijId =
@@ -317,7 +301,7 @@ class OpenKlant2Service(
     }
 
     suspend fun updateDigitaleAdresById(
-        authentication: CommonGroundAuthentication,
+        authentication: PortalAuthentication,
         digitaleAdres: OpenKlant2DigitaleAdresUpdate,
     ): OpenKlant2DigitaleAdres? {
         val previousDigitaleAdres = findDigitaleAdressen(authentication).singleOrNull { it.uuid == digitaleAdres.uuid }
@@ -341,7 +325,7 @@ class OpenKlant2Service(
     }
 
     suspend fun deleteDigitaleAdresById(
-        authentication: CommonGroundAuthentication,
+        authentication: PortalAuthentication,
         digitaleAdresId: UUID,
     ) {
         val userDigitaleAdressen = findDigitaleAdressen(authentication)
@@ -363,7 +347,7 @@ class OpenKlant2Service(
     }
 
     suspend fun findKlantContacten(
-        authentication: CommonGroundAuthentication,
+        authentication: PortalAuthentication,
         identificatorType: OnderwerpObjectIndentificatorType? = null,
         identificatorId: UUID? = null,
     ): List<OpenKlant2Klantcontact> {
@@ -391,167 +375,109 @@ class OpenKlant2Service(
         }
     }
 
-    private fun createPartijIndicator(authentication: CommonGroundAuthentication): OpenKlant2Identificator =
-        when (authentication) {
-            is BurgerAuthentication -> {
+    private fun createPartijIndicator(authentication: PortalAuthentication): OpenKlant2Identificator =
+        when (val vertegenwoordigde = authentication.identiteit.vertegenwoordigde) {
+            is Vertegenwoordigde.Burger -> {
                 OpenKlant2Identificator(
-                    objectId = authentication.userId,
+                    objectId = vertegenwoordigde.bsn,
                     codeSoortObjectId = PartijIdentificatorCodeSoort.BSN.soort,
                     codeObjecttype = PartijIdentificatorCodeType.NATUURLIJKPERSOON.type,
                     codeRegister = PartijIdentificatorCodeRegister.BRP.register,
                 )
             }
 
-            is BedrijfAuthentication -> {
-                val vestigingsNummer = authentication.getVestigingsNummer()
-                if (vestigingsNummer != null) {
-                    OpenKlant2Identificator(
-                        objectId = vestigingsNummer,
-                        codeSoortObjectId = PartijIdentificatorCodeSoort.VESTIGINGSNUMMER.soort,
-                        codeObjecttype = PartijIdentificatorCodeType.VESTIGING.type,
-                        codeRegister = PartijIdentificatorCodeRegister.HR.register,
-                    )
-                } else {
-                    OpenKlant2Identificator(
-                        objectId = authentication.userId,
-                        codeSoortObjectId = PartijIdentificatorCodeSoort.KVKNUMMER.soort,
-                        codeObjecttype = PartijIdentificatorCodeType.NIETNATUURLIJKPERSOON.type,
-                        codeRegister = PartijIdentificatorCodeRegister.HR.register,
-                    )
-                }
-            }
-
-            else -> {
-                throw IllegalArgumentException("Unsupported authentication type: ${authentication::class.qualifiedName}")
+            is Vertegenwoordigde.Bedrijf -> {
+                val identificator = vertegenwoordigde.identificator()
+                OpenKlant2Identificator(
+                    objectId = identificator.objectId,
+                    codeSoortObjectId = identificator.codeSoort.soort,
+                    codeObjecttype = identificator.codeType.type,
+                    codeRegister = PartijIdentificatorCodeRegister.HR.register,
+                )
             }
         }
 
-    private fun searchVariablesPartij(authentication: CommonGroundAuthentication): List<Pair<OpenKlant2PartijenFilters, String>> =
-        when (authentication) {
-            is BurgerAuthentication -> {
+    private fun searchVariablesPartij(authentication: PortalAuthentication): List<Pair<OpenKlant2PartijenFilters, String>> =
+        when (val vertegenwoordigde = authentication.identiteit.vertegenwoordigde) {
+            is Vertegenwoordigde.Burger -> {
                 listOf(
                     OpenKlant2PartijenFilters.SOORT_PARTIJ to authentication.asSoortPartij(),
-                    OpenKlant2PartijenFilters.PARTIJ_IDENTIFICATOR_OBJECT_ID to authentication.userId,
+                    OpenKlant2PartijenFilters.PARTIJ_IDENTIFICATOR_OBJECT_ID to vertegenwoordigde.bsn,
                 )
             }
 
-            is BedrijfAuthentication -> {
-                val vestigingsNummer = authentication.getVestigingsNummer()
-                if (vestigingsNummer != null) {
-                    listOf(
-                        OpenKlant2PartijenFilters.SOORT_PARTIJ to authentication.asSoortPartij(),
-                        OpenKlant2PartijenFilters.PARTIJ_IDENTIFICATOR_OBJECT_ID to vestigingsNummer,
-                    )
-                } else {
-                    listOf(
-                        OpenKlant2PartijenFilters.SOORT_PARTIJ to authentication.asSoortPartij(),
-                        OpenKlant2PartijenFilters.PARTIJ_IDENTIFICATOR_OBJECT_ID to authentication.userId,
-                    )
-                }
-            }
-
-            else -> {
-                throw IllegalArgumentException("Unsupported authentication type: ${authentication::class.qualifiedName}")
+            is Vertegenwoordigde.Bedrijf -> {
+                val identificator = vertegenwoordigde.identificator()
+                listOf(
+                    OpenKlant2PartijenFilters.SOORT_PARTIJ to authentication.asSoortPartij(),
+                    OpenKlant2PartijenFilters.PARTIJ_IDENTIFICATOR_OBJECT_ID to identificator.objectId,
+                )
             }
         }
 
     private fun searchVariablesDigitaleAdressen(
-        authentication: CommonGroundAuthentication,
+        authentication: PortalAuthentication,
     ): List<Pair<OpenKlant2DigitaleAdressenFilters, Any>> =
-        when (authentication) {
-            is BurgerAuthentication -> {
+        when (val vertegenwoordigde = authentication.identiteit.vertegenwoordigde) {
+            is Vertegenwoordigde.Burger -> {
                 listOf(
                     OpenKlant2DigitaleAdressenFilters.PAGE to 1,
                     OpenKlant2DigitaleAdressenFilters.VERSTREKTDOORPARTIJ_PARTIJ_IDENTIFICATOR_CODEREGISTER to PartijIdentificatorCodeRegister.BRP.register,
                     OpenKlant2DigitaleAdressenFilters.VERSTREKTDOORPARTIJ_PARTIJ_IDENTIFICATOR_CODEOBJECTTYPE to PartijIdentificatorCodeType.NATUURLIJKPERSOON.type,
                     OpenKlant2DigitaleAdressenFilters.VERSTREKTDOORPARTIJ_PARTIJ_IDENTIFICATOR_CODESOORTOBJECTID to PartijIdentificatorCodeSoort.BSN.soort,
-                    OpenKlant2DigitaleAdressenFilters.VERSTREKTDOORPARTIJ_PARTIJ_IDENTIFICATOR_OBJECTID to authentication.userId,
+                    OpenKlant2DigitaleAdressenFilters.VERSTREKTDOORPARTIJ_PARTIJ_IDENTIFICATOR_OBJECTID to vertegenwoordigde.bsn,
                 )
             }
 
-            is BedrijfAuthentication -> {
-                val vestigingsNummer = authentication.getVestigingsNummer()
-                if (vestigingsNummer != null) {
-                    listOf(
-                        OpenKlant2DigitaleAdressenFilters.PAGE to 1,
-                        OpenKlant2DigitaleAdressenFilters.VERSTREKTDOORPARTIJ_PARTIJ_IDENTIFICATOR_CODEREGISTER to PartijIdentificatorCodeRegister.HR.register,
-                        OpenKlant2DigitaleAdressenFilters.VERSTREKTDOORPARTIJ_PARTIJ_IDENTIFICATOR_CODEOBJECTTYPE to PartijIdentificatorCodeType.VESTIGING.type,
-                        OpenKlant2DigitaleAdressenFilters.VERSTREKTDOORPARTIJ_PARTIJ_IDENTIFICATOR_CODESOORTOBJECTID to PartijIdentificatorCodeSoort.VESTIGINGSNUMMER.soort,
-                        OpenKlant2DigitaleAdressenFilters.VERSTREKTDOORPARTIJ_PARTIJ_IDENTIFICATOR_OBJECTID to vestigingsNummer,
-                    )
-                } else {
-                    listOf(
-                        OpenKlant2DigitaleAdressenFilters.PAGE to 1,
-                        OpenKlant2DigitaleAdressenFilters.VERSTREKTDOORPARTIJ_PARTIJ_IDENTIFICATOR_CODEREGISTER to PartijIdentificatorCodeRegister.HR.register,
-                        OpenKlant2DigitaleAdressenFilters.VERSTREKTDOORPARTIJ_PARTIJ_IDENTIFICATOR_CODEOBJECTTYPE to PartijIdentificatorCodeType.NIETNATUURLIJKPERSOON.type,
-                        OpenKlant2DigitaleAdressenFilters.VERSTREKTDOORPARTIJ_PARTIJ_IDENTIFICATOR_CODESOORTOBJECTID to PartijIdentificatorCodeSoort.KVKNUMMER.soort,
-                        OpenKlant2DigitaleAdressenFilters.VERSTREKTDOORPARTIJ_PARTIJ_IDENTIFICATOR_OBJECTID to authentication.userId,
-                    )
-                }
-            }
-
-            else -> {
-                throw IllegalArgumentException("Unsupported authentication type: ${authentication::class.qualifiedName}")
+            is Vertegenwoordigde.Bedrijf -> {
+                val identificator = vertegenwoordigde.identificator()
+                listOf(
+                    OpenKlant2DigitaleAdressenFilters.PAGE to 1,
+                    OpenKlant2DigitaleAdressenFilters.VERSTREKTDOORPARTIJ_PARTIJ_IDENTIFICATOR_CODEREGISTER to PartijIdentificatorCodeRegister.HR.register,
+                    OpenKlant2DigitaleAdressenFilters.VERSTREKTDOORPARTIJ_PARTIJ_IDENTIFICATOR_CODEOBJECTTYPE to identificator.codeType.type,
+                    OpenKlant2DigitaleAdressenFilters.VERSTREKTDOORPARTIJ_PARTIJ_IDENTIFICATOR_CODESOORTOBJECTID to identificator.codeSoort.soort,
+                    OpenKlant2DigitaleAdressenFilters.VERSTREKTDOORPARTIJ_PARTIJ_IDENTIFICATOR_OBJECTID to identificator.objectId,
+                )
             }
         }
 
     private fun searchVariablesKlantcontacten(
-        authentication: CommonGroundAuthentication,
+        authentication: PortalAuthentication,
     ): List<Pair<OpenKlant2KlantcontactenFilters, Any>> =
-        when (authentication) {
-            is BurgerAuthentication -> {
+        when (val vertegenwoordigde = authentication.identiteit.vertegenwoordigde) {
+            is Vertegenwoordigde.Burger -> {
                 listOf(
                     OpenKlant2KlantcontactenFilters.PAGE to 1,
                     OpenKlant2KlantcontactenFilters.HADBETROKKENE_PARTIJ_IDENTIFICATOR_CODEREGISTER to PartijIdentificatorCodeRegister.BRP.register,
                     OpenKlant2KlantcontactenFilters.HADBETROKKENE_PARTIJ_IDENTIFICATOR_CODEOBJECTTYPE to PartijIdentificatorCodeType.NATUURLIJKPERSOON.type,
                     OpenKlant2KlantcontactenFilters.HADBETROKKENE_PARTIJ_IDENTIFICATOR_CODESOORTOBJECTID to PartijIdentificatorCodeSoort.BSN.soort,
-                    OpenKlant2KlantcontactenFilters.HADBETROKKENE_PARTIJ_IDENTIFICATOR_OBJECTID to authentication.userId,
+                    OpenKlant2KlantcontactenFilters.HADBETROKKENE_PARTIJ_IDENTIFICATOR_OBJECTID to vertegenwoordigde.bsn,
                 )
             }
 
-            is BedrijfAuthentication -> {
-                val vestigingsNummer = authentication.getVestigingsNummer()
-                if (vestigingsNummer != null) {
-                    listOf(
-                        OpenKlant2KlantcontactenFilters.PAGE to 1,
-                        OpenKlant2KlantcontactenFilters.HADBETROKKENE_PARTIJ_IDENTIFICATOR_CODEREGISTER to PartijIdentificatorCodeRegister.HR.register,
-                        OpenKlant2KlantcontactenFilters.HADBETROKKENE_PARTIJ_IDENTIFICATOR_CODEOBJECTTYPE to PartijIdentificatorCodeType.VESTIGING.type,
-                        OpenKlant2KlantcontactenFilters.HADBETROKKENE_PARTIJ_IDENTIFICATOR_CODESOORTOBJECTID to PartijIdentificatorCodeSoort.VESTIGINGSNUMMER.soort,
-                        OpenKlant2KlantcontactenFilters.HADBETROKKENE_PARTIJ_IDENTIFICATOR_OBJECTID to vestigingsNummer,
-                    )
-                } else {
-                    listOf(
-                        OpenKlant2KlantcontactenFilters.PAGE to 1,
-                        OpenKlant2KlantcontactenFilters.HADBETROKKENE_PARTIJ_IDENTIFICATOR_CODEREGISTER to PartijIdentificatorCodeRegister.HR.register,
-                        OpenKlant2KlantcontactenFilters.HADBETROKKENE_PARTIJ_IDENTIFICATOR_CODEOBJECTTYPE to PartijIdentificatorCodeType.NIETNATUURLIJKPERSOON.type,
-                        OpenKlant2KlantcontactenFilters.HADBETROKKENE_PARTIJ_IDENTIFICATOR_CODESOORTOBJECTID to PartijIdentificatorCodeSoort.KVKNUMMER.soort,
-                        OpenKlant2KlantcontactenFilters.HADBETROKKENE_PARTIJ_IDENTIFICATOR_OBJECTID to authentication.userId,
-                    )
-                }
-            }
-
-            else -> {
-                throw IllegalArgumentException("Unsupported authentication type: ${authentication::class.qualifiedName}")
+            is Vertegenwoordigde.Bedrijf -> {
+                val identificator = vertegenwoordigde.identificator()
+                listOf(
+                    OpenKlant2KlantcontactenFilters.PAGE to 1,
+                    OpenKlant2KlantcontactenFilters.HADBETROKKENE_PARTIJ_IDENTIFICATOR_CODEREGISTER to PartijIdentificatorCodeRegister.HR.register,
+                    OpenKlant2KlantcontactenFilters.HADBETROKKENE_PARTIJ_IDENTIFICATOR_CODEOBJECTTYPE to identificator.codeType.type,
+                    OpenKlant2KlantcontactenFilters.HADBETROKKENE_PARTIJ_IDENTIFICATOR_CODESOORTOBJECTID to identificator.codeSoort.soort,
+                    OpenKlant2KlantcontactenFilters.HADBETROKKENE_PARTIJ_IDENTIFICATOR_OBJECTID to identificator.objectId,
+                )
             }
         }
 
-    private fun createPartijIdentificatie(authentication: CommonGroundAuthentication): PartijIdentificatie =
-        when (authentication) {
-            is BurgerAuthentication -> {
+    private fun createPartijIdentificatie(authentication: PortalAuthentication): PartijIdentificatie =
+        when (val vertegenwoordigde = authentication.identiteit.vertegenwoordigde) {
+            is Vertegenwoordigde.Burger -> {
                 PersoonsIdentificatie(
                     contactnaam = Contactnaam(),
                 )
             }
 
-            is BedrijfAuthentication -> {
+            is Vertegenwoordigde.Bedrijf -> {
                 OrganisatieIdentificatie(
-                    naam = authentication.userId,
-                )
-            }
-
-            else -> {
-                ContactpersoonIdentificatie(
-                    uuid = UUID.randomUUID(),
+                    naam = vertegenwoordigde.kvkNummer,
                 )
             }
         }
@@ -564,6 +490,18 @@ class OpenKlant2Service(
             OnderwerpObjectIndentificatorType.ZAAK -> openKlantConfigurationProperties.klantContactCodeRegister?.zaak
             else -> null
         }
+
+    /** Hoe OpenKlant een bedrijf kent: de vestiging als het token er een heeft, anders het KvK-nummer. */
+    private data class BedrijfIdentificator(
+        val objectId: String,
+        val codeSoort: PartijIdentificatorCodeSoort,
+        val codeType: PartijIdentificatorCodeType,
+    )
+
+    private fun Vertegenwoordigde.Bedrijf.identificator() =
+        vestigingsnummer?.let {
+            BedrijfIdentificator(it, PartijIdentificatorCodeSoort.VESTIGINGSNUMMER, PartijIdentificatorCodeType.VESTIGING)
+        } ?: BedrijfIdentificator(kvkNummer, PartijIdentificatorCodeSoort.KVKNUMMER, PartijIdentificatorCodeType.NIETNATUURLIJKPERSOON)
 
     companion object {
         private val logger = KotlinLogging.logger {}

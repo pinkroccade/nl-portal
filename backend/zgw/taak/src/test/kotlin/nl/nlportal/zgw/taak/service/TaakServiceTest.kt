@@ -249,7 +249,7 @@ class TaakServiceTest {
             assertEquals(1, mockServer.requestCount)
         }
 
-    private fun burger(bsn: String = BSN) = JwtBuilder().aanvragerBsn(bsn).buildBurgerAuthentication()
+    private fun burger(bsn: String = BSN) = JwtBuilder().vertegenwoordigdeBsn(bsn).buildAuthentication()
 
     /** Consumes the next recorded request and returns its URL. */
     private fun takeRequestUrl(): HttpUrl = mockServer.takeRequest().url

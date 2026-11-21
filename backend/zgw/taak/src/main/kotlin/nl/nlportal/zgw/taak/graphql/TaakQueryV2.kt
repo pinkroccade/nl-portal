@@ -16,7 +16,7 @@
 package nl.nlportal.zgw.taak.graphql
 
 import java.util.UUID
-import nl.nlportal.commonground.authentication.CommonGroundAuthentication
+import nl.nlportal.portal.authentication.domain.PortalAuthentication
 import nl.nlportal.zgw.taak.domain.TaakStatus
 import nl.nlportal.zgw.taak.domain.TaakV2
 import nl.nlportal.zgw.taak.service.TaakService
@@ -30,7 +30,7 @@ class TaakQueryV2(
 ) {
     @QueryMapping
     suspend fun getTakenV2(
-        authentication: CommonGroundAuthentication,
+        authentication: PortalAuthentication,
         @Argument pageNumber: Int? = 1,
         @Argument pageSize: Int? = 20,
         @Argument zaakUUID: UUID? = null,
@@ -49,7 +49,7 @@ class TaakQueryV2(
     @QueryMapping
     suspend fun getTaakByIdV2(
         @Argument id: UUID,
-        authentication: CommonGroundAuthentication,
+        authentication: PortalAuthentication,
     ): TaakV2? =
         taskService.getTaakByIdV2(
             id = id,

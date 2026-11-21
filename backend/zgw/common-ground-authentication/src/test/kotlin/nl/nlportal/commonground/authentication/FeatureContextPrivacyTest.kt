@@ -16,7 +16,6 @@
 package nl.nlportal.commonground.authentication
 
 import dev.openfeature.sdk.EvaluationContext
-import java.util.UUID
 import nl.nlportal.core.featureflag.FeatureContextFactory
 import nl.nlportal.core.featureflag.FeatureFlagProperties
 import org.junit.jupiter.api.Assertions.assertEquals
@@ -35,32 +34,31 @@ class FeatureContextPrivacyTest {
 
     @Test
     fun `a citizen's BSN never reaches the evaluation context`() {
-        val authentication = JwtBuilder().aanvragerBsn(BSN).gemachtigdeBsn(GEMACHTIGDE_BSN).buildBurgerAuthentication()
+        val authentication = JwtBuilder().vertegenwoordigdeBsn(BSN).buildAuthentication()
 
         val context = factory.create(authentication)
 
         assertEquals("bsn", context.getValue(FeatureContextFactory.USER_TYPE).asString())
-        assertNoneOf(context, BSN, GEMACHTIGDE_BSN)
+        assertNoneOf(context, BSN)
     }
 
     @Test
     fun `a company's KVK number never reaches the evaluation context`() {
-        val authentication = JwtBuilder().aanvragerKvk(KVK).gemachtigdeKvk(GEMACHTIGDE_KVK).buildBedrijfAuthentication()
+        val authentication = JwtBuilder().vertegenwoordigdeKvk(KVK).buildAuthentication()
 
         val context = factory.create(authentication)
 
         assertEquals("kvk", context.getValue(FeatureContextFactory.USER_TYPE).asString())
-        assertNoneOf(context, KVK, GEMACHTIGDE_KVK)
+        assertNoneOf(context, KVK)
     }
 
     @Test
-    fun `a Keycloak user's subject is only present as HMAC`() {
-        val subject = UUID.fromString("c0ffee00-0000-4000-8000-000000000001")
-        val context = factory.create(JwtBuilder().aanvragerUid(subject).buildKeycloakUserAuthentication())
+    fun `the subject of the token is only present as HMAC`() {
+        val context = factory.create(JwtBuilder().vertegenwoordigdeBsn(BSN).buildAuthentication())
 
         // HMAC-SHA256("tenant-a-secret", subject), computed independently with openssl.
         assertEquals("65de9070206620f654db1780eeb04a2d7cc1d3273e8a397b7e546d828e3915ec", context.targetingKey)
-        assertNoneOf(context, subject.toString(), subject.toString().substring(0, 13))
+        assertNoneOf(context, JwtBuilder.SUBJECT)
     }
 
     private fun assertNoneOf(
@@ -75,8 +73,6 @@ class FeatureContextPrivacyTest {
 
     private companion object {
         const val BSN = "999990755"
-        const val GEMACHTIGDE_BSN = "999993653"
         const val KVK = "69599084"
-        const val GEMACHTIGDE_KVK = "68750110"
     }
 }

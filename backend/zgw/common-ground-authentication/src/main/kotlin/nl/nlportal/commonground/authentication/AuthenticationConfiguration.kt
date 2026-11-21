@@ -16,7 +16,6 @@
 package nl.nlportal.commonground.authentication
 
 import io.github.oshai.kotlinlogging.KotlinLogging
-import nl.nlportal.portal.authentication.service.PortalAuthenticationConverter
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.boot.autoconfigure.AutoConfiguration
 import org.springframework.boot.context.properties.EnableConfigurationProperties
@@ -45,7 +44,7 @@ class AuthenticationConfiguration {
         reactiveJwtDecoder: ReactiveJwtDecoder,
         keycloakConfig: KeycloakConfig,
         @Value("\${$ISSUER_URI_PROPERTY:}") issuerUri: String,
-    ): PortalAuthenticationConverter {
+    ): CommonGroundAuthenticationConverter {
         check(issuerUri.isNotBlank()) {
             "The expected token issuer is missing: set KEYCLOAK_ISSUER_URI ($ISSUER_URI_PROPERTY) " +
                 "to the public URL of the realm, e.g. https://login.example.nl/auth/realms/portal."

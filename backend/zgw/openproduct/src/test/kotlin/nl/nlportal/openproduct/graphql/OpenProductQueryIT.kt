@@ -122,7 +122,7 @@ class OpenProductQueryIT(
 
     @Test
     @WithBedrijfUser(
-        kvkNummer = "569312863",
+        kvkNummer = "56931286",
         machtigingsDienst = "0781d1a1-0644-44fd-802e-96f6b588b471",
     )
     fun `get producten for bedrijf met machtigingsdienst`() =
@@ -168,7 +168,7 @@ class OpenProductQueryIT(
 
     @Test
     @WithBedrijfUser(
-        kvkNummer = "569312863",
+        kvkNummer = "56931286",
     )
     fun `get product voor bedrijf`() =
         runTest {
@@ -191,7 +191,7 @@ class OpenProductQueryIT(
 
     @Test
     @WithBedrijfUser(
-        kvkNummer = "569312863",
+        kvkNummer = "56931286",
         machtigingsDienst = "0781d1a1-0644-44fd-802e-96f6b588b472",
     )
     fun `get product voor bedrijf met machtigingsdienst`() =
@@ -215,7 +215,7 @@ class OpenProductQueryIT(
 
     @Test
     @WithBedrijfUser(
-        kvkNummer = "569312863",
+        kvkNummer = "56931286",
         vestigingsNummer = "990000262129",
     )
     fun `get product voor bedrijf met vestiging`() =

@@ -57,11 +57,6 @@ class SearchZoekenImpl(
         return this
     }
 
-    override fun withUid(uid: String): SearchZaken {
-        bodyValue.add("rol__betrokkeneIdentificatie__natuurlijkPersoon__anpIdentificatie", uid)
-        return this
-    }
-
     override fun isOpen(open: Boolean): SearchZaken {
         bodyValue.add("einddatum__isnull", open)
         return this

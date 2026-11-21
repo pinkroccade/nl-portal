@@ -15,7 +15,7 @@
  */
 package nl.nlportal.openproduct.graphql
 
-import nl.nlportal.commonground.authentication.CommonGroundAuthentication
+import nl.nlportal.portal.authentication.domain.PortalAuthentication
 import nl.nlportal.openproduct.client.domain.OpenProductProduct
 import nl.nlportal.openproduct.graphql.domain.UpdateProductRequest
 import nl.nlportal.openproduct.service.OpenProductService
@@ -29,7 +29,7 @@ class OpenProductMutation(
 ) {
     @MutationMapping
     suspend fun updateProduct(
-        authentication: CommonGroundAuthentication,
+        authentication: PortalAuthentication,
         @Argument productUpdateRequest: UpdateProductRequest,
     ): OpenProductProduct? =
         openProductService.updateProduct(

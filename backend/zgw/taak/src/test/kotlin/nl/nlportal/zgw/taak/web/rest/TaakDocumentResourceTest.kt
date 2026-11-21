@@ -17,7 +17,7 @@ package nl.nlportal.zgw.taak.web.rest
 
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.test.runTest
-import nl.nlportal.commonground.authentication.CommonGroundAuthentication
+import nl.nlportal.portal.authentication.domain.PortalAuthentication
 import nl.nlportal.documentenapi.client.DocumentApisConfig
 import nl.nlportal.documentenapi.domain.Document
 import nl.nlportal.documentenapi.domain.VirusScanResult
@@ -53,7 +53,7 @@ class TaakDocumentResourceTest {
         DocumentApisConfig().apply {
             properties.defaultDocumentApi = "openzaak"
         }
-    private val authentication: CommonGroundAuthentication = mock()
+    private val authentication: PortalAuthentication = mock()
 
     private lateinit var resource: TaakDocumentResource
 

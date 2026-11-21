@@ -1,5 +1,5 @@
 /*
- * Copyright 2015-2023 Den Haag, Ritense, the Netherlands.
+ * Copyright 2026 PinkRoccade Local Government B.V.
  *
  * Licensed under EUPL, Version 1.2 (the "License");
  * you may not use this file except in compliance with the License.
@@ -17,17 +17,28 @@ package nl.nlportal.portal.authentication.domain
 
 import nl.nlportal.core.featureflag.UserTypeAware
 import org.springframework.security.core.GrantedAuthority
-import org.springframework.security.oauth2.jwt.Jwt
-import org.springframework.security.oauth2.server.resource.authentication.JwtAuthenticationToken
+import org.springframework.security.authentication.AbstractAuthenticationToken
 
-open class PortalAuthentication(
-    jwt: Jwt,
+/**
+ * De authenticatie van een ingelogde gebruiker. De enige leesroute naar de identiteit is [identiteit]. Het ruwe
+ * token is alleen via [bearerToken] bereikbaar, voor doorgifte aan een bron (ArchUnit: alleen haalcentraal-brp);
+ * [getCredentials] geeft het niet prijs.
+ */
+class PortalAuthentication(
+    val identiteit: Identiteit,
+    val bearerToken: String,
     authorities: Collection<GrantedAuthority>,
-    override val userType: String,
-    val userId: String,
-) : JwtAuthenticationToken(jwt, authorities),
+) : AbstractAuthenticationToken(authorities),
     UserTypeAware {
-    open fun getUserRepresentation() = "Portal"
-}
+    init {
+        super.setAuthenticated(true)
+    }
 
-const val SUB_KEY = "sub"
+    override val userType: String get() = identiteit.vertegenwoordigde.soort.code
+
+    override val subject: String get() = identiteit.gebruiker.subject
+
+    override fun getCredentials(): Any? = null
+
+    override fun getPrincipal(): Any = identiteit.gebruiker.subject
+}
