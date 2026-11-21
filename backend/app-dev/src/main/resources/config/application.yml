@@ -50,10 +50,11 @@ nl-portal:
     # De demo-tenant van de compose-stack (koppelingen en modulegegevens, zoals de Documenten API); de geheimen komen uit .env.properties.
     tenancy:
         directory: ${NL_PORTAL_TENANTS_DIRECTORY:../../docker-compose/imports/tenants}
+    # De secret store van deze dev-app: de geheimen van de koppelingen in het tenantbestand (zakenapi en documenten).
     geheimen:
-        "00000099000000000001":
-            documenten-api-secret: ${OPENZAAK_NLPORTAL_SECRET}
-            documenten-dummydoc-secret: ${OPENZAAK_NLPORTAL_SECRET}
+        "00000099000000000001.zaken-secret": ${OPENZAAK_NLPORTAL_SECRET}
+        "00000099000000000001.documenten-api-secret": ${OPENZAAK_NLPORTAL_SECRET}
+        "00000099000000000001.documenten-dummydoc-secret": ${OPENZAAK_NLPORTAL_SECRET}
     support:
         ping-endpoint:
             enabled: false
@@ -94,10 +95,6 @@ nl-portal:
                     port: 3310
         zakenapi:
             enabled: true
-            properties:
-                url: http://localhost:8001
-                clientId: nl-portal
-                secret: ${OPENZAAK_NLPORTAL_SECRET}
         objectenapi:
             enabled: true
             properties:

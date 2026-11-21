@@ -40,8 +40,7 @@ modules:
     omvang: M
     risico: middel
     toelichting: Client per tenant via het register; zaakdata van de verkeerde bron is een datalek.
-    signalen:
-      config: ZakenApiConfig is een singleton.
+    signalen: {}
   ":zgw:zaken":
     omvang: S
     risico: laag

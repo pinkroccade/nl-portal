@@ -15,13 +15,10 @@
  */
 package nl.nlportal.zakenapi.client.request
 
+import nl.nlportal.core.koppeling.ResultPage
 import nl.nlportal.zakenapi.client.ZakenApiClient
-import nl.nlportal.zakenapi.client.handleStatus
-import nl.nlportal.zakenapi.domain.ResultPage
+import nl.nlportal.zakenapi.client.ZakenApiClient.Companion.ZAKEN_PAD
 import nl.nlportal.zakenapi.domain.ZaakRol
-import org.springframework.util.LinkedMultiValueMap
-import org.springframework.util.MultiValueMap
-import org.springframework.web.reactive.function.client.awaitBody
 import java.util.UUID
 
 class ZaakRollenImpl(
@@ -36,27 +33,21 @@ class GetRolImpl(
     val zakenApiClient: ZakenApiClient,
     val id: UUID,
 ) : GetZaakRol {
-    override suspend fun retrieve(): ZaakRol =
-        this.zakenApiClient.webClient
-            .get()
-            .uri("/zaken/api/v1/rollen/$id")
-            .retrieve()
-            .handleStatus()
-            .awaitBody()
+    override suspend fun retrieve(): ZaakRol = zakenApiClient.haal("$ZAKEN_PAD/rollen/$id")
 }
 
 class SearchRollenImpl(
     val zakenApiClient: ZakenApiClient,
 ) : SearchZaakRollen {
-    val queryParams: MultiValueMap<String, String> = LinkedMultiValueMap()
+    private val criteria = Criteria<String>()
 
     override fun withBsn(bsn: String): SearchZaakRollen {
-        queryParams.add("betrokkeneIdentificatie__natuurlijkPersoon__inpBsn", bsn)
+        criteria.add("betrokkeneIdentificatie__natuurlijkPersoon__inpBsn", bsn)
         return this
     }
 
     override fun withKvk(kvk: String): SearchZaakRollen {
-        queryParams.add("betrokkeneIdentificatie__nietNatuurlijkPersoon__annIdentificatie", kvk)
+        criteria.add("betrokkeneIdentificatie__nietNatuurlijkPersoon__annIdentificatie", kvk)
         return this
     }
 
@@ -64,46 +55,42 @@ class SearchRollenImpl(
         kvkNummer: String,
         vestigingsNummer: String,
     ): SearchZaakRollen {
-        queryParams.add("betrokkeneIdentificatie__vestiging__vestigingsNummer", vestigingsNummer)
-        queryParams.add("betrokkeneIdentificatie__vestiging__kvkNummer", kvkNummer)
+        criteria.add("betrokkeneIdentificatie__vestiging__vestigingsNummer", vestigingsNummer)
+        criteria.add("betrokkeneIdentificatie__vestiging__kvkNummer", kvkNummer)
         return this
     }
 
     override fun ofVestigingsNummer(vestigingsNummer: String): SearchZaakRollen {
-        queryParams.add("betrokkeneIdentificatie__vestiging__vestigingsNummer", vestigingsNummer)
+        criteria.add("betrokkeneIdentificatie__vestiging__vestigingsNummer", vestigingsNummer)
         return this
     }
 
     override fun forZaak(zaakUrl: String): SearchZaakRollen {
-        queryParams.add("zaak", zaakUrl)
+        criteria.add("zaak", zaakUrl)
         return this
     }
 
     override fun forZaak(zaakId: UUID): SearchZaakRollen {
-        queryParams.add("zaak", this.zakenApiClient.getZaakUrl(zaakId))
+        criteria.later { it.add("zaak", zakenApiClient.getZaakUrl(zaakId)) }
         return this
     }
 
     override fun page(page: Int): SearchZaakRollen {
-        queryParams.add("page", page.toString())
+        criteria.add("page", page.toString())
         return this
     }
 
     override fun pageSize(pageSize: Int): SearchZaakRollen {
-        queryParams.add("pageSize", pageSize.toString())
+        criteria.add("pageSize", pageSize.toString())
         return this
     }
 
     override fun withOmschrijvingGeneriek(): SearchZaakRollen {
-        queryParams.add("omschrijvingGeneriek", "initiator")
+        criteria.add("omschrijvingGeneriek", "initiator")
         return this
     }
 
-    override suspend fun retrieve(): ResultPage<ZaakRol> =
-        this.zakenApiClient.webClient
-            .get()
-            .uri { it.path("/zaken/api/v1/rollen").queryParams(queryParams).build() }
-            .retrieve()
-            .handleStatus()
-            .awaitBody()
+    override suspend fun retrieve(): ResultPage<ZaakRol> = zakenApiClient.haalPagina("$ZAKEN_PAD/rollen", criteria.bouw())
+
+    override suspend fun retrieveAll(): List<ZaakRol> = zakenApiClient.haalAlles("$ZAKEN_PAD/rollen", criteria.bouw())
 }

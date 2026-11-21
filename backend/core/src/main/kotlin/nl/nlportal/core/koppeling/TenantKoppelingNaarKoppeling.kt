@@ -44,6 +44,11 @@ internal fun TenantKoppeling.naarKoppeling(
             }
         }
     val bestand = this
+    // Het ZGW-JWT is HS256: een korter geheim faalt anders pas bij de eerste aanroep, als storing van de koppeling.
+    val zgwSecret = if (auth.type == TenantKoppelingAuthType.ZGW_JWT) geheim("secret", auth.secret) else null
+    check(zgwSecret == null || zgwSecret.length >= ZGW_SECRET_MINIMUM) {
+        "Tenant ${oin.value}: koppeling '$naam': auth.secret: een ZGW-geheim is minstens $ZGW_SECRET_MINIMUM tekens lang"
+    }
     return Koppeling().apply {
         url = bestand.url
         leverancier = bestand.leverancier
@@ -55,12 +60,14 @@ internal fun TenantKoppeling.naarKoppeling(
                 value = geheim("waarde", bestand.auth.waarde)
                 token = geheim("token", bestand.auth.token)
                 clientId = bestand.auth.clientId
-                secret = geheim("secret", bestand.auth.secret)
+                secret = zgwSecret ?: geheim("secret", bestand.auth.secret)
                 tokenUrl = bestand.auth.tokenUrl
                 privateKeyFile = bestand.auth.privateKeyBestand
             }
     }
 }
+
+private const val ZGW_SECRET_MINIMUM = 32
 
 private fun TenantKoppelingAuthType.naarType() =
     when (this) {

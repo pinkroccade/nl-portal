@@ -22,7 +22,6 @@ import nl.nlportal.commonground.authentication.WithBurgerUser
 import nl.nlportal.openproduct.TestHelper
 import nl.nlportal.openproduct.TestHelper.readFileAsString
 import nl.nlportal.openproduct.autoconfigure.OpenProductModuleConfiguration
-import nl.nlportal.zakenapi.client.ZakenApiConfig
 import nl.nlportal.zgw.objectenapi.autoconfiguration.ObjectsApiClientConfig
 import okhttp3.mockwebserver.Dispatcher
 import okhttp3.mockwebserver.MockResponse
@@ -51,7 +50,6 @@ class OpenProductQueryIT(
     @Autowired private val httpGraphQlTester: HttpGraphQlTester,
     @Autowired private val openProductModuleConfiguration: OpenProductModuleConfiguration,
     @Autowired private val objectsApiClientConfig: ObjectsApiClientConfig,
-    @Autowired private val zakenApiConfig: ZakenApiConfig,
 ) {
     companion object {
         private const val KNOWN_DOC_ID = "095be615-a8ad-4c33-8e9c-c7612fbf6c9f"
@@ -67,7 +65,6 @@ class OpenProductQueryIT(
         fun properties(propsRegistry: DynamicPropertyRegistry) {
             propsRegistry.add("nl-portal.config.openproduct.properties.product-api-url") { url }
             propsRegistry.add("nl-portal.config.openproduct.properties.product-type-api-url") { url }
-            propsRegistry.add("nl-portal.config.zakenapi.properties.url") { url }
             propsRegistry.add("nl-portal.config.objectenapi.properties.url") { url }
         }
 
@@ -93,7 +90,6 @@ class OpenProductQueryIT(
         openProductModuleConfiguration.properties.productApiUrl = URI(url)
         openProductModuleConfiguration.properties.productTypeApiUrl = URI(url)
         objectsApiClientConfig.properties.url = URI(url)
-        zakenApiConfig.properties.url = url
     }
 
     @Test

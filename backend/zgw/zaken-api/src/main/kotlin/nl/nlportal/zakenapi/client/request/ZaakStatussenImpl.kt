@@ -15,13 +15,10 @@
  */
 package nl.nlportal.zakenapi.client.request
 
+import nl.nlportal.core.koppeling.ResultPage
 import nl.nlportal.zakenapi.client.ZakenApiClient
-import nl.nlportal.zakenapi.client.handleStatus
-import nl.nlportal.zakenapi.domain.ResultPage
+import nl.nlportal.zakenapi.client.ZakenApiClient.Companion.ZAKEN_PAD
 import nl.nlportal.zakenapi.domain.ZaakStatus
-import org.springframework.util.LinkedMultiValueMap
-import org.springframework.util.MultiValueMap
-import org.springframework.web.reactive.function.client.awaitBody
 import java.util.UUID
 
 class ZaakStatussenImpl(
@@ -36,50 +33,40 @@ class GetZaakStatussenImpl(
     val zakenApiClient: ZakenApiClient,
     val id: UUID,
 ) : GetZaakStatus {
-    override suspend fun retrieve(): ZaakStatus =
-        this.zakenApiClient.webClient
-            .get()
-            .uri("/zaken/api/v1/statussen/$id")
-            .retrieve()
-            .handleStatus()
-            .awaitBody()
+    override suspend fun retrieve(): ZaakStatus = zakenApiClient.haal("$ZAKEN_PAD/statussen/$id")
 }
 
 class SearchZaakStatussenImpl(
     val zakenApiClient: ZakenApiClient,
 ) : SearchZaakStatussen {
-    val queryParams: MultiValueMap<String, String> = LinkedMultiValueMap()
+    private val criteria = Criteria<String>()
 
     override fun forZaak(zaakUrl: String): SearchZaakStatussen {
-        queryParams.add("zaak", zaakUrl)
+        criteria.add("zaak", zaakUrl)
         return this
     }
 
     override fun forZaak(zaakId: UUID): SearchZaakStatussen {
-        queryParams.add("zaak", zakenApiClient.getZaakUrl(zaakId))
+        criteria.later { it.add("zaak", zakenApiClient.getZaakUrl(zaakId)) }
         return this
     }
 
     override fun forStatustype(statustype: String): SearchZaakStatussen {
-        queryParams.add("statustype", statustype)
+        criteria.add("statustype", statustype)
         return this
     }
 
     override fun page(page: Int): SearchZaakStatussen {
-        queryParams.add("page", page.toString())
+        criteria.add("page", page.toString())
         return this
     }
 
     override fun pageSize(pageSize: Int): SearchZaakStatussen {
-        queryParams.add("pageSize", pageSize.toString())
+        criteria.add("pageSize", pageSize.toString())
         return this
     }
 
-    override suspend fun retrieve(): ResultPage<ZaakStatus> =
-        this.zakenApiClient.webClient
-            .get()
-            .uri { it.path("/zaken/api/v1/statussen").queryParams(queryParams).build() }
-            .retrieve()
-            .handleStatus()
-            .awaitBody()
+    override suspend fun retrieve(): ResultPage<ZaakStatus> = zakenApiClient.haalPagina("$ZAKEN_PAD/statussen", criteria.bouw())
+
+    override suspend fun retrieveAll(): List<ZaakStatus> = zakenApiClient.haalAlles("$ZAKEN_PAD/statussen", criteria.bouw())
 }

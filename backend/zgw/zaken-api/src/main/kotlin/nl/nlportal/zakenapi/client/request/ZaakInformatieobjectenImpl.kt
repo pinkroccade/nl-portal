@@ -16,11 +16,8 @@
 package nl.nlportal.zakenapi.client.request
 
 import nl.nlportal.zakenapi.client.ZakenApiClient
-import nl.nlportal.zakenapi.client.handleStatus
+import nl.nlportal.zakenapi.client.ZakenApiClient.Companion.ZAKEN_PAD
 import nl.nlportal.zakenapi.domain.ZaakDocument
-import org.springframework.util.LinkedMultiValueMap
-import org.springframework.util.MultiValueMap
-import org.springframework.web.reactive.function.client.awaitBody
 import java.util.UUID
 
 class ZakenInformatieobjectenImpl(
@@ -35,40 +32,28 @@ class GetZaakInformatieobjectImpl(
     val zakenApiClient: ZakenApiClient,
     val id: UUID,
 ) : GetZaakInformatieobject {
-    override suspend fun retrieve(): ZaakDocument =
-        this.zakenApiClient.webClient
-            .get()
-            .uri("/zaken/api/v1/zaakinformatieobjecten/$id")
-            .retrieve()
-            .handleStatus()
-            .awaitBody()
+    override suspend fun retrieve(): ZaakDocument = zakenApiClient.haal("$ZAKEN_PAD/zaakinformatieobjecten/$id")
 }
 
 class SearchZaakInformatieobjectenImpl(
     val zakenApiClient: ZakenApiClient,
 ) : SearchZaakInformatieobjecten {
-    val queryParams: MultiValueMap<String, String> = LinkedMultiValueMap()
+    private val criteria = Criteria<String>()
 
     override fun forZaak(zaakUri: String): SearchZaakInformatieobjecten {
-        queryParams.add("zaak", zaakUri)
+        criteria.add("zaak", zaakUri)
         return this
     }
 
     override fun forZaak(id: UUID): SearchZaakInformatieobjecten {
-        queryParams.add("zaak", zakenApiClient.getZaakUrl(id))
+        criteria.later { it.add("zaak", zakenApiClient.getZaakUrl(id)) }
         return this
     }
 
     override fun ofInformatieobject(informatieobjectUri: String): SearchZaakInformatieobjecten {
-        queryParams.add("informatieobject", informatieobjectUri)
+        criteria.add("informatieobject", informatieobjectUri)
         return this
     }
 
-    override suspend fun retrieve(): List<ZaakDocument> =
-        this.zakenApiClient.webClient
-            .get()
-            .uri { it.path("/zaken/api/v1/zaakinformatieobjecten").queryParams(queryParams).build() }
-            .retrieve()
-            .handleStatus()
-            .awaitBody()
+    override suspend fun retrieve(): List<ZaakDocument> = zakenApiClient.haal("$ZAKEN_PAD/zaakinformatieobjecten", criteria.bouw())
 }
