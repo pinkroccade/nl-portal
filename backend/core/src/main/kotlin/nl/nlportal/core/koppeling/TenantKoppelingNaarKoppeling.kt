@@ -69,5 +69,6 @@ private fun TenantKoppelingAuthType.naarType() =
         TenantKoppelingAuthType.ZGW_JWT -> KoppelingAuthType.ZGW_JWT
         TenantKoppelingAuthType.OAUTH2_CLIENT_CREDENTIALS -> KoppelingAuthType.OAUTH2_CLIENT_CREDENTIALS
         TenantKoppelingAuthType.OAUTH2_PRIVATE_KEY_JWT -> KoppelingAuthType.OAUTH2_PRIVATE_KEY_JWT
+        TenantKoppelingAuthType.GCS_V1_HMAC -> KoppelingAuthType.GCS_V1_HMAC
         TenantKoppelingAuthType.GEEN -> KoppelingAuthType.GEEN
     }
