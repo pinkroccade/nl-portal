@@ -1,0 +1,10 @@
+#!/usr/bin/env bash
+#MISE description="Integratietest van de Keycloak-provider: eigen image tegen een echte Keycloak met gesimuleerde DigiD en wallet (vereist Docker; zie keycloak/README.md)"
+#MISE depends=["keycloak:image"]
+set -euo pipefail
+
+cd "$(dirname "$0")/../../keycloak/integratietest"
+trap 'docker compose down -v' EXIT
+docker compose down -v > /dev/null 2>&1 || true
+docker compose up -d
+node --test claims.test.mjs handmatig.test.mjs
