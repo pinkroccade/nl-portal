@@ -438,4 +438,104 @@ class ZakenApiTenantTest {
 
             assertThat(status.snapshot().single().status).isEqualTo(ModuleState.DEGRADED)
         }
+
+    private fun zaakBron(
+        zaakId: UUID,
+        zaaktypeUrl: String,
+    ) = object : Dispatcher() {
+        override fun dispatch(request: RecordedRequest): MockResponse {
+            val pad = request.requestUrl!!.encodedPath
+            return when {
+                pad.endsWith("/rollen") -> pagina("""{"uuid":"a1b2c3d4-0000-4000-8000-000000000001","zaak":"x"}""", count = 1)
+
+                pad.contains("/zaakinformatieobjecten/") ->
+                    MockResponse()
+                        .setHeader("Content-Type", "application/json")
+                        .setBody("""{"uuid":"$ZAAKDOCUMENT_ID","informatieobject":"https://eigen.example.nl/documenten/api/v1/enkelvoudiginformatieobjecten/$ZAAKDOCUMENT_ID","zaak":"https://eigen.example.nl/zaken/api/v1/zaken/$zaakId"}""")
+
+                else ->
+                    MockResponse()
+                        .setHeader("Content-Type", "application/json")
+                        .setBody(
+                            """{"uuid":"$zaakId","url":"https://eigen.example.nl/zaken/$zaakId","identificatie":"Z1","omschrijving":"o",""" +
+                                """"zaaktype":"$zaaktypeUrl","startdatum":"2026-01-01","einddatum":null,"status":null}""",
+                        )
+            }
+        }
+    }
+
+    @Test
+    fun `een zaaktype-URL zonder UUID telt bij een directe aanvraag als uitgesloten`() =
+        runTest {
+            val client = client(tenant(BOSRAND, bosrandBron, "bosrand", ZakenApiConfiguratie(uitgeslotenZaaktypen = listOf("c2d3e114-bbe4-478d-80de-e8a8c8f8a948"))))
+            val machtigingen = mock<AuthenticationMachtigingsDienstService> { on { isAllowedZaakType(any(), any()) } doReturn true }
+            val service = ZakenApiService(client, mock<DocumentenApiService>(), mock<ObjectenApiService>(), machtigingen)
+            val zaakId = UUID.randomUUID()
+            bosrandBron.dispatcher = zaakBron(zaakId, "https://eigen-catalogi.example.nl/catalogi/api/v1/zaaktypen/geen-uuid")
+
+            val fout =
+                TestTenants.alsTenant(BOSRAND) {
+                    assertThrows<ResponseStatusException> { service.getZaak(zaakId, JwtBuilder().vertegenwoordigdeBsn(bsn).buildAuthentication()) }
+                }
+
+            assertThat(fout.statusCode.value()).isEqualTo(404)
+        }
+
+    @Test
+    fun `een zaaktype-URL zonder UUID komt niet in de lijst als er zaaktypen zijn uitgesloten`() =
+        runTest {
+            val client = client(tenant(BOSRAND, bosrandBron, "bosrand", ZakenApiConfiguratie(uitgeslotenZaaktypen = listOf("c2d3e114-bbe4-478d-80de-e8a8c8f8a948"))))
+            val service = ZakenApiService(client, mock<DocumentenApiService>(), mock<ObjectenApiService>(), mock<AuthenticationMachtigingsDienstService>())
+            val zaak =
+                """{"uuid":"a1b2c3d4-0000-4000-8000-000000000001","url":"https://eigen.example.nl/zaken/api/v1/zaken/a1b2c3d4-0000-4000-8000-000000000001",""" +
+                    """"identificatie":"Z1","omschrijving":"o","zaaktype":"https://eigen-catalogi.example.nl/catalogi/api/v1/zaaktypen/geen-uuid",""" +
+                    """"startdatum":"2026-01-01","einddatum":null,"status":null}"""
+            bosrandBron.enqueue(pagina(zaak, count = 1))
+
+            val resultaat = TestTenants.alsTenant(BOSRAND) { service.getZaken(1, authentication = JwtBuilder().vertegenwoordigdeBsn(bsn).buildAuthentication()) }
+
+            assertThat(resultaat.content).isEmpty()
+        }
+
+    @Test
+    fun `de inhoud van een document bij een zaak van een uitgesloten zaaktype is niet te downloaden`() =
+        runTest {
+            val uitgesloten = "c2d3e114-bbe4-478d-80de-e8a8c8f8a948"
+            val client = client(tenant(BOSRAND, bosrandBron, "bosrand", ZakenApiConfiguratie(uitgeslotenZaaktypen = listOf(uitgesloten))))
+            val machtigingen = mock<AuthenticationMachtigingsDienstService> { on { isAllowedZaakType(any(), any()) } doReturn true }
+            val documenten = mock<DocumentenApiService>()
+            val service = ZakenApiService(client, documenten, mock<ObjectenApiService>(), machtigingen)
+            bosrandBron.dispatcher = zaakBron(UUID.randomUUID(), "https://eigen-catalogi.example.nl/catalogi/api/v1/zaaktypen/$uitgesloten")
+
+            val fout =
+                TestTenants.alsTenant(BOSRAND) {
+                    assertThrows<ResponseStatusException> { service.getZaakDocumentContent(ZAAKDOCUMENT_ID, JwtBuilder().vertegenwoordigdeBsn(bsn).buildAuthentication()) }
+                }
+
+            assertThat(fout.statusCode.value()).isEqualTo(404)
+            verify(documenten, never()).getDocument(any())
+            verify(documenten, never()).getDocumentContentStreaming(any())
+        }
+
+    @Test
+    fun `de inhoud van een document bij een zaaktype waarvoor de gebruiker niet is gemachtigd is niet te downloaden`() =
+        runTest {
+            val client = client(tenant(BOSRAND, bosrandBron, "bosrand"))
+            val machtigingen = mock<AuthenticationMachtigingsDienstService> { on { isAllowedZaakType(any(), any()) } doReturn false }
+            val documenten = mock<DocumentenApiService>()
+            val service = ZakenApiService(client, documenten, mock<ObjectenApiService>(), machtigingen)
+            bosrandBron.dispatcher = zaakBron(UUID.randomUUID(), "https://eigen-catalogi.example.nl/catalogi/api/v1/zaaktypen/5f1c9a3e-2b7d-4c58-9d6a-0e8f4b1a7c33")
+
+            val fout =
+                TestTenants.alsTenant(BOSRAND) {
+                    assertThrows<ResponseStatusException> { service.getZaakDocumentContent(ZAAKDOCUMENT_ID, JwtBuilder().vertegenwoordigdeBsn(bsn).buildAuthentication()) }
+                }
+
+            assertThat(fout.statusCode.value()).isEqualTo(401)
+            verify(documenten, never()).getDocumentContentStreaming(any())
+        }
+
+    private companion object {
+        const val ZAAKDOCUMENT_ID = "9d3c2f64-6a1b-4e7a-8c55-1f0b7a2d4e90"
+    }
 }

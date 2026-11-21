@@ -34,22 +34,26 @@ class CatalogiApiClient(
     private val register: KoppelingRegister,
 ) {
     suspend fun getStatusTypes(zaakType: String): List<StatusType> =
-        koppeling()
-            .get<ResultPage<StatusType>>("$PAD/statustypen", mapOf("zaaktype" to listOf(zaakType), "status" to listOf("definitief")), CRS_HEADERS)
-            .results
+        haal<ResultPage<StatusType>>("statustypen", mapOf("zaaktype" to listOf(zaakType), "status" to listOf("definitief"))).results
 
-    suspend fun getStatusType(statusTypeId: UUID): ZaakStatusType = koppeling().get("$PAD/statustypen/$statusTypeId", headers = CRS_HEADERS)
+    suspend fun getStatusType(statusTypeId: UUID): ZaakStatusType = haal("statustypen/$statusTypeId")
 
-    suspend fun getZaakType(zaakTypeId: UUID): ZaakType = koppeling().get("$PAD/zaaktypen/$zaakTypeId", headers = CRS_HEADERS)
+    suspend fun getZaakType(zaakTypeId: UUID): ZaakType = haal("zaaktypen/$zaakTypeId")
 
-    suspend fun getBesluitTypes(zaakType: String): List<BesluitType> = koppeling().get<ResultPage<BesluitType>>("$PAD/besluittypen", mapOf("zaaktype" to listOf(zaakType)), CRS_HEADERS).results
+    suspend fun getBesluitTypes(zaakType: String): List<BesluitType> = haal<ResultPage<BesluitType>>("besluittypen", mapOf("zaaktype" to listOf(zaakType))).results
 
-    suspend fun getBesluitType(besluitTypeId: UUID): BesluitType = koppeling().get("$PAD/besluittypen/$besluitTypeId", headers = CRS_HEADERS)
+    suspend fun getBesluitType(besluitTypeId: UUID): BesluitType = haal("besluittypen/$besluitTypeId")
 
-    suspend fun getResultaatType(resultaatTypeId: UUID): ResultaatType = koppeling().get("$PAD/resultaattypen/$resultaatTypeId", headers = CRS_HEADERS)
+    suspend fun getResultaatType(resultaatTypeId: UUID): ResultaatType = haal("resultaattypen/$resultaatTypeId")
 
     /** De URL van een zaaktype in de Catalogi API van de huidige tenant, voor een filterwaarde (`zaaktype__not_in`) in een andere API. */
     suspend fun zaaktypeUrl(zaakTypeId: UUID): String = koppeling().url("$PAD/zaaktypen/$zaakTypeId")
+
+    // Enige plek met de CRS-headers: de Catalogi API vraagt ze voor de coördinaten van geometrie.
+    private suspend inline fun <reified T : Any> haal(
+        pad: String,
+        query: Map<String, List<String>> = emptyMap(),
+    ): T = koppeling().get<T>("$PAD/$pad", query, CRS_HEADERS)
 
     // De client wordt per aanroep opgehaald en nooit bewaard: hij hoort bij één tenant.
     private suspend fun koppeling(): KoppelingClient = register.current(MODULE)
