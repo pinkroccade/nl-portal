@@ -27,6 +27,7 @@ nl-portal:
         # Geheimen van de testtenant (zie tenants/00000099000000000001.yaml): <oin>.<naam>
         "00000099000000000001":
             zaken-secret: testwaarde-zaken-geheim-voor-de-app-test-0123456789
+            catalogiapi-secret: testwaarde-catalogi-geheim-voor-de-app-test-0123456789
             payment-direct-api-geheim: test-api-geheim
             payment-direct-webhook-geheim: test-webhook-geheim
     security:
@@ -47,10 +48,6 @@ nl-portal:
                 secret: 12345678123456781234567812345678
         catalogiapi:
             enabled: true
-            properties:
-                url: http://localhost:56789
-                clientId: test-client
-                secret: 12345678123456781234567812345678
         documentenapis:
             enabled: true
             properties:

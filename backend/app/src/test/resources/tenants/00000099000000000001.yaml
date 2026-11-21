@@ -25,6 +25,12 @@ koppelingen:
             type: zgw-jwt
             clientId: test-client
             secret: 00000099000000000001.zaken-secret
+    catalogiapi:
+        url: http://localhost:56789
+        auth:
+            type: zgw-jwt
+            clientId: test-client
+            secret: 00000099000000000001.catalogiapi-secret
     # Betalen via Worldline Direct, zodat de :app-tests de module met echte waarden laden. De geheimen staan in application.yml van de tests.
     payment-direct:
         url: http://localhost:56789/payment

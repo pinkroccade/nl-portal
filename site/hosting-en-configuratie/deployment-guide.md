@@ -56,9 +56,11 @@ modules:
 
 **Let op:** `koppelingen.zakenapi` en `modules.zakenapi` horen bij elkaar: het ene zonder het andere weigert het opstarten, met de OIN van de tenant in de melding. Zijn alle waarden standaard, schrijf dan `modules.zakenapi: {}` (de tenantbestand-loader accepteert dat; het script `mise run dev:setup` kent alleen de uitgeschreven vorm). Het geheim is willekeurig gegenereerd en minstens 32 tekens.
 
+De Catalogi API is ook gemigreerd en heeft per tenant alleen een koppeling (geen `modules.catalogiapi`): `koppelingen.catalogiapi` (auth-type `zgw-jwt`, geheim als `NL_PORTAL_GEHEIMEN_<OIN>_CATALOGIAPI_SECRET`). Staat de module aan en heeft geen enkele tenant die koppeling, dan weigert het opstarten. De oude `NLPORTAL_CONFIG_CATALOGIAPI_PROPERTIES_*` zijn vervallen en weigeren het opstarten zolang ze gezet zijn.
+
 **Let op:** de zaken-functionaliteit vereist dat de Zaken API, Catalogi API én Open Object modules alle drie enabled zijn.
 
-**Ontbrekende configuratie:** een module die nog niet naar het tenantbestand is gemigreerd controleert zijn verplichte instellingen (URL, `clientId`, `secret` of token) pas bij het eerste gebruik, niet bij het opstarten. Zet je een module aan zonder die instellingen, dan start de backend gewoon op en faalt de eerste aanroep van die module met een foutmelding als `Module 'catalogiapi' is not configured: setting 'url' is missing`. Controleer na het aanzetten van een module dus altijd dat een aanroep slaagt; een goede opstart bewijst nog niet dat de configuratie klopt.
+**Ontbrekende configuratie:** een module die nog niet naar het tenantbestand is gemigreerd controleert zijn verplichte instellingen (URL, `clientId`, `secret` of token) pas bij het eerste gebruik, niet bij het opstarten. Zet je een module aan zonder die instellingen, dan start de backend gewoon op en faalt de eerste aanroep van die module met een foutmelding als `Module 'documentenapis' is not configured: setting 'url' is missing`. Controleer na het aanzetten van een module dus altijd dat een aanroep slaagt; een goede opstart bewijst nog niet dat de configuratie klopt.
 
 Alle module properties, inclusief de optionele, zijn met inline documentatie te vinden in `docker-compose/imports/backend.env` in de monorepo.
 

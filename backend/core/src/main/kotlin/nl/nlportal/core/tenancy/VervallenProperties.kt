@@ -25,16 +25,18 @@ import org.springframework.core.env.Environment
  * yml of als omgevingsvariabele, in elke schrijfwijze) dan weigert het opstarten, zodat een beheerder niet denkt dat een oude
  * doelbinding of sleutel nog geldt. De module registreert een bean van dit type met haar oude prefix, bijvoorbeeld
  * `VervallenProperties("brp", "nl-portal.config.haalcentraal-brp.properties")`; core controleert alle beans bij het opstarten.
- * De melding noemt de prefix en [module], nooit een waarde.
+ * [vervanging] zegt waar de configuratie nu staat (standaard `modules.<module>` en de koppelingen); een module zonder eigen
+ * instellingen per gemeente geeft hier alleen haar koppeling. De melding noemt de prefix, [module] en [vervanging], nooit een waarde.
  */
 data class VervallenProperties(
     val module: String,
     val prefix: String,
+    val vervanging: String = "modules.$module en koppelingen",
 ) {
     fun controleer(environment: Environment) {
         check(!isGezet(environment)) {
             "De oude instellingen onder '$prefix' (ook als omgevingsvariabele) zijn vervallen: module '$module' leest haar configuratie uit " +
-                "het tenantbestand (modules.$module en koppelingen). Verwijder de oude instellingen."
+                "het tenantbestand ($vervanging). Verwijder de oude instellingen."
         }
     }
 

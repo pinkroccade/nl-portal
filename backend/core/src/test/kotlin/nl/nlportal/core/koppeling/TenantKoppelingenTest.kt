@@ -38,6 +38,7 @@ import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertThrows
+import org.springframework.core.env.MapPropertySource
 import org.springframework.boot.autoconfigure.AutoConfigurations
 import org.springframework.boot.test.context.runner.ApplicationContextRunner
 import org.springframework.core.env.StandardEnvironment
@@ -243,6 +244,16 @@ class TenantKoppelingenTest {
             assertThat(context).hasFailed()
             assertThat(startupMelding(context)).contains("nl-portal.config.haalcentraal-brp.properties", "modules.brp").doesNotContain("zeer-geheim")
         }
+    }
+
+    @Test
+    fun `een module kan zeggen waar haar configuratie nu staat, in plaats van modules en koppelingen`() {
+        val omgeving = StandardEnvironment().apply { propertySources.addFirst(MapPropertySource("oud", mapOf("nl-portal.config.kvk.properties.url" to "http://oud"))) }
+        val standaard = assertThrows<IllegalStateException> { VervallenProperties("kvk", "nl-portal.config.kvk.properties").controleer(omgeving) }
+        val eigen = assertThrows<IllegalStateException> { VervallenProperties("kvk", "nl-portal.config.kvk.properties", "koppelingen.kvk").controleer(omgeving) }
+
+        assertThat(standaard.message).contains("(modules.kvk en koppelingen)")
+        assertThat(eigen.message).contains("(koppelingen.kvk)").doesNotContain("modules.kvk", "http://oud")
     }
 
     @Test

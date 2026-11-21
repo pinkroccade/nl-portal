@@ -16,7 +16,7 @@ package "functionaliteit" {
   [:payment-direct\n<size:10>omvang M, risico middel, tenancy: anoniem</size>] as payment_direct #FBE3A6
   [:zgw:berichten\n<size:10>omvang S, risico middel, tenancy: config</size>] as zgw_berichten #FBE3A6
   [:zgw:besluiten\n<size:10>omvang S, risico middel, tenancy: config</size>] as zgw_besluiten #FBE3A6
-  [:zgw:catalogi-api\n<size:10>omvang S, risico laag, tenancy: config, webclient</size>] as zgw_catalogi_api #CFE8CF
+  [:zgw:catalogi-api\n<size:10>omvang S, risico laag</size>] as zgw_catalogi_api #CFE8CF
   [:zgw:common-ground-authentication / :zgw:common-ground-authentication-test\n<size:10>omvang L, risico hoog, tenancy: config, webclient</size>] as zgw_common_ground_authentication #F4B6B6
   [:zgw:documenten-api\n<size:10>omvang M, risico hoog, tenancy: config, webclient</size>] as zgw_documenten_api #F4B6B6
   [:zgw:objectenapi\n<size:10>omvang M, risico hoog, tenancy: config, webclient</size>] as zgw_objectenapi #F4B6B6

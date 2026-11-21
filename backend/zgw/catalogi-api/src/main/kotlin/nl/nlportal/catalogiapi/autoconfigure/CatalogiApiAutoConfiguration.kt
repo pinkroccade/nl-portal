@@ -17,13 +17,16 @@ package nl.nlportal.catalogiapi.autoconfigure
 
 import nl.nlportal.catalogiapi.client.CatalogiApiClient
 import nl.nlportal.catalogiapi.service.CatalogiApiService
+import nl.nlportal.core.koppeling.KoppelingAutoConfiguration
 import nl.nlportal.core.koppeling.KoppelingRegister
+import nl.nlportal.core.tenancy.TenantDirectory
+import nl.nlportal.core.tenancy.VervallenProperties
 import org.springframework.boot.autoconfigure.AutoConfiguration
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty
 import org.springframework.context.annotation.Bean
 
-@AutoConfiguration
+@AutoConfiguration(after = [KoppelingAutoConfiguration::class])
 @ConditionalOnProperty(prefix = "nl-portal.config.catalogiapi", name = ["enabled"], havingValue = "true")
 class CatalogiApiAutoConfiguration {
     @Bean
@@ -32,4 +35,12 @@ class CatalogiApiAutoConfiguration {
 
     @Bean
     fun catalogiApiClient(koppelingRegister: KoppelingRegister): CatalogiApiClient = CatalogiApiClient(koppelingRegister)
+
+    /** Aan zonder een tenant met `koppelingen.catalogiapi` weigert het opstarten. */
+    @Bean
+    fun catalogiApiKoppelingControle(directory: TenantDirectory) = CatalogiApiKoppelingControle(directory)
+
+    /** De oude `...properties.*` (url, clientId, secret) zijn vervallen: staan ze nog gezet, dan weigert core het opstarten. */
+    @Bean
+    fun catalogiApiVervallenProperties() = VervallenProperties(CatalogiApiClient.MODULE, "nl-portal.config.catalogiapi.properties", vervanging = "koppelingen.${CatalogiApiClient.MODULE}")
 }

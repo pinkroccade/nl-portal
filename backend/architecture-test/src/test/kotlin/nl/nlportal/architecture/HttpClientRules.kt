@@ -178,7 +178,6 @@ class HttpClientRules(
             arrayOf(
                 "nl.nlportal.berichten..",
                 "nl.nlportal.besluiten..",
-                "nl.nlportal.catalogiapi..",
                 "nl.nlportal.commonground.authentication..",
                 "nl.nlportal.documentenapi..",
                 "nl.nlportal.form..",
