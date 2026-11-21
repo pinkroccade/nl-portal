@@ -25,6 +25,7 @@ import nl.nlportal.core.tenancy.TenantContextMissingException
 import nl.nlportal.core.util.ModuleNotConfiguredException
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertFalse
+import org.junit.jupiter.api.Assertions.assertNotNull
 import org.junit.jupiter.api.Test
 import org.mockito.Mockito.RETURNS_DEEP_STUBS
 import org.mockito.Mockito.mock
@@ -59,7 +60,8 @@ class GraphQLExceptionHandlerTest {
         val graphqlFout = GraphQLExceptionHandler().resolveException(fout, env).block()!!.single()
 
         assertEquals("Module is niet beschikbaar", graphqlFout.message)
-        assertEquals(mapOf("code" to "MODULE_NOT_AVAILABLE"), graphqlFout.extensions)
+        assertEquals("MODULE_NIET_GECONFIGUREERD", graphqlFout.extensions["code"])
+        assertNotNull(graphqlFout.extensions["correlatieId"])
         assertFalse(graphqlFout.toSpecification().toString().contains("00000099000000000001"))
     }
 
@@ -68,7 +70,8 @@ class GraphQLExceptionHandlerTest {
         val graphqlFout = GraphQLExceptionHandler().resolveException(TenantContextMissingException(), env).block()!!.single()
 
         assertEquals("Niet geautoriseerd", graphqlFout.message)
-        assertEquals(mapOf("code" to "NIET_GEAUTORISEERD"), graphqlFout.extensions)
+        assertEquals("TENANT_ONTBREEKT", graphqlFout.extensions["code"])
+        assertNotNull(graphqlFout.extensions["correlatieId"])
     }
 
     @Test
@@ -78,6 +81,7 @@ class GraphQLExceptionHandlerTest {
         val graphqlFout = GraphQLExceptionHandler().resolveException(fout, env).block()!!.single()
 
         assertEquals("Koppeling is niet beschikbaar", graphqlFout.message)
-        assertEquals(mapOf("code" to "KOPPELING_FOUT"), graphqlFout.extensions)
+        assertEquals("KOPPELING_FOUT", graphqlFout.extensions["code"])
+        assertNotNull(graphqlFout.extensions["correlatieId"])
     }
 }
