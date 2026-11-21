@@ -168,11 +168,11 @@ tenantbestand (`docker-compose/imports/tenants`) en voegt alleen de fragmenten v
 `mise run dev:setup` genereert zo per tenant `docker-compose/.generated/keycloak/<oin>.json` plus een sleutelpaar voor
 `private_key_jwt` (de private JWK komt in `docker-compose/.generated/tenants/<oin>/clientsleutel.jwk.json`, de publieke in het realm).
 keycloak-config-cli (service `nl-portal-keycloak-config` in de compose) laadt het resultaat tegen dit image. Geheimen staan niet
-in het realm: de m2m-client en de wallet-koppeling verwijzen naar kcc-substitutie (`$(env:NAAM)`).
+in het realm: de wallet-koppeling verwijst naar kcc-substitutie (`$(env:NAAM)`).
 
 Wat de generator afdwingt en de realmtest (`scripts/lib/realm.test.mjs`, in `mise run test`) bewijst, per gegenereerd realm:
 alleen `nl-portal-backend` (private_key_jwt, PS256, PKCE S256, `at+jwt`, exacte redirect- en post-logout-URI's, back-channel
-logout-URL, geen service-account, geen directe grants), tot #506 ook de huidige SPA-client en `nl-portal-m2m`; accountconsole uit;
+logout-URL, geen service-account, geen directe grants), geen SPA-client, geen `nl-portal-m2m` en geen token exchange; accountconsole uit;
 scope `acr` van `nl-portal-backend` af; per koppeling een mapper voor elke notitie die een client-mapper leest;
 SAML met `validateSignature`, `wantAssertionsSigned` en een vastgepind `signingCertificate`, minimumniveau als
 `authnContextClassRef`; wallet met code-flow, PKCE S256, clientauthenticatie en TLS; geen identiteitskoppeling; SSO-tijden niet
