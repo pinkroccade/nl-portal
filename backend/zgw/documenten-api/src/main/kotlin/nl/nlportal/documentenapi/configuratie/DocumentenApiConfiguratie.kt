@@ -1,5 +1,5 @@
 /*
- * Copyright 2015-2026 Den Haag, Ritense, the Netherlands.
+ * Copyright 2026 PinkRoccade Local Government B.V.
  *
  * Licensed under EUPL, Version 1.2 (the "License");
  * you may not use this file except in compliance with the License.
@@ -17,6 +17,7 @@ package nl.nlportal.documentenapi.configuratie
 
 import nl.nlportal.core.tenancy.ModuleContext
 import nl.nlportal.core.tenancy.ModuleOvertreding
+import nl.nlportal.core.tenancy.NietErfbaar
 import nl.nlportal.core.tenancy.TenantModuleConfiguratie
 import nl.nlportal.documentenapi.domain.DocumentStatus
 import nl.nlportal.documentenapi.domain.Vertrouwelijkheid
@@ -27,8 +28,8 @@ import nl.nlportal.documentenapi.domain.Vertrouwelijkheid
  */
 data class DocumentenApiConfiguratie(
     /** De koppeling waar een upload naartoe gaat als de aanroeper er geen kiest. */
-    val standaardDocumentApi: String,
-    val documentApis: Map<String, DocumentApiConfiguratie>,
+    @NietErfbaar val standaardDocumentApi: String,
+    @NietErfbaar val documentApis: Map<String, DocumentApiConfiguratie>,
     /** Leeg: elk type is toegestaan. */
     val toegestaneMimeTypes: Set<String> = emptySet(),
     val vertrouwelijkheidsaanduidingWitlijst: List<Vertrouwelijkheid> =
@@ -43,8 +44,8 @@ data class DocumentenApiConfiguratie(
 
 /** De gegevens bij één documenten-API voor uploads; de koppeling met dezelfde naam bepaalt waar de API staat. */
 data class DocumentApiConfiguratie(
-    val rsin: String? = null,
-    val documentTypeUrl: String? = null,
+    @NietErfbaar val rsin: String? = null,
+    @NietErfbaar val documentTypeUrl: String? = null,
 )
 
 /** Draagt [DocumentenApiConfiguratie] bij aan het tenantbestand (T5-haakpunt) en bewaakt dat elke document-API een koppeling heeft. */

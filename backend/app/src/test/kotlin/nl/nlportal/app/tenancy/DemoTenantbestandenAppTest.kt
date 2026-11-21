@@ -13,17 +13,24 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package nl.nlportal.core.tenancy
+package nl.nlportal.app.tenancy
 
+import nl.nlportal.core.tenancy.TenantFileLoader
+import nl.nlportal.core.tenancy.TenantModules
 import org.assertj.core.api.Assertions.assertThat
 import org.junit.jupiter.api.Test
 import java.nio.file.Path
 
-/** Seam: de validator over de tenantbestanden die de repo meelevert (de CI-stap "validator over de demo-tenantbestanden"). */
-class DemoTenantbestandenTest {
+/**
+ * Seam: de validator over de tenantbestanden die de repo meelevert (de CI-stap "validator over de demo-tenantbestanden"), met de
+ * configuratie die alle modules bijdragen; alleen hier staan alle modules op het klassenpad.
+ */
+class DemoTenantbestandenAppTest {
+    private val loader = TenantFileLoader(modules = TenantModules.ontdek())
+
     @Test
     fun `de demo-tenantbestanden van docker-compose voldoen aan de validator`() {
-        val result = TenantFileLoader().load(Path.of("../../docker-compose/imports/tenants"))
+        val result = loader.load(Path.of("../../docker-compose/imports/tenants"))
 
         assertThat(result.violations).isEmpty()
         assertThat(result.tenants).hasSize(1)
@@ -31,7 +38,7 @@ class DemoTenantbestandenTest {
 
     @Test
     fun `de tenantbestanden van de app-tests voldoen aan de validator`() {
-        val result = TenantFileLoader().load(Path.of("../app/src/test/resources/tenants"))
+        val result = loader.load(Path.of("src/test/resources/tenants"))
 
         assertThat(result.violations).isEmpty()
     }

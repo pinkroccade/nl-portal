@@ -1,5 +1,5 @@
 /*
- * Copyright 2015-2026 Den Haag, Ritense, the Netherlands.
+ * Copyright 2026 PinkRoccade Local Government B.V.
  *
  * Licensed under EUPL, Version 1.2 (the "License");
  * you may not use this file except in compliance with the License.
@@ -149,6 +149,22 @@ class DocumentenApiTenantConfiguratieTest {
         val result = laad("documentApis:\n  openzaak: {}")
 
         assertThat(result.violations.map { it.code }).contains(Code.VERPLICHTE_WAARDE_ONTBREEKT)
+    }
+
+    @Test
+    fun `gemeentegebonden instellingen uit base-yaml worden geweigerd`() {
+        Files.writeString(
+            dir.resolve("base.yaml"),
+            "omgevingstype: acceptatie\ninlogmiddelen: [digid]\nmodules:\n  documenten-api:\n    standaardDocumentApi: openzaak\n    documentApis:\n      openzaak:\n        rsin: \"051845623\"\n",
+        )
+        Files.writeString(
+            dir.resolve("$bosrand.yaml"),
+            "oin: \"$bosrand\"\nnaam: Gemeente\ndomeinen: [bosrand.example]\nthema:\n  titel: De Bosrand\n$koppelingen\n",
+        )
+
+        val result = TenantFileLoader(modules = modules).load(dir)
+
+        assertThat(result.violations.map { it.code }).contains(Code.NIET_ERFBARE_WAARDE_IN_BASIS)
     }
 
     @Test
