@@ -23,14 +23,7 @@ class WithBurgerUserSecurityContextFactory : WithSecurityContextFactory<WithBurg
     override fun createSecurityContext(burger: WithBurgerUser): SecurityContext {
         val context: SecurityContext = SecurityContextHolder.createEmptyContext()
 
-        val builder = JwtBuilder().aanvragerBsn(burger.aanvragerBsn)
-        if (!burger.gemachtigdeBsn.isEmpty()) {
-            builder.gemachtigdeBsn(burger.gemachtigdeBsn)
-        }
-        if (!burger.gemachtigdeKvk.isEmpty()) {
-            builder.gemachtigdeKvk(burger.gemachtigdeKvk)
-        }
-        context.authentication = builder.buildBurgerAuthentication()
+        context.authentication = JwtBuilder().vertegenwoordigdeBsn(burger.vertegenwoordigdeBsn).buildAuthentication()
 
         return context
     }

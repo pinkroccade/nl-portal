@@ -23,20 +23,14 @@ class WithBedrijfUserSecurityContextFactory : WithSecurityContextFactory<WithBed
     override fun createSecurityContext(bedrijf: WithBedrijfUser): SecurityContext {
         val context: SecurityContext = SecurityContextHolder.createEmptyContext()
 
-        val builder = JwtBuilder().aanvragerKvk(bedrijf.kvkNummer)
-        if (!bedrijf.gemachtigdeBsn.isEmpty()) {
-            builder.gemachtigdeBsn(bedrijf.gemachtigdeBsn)
-        }
-        if (!bedrijf.gemachtigdeKvk.isEmpty()) {
-            builder.gemachtigdeKvk(bedrijf.gemachtigdeKvk)
-        }
+        val builder = JwtBuilder().vertegenwoordigdeKvk(bedrijf.kvkNummer)
         if (!bedrijf.vestigingsNummer.isEmpty()) {
             builder.vestigingsNummerKvk(bedrijf.kvkNummer, bedrijf.vestigingsNummer)
         }
         if (!bedrijf.machtigingsDienst.isEmpty()) {
             builder.machtingDienstKvk(bedrijf.machtigingsDienst)
         }
-        context.authentication = builder.buildBedrijfAuthentication()
+        context.authentication = builder.buildAuthentication()
 
         return context
     }

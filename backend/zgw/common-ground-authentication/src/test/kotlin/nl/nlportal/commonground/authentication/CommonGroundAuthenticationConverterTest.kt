@@ -17,9 +17,9 @@ package nl.nlportal.commonground.authentication
 
 import nl.nlportal.commonground.authentication.KeycloakConfig.KeycloakCredentials
 import nl.nlportal.commonground.authentication.exception.UserTypeUnsupportedException
+import nl.nlportal.portal.authentication.domain.Vertegenwoordigde
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertThrows
-import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.extension.ExtendWith
@@ -48,8 +48,8 @@ internal class CommonGroundAuthenticationConverterTest {
     }
 
     @Test
-    fun `converter returns BurgerAuthentication when JWT has BSN`() {
-        val jwt = JwtBuilder().aanvragerBsn("1234").buildJwt()
+    fun `converter yields a burger identity when JWT has BSN`() {
+        val jwt = JwtBuilder().vertegenwoordigdeBsn("1234").buildJwt()
         val jwtString = JwtBuilder().buildJwtString("123422222222222222222233333333333")
         val tokenResponse = CommonGroundAuthenticationConverter.TokenResponse(jwtString)
 
@@ -58,12 +58,12 @@ internal class CommonGroundAuthenticationConverterTest {
 
         val authentication = converter.convert(jwt)
 
-        assertTrue(authentication.block() is BurgerAuthentication)
+        assertEquals(Vertegenwoordigde.Burger("1234"), authentication.block()!!.identiteit.vertegenwoordigde)
     }
 
     @Test
-    fun `converter returns BedrijfAuthentication when JWT has KvK nummer`() {
-        val jwt = JwtBuilder().aanvragerKvk("1234").buildJwt()
+    fun `converter yields a bedrijf identity when JWT has KvK nummer`() {
+        val jwt = JwtBuilder().vertegenwoordigdeKvk("1234").buildJwt()
         val jwtString = JwtBuilder().buildJwtString("123422222222222222222233333333333")
         val tokenResponse = CommonGroundAuthenticationConverter.TokenResponse(jwtString)
 
@@ -72,7 +72,25 @@ internal class CommonGroundAuthenticationConverterTest {
 
         val authentication = converter.convert(jwt)
 
-        assertTrue(authentication.block() is BedrijfAuthentication)
+        assertEquals(Vertegenwoordigde.Bedrijf("1234"), authentication.block()!!.identiteit.vertegenwoordigde)
+    }
+
+    @Test
+    fun `converter rejects a token of a user with only a subject`() {
+        val jwt =
+            Jwt
+                .withTokenValue("token")
+                .header("alg", "none")
+                .issuer("https://login.example.nl/realms/portal")
+                .subject("c0ffee00-0000-4000-8000-000000000001")
+                .build()
+        val jwtString = JwtBuilder().buildJwtString("123422222222222222222233333333333")
+        val tokenResponse = CommonGroundAuthenticationConverter.TokenResponse(jwtString)
+
+        doReturn(Mono.just(jwt)).whenever(decoder).decode(tokenResponse.accessToken)
+        doReturn(Mono.just(tokenResponse)).whenever(converter).tokenExchange(jwt)
+
+        assertThrows(UserTypeUnsupportedException::class.java) { converter.convert(jwt).block() }
     }
 
     @Test

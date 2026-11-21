@@ -83,7 +83,7 @@ class OpenKlant2ServicePartijTest {
 
             val partij =
                 service.findPartijByAuthentication(
-                    JwtBuilder().aanvragerBsn(BSN).buildBurgerAuthentication(),
+                    JwtBuilder().vertegenwoordigdeBsn(BSN).buildAuthentication(),
                 )
 
             assertNull(partij)
@@ -96,7 +96,7 @@ class OpenKlant2ServicePartijTest {
 
             val partij =
                 service.findPartijByAuthentication(
-                    JwtBuilder().aanvragerKvk(KVK).vestigingsNummerKvk(KVK, VESTIGINGSNUMMER).buildBedrijfAuthentication(),
+                    JwtBuilder().vertegenwoordigdeKvk(KVK).vestigingsNummerKvk(KVK, VESTIGINGSNUMMER).buildAuthentication(),
                 )
 
             assertNotNull(partij)
@@ -135,16 +135,6 @@ class OpenKlant2ServicePartijTest {
             val deleteRequest = mockServer.takeRequest()
             assertEquals("DELETE", deleteRequest.method)
             assertEquals(listOf("partijen", PARTIJ_ID), deleteRequest.url.pathSegments.takeLast(2))
-        }
-
-    @Test
-    fun `findPartijIdentificatorenFromAuthentication throws for an unsupported authentication type`() =
-        runTest {
-            assertThrows<IllegalStateException> {
-                service.findPartijIdentificatorenFromAuthentication(
-                    JwtBuilder().buildKeycloakUserAuthentication(),
-                )
-            }
         }
 
     private fun somePartij() =

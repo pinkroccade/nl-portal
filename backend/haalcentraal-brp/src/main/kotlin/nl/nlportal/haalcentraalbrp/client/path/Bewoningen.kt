@@ -15,7 +15,7 @@
  */
 package nl.nlportal.haalcentraalbrp.client.path
 
-import nl.nlportal.commonground.authentication.CommonGroundAuthentication
+import nl.nlportal.portal.authentication.domain.PortalAuthentication
 import nl.nlportal.haalcentraalbrp.client.HaalCentraalBrpBewoningClient
 import nl.nlportal.haalcentraalbrp.domain.bewoning.BewoningenApiResponse
 import nl.nlportal.haalcentraalbrp.domain.bewoning.BewoningenApiRequest
@@ -36,7 +36,7 @@ class Bewoningen(
             .uri("/bewoningen")
             .headers {
                 if (it[HttpHeaders.AUTHORIZATION].isNullOrEmpty()) {
-                    it.setBearerAuth((authentication as CommonGroundAuthentication).token.tokenValue)
+                    it.setBearerAuth((authentication as PortalAuthentication).bearerToken)
                 }
             }.contentType(MediaType.APPLICATION_JSON)
             .accept(MediaType.APPLICATION_JSON)

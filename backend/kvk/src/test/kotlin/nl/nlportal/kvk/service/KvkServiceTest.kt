@@ -41,7 +41,7 @@ class KvkServiceTest {
     @Test
     fun `getMaatschappelijkeActiviteit calls client and gets MaatschappelijkeActiviteit`() =
         runTest {
-            val authentication = JwtBuilder().aanvragerKvk("123").buildBedrijfAuthentication()
+            val authentication = JwtBuilder().vertegenwoordigdeKvk("123").buildAuthentication()
             whenever(kvkClient.getMaatschappelijkeActiviteit("123")).thenReturn(
                 MaatschappelijkeActiviteit(
                     naam = "Test bedrijf",
@@ -66,7 +66,7 @@ class KvkServiceTest {
     @Test
     fun `getMaatschappelijkeActiviteit with invalid kvk`() =
         runTest {
-            val authentication = JwtBuilder().aanvragerKvk("123").buildBedrijfAuthentication()
+            val authentication = JwtBuilder().vertegenwoordigdeKvk("123").buildAuthentication()
 
             val bedrijf = kvkService.getMaatschappelijkeActiviteit(authentication)
 
@@ -76,7 +76,7 @@ class KvkServiceTest {
     @Test
     fun `getMaatschappelijkeActiviteit geeft null voor een burger`() =
         runTest {
-            val authentication = JwtBuilder().aanvragerBsn("999993653").buildBurgerAuthentication()
+            val authentication = JwtBuilder().vertegenwoordigdeBsn("999993653").buildAuthentication()
 
             assertNull(kvkService.getMaatschappelijkeActiviteit(authentication))
             verifyNoInteractions(kvkClient)

@@ -22,9 +22,8 @@ import java.time.format.DateTimeFormatter
 import java.util.UUID
 import kotlin.Any
 import kotlin.Pair
-import nl.nlportal.commonground.authentication.BedrijfAuthentication
-import nl.nlportal.commonground.authentication.BurgerAuthentication
-import nl.nlportal.commonground.authentication.CommonGroundAuthentication
+import nl.nlportal.portal.authentication.domain.PortalAuthentication
+import nl.nlportal.portal.authentication.domain.Vertegenwoordigde
 import nl.nlportal.core.util.Mapper
 import nl.nlportal.openproduct.autoconfigure.OpenProductModuleConfiguration.OpenProductConfigurationProperties.OpenProductPrefillConfigurationProperties
 import nl.nlportal.openproduct.client.domain.OpenProductActiesFilters
@@ -46,7 +45,7 @@ class OpenProductPrefillService(
     val openProductPrefillConfigurationProperties: OpenProductPrefillConfigurationProperties,
 ) {
     suspend fun prefill(
-        authentication: CommonGroundAuthentication,
+        authentication: PortalAuthentication,
         productId: UUID,
         naam: String,
     ): OpenProductPrefillResponse {
@@ -92,7 +91,7 @@ class OpenProductPrefillService(
     private suspend fun hashAndCreateObject(
         json: String,
         formulierUrl: String,
-        authentication: CommonGroundAuthentication,
+        authentication: PortalAuthentication,
     ): OpenProductPrefillResponse {
         val nonce = PrefillSecurity.generateNonce()
         val hash = PrefillSecurity.createHash(nonce + json)
@@ -128,24 +127,20 @@ class OpenProductPrefillService(
      * @param: themas, all published themas
      * @return: OpenProductPrefillObjectIdentificatie
      */
-    private fun getPrefillIndentificatie(authentication: CommonGroundAuthentication): OpenProductPrefillObjectIdentificatie =
-        when (authentication) {
-            is BurgerAuthentication -> {
+    private fun getPrefillIndentificatie(authentication: PortalAuthentication): OpenProductPrefillObjectIdentificatie =
+        when (val vertegenwoordigde = authentication.identiteit.vertegenwoordigde) {
+            is Vertegenwoordigde.Burger -> {
                 OpenProductPrefillObjectIdentificatie(
                     type = OpenProductPrefillObjectIdentificatieType.BSN,
-                    value = authentication.userId,
+                    value = vertegenwoordigde.identificatie,
                 )
             }
 
-            is BedrijfAuthentication -> {
+            is Vertegenwoordigde.Bedrijf -> {
                 OpenProductPrefillObjectIdentificatie(
                     type = OpenProductPrefillObjectIdentificatieType.KVK,
-                    value = authentication.userId,
+                    value = vertegenwoordigde.identificatie,
                 )
-            }
-
-            else -> {
-                throw IllegalArgumentException("Authentication not supported")
             }
         }
 

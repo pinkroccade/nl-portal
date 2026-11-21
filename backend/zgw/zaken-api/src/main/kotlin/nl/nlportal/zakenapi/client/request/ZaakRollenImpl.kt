@@ -60,11 +60,6 @@ class SearchRollenImpl(
         return this
     }
 
-    override fun withUid(uid: String): SearchZaakRollen {
-        queryParams.add("betrokkeneIdentificatie__natuurlijkPersoon__anpIdentificatie", uid)
-        return this
-    }
-
     override fun withKvkAndVestigingsNummer(
         kvkNummer: String,
         vestigingsNummer: String,

@@ -17,7 +17,7 @@ package nl.nlportal.zaken.web.rest
 
 import io.github.oshai.kotlinlogging.KotlinLogging
 import kotlinx.coroutines.flow.Flow
-import nl.nlportal.commonground.authentication.CommonGroundAuthentication
+import nl.nlportal.portal.authentication.domain.PortalAuthentication
 import nl.nlportal.documentenapi.util.FilenameSanitizer
 import nl.nlportal.zakenapi.service.ZakenApiService
 import org.springframework.core.io.buffer.DataBuffer
@@ -39,7 +39,7 @@ class ZaakDocumentResource(
     @GetMapping(value = ["/zakenapi/zaakdocument/{zaakDocumentId}/content"])
     suspend fun getContentStreaming(
         @PathVariable zaakDocumentId: String,
-        authentication: CommonGroundAuthentication,
+        authentication: PortalAuthentication,
     ): ResponseEntity<Flow<DataBuffer>> {
         val (document, content) =
             zakenApiService
@@ -50,7 +50,7 @@ class ZaakDocumentResource(
 
         if (document == null || content == null) {
             logger.debug {
-                "Access denied to document $zaakDocumentId for user ${authentication.userId}"
+                "Access denied to document $zaakDocumentId for user ${authentication.identiteit.vertegenwoordigde.identificatie}"
             }
             throw ResponseStatusException(HttpStatus.UNAUTHORIZED, "Access denied")
         }

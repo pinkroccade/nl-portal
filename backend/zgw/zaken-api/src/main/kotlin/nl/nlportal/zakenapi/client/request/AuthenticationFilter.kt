@@ -15,10 +15,8 @@
  */
 package nl.nlportal.zakenapi.client.request
 
-import nl.nlportal.commonground.authentication.BedrijfAuthentication
-import nl.nlportal.commonground.authentication.BurgerAuthentication
-import nl.nlportal.commonground.authentication.CommonGroundAuthentication
-import nl.nlportal.commonground.authentication.KeycloakUserAuthentication
+import nl.nlportal.portal.authentication.domain.PortalAuthentication
+import nl.nlportal.portal.authentication.domain.Vertegenwoordigde
 
 @Suppress("UNCHECKED_CAST")
 interface AuthenticationFilter<T : AuthenticationFilter<T>> {
@@ -26,35 +24,25 @@ interface AuthenticationFilter<T : AuthenticationFilter<T>> {
 
     fun withKvk(kvk: String): T
 
-    fun withUid(uid: String): T
-
     fun withKvkAndVestigingsNummer(
         kvkNummer: String,
         vestigingsNummer: String,
     ): T
 
-    fun withAuthentication(authentication: CommonGroundAuthentication): T {
-        when (authentication) {
-            is BurgerAuthentication -> {
-                this.withBsn(authentication.userId)
+    fun withAuthentication(authentication: PortalAuthentication): T {
+        when (val vertegenwoordigde = authentication.identiteit.vertegenwoordigde) {
+            is Vertegenwoordigde.Burger -> {
+                this.withBsn(vertegenwoordigde.identificatie)
             }
 
-            is BedrijfAuthentication -> {
-                val vestigingsNummer = authentication.getVestigingsNummer()
+            is Vertegenwoordigde.Bedrijf -> {
+                val vestigingsNummer = vertegenwoordigde.vestigingsnummer
                 if (vestigingsNummer != null) {
-                    this.withKvkAndVestigingsNummer(authentication.userId, vestigingsNummer)
+                    this.withKvkAndVestigingsNummer(vertegenwoordigde.identificatie, vestigingsNummer)
                 } else {
-                    this.withKvk(authentication.userId)
+                    this.withKvk(vertegenwoordigde.identificatie)
                 }
                 //
-            }
-
-            is KeycloakUserAuthentication -> {
-                this.withUid(authentication.userId)
-            }
-
-            else -> {
-                throw IllegalArgumentException("Cannot get zaken for this user")
             }
         }
 

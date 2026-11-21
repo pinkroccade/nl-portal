@@ -153,7 +153,7 @@ class OpenProductServiceTest {
     @Test
     fun `getProductZaken - a failing zaak is skipped, the rest of the list survives`() =
         runTest {
-            val authentication = JwtBuilder().aanvragerBsn("123456789").buildBurgerAuthentication()
+            val authentication = JwtBuilder().vertegenwoordigdeBsn("123456789").buildAuthentication()
             val okZaakId = UUID.randomUUID()
             val brokenZaakId = UUID.randomUUID()
             val zaak =

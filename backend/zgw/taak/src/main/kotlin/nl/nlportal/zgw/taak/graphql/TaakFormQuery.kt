@@ -15,7 +15,7 @@
  */
 package nl.nlportal.zgw.taak.graphql
 
-import nl.nlportal.commonground.authentication.CommonGroundAuthentication
+import nl.nlportal.portal.authentication.domain.PortalAuthentication
 import nl.nlportal.form.graphql.FormDefinition
 import nl.nlportal.form.service.ObjectsApiFormDefinitionService
 import nl.nlportal.zgw.taak.domain.TaakFormulierV2
@@ -38,7 +38,7 @@ class TaakFormQuery(
     @QueryMapping
     suspend fun getFormDefinitionByTaskId(
         @Argument taskId: UUID,
-        authentication: CommonGroundAuthentication,
+        authentication: PortalAuthentication,
     ): FormDefinition? {
         val task = taakService.getTaakByIdV2(taskId, authentication)
 

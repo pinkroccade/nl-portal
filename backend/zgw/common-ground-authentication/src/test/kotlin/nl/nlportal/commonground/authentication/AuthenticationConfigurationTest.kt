@@ -15,7 +15,6 @@
  */
 package nl.nlportal.commonground.authentication
 
-import nl.nlportal.portal.authentication.service.PortalAuthenticationConverter
 import org.assertj.core.api.Assertions.assertThat
 import org.junit.jupiter.api.Test
 import org.mockito.kotlin.mock
@@ -77,7 +76,7 @@ internal class AuthenticationConfigurationTest {
     fun `a context without a configured keycloak client starts`() {
         contextRunner.run { context ->
             assertThat(context).hasNotFailed()
-            assertThat(context).hasSingleBean(PortalAuthenticationConverter::class.java)
+            assertThat(context).hasSingleBean(CommonGroundAuthenticationConverter::class.java)
         }
     }
 
@@ -89,7 +88,7 @@ internal class AuthenticationConfigurationTest {
                 "nl-portal.authentication.keycloak.audience=",
             ).run { context ->
                 assertThat(context).hasNotFailed()
-                assertThat(context).hasSingleBean(PortalAuthenticationConverter::class.java)
+                assertThat(context).hasSingleBean(CommonGroundAuthenticationConverter::class.java)
             }
     }
 
@@ -101,11 +100,11 @@ internal class AuthenticationConfigurationTest {
                 "nl-portal.authentication.keycloak.audience=nl-portal-m2m",
             ).run { context ->
                 assertThat(context).hasNotFailed()
-                assertThat(context).hasSingleBean(PortalAuthenticationConverter::class.java)
+                assertThat(context).hasSingleBean(CommonGroundAuthenticationConverter::class.java)
             }
     }
 
-    private fun converter(context: AssertableApplicationContext): CommonGroundAuthenticationConverter = context.getBean(PortalAuthenticationConverter::class.java) as CommonGroundAuthenticationConverter
+    private fun converter(context: AssertableApplicationContext): CommonGroundAuthenticationConverter = context.getBean(CommonGroundAuthenticationConverter::class.java)
 
     companion object {
         private const val ISSUER = "http://localhost:8082/auth/realms/de-bosrand"

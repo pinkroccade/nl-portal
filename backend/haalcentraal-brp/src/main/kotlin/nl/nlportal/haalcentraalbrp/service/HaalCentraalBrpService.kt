@@ -16,8 +16,8 @@
 package nl.nlportal.haalcentraalbrp.service
 
 import io.github.oshai.kotlinlogging.KotlinLogging
-import nl.nlportal.commonground.authentication.BurgerAuthentication
-import nl.nlportal.commonground.authentication.CommonGroundAuthentication
+import nl.nlportal.portal.authentication.domain.PortalAuthentication
+import nl.nlportal.portal.authentication.domain.Vertegenwoordigde
 import nl.nlportal.haalcentraalbrp.autoconfiguration.HaalCentraalBrpModuleConfiguration.HaalCentraalBrpConfigurationProperties
 import nl.nlportal.haalcentraalbrp.client.HaalCentraalBrpBewoningClient
 import nl.nlportal.haalcentraalbrp.client.HaalCentraalBrpClient
@@ -36,11 +36,11 @@ class HaalCentraalBrpService(
     val haalCentraalBrpClient: HaalCentraalBrpClient,
     val haalCentraalBrpBewoningClient: HaalCentraalBrpBewoningClient,
 ) {
-    suspend fun getPersoon(authentication: CommonGroundAuthentication): BrpPersoon? =
-        if (authentication is BurgerAuthentication) {
+    suspend fun getPersoon(authentication: PortalAuthentication): BrpPersoon? =
+        if (authentication.identiteit.vertegenwoordigde is Vertegenwoordigde.Burger) {
             val brpApiRequest =
                 BrpApiRequest(
-                    burgerservicenummer = listOf(authentication.userId),
+                    burgerservicenummer = listOf(authentication.identiteit.vertegenwoordigde.identificatie),
                     fields = haalCentraalBrpConfigurationProperties.brpFields,
                 )
             haalCentraalBrpClient
@@ -58,11 +58,11 @@ class HaalCentraalBrpService(
         }
 
     suspend fun getBewoningen(
-        authentication: CommonGroundAuthentication,
+        authentication: PortalAuthentication,
         adresseerbaarObjectIdentificatie: String,
     ): BewoningenApiResponse? =
         try {
-            if (authentication is BurgerAuthentication) {
+            if (authentication.identiteit.vertegenwoordigde is Vertegenwoordigde.Burger) {
                 val bewoningenApiRequest =
                     BewoningenApiRequest(
                         type = "BewoningMetPeildatum",
@@ -80,7 +80,7 @@ class HaalCentraalBrpService(
         }
 
     suspend fun getBewonersAantal(
-        authentication: CommonGroundAuthentication,
+        authentication: PortalAuthentication,
         adresseerbaarObjectIdentificatie: String,
         woonplaats: String? = null,
     ): Int? {

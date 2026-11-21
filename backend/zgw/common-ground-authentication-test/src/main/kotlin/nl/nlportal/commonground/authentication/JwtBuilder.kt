@@ -1,5 +1,5 @@
 /*
- * Copyright 2015-2023 Den Haag, Ritense, the Netherlands.
+ * Copyright 2026 PinkRoccade Local Government B.V.
  *
  * Licensed under EUPL, Version 1.2 (the "License");
  * you may not use this file except in compliance with the License.
@@ -20,72 +20,51 @@ import com.nimbusds.jose.JWSHeader
 import com.nimbusds.jose.crypto.MACSigner
 import com.nimbusds.jwt.JWTClaimsSet.Builder
 import com.nimbusds.jwt.SignedJWT
-import java.util.Date
-import java.util.UUID
-import nl.nlportal.portal.authentication.domain.SUB_KEY
+import nl.nlportal.commonground.authentication.IdentiteitUitToken.BSN_CLAIM
+import nl.nlportal.commonground.authentication.IdentiteitUitToken.KVK_CLAIM
+import nl.nlportal.commonground.authentication.IdentiteitUitToken.MACHTIGINGSDIENST_CLAIM
+import nl.nlportal.commonground.authentication.IdentiteitUitToken.VERTEGENWOORDIGDE_CLAIM
+import nl.nlportal.commonground.authentication.IdentiteitUitToken.VESTIGINGSNUMMER_CLAIM
+import nl.nlportal.portal.authentication.domain.PortalAuthentication
 import org.springframework.security.oauth2.jwt.Jwt
+import java.util.Date
 
+/** Bouwt tokens zoals NL Portal ze na de token exchange ontvangt, en de authenticatie die daaruit volgt. */
 class JwtBuilder {
-    private var aanvragerBsn: String? = null
-    private var aanvragerKvk: String? = null
-    private var aanvragerUid: String? = null
+    private var vertegenwoordigdeBsn: String? = null
+    private var vertegenwoordigdeKvk: String? = null
 
     private var jwtBuilder: Jwt.Builder =
         Jwt
             .withTokenValue("token")
             .header("alg", "none")
+            .issuer(ISSUER)
+            .subject(SUBJECT)
 
-    fun aanvragerBsn(bsn: String): JwtBuilder {
-        assert(aanvragerKvk == null && aanvragerUid == null, { "cannot set bsn for jwt that already has kvk" })
+    fun issuer(issuer: String): JwtBuilder {
+        jwtBuilder.issuer(issuer)
+        return this
+    }
 
-        val aanvrager =
-            mapOf<String, Any>(
-                BSN_KEY to bsn,
-            )
-        jwtBuilder.claim(AANVRAGER_KEY, aanvrager)
-        this.aanvragerBsn = bsn
+    fun subject(subject: String): JwtBuilder {
+        jwtBuilder.subject(subject)
+        return this
+    }
+
+    fun vertegenwoordigdeBsn(bsn: String): JwtBuilder {
+        assert(vertegenwoordigdeKvk == null) { "cannot set bsn for jwt that already has kvk" }
+
+        jwtBuilder.claim(VERTEGENWOORDIGDE_CLAIM, mapOf<String, Any>(BSN_CLAIM to bsn))
+        this.vertegenwoordigdeBsn = bsn
 
         return this
     }
 
-    fun aanvragerKvk(kvk: String): JwtBuilder {
-        assert(aanvragerBsn == null && aanvragerUid == null, { "cannot set kvk for jwt that already has bsn" })
+    fun vertegenwoordigdeKvk(kvk: String): JwtBuilder {
+        assert(vertegenwoordigdeBsn == null) { "cannot set kvk for jwt that already has bsn" }
 
-        val aanvrager =
-            mapOf<String, Any>(
-                KVK_NUMMER_KEY to kvk,
-            )
-        jwtBuilder.claim(AANVRAGER_KEY, aanvrager)
-        this.aanvragerKvk = kvk
-
-        return this
-    }
-
-    fun aanvragerUid(uuid: UUID): JwtBuilder {
-        assert(aanvragerBsn == null && aanvragerKvk == null, { "cannot set uid for jwt that already has kvk or bsn" })
-
-        jwtBuilder.claim(SUB_KEY, uuid.toString())
-        this.aanvragerUid = uuid.toString()
-
-        return this
-    }
-
-    fun gemachtigdeBsn(bsn: String): JwtBuilder {
-        val gemachtigde =
-            mapOf<String, Any>(
-                BSN_KEY to bsn,
-            )
-        jwtBuilder.claim(GEMACHTIGDE_KEY, gemachtigde)
-
-        return this
-    }
-
-    fun gemachtigdeKvk(kvk: String): JwtBuilder {
-        val gemachtigde =
-            mapOf<String, Any>(
-                KVK_NUMMER_KEY to kvk,
-            )
-        jwtBuilder.claim(GEMACHTIGDE_KEY, gemachtigde)
+        jwtBuilder.claim(VERTEGENWOORDIGDE_CLAIM, mapOf<String, Any>(KVK_CLAIM to kvk))
+        this.vertegenwoordigdeKvk = kvk
 
         return this
     }
@@ -94,28 +73,24 @@ class JwtBuilder {
         kvk: String,
         vestigingsNummer: String,
     ): JwtBuilder {
-        val aanvrager =
-            mapOf<String, Any>(
-                KVK_NUMMER_KEY to kvk,
-                VESTIGINGNUMMER_KEY to vestigingsNummer,
-            )
-        jwtBuilder.claim(AANVRAGER_KEY, aanvrager)
+        jwtBuilder.claim(
+            VERTEGENWOORDIGDE_CLAIM,
+            mapOf<String, Any>(KVK_CLAIM to kvk, VESTIGINGSNUMMER_CLAIM to vestigingsNummer),
+        )
+        this.vertegenwoordigdeKvk = kvk
 
         return this
     }
 
     fun machtingDienstKvk(machtingDienst: String): JwtBuilder {
-        jwtBuilder.claim(
-            MACHTIGINGSDIENST_KEY,
-            listOf(machtingDienst),
-        )
+        jwtBuilder.claim(MACHTIGINGSDIENST_CLAIM, listOf(machtingDienst))
 
         return this
     }
 
     fun buildJwt(): Jwt {
-        if (this.aanvragerBsn == null && this.aanvragerKvk == null && this.aanvragerUid == null) {
-            throw IllegalStateException("aanvrager needs to be set with either bsn or kvk")
+        if (this.vertegenwoordigdeBsn == null && this.vertegenwoordigdeKvk == null) {
+            throw IllegalStateException("vertegenwoordigde needs to be set with either bsn or kvk")
         }
 
         return jwtBuilder.build()
@@ -140,27 +115,14 @@ class JwtBuilder {
         return signedJWT.serialize()
     }
 
-    fun buildBurgerAuthentication(): BurgerAuthentication {
+    /** De authenticatie via dezelfde leesroute als in productie. */
+    fun buildAuthentication(): PortalAuthentication {
         val jwt = buildJwt()
-        if (this.aanvragerKvk != null || this.aanvragerUid != null) {
-            throw IllegalStateException("cannot build BurgerAuthentication with kvk or uid")
-        }
-        return BurgerAuthentication(jwt, emptyList())
+        return PortalAuthentication(IdentiteitUitToken.lees(jwt), jwt.tokenValue, emptyList())
     }
 
-    fun buildBedrijfAuthentication(): BedrijfAuthentication {
-        val jwt = buildJwt()
-        if (this.aanvragerBsn != null || this.aanvragerUid != null) {
-            throw IllegalStateException("cannot build BedrijfAuthentication with bsn or uid")
-        }
-        return BedrijfAuthentication(jwt, emptyList())
-    }
-
-    fun buildKeycloakUserAuthentication(): KeycloakUserAuthentication {
-        val jwt = buildJwt()
-        if (this.aanvragerKvk != null || this.aanvragerBsn != null) {
-            throw IllegalStateException("cannot build KeycloakUserAuthentication with bsn or kvk")
-        }
-        return KeycloakUserAuthentication(jwt, emptyList())
+    companion object {
+        const val ISSUER = "https://login.example.nl/realms/portal"
+        const val SUBJECT = "c0ffee00-0000-4000-8000-000000000001"
     }
 }

@@ -17,7 +17,7 @@ package nl.nlportal.zgw.taak.service
 
 import io.github.oshai.kotlinlogging.KotlinLogging
 import nl.nlportal.commonground.authentication.AuthenticationMachtigingsDienstService
-import nl.nlportal.commonground.authentication.CommonGroundAuthentication
+import nl.nlportal.portal.authentication.domain.PortalAuthentication
 import nl.nlportal.core.util.Mapper
 import nl.nlportal.zgw.objectenapi.client.ObjectsApiClient
 import nl.nlportal.zgw.objectenapi.domain.Comparator
@@ -45,7 +45,7 @@ open class TaakService(
     suspend fun getTaken(
         pageNumber: Int,
         pageSize: Int,
-        authentication: CommonGroundAuthentication,
+        authentication: PortalAuthentication,
         zaakUUID: UUID? = null,
         status: TaakStatus? = null,
         title: String? = null,
@@ -71,7 +71,7 @@ open class TaakService(
     suspend fun getTakenV2(
         pageNumber: Int,
         pageSize: Int,
-        authentication: CommonGroundAuthentication,
+        authentication: PortalAuthentication,
         zaakUUID: UUID? = null,
         status: TaakStatus? = null,
         title: String? = null,
@@ -100,7 +100,7 @@ open class TaakService(
 
     suspend fun getTaakByIdV2(
         id: UUID,
-        authentication: CommonGroundAuthentication,
+        authentication: PortalAuthentication,
     ): TaakV2 {
         val taak =
             TaakV2.fromObjectsApi(
@@ -114,7 +114,7 @@ open class TaakService(
     suspend fun submitTaak(
         id: UUID,
         submission: Any,
-        authentication: CommonGroundAuthentication,
+        authentication: PortalAuthentication,
     ): TaakV2 {
         val submittedTask =
             submitTaakV2(
@@ -129,7 +129,7 @@ open class TaakService(
     suspend fun submitTaakV2(
         id: UUID,
         submission: Any,
-        authentication: CommonGroundAuthentication,
+        authentication: PortalAuthentication,
     ): TaakV2 {
         val objectsApiTask =
             getObjectsApiTaak<TaakObjectV2>(id)
@@ -146,7 +146,7 @@ open class TaakService(
         updateRequest.record.data.portaalformulier
             ?.verzondenData = submissionAsMap
         updateRequest.record.data.status = TaakStatus.AFGEROND
-        updateRequest.record.correctedBy = authentication.getUserRepresentation()
+        updateRequest.record.correctedBy = authentication.identiteit.vertegenwoordigde.representatie
         updateRequest.record.correctionFor = objectsApiTask.record.index.toString()
 
         val updatedObjectsApiTask = objectsApiClient.updateObject(objectsApiTask.uuid, updateRequest)
@@ -167,7 +167,7 @@ open class TaakService(
     private suspend inline fun <reified T> getTakenResultPageV2(
         pageNumber: Int,
         pageSize: Int,
-        authentication: CommonGroundAuthentication,
+        authentication: PortalAuthentication,
         zaakUUID: UUID? = null,
         objectTypeUrl: String,
         status: TaakStatus?,
@@ -220,19 +220,19 @@ open class TaakService(
         )
     }
 
-    private fun getUserSearchParameters(authentication: CommonGroundAuthentication): List<ObjectSearchParameter> =
+    private fun getUserSearchParameters(authentication: PortalAuthentication): List<ObjectSearchParameter> =
         listOf(
-            ObjectSearchParameter("identificatie__type", Comparator.EQUAL_TO, authentication.userType),
-            ObjectSearchParameter("identificatie__value", Comparator.EQUAL_TO, authentication.userId),
+            ObjectSearchParameter("identificatie__type", Comparator.EQUAL_TO, authentication.identiteit.vertegenwoordigde.soort),
+            ObjectSearchParameter("identificatie__value", Comparator.EQUAL_TO, authentication.identiteit.vertegenwoordigde.identificatie),
         )
 
     private fun isAuthorizedForTaak(
-        authentication: CommonGroundAuthentication,
+        authentication: PortalAuthentication,
         taakIdentificatie: TaakIdentificatie,
-    ): Boolean = taakIdentificatie.type.lowercase() == authentication.userType && taakIdentificatie.value == authentication.userId
+    ): Boolean = taakIdentificatie.type.lowercase() == authentication.identiteit.vertegenwoordigde.soort && taakIdentificatie.value == authentication.identiteit.vertegenwoordigde.identificatie
 
     private fun isAuthorizedForTaak(
-        authentication: CommonGroundAuthentication,
+        authentication: PortalAuthentication,
         taak: TaakV2,
     ) {
         // do validation if the user is authenticated for this task
@@ -243,7 +243,7 @@ open class TaakService(
     }
 
     private fun isAuthorizedForTaak(
-        authentication: CommonGroundAuthentication,
+        authentication: PortalAuthentication,
         taakObject: ObjectsApiObject<TaakObjectV2>,
     ) {
         // do validation if the user is authenticated for this task

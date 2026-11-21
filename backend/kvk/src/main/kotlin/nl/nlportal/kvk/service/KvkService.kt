@@ -16,8 +16,8 @@
 package nl.nlportal.kvk.service
 
 import io.github.oshai.kotlinlogging.KotlinLogging
-import nl.nlportal.commonground.authentication.BedrijfAuthentication
-import nl.nlportal.commonground.authentication.CommonGroundAuthentication
+import nl.nlportal.portal.authentication.domain.PortalAuthentication
+import nl.nlportal.portal.authentication.domain.Vertegenwoordigde
 import nl.nlportal.kvk.client.KvkClient
 import nl.nlportal.kvk.domain.MaatschappelijkeActiviteit
 import nl.nlportal.kvk.domain.Vestiging
@@ -25,11 +25,12 @@ import nl.nlportal.kvk.domain.Vestiging
 class KvkService(
     private val kvkClient: KvkClient,
 ) {
-    suspend fun getMaatschappelijkeActiviteit(authentication: CommonGroundAuthentication): MaatschappelijkeActiviteit? {
-        if (authentication is BedrijfAuthentication) {
+    suspend fun getMaatschappelijkeActiviteit(authentication: PortalAuthentication): MaatschappelijkeActiviteit? {
+        val vertegenwoordigde = authentication.identiteit.vertegenwoordigde
+        if (vertegenwoordigde is Vertegenwoordigde.Bedrijf) {
             return getKvkData(
-                kvkNummer = authentication.getKvkNummer(),
-                vestigingsNummer = authentication.getVestigingsNummer(),
+                kvkNummer = vertegenwoordigde.kvkNummer,
+                vestigingsNummer = vertegenwoordigde.vestigingsnummer,
             )
         }
 
