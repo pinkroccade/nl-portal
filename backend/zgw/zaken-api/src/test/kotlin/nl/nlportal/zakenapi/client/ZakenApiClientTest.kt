@@ -19,6 +19,7 @@ import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.test.runTest
 import nl.nlportal.commonground.authentication.JwtBuilder
 import nl.nlportal.core.modulestatus.ModuleState
+import nl.nlportal.catalogiapi.client.CatalogiApiClient
 import nl.nlportal.core.modulestatus.ModuleStatusRegistry
 import nl.nlportal.core.testing.TestTenants
 import nl.nlportal.zakenapi.client.request.ObjectType
@@ -56,7 +57,8 @@ class ZakenApiClientTest {
                 koppelingen = mapOf("zakenapi" to TestTenants.zgwKoppeling(host, "gzac", "zaken-secret")),
                 modules = mapOf("zakenapi" to configuratie),
             )
-        return ZakenApiClient(TestTenants.register(tenant), TestTenants.directory(tenant), { "$host/catalogi/api/v1/zaaktypen/$it" }, moduleStatus)
+        val register = TestTenants.register(tenant)
+        return ZakenApiClient(register, TestTenants.directory(tenant), CatalogiApiClient(register), moduleStatus)
     }
 
     /** Draait [blok] als tenant Bosrand, zoals de tenantresolutie dat voor een request doet. */

@@ -26,10 +26,14 @@ import org.springframework.context.annotation.Bean
 /** De uitgesloten zaaktypen die voorheen in de testconfiguratie (`zaak-types-ids-excluded`) stonden. */
 val UITGESLOTEN_ZAAKTYPEN = listOf("c2d3e114-bbe4-478d-80de-e8a8c8f8a948", "4d69cf3c-68b3-43f5-881e-d4984b7649cb")
 
-/** Tenant Bosrand met een koppeling en modulegegevens voor Zaken API naar [url]; elk request draait als deze tenant. */
+/** Tenant Bosrand met koppelingen voor Zaken API en Catalogi API (beide naar [url]) en modulegegevens voor Zaken API naar [url]; elk request draait als deze tenant. */
 fun zakenApiTestTenant(url: String) =
     TestTenants.tenant(
-        koppelingen = mapOf("zakenapi" to TestTenants.zgwKoppeling(url.trimEnd('/'), "valtimo_client", "zaken-secret")),
+        koppelingen =
+            mapOf(
+                "zakenapi" to TestTenants.zgwKoppeling(url.trimEnd('/'), "valtimo_client", "zaken-secret"),
+                "catalogiapi" to TestTenants.zgwKoppeling(url.trimEnd('/'), "valtimo_client", "catalogi-secret"),
+            ),
         modules = mapOf("zakenapi" to ZakenApiConfiguratie(uitgeslotenZaaktypen = UITGESLOTEN_ZAAKTYPEN)),
     )
 

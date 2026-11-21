@@ -15,119 +15,51 @@
  */
 package nl.nlportal.catalogiapi.client
 
-import nl.nlportal.core.util.requireConfigured
-import io.netty.handler.logging.LogLevel
-import nl.nlportal.catalogiapi.client.CatalogiApiConfig.CatalogiApiConfigProperties
 import nl.nlportal.catalogiapi.domain.BesluitType
 import nl.nlportal.catalogiapi.domain.ResultPage
 import nl.nlportal.catalogiapi.domain.ResultaatType
 import nl.nlportal.catalogiapi.domain.StatusType
 import nl.nlportal.catalogiapi.domain.ZaakStatusType
 import nl.nlportal.catalogiapi.domain.ZaakType
-import nl.nlportal.core.koppeling.ZgwJwtGenerator
-import org.springframework.http.client.reactive.ReactorClientHttpConnector
-import org.springframework.util.LinkedMultiValueMap
-import org.springframework.web.reactive.function.client.ExchangeStrategies
-import org.springframework.web.reactive.function.client.WebClient
-import org.springframework.web.reactive.function.client.awaitBody
-import reactor.netty.http.client.HttpClient
-import reactor.netty.transport.logging.AdvancedByteBufFormat
+import nl.nlportal.core.koppeling.KoppelingClient
+import nl.nlportal.core.koppeling.KoppelingRegister
+import nl.nlportal.core.koppeling.get
 import java.util.UUID
 
+/**
+ * De Catalogi API van de huidige tenant. De bron (URL en authenticatie) komt per aanroep uit het [KoppelingRegister] en volgt de
+ * tenant uit de context; een aanroep gaat dus nooit naar de bron van een andere tenant. Er wordt niets per tenant bewaard.
+ */
 class CatalogiApiClient(
-    private val catalogiApiConfig: CatalogiApiConfigProperties,
-    private val zgwJwtGenerator: ZgwJwtGenerator,
+    private val register: KoppelingRegister,
 ) {
-    suspend fun getStatusTypes(zaakType: String): List<StatusType> {
-        val params = LinkedMultiValueMap<String, String>()
-        params.apply {
-            add("zaaktype", zaakType)
-            add("status", "definitief")
-        }
-        return webClient()
-            .get()
-            .uri {
-                it
-                    .path("/catalogi/api/v1/statustypen")
-                    .queryParams(params)
-                    .build()
-            }.retrieve()
-            .awaitBody<ResultPage<StatusType>>()
+    suspend fun getStatusTypes(zaakType: String): List<StatusType> =
+        koppeling()
+            .get<ResultPage<StatusType>>("$PAD/statustypen", mapOf("zaaktype" to listOf(zaakType), "status" to listOf("definitief")), CRS_HEADERS)
             .results
-    }
 
-    suspend fun getStatusType(statusTypeId: UUID): ZaakStatusType =
-        webClient()
-            .get()
-            .uri("/catalogi/api/v1/statustypen/$statusTypeId")
-            .retrieve()
-            .awaitBody()
+    suspend fun getStatusType(statusTypeId: UUID): ZaakStatusType = koppeling().get("$PAD/statustypen/$statusTypeId", headers = CRS_HEADERS)
 
-    suspend fun getZaakType(zaakTypeId: UUID): ZaakType =
-        webClient()
-            .get()
-            .uri("/catalogi/api/v1/zaaktypen/$zaakTypeId")
-            .retrieve()
-            .awaitBody()
+    suspend fun getZaakType(zaakTypeId: UUID): ZaakType = koppeling().get("$PAD/zaaktypen/$zaakTypeId", headers = CRS_HEADERS)
 
-    suspend fun getBesluitTypes(zaakType: String): List<BesluitType> {
-        val params = LinkedMultiValueMap<String, String>()
-        params.apply {
-            add("zaaktype", zaakType)
-        }
+    suspend fun getBesluitTypes(zaakType: String): List<BesluitType> = koppeling().get<ResultPage<BesluitType>>("$PAD/besluittypen", mapOf("zaaktype" to listOf(zaakType)), CRS_HEADERS).results
 
-        return webClient()
-            .get()
-            .uri {
-                it
-                    .path("/catalogi/api/v1/besluittypen")
-                    .queryParams(params)
-                    .build()
-            }.retrieve()
-            .awaitBody<ResultPage<BesluitType>>()
-            .results
-    }
+    suspend fun getBesluitType(besluitTypeId: UUID): BesluitType = koppeling().get("$PAD/besluittypen/$besluitTypeId", headers = CRS_HEADERS)
 
-    suspend fun getBesluitType(besluitTypeId: UUID): BesluitType =
-        webClient()
-            .get()
-            .uri("/catalogi/api/v1/besluittypen/$besluitTypeId")
-            .retrieve()
-            .awaitBody()
+    suspend fun getResultaatType(resultaatTypeId: UUID): ResultaatType = koppeling().get("$PAD/resultaattypen/$resultaatTypeId", headers = CRS_HEADERS)
 
-    suspend fun getResultaatType(resultaatTypeId: UUID): ResultaatType =
-        webClient()
-            .get()
-            .uri("/catalogi/api/v1/resultaattypen/$resultaatTypeId")
-            .retrieve()
-            .awaitBody()
+    /** De URL van een zaaktype in de Catalogi API van de huidige tenant, voor een filterwaarde (`zaaktype__not_in`) in een andere API. */
+    suspend fun zaaktypeUrl(zaakTypeId: UUID): String = koppeling().url("$PAD/zaaktypen/$zaakTypeId")
 
-    private fun webClient(): WebClient {
-        val token =
-            zgwJwtGenerator.generateToken(
-                catalogiApiConfig.secret.requireConfigured("catalogiapi", "secret"),
-                catalogiApiConfig.clientId.requireConfigured("catalogiapi", "clientId"),
-            )
+    // De client wordt per aanroep opgehaald en nooit bewaard: hij hoort bij één tenant.
+    private suspend fun koppeling(): KoppelingClient = register.current(MODULE)
 
-        return WebClient
-            .builder()
-            .clientConnector(
-                ReactorClientHttpConnector(
-                    HttpClient.create().wiretap(
-                        "reactor.netty.http.client.HttpClient",
-                        LogLevel.DEBUG,
-                        AdvancedByteBufFormat.TEXTUAL,
-                    ),
-                ),
-            ).exchangeStrategies(
-                ExchangeStrategies
-                    .builder()
-                    .codecs { configurer -> configurer.defaultCodecs().maxInMemorySize(16 * 1024 * 1024) }
-                    .build(),
-            ).baseUrl(catalogiApiConfig.url.requireConfigured("catalogiapi", "url"))
-            .defaultHeader("Accept-Crs", "EPSG:4326")
-            .defaultHeader("Content-Crs", "EPSG:4326")
-            .defaultHeader("Authorization", "Bearer $token")
-            .build()
+    companion object {
+        /** Modulenaam = sleutel in `nl-portal.config` en naam van de koppeling in het tenantbestand. */
+        const val MODULE = "catalogiapi"
+        private const val PAD = "/catalogi/api/v1"
+
+        /** Wat de Catalogi API vraagt voor de coördinaten van geometrie; stond voorheen als standaardheader op de client. */
+        private val CRS_HEADERS = mapOf("Accept-Crs" to "EPSG:4326", "Content-Crs" to "EPSG:4326")
     }
 }

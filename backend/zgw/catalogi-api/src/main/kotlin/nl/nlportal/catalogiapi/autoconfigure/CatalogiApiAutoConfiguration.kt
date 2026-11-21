@@ -16,17 +16,14 @@
 package nl.nlportal.catalogiapi.autoconfigure
 
 import nl.nlportal.catalogiapi.client.CatalogiApiClient
-import nl.nlportal.catalogiapi.client.CatalogiApiConfig
 import nl.nlportal.catalogiapi.service.CatalogiApiService
-import nl.nlportal.core.koppeling.ZgwJwtGenerator
+import nl.nlportal.core.koppeling.KoppelingRegister
 import org.springframework.boot.autoconfigure.AutoConfiguration
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty
-import org.springframework.boot.context.properties.EnableConfigurationProperties
 import org.springframework.context.annotation.Bean
 
 @AutoConfiguration
-@EnableConfigurationProperties(CatalogiApiConfig::class)
 @ConditionalOnProperty(prefix = "nl-portal.config.catalogiapi", name = ["enabled"], havingValue = "true")
 class CatalogiApiAutoConfiguration {
     @Bean
@@ -34,8 +31,5 @@ class CatalogiApiAutoConfiguration {
     fun catalogiApiService(catalogiApiClient: CatalogiApiClient): CatalogiApiService = CatalogiApiService(catalogiApiClient)
 
     @Bean
-    fun catalogiApiClient(
-        catalogiApiConfig: CatalogiApiConfig,
-        zgwJwtGenerator: ZgwJwtGenerator,
-    ): CatalogiApiClient = CatalogiApiClient(catalogiApiConfig.properties, zgwJwtGenerator)
+    fun catalogiApiClient(koppelingRegister: KoppelingRegister): CatalogiApiClient = CatalogiApiClient(koppelingRegister)
 }

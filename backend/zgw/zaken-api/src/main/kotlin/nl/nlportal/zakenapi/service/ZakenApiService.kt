@@ -139,6 +139,12 @@ class ZakenApiService(
 
         val zaak = zakenApiClient.zaken().get(id).retrieve()
 
+        // Een uitgesloten zaaktype komt niet in de lijst; ook een directe aanvraag gedraagt zich alsof de zaak niet bestaat.
+        val uitgesloten = zakenApiClient.configuratie().uitgeslotenZaaktypeIds()
+        if (uitgesloten.isNotEmpty() && isUitgesloten(zaak.zaaktype, uitgesloten)) {
+            throw ResponseStatusException(HttpStatus.NOT_FOUND)
+        }
+
         if (!authenticationMachtigingsDienstService.isAllowedZaakType(authentication, extractId(zaak.zaaktype))) {
             throw ResponseStatusException(HttpStatus.UNAUTHORIZED, "Access denied to this zaak")
         }
