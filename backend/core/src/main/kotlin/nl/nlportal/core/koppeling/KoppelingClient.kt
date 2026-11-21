@@ -17,6 +17,8 @@ package nl.nlportal.core.koppeling
 
 import io.github.oshai.kotlinlogging.KotlinLogging
 import kotlinx.coroutines.reactor.awaitSingleOrNull
+import nl.nlportal.core.tenancy.Oin
+import nl.nlportal.core.tenancy.TenantContext
 import org.springframework.core.ParameterizedTypeReference
 import org.springframework.core.codec.DecodingException
 import org.springframework.http.HttpHeaders
@@ -43,9 +45,11 @@ import java.util.concurrent.TimeoutException
  */
 class KoppelingClient internal constructor(
     val naam: String,
+    private val oin: Oin,
     private val basis: URI,
     private val webClient: WebClient,
     private val bewaker: KoppelingBewaker,
+    private val eigenHeader: String? = null,
 ) {
     suspend fun <T : Any> get(
         pad: String,
@@ -118,7 +122,10 @@ class KoppelingClient internal constructor(
         body: Any?,
         succes: (ClientResponse) -> Mono<T>,
     ): T {
-        headers.keys.firstOrNull { it.lowercase() in VERBODEN_HEADERS }?.let {
+        // Een client hoort bij één tenant: een bewaarde client mag nooit voor een andere tenant aanroepen.
+        check(TenantContext.current() == oin) { "Koppeling '$naam' hoort bij een andere tenant dan de huidige" }
+        val verboden = if (eigenHeader == null) VERBODEN_HEADERS else VERBODEN_HEADERS + eigenHeader.lowercase()
+        headers.keys.firstOrNull { it.lowercase() in verboden }?.let {
             throw IllegalArgumentException("Header '$it' hoort bij de koppeling en kan niet per aanroep worden gezet")
         }
         val doel = bind(pad, query)
@@ -258,18 +265,6 @@ suspend inline fun <reified B : Any, reified T : Any> KoppelingClient.post(
     body: B,
     headers: Map<String, String> = emptyMap(),
 ): T = post(pad, body, typeReferentie<T>(), headers)
-
-suspend inline fun <reified B : Any, reified T : Any> KoppelingClient.put(
-    pad: String,
-    body: B,
-    headers: Map<String, String> = emptyMap(),
-): T = put(pad, body, typeReferentie<T>(), headers)
-
-suspend inline fun <reified B : Any, reified T : Any> KoppelingClient.patch(
-    pad: String,
-    body: B,
-    headers: Map<String, String> = emptyMap(),
-): T = patch(pad, body, typeReferentie<T>(), headers)
 
 /** De typereferentie voor [T], met de generieke parameters bewaard (`ResultPage<Zaak>`). */
 inline fun <reified T : Any> typeReferentie(): ParameterizedTypeReference<T> = object : ParameterizedTypeReference<T>() {}

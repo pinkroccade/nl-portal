@@ -39,6 +39,7 @@ internal object HostBinding {
         require(kandidaat.host != null && kandidaat.host.equals(basis.host, ignoreCase = true)) { "andere host" }
         require(poort(kandidaat) == poort(basis)) { "andere poort" }
         val pad = kandidaat.rawPath.orEmpty()
+        require(!VERBODEN_IN_PAD.containsMatchIn(pad)) { "gecodeerde scheiding of padparameter in het pad" }
         require(zonderPuntsegmenten(pad)) { "puntsegment in het pad" }
         val voorvoegsel = basis.rawPath.orEmpty().trimEnd('/')
         require(pad == voorvoegsel || pad.startsWith("$voorvoegsel/")) { "buiten het pad van de basis-URL" }
@@ -77,10 +78,16 @@ internal object HostBinding {
         if (query.isEmpty()) return uri
         val bouwer = UriComponentsBuilder.fromUri(uri)
         query.forEach { (naam, waarden) ->
-            waarden.forEach { bouwer.queryParam(UriUtils.encodeQueryParam(naam, StandardCharsets.UTF_8), UriUtils.encodeQueryParam(it, StandardCharsets.UTF_8)) }
+            waarden.forEach { bouwer.queryParam(codeerQuery(naam), codeerQuery(it)) }
         }
         return bouwer.build(true).toUri()
     }
 
-    private val BACKSLASH = 92.toChar()
+    /** `UriUtils.encodeQueryParam` laat `+` staan, en een bron leest dat als spatie. */
+    private fun codeerQuery(waarde: String) = UriUtils.encodeQueryParam(waarde, StandardCharsets.UTF_8).replace("+", "%2B")
+
+    /** Een `;` (padparameter) en een gecodeerde `/`, backslash, NUL of `%`: daarmee ontsnapt een pad aan de prefix bij een bron die ze anders leest. */
+    private val VERBODEN_IN_PAD = Regex("%(2f|5c|00|25)|;", RegexOption.IGNORE_CASE)
+
+    private const val BACKSLASH = '\\'
 }

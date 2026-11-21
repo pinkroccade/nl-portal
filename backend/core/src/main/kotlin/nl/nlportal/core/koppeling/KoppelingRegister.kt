@@ -15,35 +15,31 @@
  */
 package nl.nlportal.core.koppeling
 
+import io.github.oshai.kotlinlogging.KotlinLogging
 import nl.nlportal.core.tenancy.Oin
 import nl.nlportal.core.tenancy.TenantContext
+import nl.nlportal.core.util.ModuleNotConfiguredException
 import nl.nlportal.core.util.requireConfigured
 import org.springframework.web.reactive.function.client.WebClient
-import reactor.core.publisher.Mono
 import java.net.URI
 
 /**
- * Het onveranderlijke register `OIN -> koppelingen`, bij opstarten gebouwd. [current] leest de tenant uit de
- * [TenantContext] (fail-closed: zonder tenant volgt een fout, nooit een standaardtenant) en geeft de [KoppelingClient]
- * van die tenant. Elke tenant en koppeling heeft eigen authenticatie, een eigen limiet en een eigen circuit breaker.
+ * Het onveranderlijke register `OIN -> koppelingen`, bij opstarten volledig gebouwd: alle clients, limieten en circuit
+ * breakers bestaan zodra het register bestaat. [current] leest de tenant uit de [TenantContext] (fail-closed: zonder tenant
+ * volgt een fout, nooit een standaardtenant) en geeft de [KoppelingClient] van die tenant. Elke tenant en koppeling heeft
+ * eigen authenticatie, een eigen limiet en een eigen circuit breaker.
  *
- * Een koppeling wordt pas bij het eerste gebruik opgebouwd: ontbrekende configuratie geeft dan een duidelijke fout
- * en laat het opstarten slagen, zoals voor de oude [KoppelingenProperties.voorModule].
+ * Een koppeling zonder (volledige) configuratie staat niet in het register en telt als "niet geconfigureerd": [current]
+ * geeft dan een duidelijke fout. Een ongeldige basis-URL laat het bouwen van het register falen.
  */
 class KoppelingRegister internal constructor(
-    private val perTenant: Map<Oin, Map<String, Lazy<KoppelingClient>>>,
+    private val perTenant: Map<Oin, Map<String, KoppelingClient>>,
 ) {
     /** De koppeling van de huidige tenant voor [module]: de gekozen koppeling, anders die met de modulenaam. */
     suspend fun current(
         module: String,
         koppeling: String? = null,
     ): KoppelingClient = voor(TenantContext.current(), module, koppeling)
-
-    /** Voor reactieve code. */
-    fun currentMono(
-        module: String,
-        koppeling: String? = null,
-    ): Mono<KoppelingClient> = TenantContext.currentMono().map { voor(it, module, koppeling) }
 
     internal fun voor(
         oin: Oin,
@@ -52,10 +48,12 @@ class KoppelingRegister internal constructor(
     ): KoppelingClient {
         val naam = koppeling ?: module
         val koppelingen = perTenant[oin].requireConfigured(module, "koppelingen van de tenant")
-        return koppelingen[naam].requireConfigured(module, "koppeling '$naam'").value
+        return koppelingen[naam].requireConfigured(module, "koppeling '$naam'")
     }
 
-    companion object {
+    internal companion object {
+        private val logger = KotlinLogging.logger {}
+
         /** Bouwt het register voor [koppelingenPerTenant]. */
         fun bouw(
             koppelingenPerTenant: Map<Oin, Map<String, Koppeling>>,
@@ -66,9 +64,7 @@ class KoppelingRegister internal constructor(
             val factory = KoppelingWebClientFactory(webClientBuilder, zgwJwtGenerator)
             return KoppelingRegister(
                 koppelingenPerTenant.mapValues { (oin, koppelingen) ->
-                    koppelingen.mapValues { (naam, koppeling) ->
-                        lazy { maakClient(factory, oin, naam, koppeling, resilience) }
-                    }
+                    koppelingen.mapNotNull { (naam, koppeling) -> maakClient(factory, oin, naam, koppeling, resilience)?.let { naam to it } }.toMap()
                 },
             )
         }
@@ -79,9 +75,24 @@ class KoppelingRegister internal constructor(
             naam: String,
             koppeling: Koppeling,
             resilience: KoppelingResilienceInstellingen,
-        ): KoppelingClient {
-            val basis = URI(koppeling.url.requireConfigured(naam, "url"))
-            return KoppelingClient(naam, basis, factory.webClient(naam, koppeling), KoppelingBewaker(naam, "${oin.value}/$naam", resilience))
+        ): KoppelingClient? =
+            try {
+                val basis = basisUrl(naam, koppeling.url.requireConfigured(naam, "url"))
+                val eigenHeader = koppeling.auth.headerName.takeIf { koppeling.auth.type == KoppelingAuthType.API_KEY }
+                KoppelingClient(naam, oin, basis, factory.webClient(naam, koppeling), KoppelingBewaker(naam, "${oin.value}/$naam", resilience), eigenHeader)
+            } catch (e: ModuleNotConfiguredException) {
+                logger.warn { "Koppeling '$naam' van een tenant is niet geconfigureerd en staat niet in het register: ${e.message}" }
+                null
+            }
+
+        private fun basisUrl(
+            naam: String,
+            url: String,
+        ): URI {
+            val basis = runCatching { URI(url) }.getOrNull()
+            // De reden noemt de URL niet: hij kan een geheim bevatten.
+            require(basis != null && basis.host != null && basis.scheme?.lowercase() in setOf("http", "https")) { "Koppeling '$naam': de url is ongeldig" }
+            return basis
         }
     }
 }

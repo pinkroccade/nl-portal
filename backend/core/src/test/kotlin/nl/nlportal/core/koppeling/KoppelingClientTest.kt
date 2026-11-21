@@ -17,7 +17,7 @@ package nl.nlportal.core.koppeling
 
 import kotlinx.coroutines.CoroutineStart
 import kotlinx.coroutines.async
-import kotlinx.coroutines.delay
+import kotlinx.coroutines.cancelAndJoin
 import kotlinx.coroutines.reactor.ReactorContext
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withContext
@@ -35,6 +35,11 @@ import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.params.ParameterizedTest
 import org.junit.jupiter.params.provider.ValueSource
+import org.springframework.boot.autoconfigure.AutoConfigurations
+import org.springframework.boot.http.client.autoconfigure.HttpClientAutoConfiguration
+import org.springframework.boot.http.client.autoconfigure.reactive.ReactiveHttpClientAutoConfiguration
+import org.springframework.boot.webclient.autoconfigure.WebClientAutoConfiguration
+import org.springframework.context.annotation.AnnotationConfigApplicationContext
 import org.springframework.web.reactive.function.client.WebClient
 import reactor.util.context.Context
 import java.time.Duration
@@ -63,6 +68,7 @@ class KoppelingClientTest {
     @AfterEach
     fun stop() {
         listOf(bron, andereBron, buitenstaander).forEach { runCatching { it.shutdown() } }
+        boot.forEach { it.close() }
     }
 
     private fun koppeling(
@@ -78,7 +84,20 @@ class KoppelingClientTest {
     private fun register(
         instellingen: KoppelingResilienceInstellingen = KoppelingResilienceInstellingen(),
         koppelingen: Map<Oin, Map<String, Koppeling>> = mapOf(bosrand to mapOf("zaken" to koppeling(bron))),
-    ) = KoppelingRegister.bouw(koppelingen, WebClient.builder(), instellingen)
+    ) = KoppelingRegister.bouw(koppelingen, bootWebClientBuilder(), instellingen)
+
+    /** De builder zoals Spring Boot hem in productie levert (met zijn connector-instellingen), niet een kale. */
+    private fun bootWebClientBuilder(): WebClient.Builder {
+        val context =
+            AnnotationConfigApplicationContext().apply {
+                register(HttpClientAutoConfiguration::class.java, ReactiveHttpClientAutoConfiguration::class.java, WebClientAutoConfiguration::class.java)
+                refresh()
+            }
+        boot += context
+        return context.getBean(WebClient.Builder::class.java)
+    }
+
+    private val boot = mutableListOf<AnnotationConfigApplicationContext>()
 
     private fun <T> alsTenant(
         oin: Oin,
@@ -171,7 +190,6 @@ class KoppelingClientTest {
 
         assertThat(e.soort).isEqualTo(KoppelingFoutsoort.BRON_PROBLEEM)
         assertThat(e.status).isEqualTo(502)
-        assertThat(e.isStoring).isTrue()
     }
 
     @Test
@@ -191,7 +209,6 @@ class KoppelingClientTest {
         assertThat(vijfhonderd.problem.detail).isNull()
         assertThat(vijfhonderd.message).doesNotContain("999993653", "stacktrace")
         assertThat(vierhonderdvier.status).isEqualTo(404)
-        assertThat(vierhonderdvier.isStoring).isFalse()
         assertThat(leeg.status).isEqualTo(502)
     }
 
@@ -318,22 +335,17 @@ class KoppelingClientTest {
             "javascript:alert(1)",
             "/zaken/api/x y",
             "/zaken/api/x#fragment",
+            "/zaken/api/..;/geheim",
+            "/zaken/api/x;jsessionid=1",
+            "/zaken/api/x%2F..%2F..%2Fgeheim",
+            "/zaken/api/x%2f..%2fgeheim",
+            "/zaken/api/x%5C..%5Cgeheim",
+            "/zaken/api/%252e%252e/geheim",
+            "/zaken/api/x%00",
         ],
     )
     fun `elke URL buiten schema, host, poort en padprefix van de basis wordt geweigerd zonder aanroep`(doel: String) {
-        val basis = bron.url("/zaken/api").toString().trimEnd('/')
-        val koppelingen =
-            mapOf(
-                bosrand to
-                    mapOf(
-                        "zaken" to
-                            Koppeling().apply {
-                                url = basis
-                                auth.type = KoppelingAuthType.BEARER
-                                auth.token = "t"
-                            },
-                    ),
-            )
+        val koppelingen = mapOf(bosrand to mapOf("zaken" to koppeling(bron, "/zaken/api", "t")))
 
         val e = fout { register(koppelingen = koppelingen).current("zaken").get<Zaak>(doel.replace("PORT", bron.port.toString()).replace("BASE", bron.url("/").toString().trimEnd('/'))) }
 
@@ -344,19 +356,8 @@ class KoppelingClientTest {
     @Test
     fun `een absolute URL onder de basis, ook met hoofdletters in de host, wordt gevolgd`() {
         bron.enqueue(json("""{"id":"ok"}"""))
+        val koppelingen = mapOf(bosrand to mapOf("zaken" to koppeling(bron, "/zaken/api", "t")))
         val basis = bron.url("/zaken/api").toString().trimEnd('/')
-        val koppelingen =
-            mapOf(
-                bosrand to
-                    mapOf(
-                        "zaken" to
-                            Koppeling().apply {
-                                url = basis
-                                auth.type = KoppelingAuthType.BEARER
-                                auth.token = "t"
-                            },
-                    ),
-            )
         val absoluut = basis.replace("localhost", "LOCALHOST") + "/zaken/z-1"
 
         val zaak = alsTenant(bosrand) { register(koppelingen = koppelingen).current("zaken").get<Zaak>(absoluut) }
@@ -373,6 +374,18 @@ class KoppelingClientTest {
 
         assertThat(e.soort).isEqualTo(KoppelingFoutsoort.BRON_NIET_CONFORM)
         assertThat(buitenstaander.requestCount).isZero()
+    }
+
+    @Test
+    fun `een redirect naar dezelfde host buiten de padprefix wordt niet gevolgd en laat het token niet mee`() {
+        bron.enqueue(MockResponse().setResponseCode(307).setHeader("Location", bron.url("/beheer/geheim").toString()))
+        bron.enqueue(json("""{"id":"niet-bedoeld"}"""))
+        val koppelingen = mapOf(bosrand to mapOf("zaken" to koppeling(bron, "/zaken/api", "t")))
+
+        val e = fout { register(koppelingen = koppelingen).current("zaken").get<Zaak>("/x") }
+
+        assertThat(e.soort).isEqualTo(KoppelingFoutsoort.BRON_NIET_CONFORM)
+        assertThat(bron.requestCount).isEqualTo(1)
     }
 
     // Per tenant en koppeling
@@ -431,28 +444,35 @@ class KoppelingClientTest {
         andereBron.enqueue(json("""{"id":"snel"}"""))
         val register =
             register(
-                KoppelingResilienceInstellingen(maxGelijktijdig = 1),
+                KoppelingResilienceInstellingen(maxGelijktijdig = 1, vensterGrootte = 2, minimumAanroepen = 2),
                 mapOf(bosrand to mapOf("zaken" to koppeling(bron)), wijdeVeld to mapOf("zaken" to koppeling(andereBron))),
             )
 
+        bron.enqueue(json("""{"id":"na-de-limiet"}"""))
         val resultaten =
             runBlocking {
                 val traag =
                     async(ReactorContext(Context.of(TenantContext.SLEUTEL, bosrand)), start = CoroutineStart.UNDISPATCHED) {
                         runCatching { register.current("zaken").get<Zaak>("/x") }
                     }
-                delay(300)
+                assertThat(bron.takeRequest(5, TimeUnit.SECONDS)).isNotNull()
                 val tweede = runCatching { alsTenantSuspend(bosrand) { register.current("zaken").get<Zaak>("/y") } }
+                val derde = runCatching { alsTenantSuspend(bosrand) { register.current("zaken").get<Zaak>("/y") } }
+                assertThat((derde.exceptionOrNull() as KoppelingException).soort).isEqualTo(KoppelingFoutsoort.LIMIET)
                 val buurman = alsTenantSuspend(wijdeVeld) { register.current("zaken").get<Zaak>("/x") }
-                Triple(traag.await(), tweede, buurman)
+                val eerste = traag.await()
+                val daarna = alsTenantSuspend(bosrand) { register.current("zaken").get<Zaak>("/z") }
+                Pair(Triple(eerste, tweede, buurman), daarna)
             }
+        assertThat(resultaten.second.id).isEqualTo("na-de-limiet")
 
-        assertThat(resultaten.first.getOrNull()).isEqualTo(Zaak("traag"))
-        val geweigerd = resultaten.second.exceptionOrNull() as KoppelingException
+        val (eerste, tweede, buurman) = resultaten.first
+        assertThat(eerste.getOrNull()).isEqualTo(Zaak("traag"))
+        val geweigerd = tweede.exceptionOrNull() as KoppelingException
         assertThat(geweigerd.soort).isEqualTo(KoppelingFoutsoort.LIMIET)
         assertThat(geweigerd.status).isEqualTo(503)
-        assertThat(resultaten.third).isEqualTo(Zaak("snel"))
-        assertThat(bron.requestCount).isEqualTo(1)
+        assertThat(buurman).isEqualTo(Zaak("snel"))
+        assertThat(bron.requestCount).isEqualTo(2)
     }
 
     // Circuit breaker
@@ -492,12 +512,178 @@ class KoppelingClientTest {
     }
 
     @Test
-    fun `alleen storingen van de bron of het netwerk tellen voor de circuit breaker`() {
-        assertThat(KoppelingException.gesynthetiseerd("zaken", KoppelingFoutsoort.LIMIET).isStoring).isFalse()
-        assertThat(KoppelingException.gesynthetiseerd("zaken", KoppelingFoutsoort.HOST_BINDING).isStoring).isFalse()
-        assertThat(KoppelingException.gesynthetiseerd("zaken", KoppelingFoutsoort.CIRCUIT_OPEN).isStoring).isFalse()
-        assertThat(KoppelingException.gesynthetiseerd("zaken", KoppelingFoutsoort.NETWERK).isStoring).isTrue()
-        assertThat(KoppelingException.gesynthetiseerd("zaken", KoppelingFoutsoort.TIMEOUT).isStoring).isTrue()
-        assertThat(KoppelingException.gesynthetiseerd("zaken", KoppelingFoutsoort.BRON_NIET_CONFORM, 404).isStoring).isFalse()
+    fun `een mengsel van 4xx en 5xx opent de circuit breaker alleen op de storingen`() {
+        val register = register(KoppelingResilienceInstellingen(foutPercentage = 100f, vensterGrootte = 4, minimumAanroepen = 4, wachttijdOpen = Duration.ofMinutes(5)))
+        repeat(4) {
+            bron.enqueue(MockResponse().setResponseCode(500))
+            bron.enqueue(problem("""{"title":"Niet gevonden","status":404}""", 404))
+        }
+
+        repeat(7) { fout { register.current("zaken").get<Zaak>("/x") } }
+        val open = fout { register.current("zaken").get<Zaak>("/x") }
+
+        assertThat(open.soort).isEqualTo(KoppelingFoutsoort.CIRCUIT_OPEN)
+        assertThat(bron.requestCount).isEqualTo(7)
+    }
+
+    @Test
+    fun `een tweede koppeling van dezelfde tenant blijft werken als de eerste open staat`() {
+        repeat(2) { bron.enqueue(MockResponse().setResponseCode(500)) }
+        andereBron.enqueue(json("""{"id":"gezond"}"""))
+        val register = register(snelOpen, mapOf(bosrand to mapOf("zaken" to koppeling(bron), "vergunningen" to koppeling(andereBron))))
+
+        repeat(3) { fout { register.current("zaken").get<Zaak>("/x") } }
+        val zaak = alsTenant(bosrand) { register.current("vergunningen").get<Zaak>("/x") }
+
+        assertThat(zaak.id).isEqualTo("gezond")
+        assertThat(bron.requestCount).isEqualTo(2)
+    }
+
+    @Test
+    fun `een timeout laat de limiet vrij`() {
+        bron.enqueue(json("{}").setBodyDelay(3, TimeUnit.SECONDS))
+        bron.enqueue(json("""{"id":"daarna"}"""))
+        val register = register(KoppelingResilienceInstellingen(maxGelijktijdig = 1, timeout = Duration.ofMillis(300)))
+
+        val timeout = fout { register.current("zaken").get<Zaak>("/x") }
+        val daarna = alsTenant(bosrand) { register.current("zaken").get<Zaak>("/x") }
+
+        assertThat(timeout.soort).isEqualTo(KoppelingFoutsoort.TIMEOUT)
+        assertThat(daarna.id).isEqualTo("daarna")
+    }
+
+    @Test
+    fun `een geannuleerde aanroep laat de limiet vrij`() {
+        bron.enqueue(json("{}").setBodyDelay(5, TimeUnit.SECONDS))
+        bron.enqueue(json("""{"id":"daarna"}"""))
+        val register = register(KoppelingResilienceInstellingen(maxGelijktijdig = 1))
+
+        val daarna =
+            runBlocking {
+                val traag =
+                    async(ReactorContext(Context.of(TenantContext.SLEUTEL, bosrand)), start = CoroutineStart.UNDISPATCHED) {
+                        register.current("zaken").get<Zaak>("/x")
+                    }
+                assertThat(bron.takeRequest(5, TimeUnit.SECONDS)).isNotNull()
+                traag.cancelAndJoin()
+                alsTenantSuspend(bosrand) { register.current("zaken").get<Zaak>("/y") }
+            }
+
+        assertThat(daarna.id).isEqualTo("daarna")
+    }
+
+    @Test
+    fun `een API-key-koppeling stuurt zijn sleutel in de eigen header en die kan niet per aanroep worden overschreven`() {
+        bron.enqueue(json("""{"id":"ok"}"""))
+        val apiKey =
+            Koppeling().apply {
+                url = bron.url("/").toString().trimEnd('/')
+                auth.type = KoppelingAuthType.API_KEY
+                auth.headerName = "X-Api-Key"
+                auth.value = "sleutel"
+            }
+        val register = register(koppelingen = mapOf(bosrand to mapOf("zaken" to apiKey)))
+
+        alsTenant(bosrand) { register.current("zaken").get<Zaak>("/x") }
+        assertThat(bron.takeRequest().getHeader("X-Api-Key")).isEqualTo("sleutel")
+        assertThatThrownBy { alsTenant(bosrand) { register.current("zaken").get<Zaak>("/x", headers = mapOf("x-api-key" to "anders")) } }
+            .isInstanceOf(IllegalArgumentException::class.java)
+        assertThat(bron.requestCount).isEqualTo(1)
+    }
+
+    // Overige bewerkingen
+
+    @Test
+    fun `put en patch sturen de body en geven het antwoord terug, ook met de typereferentie zonder optionele argumenten`() {
+        bron.enqueue(json("""{"id":"gewijzigd"}"""))
+        bron.enqueue(json("""{"id":"deels"}"""))
+        bron.enqueue(json("""{"id":"referentie"}"""))
+        bron.enqueue(json("""{"id":"post-referentie"}"""))
+        bron.enqueue(json("""{"count":1,"next":null,"results":[{"id":"p1"}]}"""))
+        bron.enqueue(json("""{"id":"put-referentie"}"""))
+        bron.enqueue(json("""{"id":"patch-referentie"}"""))
+        bron.enqueue(MockResponse().setResponseCode(204))
+        val register = register()
+
+        val ids =
+            alsTenant(bosrand) {
+                val client = register.current("zaken")
+                listOf(
+                    client.put("/zaken/1", Zaak("nieuw"), typeReferentie<Zaak>()).id,
+                    client.patch("/zaken/1", Zaak("deel"), typeReferentie<Zaak>()).id,
+                    client.get("/zaken/1", typeReferentie<Zaak>()).id,
+                    client.post("/zaken", Zaak("n"), typeReferentie<Zaak>()).id,
+                    client
+                        .getPage("/zaken", typeReferentie<ResultPage<Zaak>>())
+                        .results
+                        .single()
+                        .id,
+                    client.put("/zaken/1", Zaak("n"), typeReferentie<Zaak>()).id,
+                    client.patch("/zaken/1", Zaak("n"), typeReferentie<Zaak>()).id,
+                ).also { client.delete("/zaken/1") }
+            }
+
+        assertThat(ids).containsExactly("gewijzigd", "deels", "referentie", "post-referentie", "p1", "put-referentie", "patch-referentie")
+        assertThat(bron.takeRequest().method).isEqualTo("PUT")
+        assertThat(bron.takeRequest().method).isEqualTo("PATCH")
+    }
+
+    @Test
+    fun `headers per aanroep gaan mee en een problem json zonder titel krijgt een standaardtitel`() {
+        bron.enqueue(MockResponse().setResponseCode(204))
+        bron.enqueue(json("""{"id":"ok"}"""))
+        bron.enqueue(problem("""{"status":409}""", 409))
+        val register = register()
+
+        alsTenant(bosrand) { register.current("zaken").delete("/zaken/1", headers = mapOf("X-Reden" to "opruimen")) }
+        alsTenant(bosrand) { register.current("zaken").get<Zaak>("/zaken/1", headers = mapOf("X-Test" to "1")) }
+        val e = fout { register.current("zaken").get<Zaak>("/zaken/2") }
+
+        assertThat(bron.takeRequest().getHeader("X-Reden")).isEqualTo("opruimen")
+        assertThat(bron.takeRequest().getHeader("X-Test")).isEqualTo("1")
+        assertThat(e.problem.title).isEqualTo("Onbekend probleem")
+        assertThat(e.status).isEqualTo(409)
+    }
+
+    // Tenantgebondenheid
+
+    @Test
+    fun `een bewaarde client weigert een andere tenant dan waarvoor hij is verkregen`() {
+        val register = register(koppelingen = mapOf(bosrand to mapOf("zaken" to koppeling(bron)), wijdeVeld to mapOf("zaken" to koppeling(andereBron))))
+        val clientVanBosrand = alsTenant(bosrand) { register.current("zaken") }
+
+        assertThatThrownBy { alsTenant(wijdeVeld) { clientVanBosrand.get<Zaak>("/x") } }.isInstanceOf(IllegalStateException::class.java)
+        assertThatThrownBy { runBlocking { clientVanBosrand.get<Zaak>("/x") } }.isInstanceOf(TenantContextMissingException::class.java)
+        assertThat(bron.requestCount).isZero()
+        assertThat(andereBron.requestCount).isZero()
+    }
+
+    // Register bij opstarten
+
+    @Test
+    fun `een koppeling met een ongeldige basis-URL laat het bouwen van het register falen, niet het eerste gebruik`() {
+        val kapot = koppeling(bron).apply { url = "geen url" }
+
+        assertThatThrownBy { register(koppelingen = mapOf(bosrand to mapOf("zaken" to kapot))) }.isInstanceOf(IllegalArgumentException::class.java)
+    }
+
+    @Test
+    fun `een onvolledig geconfigureerde koppeling bestaat niet in het register en geeft een duidelijke fout bij gebruik`() {
+        val onvolledig = koppeling(bron).apply { auth.token = null }
+        val register = register(koppelingen = mapOf(bosrand to mapOf("zaken" to onvolledig, "vergunningen" to koppeling(bron))))
+
+        assertThatThrownBy { alsTenant(bosrand) { register.current("zaken") } }.isInstanceOf(ModuleNotConfiguredException::class.java)
+        assertThat(alsTenant(bosrand) { register.current("vergunningen") }.naam).isEqualTo("vergunningen")
+    }
+
+    // Query
+
+    @Test
+    fun `een plusteken in een queryparameter wordt gecodeerd zodat het geen spatie wordt`() {
+        bron.enqueue(json("""{"id":"ok"}"""))
+
+        alsTenant(bosrand) { register().current("zaken").get<Zaak>("/x", query = mapOf("tel" to listOf("+31612345678"))) }
+
+        assertThat(bron.takeRequest().path).isEqualTo("/x?tel=%2B31612345678")
     }
 }

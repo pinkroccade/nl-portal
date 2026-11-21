@@ -63,7 +63,8 @@ enum class KoppelingFoutsoort(
  *
  * Het [message] is bewust generiek: foutdetails van bronnen kunnen persoonsgegevens bevatten en mogen niet naar de
  * browser (een GraphQL-foutafhandelaar toont `message`). Alleen [problem] draagt de bronwaarden, voor code die ze nodig heeft;
- * toon die nooit aan de gebruiker. De [correlatieId] staat in de log en in het bericht.
+ * toon die nooit aan de gebruiker. Log [problem] en de oorzaak (`cause`, met bijvoorbeeld een decodeerfout) niet en schrijf de
+ * stacktrace van deze exceptie niet weg: ze kunnen persoonsgegevens of een zaak-URL bevatten. Log de [correlatieId]. De [correlatieId] staat in de log en in het bericht.
  */
 class KoppelingException(
     val koppeling: String,

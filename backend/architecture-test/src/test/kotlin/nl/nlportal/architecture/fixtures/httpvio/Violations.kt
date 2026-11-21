@@ -40,3 +40,29 @@ class Wiretaps {
 class LogsRequestDetails {
     fun strategies(): ExchangeStrategies = ExchangeStrategies.builder().codecs { it.defaultCodecs().enableLoggingRequestDetails(true) }.build()
 }
+
+class UsesRestClient {
+    fun client(): org.springframework.web.client.RestClient =
+        org.springframework.web.client.RestClient
+            .create()
+}
+
+class UsesJavaHttpClient {
+    fun client(): java.net.http.HttpClient =
+        java.net.http.HttpClient
+            .newHttpClient()
+}
+
+class OpensUrlConnection {
+    fun open(): Any =
+        java.net
+            .URI("https://bron.example")
+            .toURL()
+            .openConnection()
+}
+
+class StoresAKoppelingClient(
+    private val client: nl.nlportal.core.koppeling.KoppelingClient,
+) {
+    fun naam() = client.naam
+}

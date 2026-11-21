@@ -23,10 +23,12 @@ import io.github.resilience4j.circuitbreaker.CircuitBreaker
 import io.github.resilience4j.circuitbreaker.CircuitBreakerConfig
 import io.github.resilience4j.reactor.bulkhead.operator.BulkheadOperator
 import io.github.resilience4j.reactor.circuitbreaker.operator.CircuitBreakerOperator
+import org.springframework.boot.context.properties.ConfigurationProperties
 import reactor.core.publisher.Mono
 import java.time.Duration
 
-/** De standaardwaarden voor de limiet, de circuit breaker en de timeout van elke tenant en koppeling. */
+/** De standaardwaarden onder `nl-portal.koppeling-resilience` voor de limiet, de circuit breaker en de timeout van elke tenant en koppeling. */
+@ConfigurationProperties(prefix = "nl-portal.koppeling-resilience")
 data class KoppelingResilienceInstellingen(
     val maxGelijktijdig: Int = 25,
     val maxWachttijd: Duration = Duration.ZERO,
@@ -44,14 +46,14 @@ data class KoppelingResilienceInstellingen(
  */
 internal class KoppelingBewaker(
     private val koppeling: String,
-    naam: String,
+    instantieNaam: String,
     instellingen: KoppelingResilienceInstellingen,
 ) {
     val timeout: Duration = instellingen.timeout
 
     private val bulkhead =
         Bulkhead.of(
-            naam,
+            instantieNaam,
             BulkheadConfig
                 .custom()
                 .maxConcurrentCalls(instellingen.maxGelijktijdig)
@@ -61,7 +63,7 @@ internal class KoppelingBewaker(
 
     private val circuitBreaker =
         CircuitBreaker.of(
-            naam,
+            instantieNaam,
             CircuitBreakerConfig
                 .custom()
                 .failureRateThreshold(instellingen.foutPercentage)
@@ -70,6 +72,8 @@ internal class KoppelingBewaker(
                 .waitDurationInOpenState(instellingen.wachttijdOpen)
                 .permittedNumberOfCallsInHalfOpenState(instellingen.halfOpenAanroepen)
                 .recordException { it is KoppelingException && it.isStoring }
+                // Een 4xx en onze eigen weigeringen (limiet, host-binding) tellen niet mee, ook niet als succes.
+                .ignoreException { it is KoppelingException && !it.isStoring }
                 .build(),
         )
 

@@ -17,6 +17,7 @@ package nl.nlportal.architecture
 
 import com.tngtech.archunit.core.importer.ClassFileImporter
 import com.tngtech.archunit.lang.ArchRule
+import org.assertj.core.api.Assertions.assertThat
 import org.assertj.core.api.Assertions.assertThatThrownBy
 import org.junit.jupiter.api.Test
 
@@ -45,6 +46,45 @@ class HttpClientRulesProofTest {
     @Test
     fun `the WebClient type rule fails when a module holds a WebClient or a netty client`() {
         assertFailsOn(rules.noWebClientInModules(), "HoldsAWebClient", "BuildsWebClient", "Wiretaps")
+    }
+
+    @Test
+    fun `the WebClient type rule also fails on RestClient, the JDK HttpClient and a raw URL connection`() {
+        assertFailsOn(rules.noWebClientInModules(), "UsesRestClient", "UsesJavaHttpClient", "OpensUrlConnection")
+    }
+
+    @Test
+    fun `a package exempt for the type may know the filter type but is still checked for building a client`() {
+        val status = ClassFileImporter().importPackages("$base.httpvio.status", "$base.httpclean")
+        val vrijgesteld = HttpClientRules(koppelingPackages = arrayOf("$base.httpclean.koppeling.."), webClientTypeExempt = arrayOf("$base.httpvio.status.."))
+
+        vrijgesteld.noWebClientInModules().check(status)
+        assertThatThrownBy { vrijgesteld.noOwnWebClient().check(status) }.isInstanceOf(AssertionError::class.java).hasMessageContaining("BouwtOokEenClient")
+        assertThatThrownBy { rules.noWebClientInModules().check(status) }.isInstanceOf(AssertionError::class.java).hasMessageContaining("KentAlleenHetFiltertype")
+    }
+
+    @Test
+    fun `the stored client rule fails when a module keeps a KoppelingClient in a field`() {
+        assertFailsOn(rules.noStoredKoppelingClient(), "StoresAKoppelingClient")
+        rules.noStoredKoppelingClient().check(clean())
+    }
+
+    @Test
+    fun `the koppeling packages must be located in the core module`() {
+        val fixtures = ClassFileImporter().importPackages("$base.httpclean")
+
+        HttpClientRules(koppelingPackages = arrayOf("$base.httpclean.koppeling.."), koppelingBronpad = "/architecture-test/build/").koppelingPackagesOnlyInCore().check(fixtures)
+        assertThatThrownBy {
+            HttpClientRules(koppelingPackages = arrayOf("$base.httpclean.koppeling.."), koppelingBronpad = "/core/build/").koppelingPackagesOnlyInCore().check(fixtures)
+        }.isInstanceOf(AssertionError::class.java)
+    }
+
+    @Test
+    fun `a package in the not yet migrated list without a violation is reported as stale`() {
+        val ratchet = HttpClientRules(koppelingPackages = arrayOf("$base.httpclean.koppeling.."), notYetMigrated = arrayOf("$base.httpvio.status..", "$base.httpclean.feature.."))
+        val everything = ClassFileImporter().importPackages("$base.httpvio", "$base.httpclean")
+
+        assertThat(ratchet.staleExemptions(everything)).containsExactly("$base.httpclean.feature..")
     }
 
     @Test

@@ -23,22 +23,6 @@ import org.springframework.boot.context.properties.ConfigurationProperties
 import org.springframework.boot.context.properties.EnableConfigurationProperties
 import org.springframework.context.annotation.Bean
 import org.springframework.web.reactive.function.client.WebClient
-import java.time.Duration
-
-/** De standaardwaarden onder `nl-portal.koppeling-resilience` voor de limiet en de circuit breaker per tenant en koppeling. */
-@ConfigurationProperties(prefix = "nl-portal.koppeling-resilience")
-class KoppelingResilienceProperties {
-    var maxGelijktijdig: Int = 25
-    var maxWachttijd: Duration = Duration.ZERO
-    var timeout: Duration = Duration.ofSeconds(30)
-    var foutPercentage: Float = 50f
-    var vensterGrootte: Int = 20
-    var minimumAanroepen: Int = 10
-    var wachttijdOpen: Duration = Duration.ofSeconds(30)
-    var halfOpenAanroepen: Int = 3
-
-    internal fun instellingen() = KoppelingResilienceInstellingen(maxGelijktijdig, maxWachttijd, timeout, foutPercentage, vensterGrootte, minimumAanroepen, wachttijdOpen, halfOpenAanroepen)
-}
 
 /**
  * Registreert de koppelingen en het register waarmee modules er een [KoppelingClient] van krijgen. Het register bestaat
@@ -46,7 +30,7 @@ class KoppelingResilienceProperties {
  * `nl-portal.koppelingen`; er is dan één tenant. De koppelingen per tenant uit het tenantbestand komen met de migratie van de modules.
  */
 @AutoConfiguration(after = [TenancyAutoConfiguration::class])
-@EnableConfigurationProperties(KoppelingenProperties::class, KoppelingResilienceProperties::class)
+@EnableConfigurationProperties(KoppelingenProperties::class, KoppelingResilienceInstellingen::class)
 class KoppelingAutoConfiguration {
     @Bean
     @ConditionalOnBean(TenantDirectory::class)
@@ -55,11 +39,17 @@ class KoppelingAutoConfiguration {
         zgwJwtGenerator: ZgwJwtGenerator,
         directory: TenantDirectory,
         koppelingen: KoppelingenProperties,
-        resilience: KoppelingResilienceProperties,
-    ) = KoppelingRegister.bouw(
-        directory.tenants.associate { it.oin to koppelingen.koppelingen },
-        webClientBuilder,
-        resilience.instellingen(),
-        zgwJwtGenerator,
-    )
+        resilience: KoppelingResilienceInstellingen,
+    ): KoppelingRegister {
+        // Zolang alle tenants dezelfde koppelingen en credentials krijgen, mag er maar één tenant zijn.
+        check(koppelingen.koppelingen.isEmpty() || directory.tenants.size <= 1) {
+            "Meerdere tenants en toch koppelingen uit 'nl-portal.koppelingen': dan delen ze bron en credentials; configureer koppelingen per tenant"
+        }
+        return KoppelingRegister.bouw(
+            directory.tenants.associate { it.oin to koppelingen.koppelingen },
+            webClientBuilder,
+            resilience,
+            zgwJwtGenerator,
+        )
+    }
 }

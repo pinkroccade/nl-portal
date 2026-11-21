@@ -16,11 +16,18 @@
 package nl.nlportal.architecture
 
 import com.tngtech.archunit.base.DescribedPredicate
+import com.tngtech.archunit.core.domain.JavaClass
+import com.tngtech.archunit.core.domain.JavaClasses
 import com.tngtech.archunit.core.domain.JavaCall
 import com.tngtech.archunit.core.domain.JavaClass.Predicates.resideInAnyPackage
 import com.tngtech.archunit.core.domain.JavaClass.Predicates.resideOutsideOfPackages
+import com.tngtech.archunit.lang.ArchCondition
 import com.tngtech.archunit.lang.ArchRule
+import com.tngtech.archunit.lang.ConditionEvents
+import com.tngtech.archunit.lang.SimpleConditionEvent
+import com.tngtech.archunit.lang.syntax.ArchRuleDefinition.classes
 import com.tngtech.archunit.lang.syntax.ArchRuleDefinition.noClasses
+import com.tngtech.archunit.lang.syntax.ArchRuleDefinition.noFields
 
 /**
  * De regels voor uitgaand HTTP-verkeer (epic #499, ticket #507): elke uitgaande koppeling loopt via de diepe
@@ -30,17 +37,23 @@ import com.tngtech.archunit.lang.syntax.ArchRuleDefinition.noClasses
  *
  * Alle gegevens zijn parameters zodat een overtredende fixture de regels kan bewijzen.
  *
- * @param koppelingPackages de pakketten waar de HTTP-client wel mag leven.
+ * @param koppelingPackages de pakketten waar de HTTP-client wel mag leven; vrijgesteld van alle regels.
+ * @param webClientTypeExempt pakketten die alleen het type van een WebClient-hulpklasse mogen kennen (nu het
+ * `ExchangeFilterFunction` van `core.modulestatus`); ze zijn vrijgesteld van [noWebClientInModules] en van niets anders.
+ * @param koppelingBronpad deel van het bestandspad waaraan blijkt dat een koppelingspakket in de `core`-module staat.
  * @param notYetMigrated pakketten van modules die nog niet naar de `KoppelingClient` zijn gemigreerd (T9 tot en met T21).
  * Elk migratieticket haalt zijn pakket hier weg; de lijst is een ratchet en mag alleen korter worden.
  * @param clientPackages de pakketten waarmee een module een eigen HTTP-client zou bouwen of aansturen.
  */
 class HttpClientRules(
-    private val koppelingPackages: Array<String> = arrayOf("nl.nlportal.core.koppeling..", "nl.nlportal.core.modulestatus.."),
+    private val koppelingPackages: Array<String> = arrayOf("nl.nlportal.core.koppeling.."),
     private val notYetMigrated: Array<String> = emptyArray(),
     private val clientPackages: Array<String> = PRODUCTION_CLIENT_PACKAGES,
+    private val webClientTypeExempt: Array<String> = arrayOf("nl.nlportal.core.modulestatus.."),
+    private val koppelingBronpad: String = "/core/build/",
 ) {
     private val outsideKoppeling = resideOutsideOfPackages(*koppelingPackages, *notYetMigrated)
+    private val outsideKoppelingEnTypeVrijstelling = resideOutsideOfPackages(*koppelingPackages, *notYetMigrated, *webClientTypeExempt)
 
     /** Geen `WebClient.create()` of `WebClient.builder()` buiten `core.koppeling`. */
     fun noOwnWebClient(): ArchRule =
@@ -60,14 +73,57 @@ class HttpClientRules(
     /** Het type `WebClient` (en zijn hulptypen) komt niet in de bytecode van een module; alleen `core.koppeling` kent het. */
     fun noWebClientInModules(): ArchRule =
         noClasses()
-            .that(outsideKoppeling)
+            .that(outsideKoppelingEnTypeVrijstelling)
             .should()
             .dependOnClassesThat(resideInAnyPackage(*clientPackages))
-            .allowEmptyShould(false)
+            .orShould()
+            .callMethodWhere(
+                DescribedPredicate.describe("open a raw connection with URL.openConnection") { call: JavaCall<*> ->
+                    call.targetOwner.name == "java.net.URL" && call.name == "openConnection"
+                },
+            ).allowEmptyShould(false)
             .because(
                 "modules halen en muteren via de KoppelingClient; een WebClient, ExchangeFilterFunction of HttpClient in een " +
                     "module betekent een tweede, niet-gecontroleerd pad naar een bron",
             )
+
+    /** Geen veld van het type `KoppelingClient` buiten het koppelingspakket: een bewaarde client zou voor elke tenant de eerste tenant gebruiken. */
+    fun noStoredKoppelingClient(): ArchRule =
+        noFields()
+            .that()
+            .areDeclaredInClassesThat(outsideKoppeling)
+            .should()
+            .haveRawType(KOPPELING_CLIENT)
+            .allowEmptyShould(true)
+            .because("een KoppelingClient hoort bij één tenant; haal hem per aanroep op via het register in plaats van hem in een veld te bewaren")
+
+    /** De koppelingspakketten bestaan alleen in de `core`-module: een andere module kan de vrijstelling niet claimen met dezelfde pakketnaam. */
+    fun koppelingPackagesOnlyInCore(): ArchRule =
+        classes()
+            .that()
+            .resideInAnyPackage(*koppelingPackages)
+            .should(
+                object : ArchCondition<JavaClass>("be located in the core module") {
+                    override fun check(
+                        item: JavaClass,
+                        events: ConditionEvents,
+                    ) {
+                        val pad = item.source.map { it.uri.toString() }.orElse("")
+                        events.add(SimpleConditionEvent(item, pad.contains(koppelingBronpad), "${item.name} is located at $pad"))
+                    }
+                },
+            ).allowEmptyShould(false)
+            .because("de vrijstelling geldt op pakketnaam; een koppelingspakket in een andere module zou de regels omzeilen")
+
+    /** Geeft de pakketten uit [notYetMigrated] waarin geen enkele klasse nog een regel overtreedt: die horen uit de lijst (ratchet). */
+    fun staleExemptions(classes: JavaClasses): List<String> {
+        val strikt = HttpClientRules(koppelingPackages, emptyArray(), clientPackages, webClientTypeExempt, koppelingBronpad)
+        val regels = listOf(strikt.noOwnWebClient(), strikt.noWebClientInModules(), strikt.noWiretap(), strikt.noRequestDetailLogging())
+        return notYetMigrated.filter { pakket ->
+            val inPakket = classes.that(resideInAnyPackage(pakket))
+            regels.none { it.evaluate(inPakket).hasViolation() }
+        }
+    }
 
     /** Geen `wiretap` op een Reactor Netty-client of -transport: dat logt alle headers en bodies, dus ook tokens en BSN's. */
     fun noWiretap(): ArchRule =
@@ -94,6 +150,7 @@ class HttpClientRules(
             .because("headers en bodies van verzoeken mogen niet in de log: ze bevatten tokens en persoonsgegevens")
 
     companion object {
+        private const val KOPPELING_CLIENT = "nl.nlportal.core.koppeling.KoppelingClient"
         private const val WEB_CLIENT = "org.springframework.web.reactive.function.client.WebClient"
 
         private val PRODUCTION_CLIENT_PACKAGES =
@@ -102,6 +159,13 @@ class HttpClientRules(
                 "org.springframework.boot.webclient..",
                 "org.springframework.http.client.reactive..",
                 "reactor.netty.http.client..",
+                "org.springframework.web.client..",
+                "org.springframework.web.service..",
+                "java.net.http..",
+                "java.net.HttpURLConnection",
+                "okhttp3..",
+                "org.apache.hc..",
+                "org.eclipse.jetty.client..",
             )
 
         /**

@@ -19,12 +19,14 @@ import io.github.oshai.kotlinlogging.KotlinLogging
 import nl.nlportal.core.util.requireConfigured
 import org.springframework.core.ParameterizedTypeReference
 import org.springframework.http.HttpHeaders
+import org.springframework.http.client.reactive.ReactorClientHttpConnector
 import org.springframework.util.LinkedMultiValueMap
 import org.springframework.web.reactive.function.BodyInserters
 import org.springframework.web.reactive.function.client.ClientRequest
 import org.springframework.web.reactive.function.client.ExchangeFilterFunction
 import org.springframework.web.reactive.function.client.WebClient
 import reactor.core.publisher.Mono
+import reactor.netty.http.client.HttpClient
 import java.time.Duration
 import java.time.Instant
 
@@ -33,11 +35,21 @@ internal class KoppelingWebClientFactory(
     private val webClientBuilder: WebClient.Builder,
     private val zgwJwtGenerator: ZgwJwtGenerator = ZgwJwtGenerator(),
 ) {
+    /**
+     * Elke client van een koppeling krijgt een eigen connector die redirects nooit volgt. Dat staat hier in code, niet in
+     * configuratie: Spring Boot volgt anders standaard redirects (`spring.http.clients.redirects`), en dan geldt de host-binding
+     * alleen voor de eerste URL en lekken credentials naar het doel van de redirect. Het gevolg is dat de connector-instellingen
+     * van de door Spring Boot geleverde builder (bijvoorbeeld een SSL-bundel) niet gelden voor koppelingen.
+     */
+    private val zonderRedirects = ReactorClientHttpConnector(HttpClient.create().followRedirect(false))
+
+    private fun basisBuilder() = webClientBuilder.clone().clientConnector(zonderRedirects)
+
     fun webClient(
         modulenaam: String,
         koppeling: Koppeling,
     ): WebClient {
-        val builder = webClientBuilder.clone().baseUrl(koppeling.url.requireConfigured(modulenaam, "url"))
+        val builder = basisBuilder().baseUrl(koppeling.url.requireConfigured(modulenaam, "url"))
         if (koppeling.isOnbeveiligd()) {
             logger.warn { "Koppeling van module '$modulenaam' gebruikt http naar een publiek adres; gebruik https." }
         }
@@ -124,8 +136,7 @@ internal class KoppelingWebClientFactory(
     ): Mono<AccessToken> {
         val formulier = LinkedMultiValueMap<String, String>().apply { add("grant_type", "client_credentials") }
         extraVelden.forEach { (naam, waarde) -> formulier.add(naam, waarde) }
-        return webClientBuilder
-            .clone()
+        return basisBuilder()
             .build()
             .post()
             .uri(tokenUrl)
