@@ -45,7 +45,7 @@ class OauthSecurityAutoConfiguration {
     @Bean
     fun springSecurityWebFilterChain(
         http: ServerHttpSecurity,
-        converter: Converter<Jwt, out Mono<out AbstractAuthenticationToken>>?,
+        converter: Converter<Jwt, out Mono<out AbstractAuthenticationToken>>,
         corsPathConfiguration: CorsPathConfiguration,
         securityConfigurers: List<HttpSecurityConfigurer>,
         securityHeadersConfig: SecurityHeadersConfig,

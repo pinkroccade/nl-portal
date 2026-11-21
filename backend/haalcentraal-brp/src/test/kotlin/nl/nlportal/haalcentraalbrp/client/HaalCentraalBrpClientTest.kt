@@ -42,7 +42,7 @@ import java.util.concurrent.TimeUnit
 internal class HaalCentraalBrpClientTest {
     private lateinit var server: MockWebServer
     private lateinit var properties: HaalCentraalBrpConfigurationProperties
-    private val authentication = JwtBuilder().aanvragerBsn("999993653").buildBurgerAuthentication()
+    private val authentication = JwtBuilder().vertegenwoordigdeBsn("999993653").buildAuthentication()
 
     @BeforeEach
     fun setUp() {

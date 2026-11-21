@@ -116,7 +116,7 @@ class OpenProductThemaQueryIT(
 
     @Test
     @WithBedrijfUser(
-        kvkNummer = "569312863",
+        kvkNummer = "56931286",
         machtigingsDienst = "0781d1a1-0644-44fd-802e-96f6b588b472",
     )
     fun `get themas voor bedrijf met machtingsdienst`() =
@@ -318,7 +318,7 @@ class OpenProductThemaQueryIT(
                             }
 
                             "GET /api/v2/objects" -> {
-                                if (queryParams.any { it.contains("identificatie__value__exact__569312863") }) {
+                                if (queryParams.any { it.contains("identificatie__value__exact__56931286") }) {
                                     TestHelper.mockResponseFromFile("/config/data/get-taken.json")
                                 } else {
                                     MockResponse().setResponseCode(404)

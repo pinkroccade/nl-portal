@@ -16,7 +16,7 @@
 package nl.nlportal.zgw.taak.web.rest
 
 import kotlinx.coroutines.reactive.awaitSingle
-import nl.nlportal.commonground.authentication.CommonGroundAuthentication
+import nl.nlportal.portal.authentication.domain.PortalAuthentication
 import nl.nlportal.documentenapi.client.DocumentApisConfig
 import nl.nlportal.documentenapi.domain.VirusScanStatus
 import nl.nlportal.documentenapi.service.DocumentenApiService
@@ -51,7 +51,7 @@ class TaakDocumentResource(
         @PathVariable taakId: UUID,
         @RequestPart("file") file: FilePart,
         @RequestPart("informatieobjecttype", required = false) informatieobjecttype: String?,
-        authentication: CommonGroundAuthentication,
+        authentication: PortalAuthentication,
     ): ResponseEntity<Any> {
         taakService.getTaakByIdV2(taakId, authentication)
 

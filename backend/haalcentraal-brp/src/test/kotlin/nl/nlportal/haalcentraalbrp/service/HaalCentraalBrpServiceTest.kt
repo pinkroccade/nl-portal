@@ -32,8 +32,8 @@ internal class HaalCentraalBrpServiceTest {
     private lateinit var server: MockWebServer
     private lateinit var properties: HaalCentraalBrpConfigurationProperties
     private lateinit var service: HaalCentraalBrpService
-    private val burger = JwtBuilder().aanvragerBsn("999993653").buildBurgerAuthentication()
-    private val bedrijf = JwtBuilder().aanvragerKvk("90012768").buildBedrijfAuthentication()
+    private val burger = JwtBuilder().vertegenwoordigdeBsn("999993653").buildAuthentication()
+    private val bedrijf = JwtBuilder().vertegenwoordigdeKvk("90012768").buildAuthentication()
 
     @BeforeEach
     fun setUp() {

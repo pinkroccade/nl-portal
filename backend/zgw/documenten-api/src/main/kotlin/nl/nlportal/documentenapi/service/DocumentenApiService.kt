@@ -68,7 +68,7 @@ class DocumentenApiService(
         val auteur =
             ReactiveSecurityContextHolder
                 .getContext()
-                .map { (it.authentication as PortalAuthentication).userId }
+                .map { (it.authentication as PortalAuthentication).identiteit.vertegenwoordigde.identificatie }
                 .awaitSingleOrNull() ?: "valtimo"
         val documentenApiConfig = documentenApisConfigProperties.getConfig(documentApi)
 

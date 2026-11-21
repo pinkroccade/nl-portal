@@ -42,7 +42,9 @@ De backend bepaalt het type gebruiker op basis van claims in de **geëxchangede*
 
 1. Claim `aanvrager.bsn` aanwezig → de gebruiker is een **burger**.
 2. Claim `aanvrager.kvk` aanwezig → de gebruiker is een **bedrijf** (zie [Overige flows](#overige-flows)).
-3. Geen van beide → de gebruiker is een **generieke gebruiker** (zie [Generieke gebruikers](#generieke-gebruikers-sub-flow)).
+3. Geen van beide → de token wordt **geweigerd**: er is geen terugval op een generieke gebruiker (uid-flow) en geen terugval op een BSN of KvK-nummer buiten de claim `aanvrager`.
+
+De claim `aanvrager` is de wire-naam van de **vertegenwoordigde** (burger of bedrijf); in de code heet hij `vertegenwoordigde`. Een token zonder `iss` of `sub` wordt eveneens geweigerd.
 
 ## Gebruikersattributen: burger flow
 
@@ -53,20 +55,6 @@ Voor de burger flow betekent dit:
 * Daarnaast heeft de gebruiker het user attribute `authenticationMethod` met waarde `digid`, dat via de `middel` claim de frontend features bepaalt (zie [De middel claim](#de-middel-claim)).
 
 Een burger heeft daarmee toegang tot onder andere de Mijn Gegevens pagina (BRP gegevens via Haal Centraal) en ziet zaken waarop hij of zij als initiator met dat BSN geregistreerd staat.
-
-## Generieke gebruikers (sub flow)
-
-Een gebruiker zonder `aanvrager.bsn` of `aanvrager.kvk` claim wordt behandeld als generieke Keycloak gebruiker. De backend identificeert deze gebruiker met de eerste 13 karakters van de `sub` claim, met identificatietype `uid`.
-
-Voor generieke gebruikers werkt een deel van de portal functionaliteit:
-
-| Functionaliteit | Werkt voor generieke gebruiker? | Toelichting |
-| --------------- | ------------------------------- | ----------- |
-| Zaken | Ja | Zaken moeten een rol hebben met `betrokkeneIdentificatie.natuurlijkPersoon.anpIdentificatie` gelijk aan de uid (eerste 13 karakters van `sub`). |
-| Taken | Ja | Taakobjecten met `identificatie.type` = `uid` en `identificatie.value` = de uid. |
-| Berichten | Ja | Berichtobjecten met dezelfde uid-identificatie. |
-| Mijn Gegevens (BRP) | Nee | Vereist een burger (BSN); de pagina toont geen gegevens. |
-| OpenKlant 2 (partijen) | Nee | Vereist een burger of bedrijf; queries geven een foutmelding. |
 
 ## De middel claim
 

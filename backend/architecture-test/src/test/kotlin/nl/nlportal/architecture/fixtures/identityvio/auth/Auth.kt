@@ -1,5 +1,5 @@
 /*
- * Copyright 2015-2023 Den Haag, Ritense, the Netherlands.
+ * Copyright 2026 PinkRoccade Local Government B.V.
  *
  * Licensed under EUPL, Version 1.2 (the "License");
  * you may not use this file except in compliance with the License.
@@ -13,25 +13,19 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package nl.nlportal.portal.authentication
+package nl.nlportal.architecture.fixtures.identityvio.auth
 
-import nl.nlportal.portal.authentication.domain.SUB_KEY
 import org.springframework.security.oauth2.jwt.Jwt
-import java.util.UUID
 
-class JwtBuilder {
-    private var jwtBuilder: Jwt.Builder =
-        Jwt
-            .withTokenValue("token")
-            .header("alg", "none")
+data class Identity(
+    val subject: String,
+)
 
-    fun buildJwt(): Jwt {
-        jwtBuilder.claim("claims", "claim")
-        return jwtBuilder.build()
-    }
+/** Houdt het ruwe token vast, zoals PortalAuthentication. */
+class Session(
+    val bearerToken: String,
+)
 
-    fun addKeycloakUUIDToClaims(uuid: UUID): Jwt.Builder {
-        jwtBuilder.claim(SUB_KEY, uuid)
-        return jwtBuilder
-    }
+class Builder {
+    fun build(jwt: Jwt) = Identity(jwt.subject.orEmpty())
 }

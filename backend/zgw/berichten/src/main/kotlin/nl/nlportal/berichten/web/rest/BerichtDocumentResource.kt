@@ -18,7 +18,7 @@ package nl.nlportal.berichten.web.rest
 import kotlinx.coroutines.flow.Flow
 import nl.nlportal.berichten.BERICHTEN_MODULE
 import nl.nlportal.berichten.service.BerichtenService
-import nl.nlportal.commonground.authentication.CommonGroundAuthentication
+import nl.nlportal.portal.authentication.domain.PortalAuthentication
 import nl.nlportal.core.modulegate.ModuleGate
 import nl.nlportal.documentenapi.util.FilenameSanitizer
 import org.springframework.core.io.buffer.DataBuffer
@@ -43,7 +43,7 @@ class BerichtDocumentResource(
     suspend fun downloadStreaming(
         @PathVariable berichtId: UUID,
         @PathVariable documentId: UUID,
-        authentication: CommonGroundAuthentication,
+        authentication: PortalAuthentication,
     ): ResponseEntity<Flow<DataBuffer>> {
         moduleGate.require(BERICHTEN_MODULE, authentication)
         val (document, content) =

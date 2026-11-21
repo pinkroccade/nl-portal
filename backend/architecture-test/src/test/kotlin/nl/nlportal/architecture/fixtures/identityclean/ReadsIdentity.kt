@@ -1,5 +1,5 @@
 /*
- * Copyright 2015-2023 Den Haag, Ritense, the Netherlands.
+ * Copyright 2026 PinkRoccade Local Government B.V.
  *
  * Licensed under EUPL, Version 1.2 (the "License");
  * you may not use this file except in compliance with the License.
@@ -13,11 +13,11 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package nl.nlportal.commonground.authentication
+package nl.nlportal.architecture.fixtures.identityclean
 
-class AuthenticationGemachtigde(
-    val bsn: String? = null,
-    val kvk: String? = null,
-    val uid: String? = null,
-    val vestigingsnummer: String? = null,
-)
+import nl.nlportal.architecture.fixtures.identityvio.auth.Identity
+
+/** Leest alleen de identiteit: geen overtreding. */
+class ReadsIdentity {
+    fun subjectOf(identity: Identity): String = identity.subject
+}

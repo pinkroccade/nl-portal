@@ -17,7 +17,7 @@ package nl.nlportal.zaken.web.rest
 
 import kotlinx.coroutines.flow.emptyFlow
 import kotlinx.coroutines.runBlocking
-import nl.nlportal.commonground.authentication.CommonGroundAuthentication
+import nl.nlportal.portal.authentication.domain.PortalAuthentication
 import nl.nlportal.documentenapi.domain.Document
 import nl.nlportal.zakenapi.service.ZakenApiService
 import org.junit.jupiter.api.Assertions.assertEquals
@@ -29,7 +29,7 @@ import org.mockito.kotlin.whenever
 
 class ZaakDocumentResourceTest {
     private val zakenApiService: ZakenApiService = mock()
-    private val authentication: CommonGroundAuthentication = mock()
+    private val authentication: PortalAuthentication = mock()
     private val resource = ZaakDocumentResource(zakenApiService)
 
     @Test

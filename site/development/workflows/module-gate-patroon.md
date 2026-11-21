@@ -36,7 +36,7 @@ gebruikerstype); er is geen thread-gebonden state.
 
 ```kotlin
 @QueryMapping
-suspend fun getBerichten(authentication: CommonGroundAuthentication, ...): BerichtenPage {
+suspend fun getBerichten(authentication: PortalAuthentication, ...): BerichtenPage {
     moduleGate.require(BERICHTEN_MODULE, authentication)
     return berichtenService.getBerichtenPage(...)
 }

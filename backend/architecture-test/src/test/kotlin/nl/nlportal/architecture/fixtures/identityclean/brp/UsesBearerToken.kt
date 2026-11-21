@@ -1,5 +1,5 @@
 /*
- * Copyright 2015-2023 Den Haag, Ritense, the Netherlands.
+ * Copyright 2026 PinkRoccade Local Government B.V.
  *
  * Licensed under EUPL, Version 1.2 (the "License");
  * you may not use this file except in compliance with the License.
@@ -13,8 +13,11 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package nl.nlportal.portal.authentication.exception
+package nl.nlportal.architecture.fixtures.identityclean.brp
 
-class UserTypeUnsupportedException(
-    msg: String,
-) : RuntimeException(msg)
+import nl.nlportal.architecture.fixtures.identityvio.auth.Session
+
+/** Een benoemde lezer van het ruwe token (zoals haalcentraal-brp): geen overtreding. */
+class UsesBearerToken {
+    fun headerOf(session: Session): String = "Bearer ${session.bearerToken}"
+}

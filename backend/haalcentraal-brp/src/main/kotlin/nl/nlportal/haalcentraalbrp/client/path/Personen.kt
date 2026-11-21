@@ -15,7 +15,7 @@
  */
 package nl.nlportal.haalcentraalbrp.client.path
 
-import nl.nlportal.commonground.authentication.CommonGroundAuthentication
+import nl.nlportal.portal.authentication.domain.PortalAuthentication
 import nl.nlportal.haalcentraalbrp.client.HaalCentraalBrpClient
 import nl.nlportal.haalcentraalbrp.domain.brp.BrpApiRequest
 import nl.nlportal.haalcentraalbrp.domain.brp.BrpApiResponse
@@ -37,7 +37,7 @@ class Personen(
             .uri("/personen")
             .headers {
                 if (it[HttpHeaders.AUTHORIZATION].isNullOrEmpty()) {
-                    it.setBearerAuth((authentication as CommonGroundAuthentication).token.tokenValue)
+                    it.setBearerAuth((authentication as PortalAuthentication).bearerToken)
                 }
             }.contentType(MediaType.APPLICATION_JSON)
             .accept(MediaType.APPLICATION_JSON)
