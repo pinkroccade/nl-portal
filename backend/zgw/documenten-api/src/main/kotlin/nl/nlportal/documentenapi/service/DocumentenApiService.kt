@@ -46,14 +46,14 @@ class DocumentenApiService(
     suspend fun getDocument(
         documentId: UUID,
         documentApi: String,
-    ): Document = documentenApiClient.getDocument(documentId, documentApiVanModule(documentApi))
+    ): Document = documentenApiClient.getDocument(documentId, toetsDocumentApi(documentApi))
 
     suspend fun getDocument(documentUrl: String): Document = documentenApiClient.getDocument(extractId(documentUrl), documentApiVoorUrl(documentUrl))
 
     suspend fun getDocumentContentStreaming(
         documentId: UUID,
         documentApi: String,
-    ): Flow<DataBuffer> = documentenApiClient.getDocumentContentStream(documentId, documentApiVanModule(documentApi))
+    ): Flow<DataBuffer> = documentenApiClient.getDocumentContentStream(documentId, toetsDocumentApi(documentApi))
 
     suspend fun getDocumentContentStreaming(informatieobjectUrl: String): Flow<DataBuffer> = documentenApiClient.getDocumentContentStream(extractId(informatieobjectUrl), documentApiVoorUrl(informatieobjectUrl))
 
@@ -115,7 +115,7 @@ class DocumentenApiService(
     }
 
     /** Alleen een koppeling die als document-API van de tenant is aangewezen; een andere koppeling van de tenant krijgt nooit een documentverzoek. */
-    private suspend fun documentApiVanModule(documentApi: String): String = documentApi.also { directory.module<DocumentenApiConfiguratie>().documentApis[it].requireConfigured(DocumentenApiTenantConfiguratie.NAAM, "documentApis.$it") }
+    private suspend fun toetsDocumentApi(documentApi: String): String = documentApi.also { directory.module<DocumentenApiConfiguratie>().documentApis[it].requireConfigured(DocumentenApiTenantConfiguratie.NAAM, "documentApis.$it") }
 
     private suspend fun documentApiVoorUrl(documentUrl: String): String = documentenApiClient.documentApiVoorUrl(documentUrl, directory.module<DocumentenApiConfiguratie>().documentApis.keys)
 }

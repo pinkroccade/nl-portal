@@ -18,6 +18,7 @@ package nl.nlportal.zgw.taak.web.rest
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.test.runTest
 import nl.nlportal.portal.authentication.domain.PortalAuthentication
+import nl.nlportal.core.koppeling.KoppelingConfiguratieException
 import nl.nlportal.core.koppeling.KoppelingException
 import nl.nlportal.core.koppeling.KoppelingFoutsoort
 import nl.nlportal.core.koppeling.KoppelingProblem
@@ -152,23 +153,23 @@ class TaakDocumentResourceTest {
     }
 
     @Test
-    fun `een niet-toegestaan bestandstype is een 400 met een vaste tekst`() =
+    fun `een niet-toegestaan bestandstype is een 400 met een vaste code`() =
         runTest {
             val response = uploadMetFout(MimeTypeDeniedException("application/x-geheim is not allowed for uploads."))
 
             assertEquals(HttpStatus.BAD_REQUEST, response.statusCode)
-            assertFalse(response.body.toString().contains("x-geheim"))
+            assertEquals(mapOf("code" to "MIME_TYPE_NIET_TOEGESTAAN"), response.body)
         }
 
     @Test
-    fun `een storing van de koppeling is een 502 met alleen een code en de referentie`() =
+    fun `een storing van de koppeling is een 502 met KOPPELING_FOUT en het correlatieId`() =
         runTest {
             val fout = KoppelingException("documenten-api", KoppelingFoutsoort.NETWERK, KoppelingProblem(title = "netwerk", status = 502))
 
             val response = uploadMetFout(fout)
 
             assertEquals(HttpStatus.BAD_GATEWAY, response.statusCode)
-            assertEquals(mapOf("code" to "KOPPELING_NIET_BESCHIKBAAR", "referentie" to fout.correlatieId), response.body)
+            assertEquals(mapOf("code" to "KOPPELING_FOUT", "correlatieId" to fout.correlatieId), response.body)
         }
 
     @Test
@@ -180,7 +181,7 @@ class TaakDocumentResourceTest {
             val response = resource.uploadDocument(UUID.randomUUID(), filePart("doc.pdf", "x".toByteArray()), null, authentication)
 
             assertEquals(HttpStatus.INTERNAL_SERVER_ERROR, response.statusCode)
-            assertEquals(mapOf("code" to "MODULE_NIET_GECONFIGUREERD"), response.body)
+            assertInterneFout(response.body, "MODULE_NIET_GECONFIGUREERD")
         }
 
     @Test
@@ -189,8 +190,28 @@ class TaakDocumentResourceTest {
             val response = uploadMetFout(TenantContextMissingException())
 
             assertEquals(HttpStatus.INTERNAL_SERVER_ERROR, response.statusCode)
-            assertEquals(mapOf("code" to "TENANT_ONTBREEKT"), response.body)
+            assertInterneFout(response.body, "TENANT_ONTBREEKT")
         }
+
+    @Test
+    fun `een configuratiefout van de koppeling is een 500 met KOPPELING_FOUT zonder de melding`() =
+        runTest {
+            val response = uploadMetFout(KoppelingConfiguratieException("verboden header Authorization bij koppeling geheim-pad"))
+
+            assertEquals(HttpStatus.INTERNAL_SERVER_ERROR, response.statusCode)
+            assertInterneFout(response.body, "KOPPELING_FOUT")
+        }
+
+    private fun assertInterneFout(
+        body: Any?,
+        code: String,
+    ) {
+        val inhoud = body as Map<*, *>
+        assertEquals(setOf("code", "correlatieId"), inhoud.keys)
+        assertEquals(code, inhoud["code"])
+        UUID.fromString(inhoud["correlatieId"] as String)
+        assertFalse(inhoud.toString().contains("geheim-pad"))
+    }
 
     private fun filePart(
         name: String,

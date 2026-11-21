@@ -16,6 +16,7 @@
 package nl.nlportal.core.koppeling
 
 import kotlinx.coroutines.CoroutineStart
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.async
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
@@ -273,6 +274,23 @@ class KoppelingClientStreamTest {
                     .first()
                     .let { DataBufferUtils.release(it) }
             }
+        }
+        val daarna = alsTenant { register.current("documenten").getStream("/c").bytes() }
+
+        assertThat(String(daarna)).isEqualTo("daarna")
+    }
+
+    @Test
+    fun `annuleren vóór de eerste respons geeft de limiet vrij en telt niet als storing van de bron`() {
+        bron.enqueue(bytes("traag").setHeadersDelay(2, TimeUnit.SECONDS))
+        bron.enqueue(bytes("daarna"))
+        val register = register(KoppelingResilienceInstellingen(maxGelijktijdigeStromen = 1, vensterGrootte = 1, minimumAanroepen = 1, foutPercentage = 1f))
+
+        runBlocking {
+            val afnemer = async(Dispatchers.Default + ReactorContext(Context.of(TenantContext.SLEUTEL, bosrand))) { register.current("documenten").getStream("/traag").bytes() }
+            assertThat(bron.takeRequest(5, TimeUnit.SECONDS)).isNotNull()
+            afnemer.cancel()
+            afnemer.join()
         }
         val daarna = alsTenant { register.current("documenten").getStream("/c").bytes() }
 

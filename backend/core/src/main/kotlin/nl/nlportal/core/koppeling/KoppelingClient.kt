@@ -129,7 +129,8 @@ class KoppelingClient internal constructor(
      * timeout beoordelen de bron tot en met de eerste respons; daarna geldt alleen een stiltetimeout tussen twee brokken (ook als de
      * afnemer niet afneemt). Zo'n timeout of een annulering telt niet als storing van de bron; de plek in de limiet komt wel vrij.
      *
-     * Een buffer die de stroom nog vasthoudt bij annuleren of een fout wordt vrijgegeven. De aanroeper geeft elke ontvangen buffer vrij
+     * Een buffer die Reactor nog vasthoudt bij annuleren of een fout wordt vrijgegeven. Tot [STROOM_BUFFER] brokken in de brug naar de
+     * [Flow] gaan bij annuleren verloren zonder vrijgave (vervolgwerk). De aanroeper geeft elke ontvangen buffer vrij
      * (bijvoorbeeld met `DataBufferUtils.release`) of geeft de stroom door aan een antwoord dat dat doet.
      */
     suspend fun getStream(

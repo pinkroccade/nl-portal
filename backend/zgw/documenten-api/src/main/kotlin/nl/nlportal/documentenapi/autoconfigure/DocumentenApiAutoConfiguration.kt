@@ -17,7 +17,9 @@ package nl.nlportal.documentenapi.autoconfigure
 
 import nl.nlportal.core.koppeling.KoppelingRegister
 import nl.nlportal.core.tenancy.TenantDirectory
+import nl.nlportal.core.tenancy.VervallenProperties
 import nl.nlportal.documentenapi.client.DocumentenApiClient
+import nl.nlportal.documentenapi.configuratie.DocumentenApiTenantConfiguratie
 import nl.nlportal.documentenapi.service.DocumentenApiService
 import org.springframework.boot.autoconfigure.AutoConfiguration
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean
@@ -40,4 +42,8 @@ class DocumentenApiAutoConfiguration {
 
     @Bean
     fun documentenApiClient(koppelingRegister: KoppelingRegister): DocumentenApiClient = DocumentenApiClient(koppelingRegister)
+
+    /** De oude `documentenapis.properties.*` zijn vervallen: ze weigeren het opstarten, met een verwijzing naar `modules.documenten-api`. */
+    @Bean
+    fun documentenApiVervallenProperties() = VervallenProperties(DocumentenApiTenantConfiguratie.NAAM, "nl-portal.config.documentenapis.properties")
 }

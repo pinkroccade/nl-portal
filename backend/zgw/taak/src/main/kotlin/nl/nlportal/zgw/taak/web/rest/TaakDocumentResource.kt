@@ -15,7 +15,9 @@
  */
 package nl.nlportal.zgw.taak.web.rest
 
+import io.github.oshai.kotlinlogging.KotlinLogging
 import kotlinx.coroutines.reactive.awaitSingle
+import nl.nlportal.core.koppeling.KoppelingConfiguratieException
 import nl.nlportal.core.koppeling.KoppelingException
 import nl.nlportal.core.tenancy.TenantContextMissingException
 import nl.nlportal.core.util.ModuleNotConfiguredException
@@ -75,15 +77,27 @@ class TaakDocumentResource(
                 ),
             )
         } catch (e: MimeTypeDeniedException) {
-            ResponseEntity(MIME_TYPE_NIET_TOEGESTAAN, HttpStatus.BAD_REQUEST)
+            ResponseEntity(mapOf("code" to "MIME_TYPE_NIET_TOEGESTAAN"), HttpStatus.BAD_REQUEST)
         } catch (e: KoppelingException) {
-            // Geen e.message naar de browser: alleen een vaste code en de referentie waarmee de beheerder de log vindt.
-            ResponseEntity(mapOf("code" to "KOPPELING_NIET_BESCHIKBAAR", "referentie" to e.correlatieId), HttpStatus.BAD_GATEWAY)
+            // Geen e.message naar de browser: alleen dezelfde code en sleutel als GraphQL, zodat de beheerder de log vindt.
+            ResponseEntity(mapOf("code" to "KOPPELING_FOUT", "correlatieId" to e.correlatieId), HttpStatus.BAD_GATEWAY)
         } catch (e: ModuleNotConfiguredException) {
-            ResponseEntity(mapOf("code" to "MODULE_NIET_GECONFIGUREERD"), HttpStatus.INTERNAL_SERVER_ERROR)
+            intern(e, "MODULE_NIET_GECONFIGUREERD")
         } catch (e: TenantContextMissingException) {
-            ResponseEntity(mapOf("code" to "TENANT_ONTBREEKT"), HttpStatus.INTERNAL_SERVER_ERROR)
+            intern(e, "TENANT_ONTBREEKT")
+        } catch (e: KoppelingConfiguratieException) {
+            intern(e, "KOPPELING_FOUT")
         }
+    }
+
+    /** Als `GraphQLExceptionHandler.intern`: de melding bevat interne gegevens en gaat alleen de log in, de browser krijgt code en correlatieId. */
+    private fun intern(
+        e: Throwable,
+        code: String,
+    ): ResponseEntity<Any> {
+        val correlatieId = UUID.randomUUID().toString()
+        log.warn { "Interne fout bij een documentupload ($code, ${e::class.simpleName}: ${e.message}), referentie $correlatieId" }
+        return ResponseEntity(mapOf("code" to code, "correlatieId" to correlatieId), HttpStatus.INTERNAL_SERVER_ERROR)
     }
 
     private suspend fun bufferFileContent(file: FilePart): ByteArray {
@@ -98,6 +112,6 @@ class TaakDocumentResource(
     }
 
     private companion object {
-        const val MIME_TYPE_NIET_TOEGESTAAN = "Dit bestandstype is niet toegestaan voor uploads."
+        val log = KotlinLogging.logger {}
     }
 }
