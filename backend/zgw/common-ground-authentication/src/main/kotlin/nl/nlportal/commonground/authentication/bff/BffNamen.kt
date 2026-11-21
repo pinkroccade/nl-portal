@@ -32,7 +32,7 @@ object BffNamen {
     const val SESSIEPAD = "/api/public/sessie"
     const val GRAPHQLPAD = "/graphql"
 
-    /** De enige CSRF-uitzondering (de back-channel logout volgt in stap 9): de postsale-webhook met eigen handtekeningcontrole. */
+    /** De enige benoemde CSRF/Origin-uitzondering (exact pad, alleen POST): de postsale-webhook met eigen handtekeningcontrole in de betaalmodule. Back-channel logout bestaat bewust niet (T24). */
     const val POSTSALE_WEBHOOK = "/api/public/payment/direct/postsale"
 
     /** Het veilige return-pad na het inloggen, door de pre-auth-sessie meegedragen. */

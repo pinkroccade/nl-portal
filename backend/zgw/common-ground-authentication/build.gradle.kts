@@ -40,6 +40,7 @@ dependencies {
     testImplementation(TestDependencies.assertJCore)
     testImplementation(TestDependencies.kotlinCoroutines)
     testImplementation(TestDependencies.testcontainers)
+    testImplementation(project(":graphql"))
 }
 
 val jar: Jar by tasks

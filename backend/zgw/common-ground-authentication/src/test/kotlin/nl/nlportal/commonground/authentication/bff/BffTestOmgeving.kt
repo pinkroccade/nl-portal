@@ -40,6 +40,11 @@ import nl.nlportal.core.tenancy.TrustedProxies
 import org.springframework.boot.autoconfigure.SpringBootApplication
 import org.springframework.context.annotation.Bean
 import org.springframework.context.annotation.Configuration
+import org.springframework.graphql.data.method.annotation.MutationMapping
+import org.springframework.graphql.data.method.annotation.QueryMapping
+import org.springframework.stereotype.Controller
+import kotlinx.coroutines.reactor.awaitSingle
+import nl.nlportal.portal.authentication.domain.PortalAuthentication
 import org.springframework.security.core.context.ReactiveSecurityContextHolder
 import org.springframework.session.ReactiveMapSessionRepository
 import org.springframework.web.bind.annotation.GetMapping
@@ -228,9 +233,34 @@ class TestEindpunten {
 
     @PostMapping("/api/public/payment/direct/postsale")
     fun webhook() = "ok"
+}
 
-    @PostMapping("/graphql")
-    fun graphql() = "ok"
+/** Een GraphQL-resolver zoals de modules die hebben: de identiteit komt als `PortalAuthentication`, en de bron wordt aangeroepen. */
+@Controller
+class TestGraphQl {
+    @QueryMapping
+    suspend fun bffTestWie(authentication: PortalAuthentication): String {
+        WebClient
+            .create("http://localhost:${BffTestOmgeving.bron.port}")
+            .get()
+            .uri("/zaken")
+            .retrieve()
+            .bodyToMono(String::class.java)
+            .awaitSingle()
+        return authentication.identiteit.gebruiker.subject
+    }
+
+    @MutationMapping
+    suspend fun bffTestMutatie(authentication: PortalAuthentication): String {
+        WebClient
+            .create("http://localhost:${BffTestOmgeving.bron.port}")
+            .post()
+            .uri("/zaken")
+            .retrieve()
+            .bodyToMono(String::class.java)
+            .awaitSingle()
+        return authentication.identiteit.gebruiker.subject
+    }
 }
 
 @SpringBootApplication

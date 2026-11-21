@@ -103,7 +103,7 @@ class TenantOriginFilter(
 /**
  * De Origin-regel voor muterende requests (ASVS 3.5.x, RFC 10017): alles behalve `GET`, `HEAD` en `OPTIONS` wordt alleen
  * toegelaten als `Origin` exact gelijk is aan de origin van de tenant, of, bij een ontbrekende `Origin`, `Sec-Fetch-Site:
- * same-origin`; zonder beide wordt het geweigerd. De enige uitzondering is de postsale-webhook (eigen handtekeningcontrole).
+ * same-origin`; zonder beide wordt het geweigerd. De enige uitzondering is de postsale-webhook: exact dat pad en alleen POST, geen wildcard (de handtekening controleert de betaalmodule zelf).
  * GraphQL accepteert alleen `application/json`, zodat een formulier of `text/plain` geen mutatie kan starten.
  */
 class OriginRegelFilter(
@@ -120,7 +120,7 @@ class OriginRegelFilter(
         val methode = exchange.request.method
         if (zonderTenantresolutie(exchange) || methode in VEILIG) return chain.filter(exchange)
         val pad = exchange.request.path.value()
-        if (pad == BffNamen.POSTSALE_WEBHOOK) return chain.filter(exchange)
+        if (methode == HttpMethod.POST && pad == BffNamen.POSTSALE_WEBHOOK) return chain.filter(exchange)
         return TenantContext.currentMono().flatMap { oin ->
             val tenant = tenants.forOin(oin) ?: return@flatMap afwijzen(exchange, HttpStatus.NOT_FOUND)
             val headers = exchange.request.headers

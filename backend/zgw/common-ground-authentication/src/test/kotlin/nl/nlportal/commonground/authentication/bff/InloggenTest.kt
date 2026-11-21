@@ -44,6 +44,47 @@ class InloggenTest : BffTestBasis() {
         assertThat(get(browser, "${BffNamen.CALLBACKPAD}${wijdeveld.oin}?code=x&state=y&iss=${bosrand.issuer}").status.value()).isEqualTo(404)
     }
 
+    /**
+     * Alle cookies van de hele levensloop (eerste request, login-start, callback, gewoon verkeer, uitloggen) in een test: alleen deze
+     * drie bestaan, elk als `__Host-`-cookie (dus Secure, Path=/, geen Domain) met het SameSite en de HttpOnly die erbij horen.
+     * De test draait over http: de cookies zijn dan toch Secure, want `__Host-` laat niet anders toe; browsers accepteren dat op
+     * `localhost` (veilige context), op een ander http-adres wordt het cookie geweigerd en werkt inloggen dus niet.
+     */
+    @Test
+    fun `alle cookies hebben de vaste attributen, ook over http in ontwikkeling`() {
+        val browser = Browser(bosrand)
+        val ruw = mutableListOf<String>()
+
+        fun vang(resultaat: org.springframework.test.web.reactive.server.EntityExchangeResult<ByteArray>) {
+            ruw += resultaat.responseHeaders["Set-Cookie"].orEmpty()
+        }
+        vang(get(browser, BffNamen.SESSIEPAD))
+        val start = get(browser, "${BffNamen.INLOGPAD}${bosrand.oin}?inlogmiddel=digid")
+        vang(start)
+        val terug = idpAutoriseer(start.responseHeaders.location!!, bosrand.tokens.spec.subject)
+        vang(callback(browser, terug, bosrand.issuer))
+        vang(get(browser, BffNamen.SESSIEPAD))
+        vang(post(browser, BffNamen.UITLOGPAD, body = null, inhoudstype = null))
+
+        val perNaam = ruw.groupBy { it.substringBefore("=") }
+        assertThat(perNaam.keys).containsExactlyInAnyOrder(BffNamen.SESSIE_COOKIE, BffNamen.FLOW_COOKIE, BffNamen.CSRF_COOKIE)
+        val verwacht =
+            mapOf(
+                BffNamen.SESSIE_COOKIE to Triple(true, "Strict", false),
+                BffNamen.FLOW_COOKIE to Triple(true, "Lax", false),
+                BffNamen.CSRF_COOKIE to Triple(false, "Strict", false),
+            )
+        verwacht.forEach { (naam, eisen) ->
+            perNaam.getValue(naam).forEach { cookie ->
+                val attributen = cookie.split(";").drop(1).map { it.trim().lowercase() }
+                assertThat(attributen).describedAs(cookie).contains("secure", "path=/", "samesite=${eisen.second.lowercase()}")
+                assertThat(attributen.any { it.startsWith("domain") }).describedAs("Domain in $cookie").isEqualTo(eisen.third)
+                assertThat(attributen.contains("httponly")).describedAs("HttpOnly in $cookie").isEqualTo(eisen.first)
+            }
+        }
+        assertThat(ruw.filter { it.startsWith(BffNamen.SESSIE_COOKIE) }).describedAs("sessiecookie: gezet en gewist").anySatisfy { assertThat(it).doesNotContain("Max-Age=0") }
+    }
+
     @Test
     fun `login per tenant met PKCE, state, nonce en private_key_jwt van de eigen sleutel`() {
         BffTestOmgeving.tenants.forEach { tenant ->
