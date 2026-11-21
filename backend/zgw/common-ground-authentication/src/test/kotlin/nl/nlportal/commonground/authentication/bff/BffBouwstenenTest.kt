@@ -30,11 +30,14 @@ import nl.nlportal.core.tenancy.Sessie
 import nl.nlportal.core.tenancy.TenantDefinition
 import nl.nlportal.core.tenancy.Thema
 import org.assertj.core.api.Assertions.assertThat
+import org.assertj.core.api.Assertions.entry
 import org.assertj.core.api.Assertions.assertThatThrownBy
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.io.TempDir
 import org.junit.jupiter.params.ParameterizedTest
+import org.junit.jupiter.params.provider.Arguments
 import org.junit.jupiter.params.provider.CsvSource
+import org.junit.jupiter.params.provider.MethodSource
 import org.slf4j.LoggerFactory
 import org.springframework.security.oauth2.core.oidc.OidcIdToken
 import java.net.URI
@@ -42,6 +45,7 @@ import java.nio.file.Files
 import java.nio.file.Path
 import java.time.Duration
 import java.time.Instant
+import java.util.stream.Stream
 
 class InlogbeslisserTest {
     private val nu = Instant.parse("2026-11-21T12:00:00Z")
@@ -122,6 +126,35 @@ class InlogbeslisserTest {
     }
 
     @Test
+    fun `de DigiD-tabel koppelt elke URN aan precies een niveau, in de volgorde Basis, Midden, Substantieel, Hoog`() {
+        assertThat(Inlogbeslisser.NIVEAUS.getValue(Inlogmiddel.DIGID)).containsExactly(
+            entry("urn:oasis:names:tc:SAML:2.0:ac:classes:PasswordProtectedTransport", Betrouwbaarheidsniveau.BASIS),
+            entry("urn:oasis:names:tc:SAML:2.0:ac:classes:MobileTwoFactorContract", Betrouwbaarheidsniveau.MIDDEN),
+            entry("urn:oasis:names:tc:SAML:2.0:ac:classes:Smartcard", Betrouwbaarheidsniveau.SUBSTANTIEEL),
+            entry("urn:oasis:names:tc:SAML:2.0:ac:classes:SmartcardPKI", Betrouwbaarheidsniveau.HOOG),
+        )
+    }
+
+    /** Rang van de URN (1 = Basis ... 4 = Hoog) tegen het minimum van de tenant (1 ... 4): toegestaan als de rang het minimum haalt. */
+    @ParameterizedTest(name = "{0} bij minimum {1}")
+    @MethodSource("niveauMatrix")
+    fun `een DigiD-niveau wordt toegelaten als het minstens het minimum van de tenant is`(
+        rang: Int,
+        minimum: Int,
+    ) {
+        val urns =
+            Inlogbeslisser.NIVEAUS
+                .getValue(Inlogmiddel.DIGID)
+                .keys
+                .toList()
+        val niveaus = listOf(Betrouwbaarheidsniveau.BASIS, Betrouwbaarheidsniveau.MIDDEN, Betrouwbaarheidsniveau.SUBSTANTIEEL, Betrouwbaarheidsniveau.HOOG)
+
+        val uitslag = reden(token { put("acr", urns[rang - 1]) }, tenant(minimum = niveaus[minimum - 1]))
+
+        assertThat(uitslag).isEqualTo(if (rang >= minimum) null else Reden.NIVEAU_TE_LAAG)
+    }
+
+    @Test
     fun `auth_time mag hooguit de marge voor het begin van de login liggen`() {
         assertThat(reden(token { put("auth_time", nu.minus(Inlogbeslisser.AUTH_TIME_MARGE)) })).isNull()
         assertThat(reden(token { put("auth_time", nu.minus(Inlogbeslisser.AUTH_TIME_MARGE).minusSeconds(1)) })).isEqualTo(Reden.AUTH_TIME)
@@ -147,8 +180,19 @@ class InlogbeslisserTest {
 
     @Test
     fun `de Betrouwbaarheidsniveaus zijn geordend zoals de tabel`() {
+        assertThat(Betrouwbaarheidsniveau.entries).containsExactly(
+            Betrouwbaarheidsniveau.BASIS,
+            Betrouwbaarheidsniveau.MIDDEN,
+            Betrouwbaarheidsniveau.SUBSTANTIEEL,
+            Betrouwbaarheidsniveau.HOOG,
+        )
         assertThat(Betrouwbaarheidsniveau.BASIS < Betrouwbaarheidsniveau.MIDDEN).isTrue()
         assertThat(Betrouwbaarheidsniveau.SUBSTANTIEEL < Betrouwbaarheidsniveau.HOOG).isTrue()
+    }
+
+    companion object {
+        @JvmStatic
+        fun niveauMatrix(): Stream<Arguments> = (1..4).flatMap { rang -> (1..4).map { minimum -> Arguments.of(rang, minimum) } }.stream()
     }
 }
 

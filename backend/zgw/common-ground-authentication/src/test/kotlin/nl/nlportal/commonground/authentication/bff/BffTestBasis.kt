@@ -15,11 +15,16 @@
  */
 package nl.nlportal.commonground.authentication.bff
 
+import ch.qos.logback.classic.Logger
+import ch.qos.logback.classic.spi.ILoggingEvent
+import ch.qos.logback.core.read.ListAppender
 import com.nimbusds.jose.JWSAlgorithm
 import com.nimbusds.jose.crypto.RSASSAVerifier
 import com.nimbusds.jwt.SignedJWT
 import okhttp3.mockwebserver.RecordedRequest
+import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.api.BeforeEach
+import org.slf4j.LoggerFactory
 import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.boot.test.web.server.LocalServerPort
 import org.springframework.boot.webtestclient.autoconfigure.AutoConfigureWebTestClient
@@ -49,8 +54,18 @@ abstract class BffTestBasis {
 
     private lateinit var client: WebTestClient
 
+    /** Alles wat de app tijdens een test logt, voor de controle dat events kloppen en nooit een BSN bevatten. */
+    private val logboek = ListAppender<ILoggingEvent>()
+
+    protected val logregels: List<String> get() = logboek.list.map { it.formattedMessage }
+
+    protected val beveiligingsregels: List<String> get() = logregels.filter { it.startsWith("beveiligingsevent ") }
+
     @BeforeEach
     fun begin() {
+        logboek.list.clear()
+        logboek.start()
+        (LoggerFactory.getLogger(Logger.ROOT_LOGGER_NAME) as Logger).addAppender(logboek)
         client =
             WebTestClient
                 .bindToServer()
@@ -61,6 +76,12 @@ abstract class BffTestBasis {
         BffTestOmgeving.gebeurtenissen.clear()
         BffTestOmgeving.tenants.forEach { it.tokens.spec = TokenSpec() }
         leegProviderVerzoeken()
+    }
+
+    @AfterEach
+    fun einde() {
+        (LoggerFactory.getLogger(Logger.ROOT_LOGGER_NAME) as Logger).detachAppender(logboek)
+        logboek.stop()
     }
 
     private fun leegProviderVerzoeken() {

@@ -45,6 +45,15 @@ class CallbackTest : BffTestBasis() {
         assertThat(event.reden).isEqualTo(reden)
         assertThat(event.oin).isEqualTo(tenant.oin.value)
         assertThat(get(inlog.browser, "/api/test/wie").status.value()).isEqualTo(401)
+        val regel = beveiligingsregels.single { "type=login_geweigerd" in it }
+        assertThat(regel).contains("oin=${tenant.oin}", "reden=${reden.code}", "uitkomst=geweigerd")
+        assertGeenBsnInLog()
+    }
+
+    /** Nergens in de log (de weigerregel en alle andere regels van de app) staat een BSN, een NameID met sectorprefix of een token. */
+    private fun assertGeenBsnInLog() {
+        val alles = logregels.joinToString(" | ")
+        assertThat(alles).doesNotContain("999993653", "999993847", "123456789", "99999365", "s00000000", "eyJ")
     }
 
     @ParameterizedTest(name = "{0}")
@@ -66,6 +75,39 @@ class CallbackTest : BffTestBasis() {
     @ValueSource(strings = [TokenSpec.DIGID_SUBSTANTIEEL, TokenSpec.DIGID_HOOG])
     fun `een niveau op of boven het minimum van de tenant wordt toegelaten`(acr: String) {
         slaagt(log(wijdeveld, TokenSpec(acr = acr)))
+    }
+
+    @ParameterizedTest(name = "{0}")
+    @MethodSource("onjuisteTokenHerkomst")
+    fun `een ID-token van een andere realm of voor een andere client wordt geweigerd en geeft een event met OIN en actor`(
+        naam: String,
+        spec: TokenSpec,
+        reden: Reden,
+    ) {
+        val inlog = log(bosrand, spec)
+
+        assertGeweigerd(inlog, reden, bosrand)
+        assertThat(
+            BffTestOmgeving.gebeurtenissen
+                .single { it.type == GebeurtenisType.LOGIN_GEWEIGERD }
+                .actor
+                ?.subject,
+        ).describedAs(naam).isIn("gebruiker-1", null)
+    }
+
+    @Test
+    fun `een geslaagde login geeft een login_geslaagd-event met OIN en actor en zonder BSN in de log`() {
+        val inlog = log(wijdeveld, TokenSpec(subject = "actor-7", acr = TokenSpec.DIGID_SUBSTANTIEEL))
+        slaagt(inlog)
+
+        val event = BffTestOmgeving.gebeurtenissen.single { it.type == GebeurtenisType.LOGIN_GESLAAGD }
+        assertThat(event.oin).isEqualTo(wijdeveld.oin.value)
+        assertThat(event.actor).isEqualTo(Actor(wijdeveld.issuer, "actor-7"))
+        assertThat(event.uitkomst).isEqualTo("geslaagd")
+        assertThat(BffTestOmgeving.gebeurtenissen.map { it.type }).doesNotContain(GebeurtenisType.LOGIN_GEWEIGERD)
+        val regel = beveiligingsregels.single()
+        assertThat(regel).startsWith("beveiligingsevent type=login_geslaagd oin=${wijdeveld.oin} actor=${wijdeveld.issuer}|actor-7 uitkomst=geslaagd reden=geen correlatie=")
+        assertGeenBsnInLog()
     }
 
     @Test
@@ -195,6 +237,15 @@ class CallbackTest : BffTestBasis() {
                 Arguments.of("geen BSN-claim", "bosrand", TokenSpec(actingSubjectId = null), Reden.BSN_ONGELDIG),
                 Arguments.of("auth_time ontbreekt", "bosrand", TokenSpec(metAuthTime = false), Reden.AUTH_TIME),
                 Arguments.of("auth_time van voor de login (stille hergebruik van een Keycloak-sessie)", "bosrand", TokenSpec(authTimeOffset = Duration.ofMinutes(-30)), Reden.AUTH_TIME),
+            )
+
+        @JvmStatic
+        fun onjuisteTokenHerkomst(): Stream<Arguments> =
+            Stream.of(
+                Arguments.of("iss van de realm van een andere tenant", TokenSpec(extra = mapOf("iss" to BffTestOmgeving.wijdeveld.issuer)), Reden.PROTOCOL),
+                Arguments.of("iss van een onbekende realm", TokenSpec(extra = mapOf("iss" to "https://onbekend.example/realms/x")), Reden.PROTOCOL),
+                Arguments.of("aud van een andere client", TokenSpec(extra = mapOf("aud" to listOf("andere-client"))), Reden.PROTOCOL),
+                Arguments.of("aud met een andere client erbij en een azp van die client", TokenSpec(extra = mapOf("aud" to listOf("nl-portal-backend", "andere-client"), "azp" to "andere-client")), Reden.PROTOCOL),
             )
 
         @JvmStatic

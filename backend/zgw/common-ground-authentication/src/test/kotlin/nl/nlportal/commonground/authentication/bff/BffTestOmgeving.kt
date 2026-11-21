@@ -22,6 +22,10 @@ import com.nimbusds.oauth2.sdk.TokenRequest
 import no.nav.security.mock.oauth2.MockOAuth2Server
 import no.nav.security.mock.oauth2.OAuth2Config
 import no.nav.security.mock.oauth2.token.OAuth2TokenCallback
+import okhttp3.mockwebserver.Dispatcher
+import okhttp3.mockwebserver.MockResponse
+import okhttp3.mockwebserver.MockWebServer
+import okhttp3.mockwebserver.RecordedRequest
 import nl.nlportal.core.tenancy.Authenticatie
 import nl.nlportal.core.tenancy.Betrouwbaarheidsniveau
 import nl.nlportal.core.tenancy.Inlogmiddel
@@ -41,6 +45,7 @@ import org.springframework.session.ReactiveMapSessionRepository
 import org.springframework.web.bind.annotation.GetMapping
 import org.springframework.web.bind.annotation.PostMapping
 import org.springframework.web.bind.annotation.RestController
+import org.springframework.web.reactive.function.client.WebClient
 import reactor.core.publisher.Mono
 import java.nio.file.Files
 import java.time.Clock
@@ -182,6 +187,16 @@ object BffTestOmgeving {
         tenant("wijdeveld", "00000099000000000002", "wijdeveld.test", setOf(Inlogmiddel.DIGID), Betrouwbaarheidsniveau.SUBSTANTIEEL, Sessie(Duration.ofMinutes(10), Duration.ofHours(2)))
 
     val tenants = listOf(bosrand, wijdeveld)
+
+    /** Een bron achter een uitgaande koppeling: elk verzoek dat hier aankomt is een uitgaande aanroep van de app. */
+    val bron: MockWebServer =
+        MockWebServer().also { server ->
+            server.dispatcher =
+                object : Dispatcher() {
+                    override fun dispatch(request: RecordedRequest) = MockResponse().setBody("bron")
+                }
+            server.start()
+        }
 }
 
 @RestController
@@ -197,6 +212,16 @@ class TestEindpunten {
                 "niveau" to authentication.identiteit.gebruiker.niveau.waarde,
             )
         }
+
+    /** Een beveiligd eindpunt dat uitgaand verkeer veroorzaakt, zoals een module die via een koppeling de bron raadpleegt. */
+    @GetMapping("/api/test/koppeling")
+    fun koppeling(): Mono<String> =
+        WebClient
+            .create("http://localhost:${BffTestOmgeving.bron.port}")
+            .get()
+            .uri("/zaken")
+            .retrieve()
+            .bodyToMono(String::class.java)
 
     @PostMapping("/api/test/mutatie")
     fun mutatie() = "ok"
@@ -226,7 +251,11 @@ class BffTestConfiguratie {
     fun eenmaligeOpslag(clock: Clock): EenmaligeOpslag = GeheugenEenmaligeOpslag(clock)
 
     @Bean
-    fun gevangenGebeurtenissen(): Beveiligingsgebeurtenissen = Beveiligingsgebeurtenissen { BffTestOmgeving.gebeurtenissen += it }
+    fun gevangenGebeurtenissen(): Beveiligingsgebeurtenissen =
+        Beveiligingsgebeurtenissen {
+            BffTestOmgeving.gebeurtenissen += it
+            LogBeveiligingsgebeurtenissen().registreer(it)
+        }
 
     /** De testprovider heeft geen Keycloak-paden maar `/{issuer}/authorize`, `/token`, `/jwks` en `/endsession`. */
     @Bean
