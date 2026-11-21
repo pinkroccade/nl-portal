@@ -16,11 +16,14 @@
 package nl.nlportal.core.koppeling
 
 import io.github.oshai.kotlinlogging.KotlinLogging
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.reactive.asFlow
 import kotlinx.coroutines.reactor.awaitSingleOrNull
 import nl.nlportal.core.tenancy.Oin
 import nl.nlportal.core.tenancy.TenantContext
 import org.springframework.core.ParameterizedTypeReference
 import org.springframework.core.codec.DecodingException
+import org.springframework.core.io.buffer.DataBuffer
 import org.springframework.http.HttpHeaders
 import org.springframework.http.HttpMethod
 import org.springframework.http.HttpStatusCode
@@ -114,6 +117,39 @@ class KoppelingClient internal constructor(
         uitvoeren(HttpMethod.DELETE, pad, emptyMap(), headers, null) { it.releaseBody().thenReturn(Unit) }
     }
 
+    /**
+     * Een groot antwoord (een document) als stroom van [DataBuffer]s, zonder het geheel in het geheugen te laden. Dezelfde garanties
+     * als een gewone aanroep: tenantcontrole, host-binding, geen redirects, geen eigen autorisatieheaders en één foutvorm (een foutstatus
+     * wordt een [KoppelingException] zonder de body van de bron). De limiet en de circuit breaker gelden tot de stroom klaar, geannuleerd
+     * of mislukt is; de timeout geldt per brok, dus ook voor het eerste antwoord. De aanroeper geeft elke ontvangen buffer vrij
+     * (bijvoorbeeld met `DataBufferUtils.release`) of geeft de stroom door aan een antwoord dat dat doet.
+     */
+    suspend fun getStream(
+        pad: String,
+        accept: MediaType? = null,
+        query: Map<String, List<String>> = emptyMap(),
+        headers: Map<String, String> = emptyMap(),
+    ): Flow<DataBuffer> {
+        val doel = voorbereiden(pad, query, headers)
+        val stroom =
+            webClient
+                .get()
+                .uri(doel)
+                .headers { koppen -> headers.forEach { (naam, waarde) -> koppen.set(naam, waarde) } }
+                .let { if (accept != null) it.accept(accept) else it }
+                .exchangeToFlux { antwoord ->
+                    if (antwoord.statusCode().is2xxSuccessful) antwoord.bodyToFlux(DataBuffer::class.java) else foutAntwoord<DataBuffer>(antwoord).flux()
+                }.timeout(bewaker.timeout)
+                .onErrorMap { zetOm(it) }
+        return bewaker.beschermdStroom(stroom).asFlow()
+    }
+
+    /** Of [url] een absolute URL onder de basis-URL van deze koppeling is (host-binding); er wordt niets aangeroepen. */
+    fun beheertUrl(url: String): Boolean {
+        val absoluut = runCatching { URI(url).isAbsolute }.getOrDefault(false)
+        return absoluut && runCatching { HostBinding.oplossen(basis, url) }.isSuccess
+    }
+
     private suspend fun <T : Any> uitvoeren(
         methode: HttpMethod,
         pad: String,
@@ -122,13 +158,7 @@ class KoppelingClient internal constructor(
         body: Any?,
         succes: (ClientResponse) -> Mono<T>,
     ): T {
-        // Een client hoort bij één tenant: een bewaarde client mag nooit voor een andere tenant aanroepen.
-        check(TenantContext.current() == oin) { "Koppeling '$naam' hoort bij een andere tenant dan de huidige" }
-        val verboden = if (eigenHeader == null) VERBODEN_HEADERS else VERBODEN_HEADERS + eigenHeader.lowercase()
-        headers.keys.firstOrNull { it.lowercase() in verboden }?.let {
-            throw IllegalArgumentException("Header '$it' hoort bij de koppeling en kan niet per aanroep worden gezet")
-        }
-        val doel = bind(pad, query)
+        val doel = voorbereiden(pad, query, headers)
         val aanroep =
             webClient
                 .method(methode)
@@ -139,6 +169,21 @@ class KoppelingClient internal constructor(
                 .timeout(bewaker.timeout)
                 .onErrorMap { zetOm(it) }
         return bewaker.beschermd(aanroep).awaitSingleOrNull() ?: throw fout(KoppelingFoutsoort.ANTWOORD_ONBRUIKBAAR, null)
+    }
+
+    /** De controles vooraf, gedeeld door elke aanroep: de tenant, de headers en de host-binding; geeft het doel. */
+    private suspend fun voorbereiden(
+        pad: String,
+        query: Map<String, List<String>>,
+        headers: Map<String, String>,
+    ): URI {
+        // Een client hoort bij één tenant: een bewaarde client mag nooit voor een andere tenant aanroepen.
+        check(TenantContext.current() == oin) { "Koppeling '$naam' hoort bij een andere tenant dan de huidige" }
+        val verboden = if (eigenHeader == null) VERBODEN_HEADERS else VERBODEN_HEADERS + eigenHeader.lowercase()
+        headers.keys.firstOrNull { it.lowercase() in verboden }?.let {
+            throw IllegalArgumentException("Header '$it' hoort bij de koppeling en kan niet per aanroep worden gezet")
+        }
+        return bind(pad, query)
     }
 
     private fun bind(

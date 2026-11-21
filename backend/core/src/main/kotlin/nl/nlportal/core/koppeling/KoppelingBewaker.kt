@@ -24,6 +24,7 @@ import io.github.resilience4j.circuitbreaker.CircuitBreakerConfig
 import io.github.resilience4j.reactor.bulkhead.operator.BulkheadOperator
 import io.github.resilience4j.reactor.circuitbreaker.operator.CircuitBreakerOperator
 import org.springframework.boot.context.properties.ConfigurationProperties
+import reactor.core.publisher.Flux
 import reactor.core.publisher.Mono
 import java.time.Duration
 
@@ -78,6 +79,14 @@ internal class KoppelingBewaker(
         )
 
     fun <T : Any> beschermd(aanroep: Mono<T>): Mono<T> =
+        aanroep
+            .transformDeferred(BulkheadOperator.of(bulkhead))
+            .onErrorMap(BulkheadFullException::class.java) { KoppelingException.gesynthetiseerd(koppeling, KoppelingFoutsoort.LIMIET, cause = it) }
+            .transformDeferred(CircuitBreakerOperator.of(circuitBreaker))
+            .onErrorMap(CallNotPermittedException::class.java) { KoppelingException.gesynthetiseerd(koppeling, KoppelingFoutsoort.CIRCUIT_OPEN, cause = it) }
+
+    /** Als [beschermd], voor een stroom: de plek in de limiet en de circuit breaker gelden tot de stroom klaar, geannuleerd of mislukt is. */
+    fun <T : Any> beschermdStroom(aanroep: Flux<T>): Flux<T> =
         aanroep
             .transformDeferred(BulkheadOperator.of(bulkhead))
             .onErrorMap(BulkheadFullException::class.java) { KoppelingException.gesynthetiseerd(koppeling, KoppelingFoutsoort.LIMIET, cause = it) }
