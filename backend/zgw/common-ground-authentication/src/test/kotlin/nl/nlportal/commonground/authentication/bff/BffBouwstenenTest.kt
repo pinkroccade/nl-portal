@@ -79,25 +79,37 @@ class InlogbeslisserTest {
                 "auth_time" to nu,
                 "inlogmiddel" to "digid",
                 "acr" to TokenSpec.DIGID_SUBSTANTIEEL,
-                "acting_subject_id" to "s00000000:999993653",
             )
         claims.wijzig()
         return OidcIdToken("t", nu, nu.plusSeconds(60), claims)
     }
 
+    private fun userInfo(bsn: String? = "s00000000:999993653"): Map<String, Any> = if (bsn == null) emptyMap() else mapOf("acting_subject_id" to bsn)
+
     private fun reden(
         t: OidcIdToken,
         tenant: TenantDefinition = tenant(),
         start: Instant? = nu,
-    ) = (beslisser.beslis(tenant, t, start) as? Inlogbeslissing.Geweigerd)?.reden
+        userInfo: Map<String, Any> = userInfo(),
+    ) = (beslisser.beslis(tenant, t, userInfo, start) as? Inlogbeslissing.Geweigerd)?.reden
 
     @Test
     fun `een geldig DigiD-token geeft een burger met inlogmiddel en niveau`() {
-        val beslissing = beslisser.beslis(tenant(), token(), nu) as Inlogbeslissing.Toegestaan
+        val beslissing = beslisser.beslis(tenant(), token(), userInfo(), nu) as Inlogbeslissing.Toegestaan
 
         assertThat(beslissing.identiteit.vertegenwoordigde.identificatie).isEqualTo("999993653")
         assertThat(beslissing.identiteit.gebruiker.inlogmiddel).isEqualTo(Inlogmiddel.DIGID)
         assertThat(beslissing.identiteit.gebruiker.niveau).isEqualTo(Betrouwbaarheidsniveau.SUBSTANTIEEL)
+    }
+
+    @Test
+    fun `het BSN komt uit de userinfo en nooit uit het ID-token`() {
+        val metBsnInIdToken = token { put("acting_subject_id", "s00000000:999993653") }
+
+        assertThat(reden(metBsnInIdToken, userInfo = userInfo(null))).isEqualTo(Reden.BSN_ONGELDIG)
+
+        val andereInUserinfo = beslisser.beslis(tenant(), token { put("acting_subject_id", "s00000000:123456789") }, userInfo("s00000000:999993653"), nu) as Inlogbeslissing.Toegestaan
+        assertThat(andereInUserinfo.identiteit.vertegenwoordigde.identificatie).isEqualTo("999993653")
     }
 
     @Test

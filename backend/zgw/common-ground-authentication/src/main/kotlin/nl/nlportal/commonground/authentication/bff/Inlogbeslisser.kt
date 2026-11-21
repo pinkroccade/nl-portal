@@ -46,7 +46,7 @@ sealed interface Inlogbeslissing {
  *  - geen vertegenwoordiging (`legal_subject_id`) en geen KvK-identiteit zolang machtigen en eHerkenning uit staan;
  *  - betrouwbaarheidsniveau uit `acr` via de volgordetabel van het inlogmiddel, minstens het minimum van de tenant; een
  *    onbekende of lege waarde geldt als afwezig en wordt geweigerd;
- *  - het BSN uit `acting_subject_id`: bij DigiD de `NameID` met de sectorprefix `s00000000:` (precies gestript; een andere
+ *  - het BSN uit de claim `acting_subject_id` van de userinfo (nooit uit het ID-token: dat gaat als `id_token_hint` de browser in): bij DigiD de `NameID` met de sectorprefix `s00000000:` (precies gestript; een andere
  *    prefix is een ander soort nummer, bijvoorbeeld een pseudoniem), negen cijfers met geldige elfproef;
  *  - een verse login: `auth_time` is niet ouder dan het begin van de login (`prompt=login`), zodat Keycloak niet stil
  *    een bestaande sessie teruggeeft.
@@ -55,6 +55,7 @@ class Inlogbeslisser {
     fun beslis(
         tenant: TenantDefinition,
         idToken: OidcIdToken,
+        userInfo: Map<String, Any>,
         loginStart: Instant?,
     ): Inlogbeslissing {
         val issuer = idToken.issuer?.toString()
@@ -84,7 +85,7 @@ class Inlogbeslisser {
         val niveau = (acr as? String)?.let { NIVEAUS.getValue(middel)[it] } ?: return weiger(Reden.NIVEAU_ONBEKEND)
         if (niveau < tenant.minimumNiveau) return weiger(Reden.NIVEAU_TE_LAAG)
 
-        val bsn = bsn(middel, idToken.claims[CLAIM_ACTING_SUBJECT]) ?: return weiger(Reden.BSN_ONGELDIG)
+        val bsn = bsn(middel, userInfo[CLAIM_ACTING_SUBJECT]) ?: return weiger(Reden.BSN_ONGELDIG)
 
         val authTime = idToken.authenticatedAt
         if (loginStart == null || authTime == null || authTime.isBefore(loginStart.minus(AUTH_TIME_MARGE))) return weiger(Reden.AUTH_TIME)

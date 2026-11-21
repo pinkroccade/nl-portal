@@ -21,6 +21,8 @@ services:
             # De BFF (ADR 0022): sessies in Redis met ACL, en de publieke basis-URL van Keycloak waaronder elke issuer valt.
             REDIS_HOST: nl-portal-sessies
             REDIS_USERNAME: nlportal
+            # De Redis van de compose-stack praat geen TLS; buiten lokaal staat REDIS_SSL standaard aan.
+            REDIS_SSL: "false"
             REDIS_PASSWORD: ${REDIS_PASSWORD:?draai eerst mise run dev:setup}
             KEYCLOAK_BROKER_URL: http://localhost:8082
             NLPORTAL_CONFIG_OBJECTENAPI_PROPERTIES_TOKEN: "${OBJECTS_API_TOKEN:?draai eerst mise run dev:setup}"

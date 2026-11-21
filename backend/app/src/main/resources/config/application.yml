@@ -30,13 +30,13 @@ spring:
     data:
         redis:
             # Sessies en pre-auth-sessies van de BFF (ADR 0022). Redis draait met authenticatie (ACL), zonder persistentie en met
-            # een TTL op elke sleutel; buiten lokaal met TLS (REDIS_SSL=true). Eén instantie per cel.
+            # een TTL op elke sleutel; standaard met TLS (REDIS_SSL=false alleen lokaal). Eén instantie per cel.
             host: ${REDIS_HOST:localhost}
             port: ${REDIS_PORT:6379}
             username: ${REDIS_USERNAME:}
             password: ${REDIS_PASSWORD:}
             ssl:
-                enabled: ${REDIS_SSL:false}
+                enabled: ${REDIS_SSL:true}
             repositories:
                 enabled: false
     graphql:
@@ -65,6 +65,9 @@ nl-portal:
         # IP-adressen of CIDR-blokken van de ingress; alleen van deze adressen gelden Forwarded en X-Forwarded-Host.
         trusted-proxies: ${NL_PORTAL_TRUSTED_PROXIES:}
     authentication:
+        bff:
+            # De login is verplicht: zonder tenancy weigert de runtime het opstarten in plaats van zonder login te draaien.
+            vereist: true
         # Publieke basis-URL van de broker (Keycloak). De runtime start niet als de issuer van een tenant er niet onder valt.
         broker-url: ${KEYCLOAK_BROKER_URL}
         machtingsdienst:

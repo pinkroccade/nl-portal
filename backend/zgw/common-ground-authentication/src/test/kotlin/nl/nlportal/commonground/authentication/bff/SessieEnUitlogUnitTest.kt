@@ -166,6 +166,17 @@ class SessieEnUitlogUnitTest {
         assertThat(gebeurtenissen.single().reden).isEqualTo(Reden.VERLOPEN_ABSOLUUT)
     }
 
+    @Test
+    fun `een gestarte sessie zonder tenant is een protocolfout en geen tenant-mismatch`() {
+        val sessie = sessie(demo)
+        sessie.attributes.remove(SessieAttributen.TENANT)
+
+        assertThat(bewaak(sessie)).isFalse()
+
+        assertThat(gebeurtenissen.single().type).isEqualTo(GebeurtenisType.SESSIE_PROTOCOL)
+        assertThat(gebeurtenissen.single().reden).isEqualTo(Reden.PROTOCOL)
+    }
+
     // --- uitlogfoutpad ---
 
     private fun metTestSleutel(tenant: TenantDefinition): TenantDefinition {
@@ -180,7 +191,7 @@ class SessieEnUitlogUnitTest {
     ): UitlogHandler {
         val tenants = geregistreerd.map(::metTestSleutel)
         val sleutels = TenantClientSleutels.laad(tenants, BffTestOmgeving.sleutelMap)
-        val registraties = TenantClientRegistraties(tenants, sleutels) { issuer, basis -> IdpEindpunten("$issuer/auth", "$basis/token", "$basis/certs", endSession) }
+        val registraties = TenantClientRegistraties(tenants, sleutels) { issuer, basis -> IdpEindpunten("$issuer/auth", "$basis/token", "$basis/certs", endSession, "$basis/userinfo") }
         return UitlogHandler(registraties, TenantDirectory(listOf(demo)), vastleggen)
     }
 

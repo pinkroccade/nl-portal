@@ -64,6 +64,7 @@ class UitloggenTest : BffTestBasis() {
         assertThat(parameters["client_id"]).isEqualTo(bosrand.clientId)
         assertThat(parameters["post_logout_redirect_uri"]).isEqualTo("${origin(browser)}/")
         assertThat(browser.jar.keys).doesNotContain(BffNamen.SESSIE_COOKIE)
+        assertThat(browser.jar.keys).describedAs("het CSRF-token roteert bij uitloggen").doesNotContain(BffNamen.CSRF_COOKIE)
         val oud = Browser(bosrand)
         oud.jar[BffNamen.SESSIE_COOKIE] = oudeSessie
         assertThat(get(oud, "/api/test/wie").status.value()).describedAs("de oude sessie is weg").isEqualTo(401)

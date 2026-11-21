@@ -112,7 +112,7 @@ class BffAuthenticationManager(
                         .getAttribute<String>(BffNamen.LOGIN_START)
                         ?.toLongOrNull()
                         ?.let(Instant::ofEpochMilli)
-                when (val beslissing = beslisser.beslis(tenant, oidcUser.idToken, loginStart)) {
+                when (val beslissing = beslisser.beslis(tenant, oidcUser.idToken, oidcUser.userInfo?.claims.orEmpty(), loginStart)) {
                     is Inlogbeslissing.Geweigerd -> {
                         Mono.error(LoginGeweigerdException(beslissing.reden, beslissing.actor))
                     }
@@ -138,7 +138,7 @@ class BffAuthenticationManager(
             registraties: TenantClientRegistraties,
             tenants: TenantDirectory,
         ) = BffAuthenticationManager(
-            OidcAuthorizationCodeReactiveAuthenticationManager(tokenClient(registraties), OidcReactiveOAuth2UserService()),
+            OidcAuthorizationCodeReactiveAuthenticationManager(tokenClient(registraties), OidcReactiveOAuth2UserService().apply { setRetrieveUserInfo { true } }),
             tenants,
             Inlogbeslisser(),
         )

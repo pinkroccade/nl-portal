@@ -46,7 +46,12 @@ graphql:
 
 logging:
     level:
-        root: DEBUG
+        root: INFO
+        nl.nlportal: DEBUG
+        # Deze loggers kunnen op DEBUG sessie-ID's, cookies, tokens of sessie-attributen met BSN loggen.
+        io.lettuce: INFO
+        reactor.netty: INFO
+        org.springframework.security.oauth2: INFO
 
 nl-portal:
     # De secret store van deze dev-app: het geheim van de koppeling `zakenapi` in het tenantbestand.
@@ -61,6 +66,8 @@ nl-portal:
     tenancy:
         directory: ${NL_PORTAL_TENANTS_DIRECTORY:../../docker-compose/imports/tenants}
     authentication:
+        bff:
+            vereist: true
         broker-url: ${KEYCLOAK_BROKER_URL:http://localhost:8082}
     security:
         cors:

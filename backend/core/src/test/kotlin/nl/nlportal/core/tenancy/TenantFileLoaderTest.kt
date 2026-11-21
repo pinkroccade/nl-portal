@@ -292,6 +292,17 @@ class TenantFileLoaderTest {
     }
 
     @Test
+    fun `http voor de interne basis-URL mag alleen in een ontwikkelomgeving`() {
+        schrijf("base.yaml", basis)
+        schrijf("$bosrand.yaml", tenant(authenticatie = "authenticatie:\n  issuer: https://login.example/realms/x\n  sleutelBestand: /run/secrets/$bosrand/k.jwk\n  interneBasisUrl: http://keycloak:8080/realms/x\n"))
+
+        val result = laad()
+
+        assertThat(codes(result)).containsExactly(Code.ONGELDIGE_WAARDE)
+        assertThat(result.violations.single().pad).isEqualTo("authenticatie.interneBasisUrl")
+    }
+
+    @Test
     fun `een onbruikbare interne basis-URL weigert het opstarten`() {
         schrijf("base.yaml", basis)
         schrijf("$bosrand.yaml", tenant(authenticatie = "authenticatie:\n  issuer: https://login.example/realms/x\n  sleutelBestand: /run/secrets/$bosrand/k.jwk\n  interneBasisUrl: keycloak\n"))

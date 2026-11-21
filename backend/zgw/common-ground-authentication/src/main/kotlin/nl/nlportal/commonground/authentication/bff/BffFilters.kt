@@ -120,8 +120,17 @@ class OriginRegelFilter(
         val methode = exchange.request.method
         if (zonderTenantresolutie(exchange) || methode in VEILIG) return chain.filter(exchange)
         val pad = exchange.request.path.value()
-        if (methode == HttpMethod.POST && pad == BffNamen.POSTSALE_WEBHOOK) return chain.filter(exchange)
-        return TenantContext.currentMono().flatMap { oin ->
+        return BffUitzonderingen.WEBHOOK.matches(exchange).flatMap { webhook ->
+            if (webhook.isMatch) chain.filter(exchange) else controleer(exchange, chain, pad)
+        }
+    }
+
+    private fun controleer(
+        exchange: ServerWebExchange,
+        chain: WebFilterChain,
+        pad: String,
+    ): Mono<Void> =
+        TenantContext.currentMono().flatMap { oin ->
             val tenant = tenants.forOin(oin) ?: return@flatMap afwijzen(exchange, HttpStatus.NOT_FOUND)
             val headers = exchange.request.headers
             val origin = headers.origin
@@ -140,7 +149,6 @@ class OriginRegelFilter(
             }
             chain.filter(exchange)
         }
-    }
 
     private companion object {
         val VEILIG = setOf(HttpMethod.GET, HttpMethod.HEAD, HttpMethod.OPTIONS)
@@ -213,8 +221,8 @@ class SessieBewakingFilter(
                 val laatste = (session.getAttribute<Any>(SessieAttributen.LAATSTE_ACTIVITEIT) as? Long)?.let(Instant::ofEpochMilli)
                 val reden =
                     when {
+                        opgeslagenTenant == null || aangemaakt == null || laatste == null -> Reden.PROTOCOL
                         opgeslagenTenant != oin.value -> Reden.TENANT
-                        aangemaakt == null || laatste == null -> Reden.PROTOCOL
                         !nu.isBefore(aangemaakt.plus(tenant.sessie.absoluut)) -> Reden.VERLOPEN_ABSOLUUT
                         !nu.isBefore(laatste.plus(tenant.sessie.inactiviteit)) -> Reden.VERLOPEN_INACTIVITEIT
                         else -> null
@@ -224,7 +232,12 @@ class SessieBewakingFilter(
                     chain.filter(exchange)
                 } else {
                     val actor = session.getAttribute<String>(SessieAttributen.IDENTITEIT)?.let { OpgeslagenIdentiteit.parse(it) }?.let { Actor(it.issuer, it.subject) }
-                    val type = if (reden == Reden.TENANT) GebeurtenisType.SESSIE_TENANT_MISMATCH else GebeurtenisType.SESSIE_VERLOPEN
+                    val type =
+                        when (reden) {
+                            Reden.TENANT -> GebeurtenisType.SESSIE_TENANT_MISMATCH
+                            Reden.PROTOCOL -> GebeurtenisType.SESSIE_PROTOCOL
+                            else -> GebeurtenisType.SESSIE_VERLOPEN
+                        }
                     gebeurtenissen.registreer(Beveiligingsgebeurtenis(type, oin.value, actor, "geweigerd", reden))
                     session.attributes.clear()
                     session.invalidate().then(chain.filter(exchange))

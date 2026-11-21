@@ -300,6 +300,7 @@ class BffTestConfiguratie {
                 server.tokenEndpointUrl(id).toString(),
                 server.jwksUrl(id).toString(),
                 server.endSessionEndpointUrl(id).toString(),
+                server.userInfoUrl(id).toString(),
             )
         }
 

@@ -31,6 +31,7 @@ enum class GebeurtenisType(
     LOGIN_GESLAAGD("login_geslaagd"),
     LOGIN_GEWEIGERD("login_geweigerd"),
     SESSIE_TENANT_MISMATCH("sessie_tenant_mismatch"),
+    SESSIE_PROTOCOL("sessie_protocol"),
     SESSIE_VERLOPEN("sessie_verlopen"),
     UITGELOGD("uitgelogd"),
     CSRF_GEWEIGERD("csrf_geweigerd"),

@@ -49,4 +49,10 @@ class ShippedConfigurationTest {
         assertThat(ForwardedHeadersGuard(omgeving("kubernetes")) { false }.controleer()).isEmpty()
         assertThat(omgeving().getProperty("server.forward-headers-strategy")).isEqualTo("none")
     }
+
+    @Test
+    fun `de login is verplicht en Redis praat standaard TLS`() {
+        assertThat(omgeving().getProperty("nl-portal.authentication.bff.vereist")).isEqualTo("true")
+        assertThat(omgeving().getProperty("spring.data.redis.ssl.enabled")).isEqualTo("true")
+    }
 }

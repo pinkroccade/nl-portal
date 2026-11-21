@@ -98,7 +98,6 @@ class BffSecurityConfigurer(
                 setCookiePath("/")
                 setCookieCustomizer { it.secure(true).sameSite("Strict") }
             }
-        val webhook = ServerWebExchangeMatchers.pathMatchers(HttpMethod.POST, BffNamen.POSTSALE_WEBHOOK)
         http
             .securityContextRepository(contextRepository)
             .requestCache { it.requestCache(NoOpServerRequestCache.getInstance()) }
@@ -107,7 +106,7 @@ class BffSecurityConfigurer(
                 csrf
                     .csrfTokenRepository(csrfRepository)
                     .csrfTokenRequestHandler(ServerCsrfTokenRequestAttributeHandler())
-                    .requireCsrfProtectionMatcher(AndServerWebExchangeMatcher(CsrfWebFilter.DEFAULT_CSRF_MATCHER, NegatedServerWebExchangeMatcher(webhook)))
+                    .requireCsrfProtectionMatcher(AndServerWebExchangeMatcher(CsrfWebFilter.DEFAULT_CSRF_MATCHER, NegatedServerWebExchangeMatcher(BffUitzonderingen.WEBHOOK)))
                     .accessDeniedHandler { exchange, _ ->
                         TenantContext
                             .currentMono()

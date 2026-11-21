@@ -120,6 +120,7 @@ data class IdpEindpunten(
     val token: String,
     val jwkSet: String,
     val endSession: String,
+    val userInfo: String,
 )
 
 /** Hoe de endpoints uit de issuer en de interne basis-URL volgen; een tweede adapter is de testprovider. */
@@ -130,7 +131,7 @@ fun interface IdpEindpuntenIndeling {
     ): IdpEindpunten
 }
 
-/** Keycloak: `<issuer>/protocol/openid-connect/{auth,token,certs,logout}`; token en JWKS via de interne basis. */
+/** Keycloak: `<issuer>/protocol/openid-connect/{auth,token,certs,logout}`; token, JWKS en userinfo via de interne basis. */
 object KeycloakEindpunten : IdpEindpuntenIndeling {
     override fun voor(
         publiekeIssuer: String,
@@ -140,6 +141,7 @@ object KeycloakEindpunten : IdpEindpuntenIndeling {
         token = "$interneBasis/protocol/openid-connect/token",
         jwkSet = "$interneBasis/protocol/openid-connect/certs",
         endSession = "$publiekeIssuer/protocol/openid-connect/logout",
+        userInfo = "$interneBasis/protocol/openid-connect/userinfo",
     )
 }
 
@@ -176,6 +178,7 @@ class TenantClientRegistraties(
             .authorizationUri(eindpunten.authorization)
             .tokenUri(eindpunten.token)
             .jwkSetUri(eindpunten.jwkSet)
+            .userInfoUri(eindpunten.userInfo)
             .issuerUri(a.issuer)
             .providerConfigurationMetadata(mapOf("end_session_endpoint" to eindpunten.endSession))
             .userNameAttributeName("sub")

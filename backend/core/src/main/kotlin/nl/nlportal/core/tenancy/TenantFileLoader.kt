@@ -316,8 +316,8 @@ class TenantFileLoader(
             violations += TenantFileViolation(Code.GEHEIM_VAN_ANDERE_TENANT, naam, "authenticatie.sleutelBestand", "Het sleutelbestand staat in een map met de OIN van deze tenant als pad-segment, en in geen andere OIN-map, zonder '..'")
         }
         authenticatie.interneBasisUrl?.let {
-            if (!veiligeUrl(it, http = true, slotSlashToegestaan = false)) {
-                violations += TenantFileViolation(Code.ONGELDIGE_WAARDE, naam, "authenticatie.interneBasisUrl", "De interne basis-URL is een absolute http(s)-URL zonder gebruikersinformatie, query, fragment of slot-slash")
+            if (!veiligeUrl(it, ontwikkeling, slotSlashToegestaan = false)) {
+                violations += TenantFileViolation(Code.ONGELDIGE_WAARDE, naam, "authenticatie.interneBasisUrl", "De interne basis-URL is een absolute https-URL (http alleen in ontwikkeling) zonder gebruikersinformatie, query, fragment of slot-slash")
             }
         }
     }

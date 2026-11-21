@@ -72,7 +72,7 @@ sleutelbestand en eventueel een interne route naar Keycloak staan per tenant in 
 | --------- | --------- | --------- |
 | `KEYCLOAK_BROKER_URL` | ja | Basis-URL van de publieke ID-broker. Elke issuer in de tenantbestanden moet eronder vallen. |
 | `NL_PORTAL_SLEUTELMAP` | ja | Vaste map met per tenant een map met de OIN als naam, met daarin de private clientsleutel (`<OIN>/clientsleutel.jwk.json`, 0600, leesbaar voor de gebruiker van de backend). |
-| `REDIS_HOST`, `REDIS_PORT`, `REDIS_USERNAME`, `REDIS_PASSWORD`, `REDIS_SSL` | ja | De Redis voor de portaalsessies: ACL, geen persistentie, `noeviction`, TLS buiten lokaal, één instantie per cel. Valt Redis uit, dan moeten gebruikers opnieuw inloggen. |
+| `REDIS_HOST`, `REDIS_PORT`, `REDIS_USERNAME`, `REDIS_PASSWORD`, `REDIS_SSL` | ja | De Redis voor de portaalsessies: ACL, geen persistentie, `noeviction`, TLS standaard aan (`REDIS_SSL=false` alleen lokaal), één instantie per cel. Valt Redis uit, dan moeten gebruikers opnieuw inloggen. |
 
 De backend leidt het token-endpoint nooit af uit een binnenkomend bericht. Heeft de backend een interne route naar Keycloak, zet dan
 `authenticatie.interneBasisUrl` in het tenantbestand; de issuer blijft het publieke adres. Laat Keycloak de publieke URL in de tokens zetten,
