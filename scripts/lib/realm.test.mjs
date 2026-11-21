@@ -2,15 +2,24 @@
 // De test kijkt naar het gegenereerde realm, niet naar het template of de generator.
 import assert from "node:assert/strict";
 import { test } from "node:test";
+import { dirname, join } from "node:path";
+import { fileURLToPath } from "node:url";
+import { DEV_BROKER_URL, DEV_REALM, TENANTS_MAP } from "../dev-setup.mjs";
 import { maakClientSleutel } from "./clientsleutel.mjs";
 import { genereerRealm } from "./realm.mjs";
+import { leesTenantbestanden } from "./tenantbestand.mjs";
 
 const sleutel = maakClientSleutel();
 const OIN = "00000099000000000001";
 
-const DEV = { oin: OIN, naam: "Gemeente De Bosrand", omgevingstype: "ontwikkeling", domeinen: ["localhost"], thema: { titel: "Mijn De Bosrand" }, inlogmiddelen: ["test"] };
+// De demo-tenants uit het repo (`docker-compose/imports/tenants`), gelezen zoals `dev:setup` ze leest: de realmtest toetst dus
+// ook het tenantbestand en `base.yaml`, niet alleen een kopie ervan.
+const REPO = join(dirname(fileURLToPath(import.meta.url)), "..", "..");
+const DEMO_TENANTS = leesTenantbestanden(join(REPO, TENANTS_MAP));
+const [DEV] = DEMO_TENANTS;
+const OTA = { ...DEV, omgevingstype: "test", domeinen: ["mijn.test.example"] };
 const ACC = { oin: OIN, naam: "Gemeente De Bosrand", omgevingstype: "acceptatie", domeinen: ["mijn.debosrand.example"], thema: { titel: "Mijn De Bosrand" }, inlogmiddelen: ["digid", "wallet"], minimumNiveau: "midden" };
-const PRD = { ...ACC, omgevingstype: "productie", inlogmiddelen: ["digid"] };
+const PRD = { ...ACC, omgevingstype: "productie", inlogmiddelen: ["digid"], minimumNiveau: "substantieel" };
 const PRD_WALLET = { ...PRD, inlogmiddelen: ["digid", "wallet"] };
 
 const IDP = {
@@ -20,7 +29,7 @@ const IDP = {
 const basis = (tenant, extra = {}) => ({
   tenant,
   realm: "nlportal",
-  brokerUrl: tenant.omgevingstype === "ontwikkeling" ? "http://localhost:8082" : "https://login.example",
+  brokerUrl: tenant.omgevingstype === "ontwikkeling" ? DEV_BROKER_URL : "https://login.example",
   clientSleutels: [sleutel.publiek],
   idp: IDP,
   ...extra,
@@ -28,14 +37,22 @@ const basis = (tenant, extra = {}) => ({
 const realm = (tenant, extra) => genereerRealm(basis(tenant, extra));
 
 const client = (r, id) => r.clients.find((c) => c.clientId === id);
+const noteMappers = (c) => c.protocolMappers.filter((m) => m.protocolMapper === "oidc-usersessionmodel-note-mapper");
 const idpMappers = (r, alias) => r.identityProviderMappers.filter((m) => m.identityProviderAlias === alias);
-const ALLE = { dev: DEV, acceptatie: ACC, productie: PRD, "productie met wallet": PRD_WALLET };
+const ALLE = {
+  ...Object.fromEntries(DEMO_TENANTS.map((t) => [`demo-tenant ${t.oin}`, t])),
+  acceptatie: ACC,
+  productie: PRD,
+  "productie met wallet": PRD_WALLET,
+};
+const NIET_DEV = { acceptatie: ACC, test: OTA, productie: PRD, "productie met wallet": PRD_WALLET };
 
 for (const [naam, tenant] of Object.entries(ALLE)) {
-  test(`${naam}: clients zijn alleen de backend, de huidige SPA en de m2m-client; accountconsole staat uit`, () => {
+  test(`${naam}: clients zijn de backend en de m2m-client (plus de tussenfase-SPA alleen in ontwikkeling); accountconsole staat uit`, () => {
     const r = realm(tenant);
     const aan = r.clients.filter((c) => c.enabled !== false).map((c) => c.clientId).sort();
-    assert.deepEqual(aan, ["nl-portal", "nl-portal-backend", "nl-portal-m2m"]);
+    const spa = tenant.omgevingstype === "ontwikkeling" ? ["nl-portal"] : [];
+    assert.deepEqual(aan, [...spa, "nl-portal-backend", "nl-portal-m2m"].sort());
     for (const id of ["account", "account-console"]) assert.equal(client(r, id).enabled, false, id);
   });
 
@@ -57,9 +74,9 @@ for (const [naam, tenant] of Object.entries(ALLE)) {
     assert.equal(jwks.keys[0].d, undefined, "de private sleutel hoort nooit in het realm");
     const domein = tenant.domeinen[0];
     const origin = tenant.omgevingstype === "ontwikkeling" ? `http://${domein}:3000` : `https://${domein}`;
-    assert.deepEqual(c.redirectUris, [`${origin}/login/oauth2/code/${OIN}`]);
+    assert.deepEqual(c.redirectUris, [`${origin}/login/oauth2/code/${tenant.oin}`]);
     assert.equal(c.attributes["post.logout.redirect.uris"], `${origin}/`);
-    assert.equal(c.attributes["backchannel.logout.url"], `${origin}/logout/connect/back-channel/${OIN}`);
+    assert.equal(c.attributes["backchannel.logout.url"], `${origin}/logout/connect/back-channel/${tenant.oin}`);
     for (const uri of [...c.redirectUris, ...c.attributes["post.logout.redirect.uris"].split("##")]) assert.doesNotMatch(uri, /[*+]/, uri);
     assert.deepEqual(c.webOrigins, []);
   });
@@ -68,9 +85,9 @@ for (const [naam, tenant] of Object.entries(ALLE)) {
     const c = client(realm(tenant), "nl-portal-backend");
     assert.ok(!c.defaultClientScopes.includes("acr"));
     assert.ok(!(c.optionalClientScopes ?? []).includes("acr"));
-    const notities = c.protocolMappers.map((m) => m.config["user.session.note"]).sort();
+    const notities = noteMappers(c).map((m) => m.config["user.session.note"]).sort();
     assert.deepEqual(notities, ["acr", "acting_subject_id", "identity_provider", "legal_subject_id"]);
-    for (const m of c.protocolMappers) {
+    for (const m of noteMappers(c)) {
       assert.equal(m.protocolMapper, "oidc-usersessionmodel-note-mapper");
       assert.equal(m.config["id.token.claim"], "true");
       assert.equal(m.config["access.token.claim"], "false");
@@ -80,7 +97,7 @@ for (const [naam, tenant] of Object.entries(ALLE)) {
 
   test(`${naam}: elke koppeling heeft een mapper voor elke notitie die een client-mapper leest, en er is geen identiteitskoppeling`, () => {
     const r = realm(tenant);
-    const gelezen = client(r, "nl-portal-backend").protocolMappers.map((m) => m.config["user.session.note"]).filter((n) => n !== "identity_provider");
+    const gelezen = noteMappers(client(r, "nl-portal-backend")).map((m) => m.config["user.session.note"]).filter((n) => n !== "identity_provider");
     for (const idp of r.identityProviders) {
       const gezet = idpMappers(r, idp.alias).map((m) => m.config.note).filter(Boolean);
       for (const notitie of gelezen) assert.ok(gezet.includes(notitie), `${idp.alias}: geen mapper voor ${notitie}`);
@@ -135,7 +152,7 @@ test("tijdens sleutelrotatie staan beide publieke sleutels in de JWKS", () => {
   assert.deepEqual(jwks.keys.map((k) => k.kid), [sleutel.kid, tweede.kid]);
 });
 
-test("de huidige SPA-client en de m2m-client staan er nog (tot de BFF van #506)", () => {
+test("de tussenfase-SPA-client en de m2m-client staan er nog in ontwikkeling (tot de BFF van #506)", () => {
   const r = realm(DEV);
   const spa = client(r, "nl-portal");
   assert.equal(spa.publicClient, true);
@@ -190,7 +207,7 @@ test("DigiD (SAML): handtekening gecontroleerd, vastgepind certificaat, minimum 
   assert.equal(digid.config.signingCertificate, "MIIBcertificaat");
   assert.notEqual(digid.config.useMetadataDescriptorUrl, "true");
   assert.equal(digid.config.authnContextComparisonType, "minimum");
-  assert.deepEqual(JSON.parse(digid.config.authnContextClassRefs), ["urn:oasis:names:tc:SAML:2.0:ac:classes:MobileTwoFactorContract"]);
+  assert.deepEqual(JSON.parse(digid.config.authnContextClassRefs), ["urn:oasis:names:tc:SAML:2.0:ac:classes:Smartcard"]);
   assert.equal(digid.config.entityId, "https://login.example/realms/nlportal");
   assert.deepEqual(
     idpMappers(r, "digid")
@@ -207,8 +224,8 @@ test("DigiD (SAML): handtekening gecontroleerd, vastgepind certificaat, minimum 
 
 test("het minimumniveau van de tenant bepaalt de authnContextClassRef; zonder niveau geldt substantieel", () => {
   const ref = (tenant) => JSON.parse(realm(tenant).identityProviders[0].config.authnContextClassRefs)[0].split(":").pop();
-  assert.equal(ref({ ...PRD, minimumNiveau: "basis" }), "PasswordProtectedTransport");
-  assert.equal(ref({ ...PRD, minimumNiveau: "midden" }), "MobileTwoFactorContract");
+  assert.equal(ref({ ...ACC, minimumNiveau: "basis" }), "PasswordProtectedTransport");
+  assert.equal(ref({ ...ACC, minimumNiveau: "midden" }), "MobileTwoFactorContract");
   assert.equal(ref({ ...PRD, minimumNiveau: "substantieel" }), "Smartcard");
   assert.equal(ref({ ...PRD, minimumNiveau: "hoog" }), "SmartcardPKI");
   assert.equal(ref({ ...PRD, minimumNiveau: undefined }), "Smartcard");
@@ -253,4 +270,119 @@ test("de generator weigert ontbrekende koppelingsgegevens, een onbekend inlogmid
 test("het realm-id volgt uit de parameter en een tenant zonder domein wordt geweigerd", () => {
   assert.equal(realm(PRD, { realm: OIN }).realm, OIN);
   assert.throws(() => realm({ ...PRD, domeinen: [] }), /domein/i);
+});
+
+// --- Tussenfase (security M2): de SPA-client alleen in ontwikkeling; geen lokale login, wildcard-redirect of offline token elders ---
+
+for (const [naam, tenant] of Object.entries(NIET_DEV)) {
+  test(`${naam}: geen SPA-client, geen directe grants, geen wildcard-redirect, geen offline tokens`, () => {
+    const r = realm(tenant);
+    assert.equal(client(r, "nl-portal"), undefined, "de tussenfase-SPA-client hoort alleen in ontwikkeling");
+    for (const c of r.clients) {
+      assert.ok(!c.directAccessGrantsEnabled, `${c.clientId}: directAccessGrantsEnabled`);
+      assert.ok(!c.implicitFlowEnabled, `${c.clientId}: implicitFlowEnabled`);
+      for (const uri of [...(c.redirectUris ?? []), ...(c.attributes?.["post.logout.redirect.uris"] ?? "").split("##")]) {
+        assert.doesNotMatch(uri, /[*+]/, `${c.clientId}: wildcard in ${uri}`);
+      }
+      for (const scope of [...(c.defaultClientScopes ?? []), ...(c.optionalClientScopes ?? [])]) assert.notEqual(scope, "offline_access", c.clientId);
+    }
+  });
+}
+
+test("in elk omgevingstype: geen offline_access op een client; offline sessies zijn begrensd tot de SSO-tijd; refresh-tokens roteren", () => {
+  for (const tenant of [DEV, ...Object.values(NIET_DEV)]) {
+    const r = realm(tenant);
+    for (const c of r.clients) {
+      for (const scope of [...(c.defaultClientScopes ?? []), ...(c.optionalClientScopes ?? [])]) assert.notEqual(scope, "offline_access", `${tenant.omgevingstype}: ${c.clientId}`);
+    }
+    assert.equal(r.offlineSessionMaxLifespanEnabled, true);
+    assert.ok(r.offlineSessionMaxLifespan <= 8 * 60 * 60);
+    assert.equal(r.revokeRefreshToken, true);
+  }
+});
+
+// --- BSN niet in gebruikersnaam of tokens (security M1, review M4) ---
+
+for (const [naam, tenant] of Object.entries(ALLE)) {
+  test(`${naam}: nl-portal-backend heeft geen scope die gebruikersgegevens in het token zet (profile, email); geen refresh-token; audience`, () => {
+    const c = client(realm(tenant), "nl-portal-backend");
+    for (const scope of ["profile", "email", "address", "phone"]) assert.ok(!c.defaultClientScopes.includes(scope), `standaardscope ${scope}`);
+    assert.equal(c.attributes["use.refresh.tokens"], "false");
+    const aud = c.protocolMappers.find((m) => m.protocolMapper === "oidc-audience-mapper");
+    assert.equal(aud.config["included.client.audience"], "nl-portal-backend");
+    assert.equal(aud.config["access.token.claim"], "true");
+  });
+
+  test(`${naam}: de gebruikersnaam van een gebrokerde gebruiker bevat nooit een identificerend nummer (NameID, claim sub, attribuut)`, () => {
+    const r = realm(tenant);
+    for (const m of r.identityProviderMappers.filter((x) => /username/.test(x.identityProviderMapper))) {
+      assert.doesNotMatch(m.config.template, /NAMEID|CLAIM|ATTRIBUTE/, `${m.identityProviderAlias}: ${m.config.template}`);
+      assert.ok(m.config.template.includes("${UUID}"), "een willekeurige waarde als gebruikersnaam");
+    }
+  });
+}
+
+// --- Testinlogmiddel: demo-gebruikers alleen in ontwikkeling (review M3) ---
+
+test("test (OTA): testinlogmiddel met de standaard browserflow maar zonder de vaste demo-gebruikers uit Git", () => {
+  const r = realm(OTA);
+  assert.equal(r.browserFlow, "browser");
+  assert.deepEqual(r.users ?? [], []);
+});
+
+// --- Generator weigert (review M2, L2, L3; security L3, L5) ---
+
+test("de generator weigert een DigiD-koppeling met metadata-URL (faalt gesloten: alleen een vastgepind certificaat)", () => {
+  for (const extra of [{ useMetadataDescriptorUrl: "true" }, { useMetadataDescriptorUrl: "false" }, { metadataDescriptorUrl: "https://digid.example/metadata" }]) {
+    assert.throws(() => realm(PRD, { idp: { ...IDP, digid: { ...IDP.digid, ...extra } } }), /metadata/i);
+  }
+});
+
+test("de generator weigert sessietijden van nul, negatieve of een inactiviteit boven de absolute duur", () => {
+  assert.throws(() => realm({ ...ACC, sessie: { inactiviteit: "PT0S" } }), /sessie/i);
+  assert.throws(() => realm({ ...ACC, sessie: { absoluut: "PT0S" } }), /sessie/i);
+  assert.throws(() => realm({ ...ACC, sessie: { inactiviteit: "PT10M", absoluut: "PT5M" } }), /sessie/i);
+});
+
+test("de generator weigert een onbekend minimumniveau en, in productie, een niveau onder substantieel", () => {
+  assert.throws(() => realm({ ...ACC, minimumNiveau: "laag" }), /minimumNiveau/);
+  assert.throws(() => realm({ ...PRD, minimumNiveau: "basis" }), /substantieel/);
+  assert.throws(() => realm({ ...PRD, minimumNiveau: "midden" }), /substantieel/);
+  assert.doesNotThrow(() => realm({ ...PRD, minimumNiveau: "substantieel" }));
+});
+
+test("de generator weigert kcc-substitutie en onbruikbare waarden in tenant- of koppelingsgegevens", () => {
+  assert.throws(() => realm({ ...ACC, naam: "$(env:KEYCLOAK_WALLET_CLIENT_SECRET)" }), /kcc-substitutie/);
+  assert.throws(() => realm({ ...ACC, naam: "$(file:UTF-8:/pad)" }), /kcc-substitutie/);
+  assert.throws(() => realm(ACC, { idp: { ...IDP, digid: { ...IDP.digid, idpEntityId: "https://x.example/$(env:A)" } } }), /kcc-substitutie/);
+  for (const domein of ["evil.example/x", "a@b.example", "mijn.example:8443", "", "UPPER CASE", "https://mijn.example"]) {
+    assert.throws(() => realm({ ...ACC, domeinen: [domein] }), /domein/i, domein);
+  }
+});
+
+test("buiten ontwikkeling moet de broker-URL https zijn", () => {
+  assert.throws(() => realm(PRD, { brokerUrl: "http://login.example" }), /https/);
+  assert.doesNotThrow(() => realm(PRD, { brokerUrl: "https://login.example" }));
+});
+
+// --- Overig uit de securitytoets (L2, L7, L8) ---
+
+for (const [naam, tenant] of Object.entries(ALLE)) {
+  test(`${naam}: brute-force-detectie staat expliciet in het realm en events worden bewaard met een eindtijd`, () => {
+    const r = realm(tenant);
+    assert.equal(r.bruteForceProtected, true);
+    assert.equal(r.permanentLockout, false);
+    assert.ok(r.failureFactor <= 10 && r.failureFactor >= 3, "aantal pogingen vóór blokkade");
+    assert.ok(r.waitIncrementSeconds >= 60);
+    assert.ok(r.maxFailureWaitSeconds >= r.waitIncrementSeconds);
+    assert.ok(r.maxDeltaTimeSeconds >= 3600);
+    assert.equal(r.eventsEnabled, true);
+    assert.equal(r.adminEventsEnabled, true);
+    assert.ok(r.eventsExpiration > 0 && r.eventsExpiration <= 90 * 86400, "bewaartermijn van login-events");
+  });
+}
+
+test("de wallet-mapper voor legal_subject_id leest een sentinel-claim die een wallet nooit levert", () => {
+  const legal = idpMappers(realm(PRD_WALLET), "wallet").find((m) => m.config.note === "legal_subject_id");
+  assert.equal(legal.config["claim.name"], "nlportal-nooit-legal_subject_id");
 });

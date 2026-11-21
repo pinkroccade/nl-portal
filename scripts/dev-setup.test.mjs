@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { pbkdf2Sync } from "node:crypto";
 import { execFileSync } from "node:child_process";
-import { cpSync, mkdirSync, mkdtempSync, readFileSync, rmSync } from "node:fs";
+import { cpSync, mkdirSync, mkdtempSync, readFileSync, rmSync, statSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, join, resolve } from "node:path";
 import { test } from "node:test";
@@ -90,6 +90,8 @@ test("devSetup rendert dezelfde waarden in realm, compose en :app", () => {
     assert.equal(jwks.keys[0].d, undefined);
     assert.equal(prive.alg, "PS256");
     assert.ok(prive.d);
+    // Alleen de eigenaar leest de private sleutel (POSIX; Windows kent deze modus niet).
+    if (process.platform !== "win32") assert.equal(statSync(join(root, CLIENTSLEUTEL_UITVOER(OIN))).mode & 0o777, 0o600);
     assert.match(
       read("backend/app/.env.properties"),
       new RegExp(`^KEYCLOAK_CLIENT_SECRET=${secrets.KEYCLOAK_M2M_CLIENT_SECRET}$`, "m"),
@@ -146,7 +148,7 @@ test("rooktest: geen vaste secrets in tracked bestanden", () => {
   const tracked = git("ls-files").split(/\r?\n/).filter(Boolean);
   for (const { output } of TEMPLATES) assert.ok(!tracked.includes(output), `${output} is ingecheckt`);
   for (const path of tracked.filter((p) => p.startsWith("docker-compose/imports/keycloak/"))) {
-    assert.fail(`${path}: realms horen als template onder docker-compose/templates/keycloak/`);
+    assert.fail(`${path}: realms horen als template onder keycloak/realm-template/`);
   }
   for (const path of tracked) {
     let text;

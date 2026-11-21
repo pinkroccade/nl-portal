@@ -21,8 +21,8 @@ secrets komen in `docker-compose/.env`: het Keycloak-client-secret, de JWT-secre
 componenten, de databasewachtwoorden, de Django-`SECRET_KEY`'s, de beheerderswachtwoorden en het RabbitMQ-wachtwoord.
 Ook `backend/app/.env.properties` en `backend/app-dev/.env.properties` worden gegenereerd. Zonder deze stap weigert
 `docker compose` te starten. Draaide de stack al, start hem dan opnieuw met lege databases:
-`docker compose down -v && docker compose up -d`. De testgebruikers (`burger`, `bedrijf`) staan met een
-wachtwoordhash in het realm-template.
+`docker compose down -v && docker compose up -d`. De testgebruikers (`burger`, `bedrijf`) staan, alleen in het ontwikkelrealm, met een
+wachtwoordhash in het realm-template (`keycloak/realm-template/demo-gebruikers.json`).
 
 ## 1. Remote — evaluate the released product
 

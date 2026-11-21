@@ -1,4 +1,6 @@
 // Minimal parser for the YAML subset used by docs/capabilities.yaml.
+// Zusterbestand: tenantbestand.mjs leest een andere YAML-deelverzameling (geneste mappen, lijsten, quote-bewust commentaar) met dezelfde
+// reden (geen YAML-dependency). Ze delen bewust geen code: de vormen verschillen en een gedeelde parser zou beide moeten dekken.
 //
 // The repo has no root package.json (and so no YAML dependency) and scripts here are
 // dependency-free Node. The inventory only uses: comments, `key: scalar`, block mappings,

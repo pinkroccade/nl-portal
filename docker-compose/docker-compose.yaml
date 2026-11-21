@@ -65,6 +65,8 @@ services:
             IMPORT_VAR_SUBSTITUTION_ENABLED: "true"
             IMPORT_VAR_SUBSTITUTION_UNDEFINED_THROWS_EXCEPTIONS: "true"
             KEYCLOAK_M2M_CLIENT_SECRET: ${KEYCLOAK_M2M_CLIENT_SECRET:?draai eerst mise run dev:setup}
+            # Zodra een tenant het inlogmiddel wallet aanzet (#529) hoort hier ook KEYCLOAK_WALLET_CLIENT_SECRET: kcc breekt anders op de
+            # ontbrekende variabele (UNDEFINED_THROWS_EXCEPTIONS).
         volumes:
             - ./.generated/keycloak:/config:ro
 

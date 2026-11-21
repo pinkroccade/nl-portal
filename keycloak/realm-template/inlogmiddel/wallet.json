@@ -31,7 +31,7 @@
   "identityProviderMappers": [
     { "name": "acr", "identityProviderAlias": "wallet", "identityProviderMapper": "nlportal-oidc-claim-note-mapper", "config": { "syncMode": "FORCE", "claim.name": "acr", "note": "acr" } },
     { "name": "acting", "identityProviderAlias": "wallet", "identityProviderMapper": "nlportal-oidc-claim-note-mapper", "config": { "syncMode": "FORCE", "claim.name": "acting_subject_id", "note": "acting_subject_id" } },
-    { "name": "legal", "identityProviderAlias": "wallet", "identityProviderMapper": "nlportal-oidc-claim-note-mapper", "config": { "syncMode": "FORCE", "claim.name": "legal_subject_id", "note": "legal_subject_id" } },
-    { "name": "gebruikersnaam", "identityProviderAlias": "wallet", "identityProviderMapper": "oidc-username-idp-mapper", "config": { "syncMode": "IMPORT", "template": "${ALIAS}.${CLAIM.sub}", "target": "LOCAL" } }
+    { "name": "legal", "identityProviderAlias": "wallet", "identityProviderMapper": "nlportal-oidc-claim-note-mapper", "config": { "syncMode": "FORCE", "claim.name": "nlportal-nooit-legal_subject_id", "note": "legal_subject_id" } },
+    { "name": "gebruikersnaam", "identityProviderAlias": "wallet", "identityProviderMapper": "oidc-username-idp-mapper", "config": { "syncMode": "IMPORT", "template": "${ALIAS}.${UUID}", "target": "LOCAL" } }
   ]
 }

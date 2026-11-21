@@ -10,7 +10,7 @@
 // Usage: node scripts/dev-setup.mjs [--root <repo-root>]
 
 import { pbkdf2Sync, randomBytes } from "node:crypto";
-import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
+import { chmodSync, existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { maakClientSleutel } from "./lib/clientsleutel.mjs";
@@ -106,10 +106,12 @@ export function withManagedBlock(existing, values) {
   return `${existing.replace(/\s*$/, "")}\n\n${block}\n`;
 }
 
-function write(root, path, content) {
+function write(root, path, content, mode) {
   const target = join(root, path);
   mkdirSync(dirname(target), { recursive: true });
   writeFileSync(target, content);
+  // writeFileSync past de modus van een bestaand bestand niet aan; chmod ook dan.
+  if (mode !== undefined) chmodSync(target, mode);
 }
 
 /** Genereert per tenant het realm en het sleutelpaar voor `private_key_jwt`; geeft de geschreven paden terug. */
@@ -120,7 +122,7 @@ export function genereerTenantRealms(root, sleutelMaker = maakClientSleutel) {
     const sleutel = sleutelMaker();
     const realm = genereerRealm({ tenant, realm: DEV_REALM, brokerUrl: DEV_BROKER_URL, clientSleutels: [sleutel.publiek] });
     write(root, REALM_UITVOER(tenant.oin), `${JSON.stringify(realm, null, 2)}\n`);
-    write(root, CLIENTSLEUTEL_UITVOER(tenant.oin), `${JSON.stringify(sleutel.prive, null, 2)}\n`);
+    write(root, CLIENTSLEUTEL_UITVOER(tenant.oin), `${JSON.stringify(sleutel.prive, null, 2)}\n`, 0o600);
     return [REALM_UITVOER(tenant.oin), CLIENTSLEUTEL_UITVOER(tenant.oin)];
   });
 }

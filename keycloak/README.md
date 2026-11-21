@@ -148,7 +148,8 @@ overslaan.**
   het image zit: draai hem tegen dit image.
 - Zet op `nl-portal-backend` de client-mappers `oidc-usersessionmodel-note-mapper` en haal de scope `acr` eraf.
 - Een SAML-koppeling met `useMetadataDescriptorUrl` (certificaat uit de metadata-URL, niet vastgepind) faalt gesloten: de mapper eist
-  een vastgepind `signingCertificate` en geeft anders een loginfout. Pin het certificaat in de koppeling.
+  een vastgepind `signingCertificate` en geeft anders een loginfout. Pin het certificaat in de koppeling; de realm-generator weigert
+  een metadata-URL al bij het genereren.
 - De OIDC-koppeling (wallet): `nlportal-oidc-claim-note-mapper` vertrouwt het `VALIDATED_ID_TOKEN` en kijkt niet naar de
   handtekeninginstelling van de koppeling. Dat is bewust: bij een authorization-code-flow over TLS met clientauthenticatie
   mag de ID-tokenhandtekening volgens OIDC Core worden overgeslagen. De realmtest (#505) controleert dat de wallet-koppeling
@@ -159,7 +160,9 @@ overslaan.**
 ### Realm-template (#505)
 
 Eén template voor alle tenants: `realm-template/realm.json` (de basis) plus een fragment per inlogmiddel
-(`realm-template/inlogmiddel/<naam>.json`: `test`, `digid`, `wallet`). `scripts/lib/realm.mjs` vult het met de waarden uit het
+(`realm-template/inlogmiddel/<naam>.json`: `digid`, `wallet`; het testinlogmiddel heeft geen fragment). Alleen in ontwikkeling komen
+`realm-template/demo-gebruikers.json` (demo-gebruikers met vaste wachtwoordhash, bij het testinlogmiddel) en `realm-template/tussenfase/spa.json`
+(de SPA-client `nl-portal`, tot #506) erbij. `scripts/lib/realm.mjs` vult het met de waarden uit het
 tenantbestand (`docker-compose/imports/tenants`) en voegt alleen de fragmenten van de ingeschakelde inlogmiddelen toe;
 `mise run dev:setup` genereert zo per tenant `docker-compose/.generated/keycloak/<oin>.json` plus een sleutelpaar voor
 `private_key_jwt` (de private JWK komt in `docker-compose/.generated/tenants/<oin>/clientsleutel.jwk.json`, de publieke in het realm).
@@ -172,8 +175,15 @@ logout-URL, geen service-account, geen directe grants), tot #506 ook de huidige 
 scope `acr` van `nl-portal-backend` af; per koppeling een mapper voor elke notitie die een client-mapper leest;
 SAML met `validateSignature`, `wantAssertionsSigned` en een vastgepind `signingCertificate`, minimumniveau als
 `authnContextClassRef`; wallet met code-flow, PKCE S256, clientauthenticatie en TLS; geen identiteitskoppeling; SSO-tijden niet
-langer dan het portaal; buiten ontwikkeling alleen `https`-koppelingen. Het testinlogmiddel (demo-gebruikers en de standaard
-browserflow) bestaat alleen als de tenant het kent; de generator weigert het in productie, en een realm zonder testinlogmiddel
-heeft de flow `alleen-koppelingen` en geen gebruikers.
+langer dan het portaal; buiten ontwikkeling alleen `https`-koppelingen. Het testinlogmiddel (de standaard
+browserflow; demo-gebruikers alleen in ontwikkeling) bestaat alleen als de tenant het kent; de generator weigert het in productie, en een realm
+zonder testinlogmiddel heeft de flow `alleen-koppelingen` en geen gebruikers. Buiten ontwikkeling staat er geen SPA-client, geen
+directe grant (ROPC), geen wildcard-redirect en geen `offline_access`; offline sessies zijn begrensd op 8 uur en refresh-tokens roteren.
+`nl-portal-backend` krijgt alleen de scope `basic`, geen `profile` of `email`: de gebruikersnaam van een gebrokerde gebruiker is `<alias>.<UUID>`
+(nooit de NameID of een ander nummer) en staat niet in een token; wat Keycloak per koppeling onthoudt (de federated identity) is de NameID.
+Verder weigert de generator: een metadata-URL bij een koppeling (alleen een vastgepind certificaat), `$(` in tenant- of koppelingsgegevens
+(kcc-substitutie), een domein dat geen hostnaam is, een niet-https-broker buiten ontwikkeling, een onbekend minimumniveau of onder
+substantieel in productie, en sessietijden van nul of met een inactiviteit boven de absolute duur.
+`integratietest/handmatig.test.mjs` bewijst tegen het echte image dat een oude, geldige SAML-response in een nieuwe authenticatiesessie wordt geweigerd (ASVS 6.8.3).
 `integratietest/realm-kcc.test.mjs` laadt dezelfde realms met keycloak-config-cli in een echte Keycloak en doorloopt een code-flow
 met een `private_key_jwt`-assertion.

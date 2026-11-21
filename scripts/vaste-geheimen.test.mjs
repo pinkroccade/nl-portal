@@ -44,8 +44,6 @@ test("rooktest: geen vaste wachtwoorden, secrets of tokens in compose-, import- 
   const bestanden = git("ls-files", "docker-compose", "backend/app", "backend/app-dev")
     .split(/\r?\n/)
     .filter((p) => /\.(ya?ml|env|json|example|properties)$/.test(p))
-    // De Keycloak-templates bevatten de wachtwoordhash van de vaste testgebruikers (zie #151).
-    .filter((p) => !p.startsWith("docker-compose/templates/keycloak/"))
     .filter((p) => !p.includes("/src/test/"));
   assert.ok(bestanden.length > 10, "te weinig bestanden gevonden om iets te bewaken");
   const fouten = bestanden.flatMap((p) => vasteGeheimen(readFileSync(join(repoRoot, p), "utf8")).map((f) => `${p} ${f}`));

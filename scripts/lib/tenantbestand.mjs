@@ -3,6 +3,8 @@
 // tenantbestand: `sleutel: waarde`, geneste mappen, lijsten (blok en `[a, b]`), commentaar en gequote tekst. Alles daarbuiten
 // geeft een fout. De echte validatie (schema en regels) blijft die van de tenantvalidator in `backend/core`; deze lezer
 // controleert alleen wat het genereren nodig heeft. Samenvoegen als in `TenantFileLoader`: mappen diep, lijsten vervangen.
+// Zusterbestand: capabilities-yaml.mjs leest een andere deelverzameling met dezelfde reden; ze delen bewust geen code (andere vormen).
+// `voegTenantSamen` (lijsten vervangen, als `TenantFileLoader`) en `voegSamen` in realm.mjs (lijsten achter elkaar) hebben bewust tegengestelde lijstregels.
 
 import { readdirSync, readFileSync, statSync } from "node:fs";
 import { join } from "node:path";

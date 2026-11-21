@@ -15,11 +15,23 @@ import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { clientAssertion, maakClientSleutel } from "../../scripts/lib/clientsleutel.mjs";
 import { genereerRealm } from "../../scripts/lib/realm.mjs";
+import { leesTenantbestanden } from "../../scripts/lib/tenantbestand.mjs";
 import { KC, admin, decodeJwt, login, waitForKeycloak } from "./stack.mjs";
 
 const repoRoot = resolve(dirname(fileURLToPath(import.meta.url)), "..", "..");
 // Eén plek voor de kcc-versie: de compose-stack.
-const KCC_IMAGE = /image:\s*(adorsys\/keycloak-config-cli@sha256:[0-9a-f]{64})/.exec(readFileSync(join(repoRoot, "docker-compose", "docker-compose.yaml"), "utf8"))?.[1];
+const COMPOSE = readFileSync(join(repoRoot, "docker-compose", "docker-compose.yaml"), "utf8");
+const KCC_IMAGE = /image:\s*(adorsys\/keycloak-config-cli@sha256:[0-9a-f]{64})/.exec(COMPOSE)?.[1];
+/** De letterlijke `IMPORT_*`- en `KEYCLOAK_AVAILABILITYCHECK_*`-instellingen uit het environment-blok van de kcc-service in de compose. */
+function kccInstellingenUitCompose() {
+  const blok = /\n    nl-portal-keycloak-config:\n([\s\S]*?)\n\n/.exec(COMPOSE)?.[1] ?? "";
+  const uit = [];
+  for (const m of blok.matchAll(/^\s{12}((?:IMPORT|KEYCLOAK_AVAILABILITYCHECK)_[A-Z_]+):\s*"?([^"\n#]+?)"?\s*$/gm)) {
+    if (m[1] === "IMPORT_FILES_LOCATIONS") continue; // hier een andere (tijdelijke) map
+    uit.push("-e", `${m[1]}=${m[2]}`);
+  }
+  return uit;
+}
 const NETWERK = "nlp-keycloak-it_default";
 const M2M_SECRET = "m2m-testgeheim";
 const WALLET_SECRET = "wallet-testgeheim";
@@ -27,7 +39,8 @@ const DOCKER = process.env.DOCKER_BIN ?? "docker";
 
 const OIN_DEV = "00000099000000000001";
 const OIN_ACC = "00000099000000000002";
-const DEV = { oin: OIN_DEV, naam: "Gemeente De Bosrand", omgevingstype: "ontwikkeling", domeinen: ["localhost"], thema: { titel: "Mijn De Bosrand" }, inlogmiddelen: ["test"] };
+// De ontwikkeltenant is het demo-tenantbestand uit het repo (zoals `dev:setup` het leest).
+const [DEV] = leesTenantbestanden(join(repoRoot, "docker-compose", "imports", "tenants"));
 const ACC = { oin: OIN_ACC, naam: "Gemeente Het Wijde Veld", omgevingstype: "acceptatie", domeinen: ["mijn.hetwijdeveld.example"], thema: { titel: "Mijn Het Wijde Veld" }, inlogmiddelen: ["digid", "wallet"], minimumNiveau: "midden" };
 
 const sleutel = maakClientSleutel();
@@ -45,9 +58,7 @@ function kcc(realms) {
       [
         "run", "--rm", "--network", NETWERK, "-v", `${map}:/config:ro`,
         "-e", "KEYCLOAK_URL=http://keycloak:18080", "-e", "KEYCLOAK_USER=admin", "-e", "KEYCLOAK_PASSWORD=admin",
-        "-e", "KEYCLOAK_AVAILABILITYCHECK_ENABLED=true", "-e", "KEYCLOAK_AVAILABILITYCHECK_TIMEOUT=120s",
-        "-e", "IMPORT_FILES_LOCATIONS=/config/*.json", "-e", "IMPORT_CACHE_ENABLED=false",
-        "-e", "IMPORT_VAR_SUBSTITUTION_ENABLED=true", "-e", "IMPORT_VAR_SUBSTITUTION_UNDEFINED_THROWS_EXCEPTIONS=true",
+        "-e", "IMPORT_FILES_LOCATIONS=/config/*.json", ...kccInstellingenUitCompose(),
         "-e", `KEYCLOAK_M2M_CLIENT_SECRET=${M2M_SECRET}`, "-e", `KEYCLOAK_WALLET_CLIENT_SECRET=${WALLET_SECRET}`,
         KCC_IMAGE,
       ],
@@ -108,7 +119,7 @@ describe("keycloak-config-cli laadt het realm-template", () => {
     assert.equal(c.attributes["access.token.header.type.rfc9068"], "true");
     assert.equal(JSON.parse(c.attributes["jwks.string"]).keys[0].kid, sleutel.kid);
     assert.ok(!c.defaultClientScopes.includes("acr"), "scope acr hoort van nl-portal-backend af");
-    assert.deepEqual(c.protocolMappers.map((m) => m.name).sort(), ["acr", "acting-subject-id", "inlogmiddel", "legal-subject-id"]);
+    assert.deepEqual(c.protocolMappers.map((m) => m.name).sort(), ["acr", "acting-subject-id", "audience", "inlogmiddel", "legal-subject-id"]);
   });
 
   it("de m2m-client krijgt zijn geheim uit de omgeving van kcc, niet uit het realm", async () => {
@@ -198,10 +209,13 @@ describe("code-flow met private_key_jwt tegen het geladen realm", () => {
     const id = decodeJwt(body.id_token);
     assert.equal(id.iss, `${KC}/realms/nlportal`);
     assert.equal(id.azp, CLIENT);
-    assert.equal(id.preferred_username, "flowtest");
+    assert.equal(id.preferred_username, undefined, "geen scope profile: de gebruikersnaam hoort niet in het token");
+    assert.equal(id.email, undefined);
+    assert.equal(body.refresh_token, undefined, "de BFF gebruikt geen refresh-token");
     assert.equal(id.acr, undefined, "geen koppeling, dus geen acr-claim van de client-mapper (en niet van de scope acr)");
     const at = JSON.parse(Buffer.from(body.access_token.split(".")[0], "base64url").toString());
     assert.equal(at.typ, "at+jwt");
+    assert.ok([].concat(decodeJwt(body.access_token).aud).includes(CLIENT), "RFC 9068: aud");
   });
 
   it("een client_secret in plaats van een assertion wordt geweigerd", async () => {
@@ -225,6 +239,37 @@ describe("code-flow met private_key_jwt tegen het geladen realm", () => {
   it("een redirect-URI buiten de exacte registratie wordt geweigerd", async () => {
     const r = await login({ username: "flowtest", password: wachtwoord, realm: "nlportal", clientId: CLIENT, redirectUri: `${REDIRECT}/extra`, formulier: true }).catch((e) => e);
     assert.ok(r instanceof Error || r.code === null, "een prefix-match van de redirect-URI mag niet werken");
+  });
+});
+
+describe("tussenfase (security M2): geen lokale login, geen SPA-client en geen offline tokens buiten ontwikkeling", () => {
+  const tokenEndpoint = (realm) => `${KC}/realms/${realm}/protocol/openid-connect/token`;
+
+  it("het acceptatierealm heeft geen SPA-client en geen client met directe grants, wildcard-redirect of offline_access", async () => {
+    const eigen = new Set(realmAcc.clients.filter((c) => c.enabled !== false).map((c) => c.clientId)); // niet de ingebouwde clients van Keycloak (admin-cli, broker, ...)
+    const clients = (await rep("acceptatie", "/clients")).filter((c) => eigen.has(c.clientId));
+    assert.ok(!(await rep("acceptatie", "/clients?clientId=nl-portal")).length, "nl-portal hoort alleen in ontwikkeling");
+    for (const c of clients) {
+      assert.ok(!c.directAccessGrantsEnabled, `${c.clientId}: directAccessGrantsEnabled`);
+      for (const uri of c.redirectUris ?? []) assert.doesNotMatch(uri, /[*+]/, `${c.clientId}: ${uri}`);
+      assert.ok(![...(c.defaultClientScopes ?? []), ...(c.optionalClientScopes ?? [])].includes("offline_access"), `${c.clientId}: offline_access`);
+    }
+  });
+
+  it("grant_type=password op het acceptatierealm wordt geweigerd, voor elke client", async () => {
+    for (const client_id of ["nl-portal", "nl-portal-backend", "nl-portal-m2m"]) {
+      const r = await fetch(tokenEndpoint("acceptatie"), { method: "POST", body: new URLSearchParams({ grant_type: "password", client_id, username: "burger", password: "demo-wachtwoord-1", scope: "openid offline_access" }) });
+      assert.ok([400, 401].includes(r.status), `${client_id}: status ${r.status}`);
+      assert.equal((await r.json()).access_token, undefined);
+    }
+  });
+
+  it("offline_access wordt niet uitgegeven aan de SPA in het ontwikkelrealm", async () => {
+    const r = await fetch(tokenEndpoint("nlportal"), { method: "POST", body: new URLSearchParams({ grant_type: "password", client_id: "nl-portal", username: "burger", password: "demo-wachtwoord-1", scope: "openid offline_access" }) });
+    const body = await r.json();
+    const claims = body.access_token ? decodeJwt(body.access_token) : {};
+    assert.ok(!String(claims.scope ?? "").split(" ").includes("offline_access"), `scope: ${claims.scope}`);
+    if (body.refresh_token) assert.notEqual(decodeJwt(body.refresh_token).typ, "Offline");
   });
 });
 

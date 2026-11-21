@@ -19,10 +19,13 @@ export const DIGID_NIVEAU = {
   hoog: `${SAML_KLASSE}SmartcardPKI`,
 };
 const STANDAARD_NIVEAU = "substantieel";
+/** In productie geldt minimaal Substantieel (spec #499, "Testinlogmiddel"); `basis` en `midden` zijn alleen buiten productie toegestaan. */
+const PRODUCTIE_NIVEAUS = new Set(["substantieel", "hoog"]);
+const DOMEIN = /^[a-z0-9]([a-z0-9-]*[a-z0-9])?(\.[a-z0-9]([a-z0-9-]*[a-z0-9])?)*$/;
 const MAX_INACTIVITEIT = 15 * 60;
 const MAX_ABSOLUUT = 8 * 60 * 60;
 
-/** Inlogmiddelen met een eigen fragment; `test` heeft alleen een fragment met demo-gebruikers. */
+/** Inlogmiddelen met een eigen fragment; `test` heeft er geen (de demo-gebruikers komen alleen in ontwikkeling, zie `genereerRealm`). */
 const KOPPELINGEN = { digid: ["singleSignOnServiceUrl", "idpEntityId", "signingCertificate"], wallet: ["authorizationUrl", "tokenUrl", "jwksUrl", "issuer", "clientId"] };
 const URL_VELDEN = { digid: ["singleSignOnServiceUrl", "idpEntityId"], wallet: ["authorizationUrl", "tokenUrl", "jwksUrl", "issuer"] };
 const BEKEND = new Set(["test", ...Object.keys(KOPPELINGEN)]);
@@ -80,8 +83,15 @@ function controleerClientSleutels(sleutels) {
   }
 }
 
+/** keycloak-config-cli vervangt `$(env:..)` en `$(file:..)` overal in het bestand; een waarde uit een tenantbestand mag dat niet uitlokken. */
+function weigerSubstitutie(waarde, waar) {
+  if (JSON.stringify(waarde ?? null).includes("$(")) throw new Error(`${waar} bevat "$(": kcc-substitutie uit een tenantbestand is niet toegestaan`);
+}
+
 function controleerKoppeling(naam, gegevens, metTls) {
   const g = gegevens ?? {};
+  // Alleen een vastgepind certificaat: een metadata-URL laat Keycloak de sleutel van de IdP zelf ophalen en vervangen.
+  if (Object.keys(g).some((veld) => /metadata/i.test(veld))) throw new Error(`Koppeling ${naam}: metadata-URL is niet toegestaan; pin het certificaat vast (signingCertificate)`);
   for (const veld of KOPPELINGEN[naam]) {
     if (typeof g[veld] !== "string" || g[veld].trim() === "") throw new Error(`Koppeling ${naam}: ${veld} ontbreekt`);
   }
@@ -105,6 +115,9 @@ export function genereerRealm({ tenant, realm, brokerUrl, clientSleutels, idp = 
   if (!Array.isArray(domeinen) || domeinen.length === 0) throw new Error("De tenant heeft minstens één domein nodig");
   const productie = omgevingstype === "productie";
   const ontwikkeling = omgevingstype === "ontwikkeling";
+  weigerSubstitutie({ naam, domeinen, idp }, "De tenant of de koppelingsgegevens");
+  for (const d of domeinen) if (typeof d !== "string" || !DOMEIN.test(d)) throw new Error(`Ongeldig domein ${JSON.stringify(d)}: alleen een hostnaam in kleine letters`);
+  if (!ontwikkeling && !String(brokerUrl).startsWith("https://")) throw new Error("De broker-URL moet https zijn buiten ontwikkeling");
   for (const middel of inlogmiddelen) if (!BEKEND.has(middel)) throw new Error(`Inlogmiddel ${middel} heeft nog geen realm-fragment`);
   if (productie && inlogmiddelen.includes("test")) throw new Error("Het testinlogmiddel is niet toegestaan in productie");
   controleerClientSleutels(clientSleutels);
@@ -117,7 +130,10 @@ export function genereerRealm({ tenant, realm, brokerUrl, clientSleutels, idp = 
   const inactiviteit = sessie.inactiviteit ? duurInSeconden(sessie.inactiviteit) : MAX_INACTIVITEIT;
   const absoluut = sessie.absoluut ? duurInSeconden(sessie.absoluut) : MAX_ABSOLUUT;
   if (inactiviteit > MAX_INACTIVITEIT || absoluut > MAX_ABSOLUUT) throw new Error("De sessietijden mogen niet langer zijn dan 15 minuten inactiviteit en 8 uur absoluut");
+  if (inactiviteit <= 0 || absoluut <= 0 || inactiviteit > absoluut) throw new Error("De sessietijden moeten positief zijn en de inactiviteit mag niet langer zijn dan de absolute duur");
   const niveau = tenant.minimumNiveau ?? STANDAARD_NIVEAU;
+  if (!(niveau in DIGID_NIVEAU)) throw new Error(`Onbekend minimumNiveau ${JSON.stringify(niveau)}`);
+  if (productie && !PRODUCTIE_NIVEAUS.has(niveau)) throw new Error("In productie is het minimumNiveau minstens substantieel");
 
   const context = {
     realm,
@@ -140,6 +156,11 @@ export function genereerRealm({ tenant, realm, brokerUrl, clientSleutels, idp = 
   };
 
   let uit = leesJson("realm.json");
-  for (const middel of inlogmiddelen) uit = voegSamen(uit, leesJson(`inlogmiddel/${middel}.json`));
+  for (const middel of inlogmiddelen.filter((m) => m in KOPPELINGEN)) uit = voegSamen(uit, leesJson(`inlogmiddel/${middel}.json`));
+  // Alleen in ontwikkeling: de demo-gebruikers met vaste wachtwoorden (hashes in Git) en de tussenfase-SPA-client (tot #506).
+  if (ontwikkeling) {
+    if (inlogmiddelen.includes("test")) uit = voegSamen(uit, leesJson("demo-gebruikers.json"));
+    uit = voegSamen(uit, leesJson("tussenfase/spa.json"));
+  }
   return vul(uit, context);
 }
