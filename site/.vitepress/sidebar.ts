@@ -67,6 +67,7 @@ export const sidebar: Record<string, SidebarItem[]> = {
         { text: "Wat is NL Portal", link: "/architectuur/" },
         page("architectuur", "applicatiearchitectuur.md"),
         page("architectuur", "5-lagenmodel.md"),
+        page("architectuur", "principes.md"),
         page("architectuur", "authentication-en-authorization.md"),
         page("architectuur", "c4-model.md"),
         page("architectuur", "regeldekking.md"),
