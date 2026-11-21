@@ -20,9 +20,15 @@ test("vasteGeheimen laat verwijzingen, lege waarden en getallen toe", () => {
     '"token_auth": 1,',
     '"secret": "",',
     "- BROKER=amqp://gebruiker:${PW}@host:5672//",
-    "  secret: 00000099000000000001.zaken-secret",
   ];
   for (const regel of toegestaan) assert.deepEqual(vasteGeheimen(regel), [], regel);
+});
+
+test("vasteGeheimen laat een geheimverwijzing (<oin>.<naam>) alleen toe in een tenantbestand", () => {
+  const regel = "  secret: 00000099000000000001.zaken-secret";
+  assert.deepEqual(vasteGeheimen(regel, { tenantbestand: true }), []);
+  assert.equal(vasteGeheimen(regel).length, 1, "in een ander bestand is het een vaste waarde");
+  assert.equal(vasteGeheimen(regel, { tenantbestand: false }).length, 1);
 });
 
 test("vasteGeheimen herkent vaste waarden, ook als standaardwaarde, zonder de waarde te melden", () => {
@@ -48,6 +54,6 @@ test("rooktest: geen vaste wachtwoorden, secrets of tokens in compose-, import- 
     .filter((p) => /\.(ya?ml|env|json|example|properties)$/.test(p))
     .filter((p) => !p.includes("/src/test/"));
   assert.ok(bestanden.length > 10, "te weinig bestanden gevonden om iets te bewaken");
-  const fouten = bestanden.flatMap((p) => vasteGeheimen(readFileSync(join(repoRoot, p), "utf8")).map((f) => `${p} ${f}`));
+  const fouten = bestanden.flatMap((p) => vasteGeheimen(readFileSync(join(repoRoot, p), "utf8"), { tenantbestand: /(^|\/)tenants\//.test(p) }).map((f) => `${p} ${f}`));
   assert.deepEqual(fouten, []);
 });

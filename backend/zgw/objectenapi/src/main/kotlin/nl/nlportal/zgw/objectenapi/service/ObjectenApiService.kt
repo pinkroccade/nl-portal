@@ -50,26 +50,20 @@ class ObjectenApiService(
         objectsApiObject: UpdateObjectsApiObjectRequest<T>,
     ): ObjectsApiObject<T>? = objectsApiClient.updateObject(objectUuid, objectsApiObject)
 
-    suspend inline fun <reified T> getObjectByUrl(url: String): ObjectsApiObject<T>? {
-        controleerObjectUrl(url)
-        return objectsApiClient.getObjectByUrl(url)
-    }
+    suspend inline fun <reified T> getObjectByUrl(url: String): ObjectsApiObject<T>? = objectsApiClient.getObjectByUrl(controleerObjectUrl(url))
 
     /**
      * Een object-URL komt uit het antwoord van een andere bron en krijgt het token van de Objecten API alleen als hij onder
      * de basis-URL van die API valt: schema, host, poort en padvoorvoegsel (op segmentgrens). Dezelfde regel als de
-     * host-binding van de koppelingen.
+     * host-binding van de koppelingen. Geeft de gecontroleerde [URI] terug; die gaat naar de client, niet de ruwe tekst.
      */
     @PublishedApi
-    internal fun controleerObjectUrl(url: String) {
-        val basis = objectsApiClientConfig.url
-        require(runCatching { URI(url).isAbsolute }.getOrDefault(false)) { "De object-URL is geen absolute URL" }
+    internal fun controleerObjectUrl(url: String): URI =
         try {
-            HostBinding.oplossen(basis, url)
+            HostBinding.valtOnder(objectsApiClientConfig.url, url)
         } catch (e: IllegalArgumentException) {
             throw IllegalArgumentException("De object-URL valt buiten de geconfigureerde Objecten API: ${e.message}", e)
         }
-    }
 
     suspend inline fun <reified T> createObject(createObjectsApiObjectRequest: CreateObjectsApiObjectRequest<T>): ObjectsApiObject<T> =
         objectsApiClient.createObject(
