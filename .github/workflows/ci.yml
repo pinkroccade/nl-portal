@@ -5,6 +5,8 @@ on:
         branches:
             - main
             - "release/*.x"
+            # Tijdelijk voor epic #499: draft-PR's van ticketbranches naar de integratiebranch. Weghalen vóór de merge naar main.
+            - feat/multitenancy-bff-499
 
 concurrency:
     group: ci-${{ github.workflow }}-${{ github.ref }}
