@@ -7,4 +7,5 @@ cd "$(dirname "$0")/../../keycloak/integratietest"
 trap 'docker compose down -v' EXIT
 docker compose down -v > /dev/null 2>&1 || true
 docker compose up -d
-node --test claims.test.mjs handmatig.test.mjs
+# Bestanden na elkaar: ze delen de realm portal (gebruikers worden tussen tests opgeruimd).
+node --test --test-concurrency=1 claims.test.mjs handmatig.test.mjs

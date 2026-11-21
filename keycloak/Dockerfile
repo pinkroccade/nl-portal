@@ -25,11 +25,18 @@ RUN /opt/keycloak/bin/kc.sh build
 # --- image ---
 FROM quay.io/keycloak/keycloak:${KEYCLOAK_VERSION}@${KEYCLOAK_DIGEST}
 ARG KEYCLOAK_VERSION
+# sha256 van de provider-jar die in dit image zit (zet `mise run keycloak:image`), zodat het image herleidbaar is tot een build.
+ARG PROVIDER_SHA256=onbekend
 LABEL org.opencontainers.image.title="nl-portal-keycloak" \
       org.opencontainers.image.description="Keycloak met de NL Portal-provider voor sessienotities (acr en BSN) uit DigiD en wallet" \
       org.opencontainers.image.licenses="EUPL-1.2" \
-      nl.nlportal.keycloak.version="${KEYCLOAK_VERSION}"
-COPY --from=builder --chown=1000:0 /opt/keycloak/ /opt/keycloak/
-# Niet-root (uid 1000) staat al in het basisimage.
-ENTRYPOINT ["/opt/keycloak/bin/kc.sh"]
+      nl.nlportal.keycloak.version="${KEYCLOAK_VERSION}" \
+      nl.nlportal.keycloak.provider.sha256="${PROVIDER_SHA256}"
+# Code (lib, providers, bin) is van root en voor het proces alleen leesbaar: na code-executie kan het proces zijn eigen
+# jars en providers niet overschrijven, dus een kwaadaardige provider overleeft een herstart niet. Alleen data/ is
+# schrijfbaar voor uid 1000.
+COPY --from=builder --chown=0:0 /opt/keycloak/ /opt/keycloak/
+COPY --from=builder --chown=1000:0 /opt/keycloak/data/ /opt/keycloak/data/
+# Expliciet niet-root; het basisimage heeft dezelfde ENTRYPOINT, die hier dus niet herhaald wordt.
+USER 1000
 CMD ["start", "--optimized"]

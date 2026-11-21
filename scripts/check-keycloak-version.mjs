@@ -33,6 +33,13 @@ export function checkKeycloakVersion(root) {
       mismatches.push(`keycloak/Dockerfile: het basisimage staat niet op digest (${line.trim()})`);
     }
   }
+  // Niet-root moet in het image zelf staan, niet stilzwijgend uit het basisimage komen: de USER van de eindfase.
+  const stages = dockerfile.split(/^FROM\s/m).slice(1);
+  const lastStage = stages.at(-1) ?? "";
+  const users = [...lastStage.matchAll(/^USER\s+(\S+)\s*$/gm)].map((m) => m[1]);
+  if (users.at(-1) !== "1000") {
+    mismatches.push("keycloak/Dockerfile: de eindfase heeft geen expliciete USER 1000");
+  }
   return { version, mismatches };
 }
 

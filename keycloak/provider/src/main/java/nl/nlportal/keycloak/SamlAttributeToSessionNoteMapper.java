@@ -93,7 +93,9 @@ public class SamlAttributeToSessionNoteMapper extends SamlSessionNoteMapper {
         String text = null;
         if (value instanceof String s) text = s;
         else if (value instanceof NameIDType nameId) text = nameId.getValue();
-        if (text == null || text.isBlank()) {
+        // Keycloak levert een onbekend kindelement in een AttributeValue (zoals een EncryptedID) als tekst van de
+        // geserialiseerde XML; markup is geen waarde.
+        if (text == null || text.isBlank() || text.stripLeading().startsWith("<")) {
             throw new IdentityBrokerException("Attribuut " + attribute + " heeft een lege of niet-ondersteunde waarde");
         }
         return text;

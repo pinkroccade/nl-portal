@@ -1,0 +1,17 @@
+# Configuratie van `mise run security:keycloak-vuln-scan`. Elke uitzondering heeft een reden en een herzieningsmoment;
+# zonder uitzondering zou de scan vanaf dag een rood zijn en dus genegeerd worden, en een nieuwe echte treffer verbergen.
+ignore:
+  # guava 33.6.0-jre in het Keycloak-basisimage (26.8.2), GHSA-xxph-c9ww-hj94 (high): geheugenuitputting bij Java-native
+  # deserialisatie van CompactHashMap/CompactHashSet/MapMakerInternalMap. Alleen uitbuitbaar waar onvertrouwde bytes in een
+  # ObjectInputStream komen. Keycloak gebruikt ProtoStream voor sessies en cache, geen native deserialisatie van
+  # verzoeken; het enige plausibele pad is clusterverkeer (JGroups/Infinispan), dat intern hoort te zijn (NetworkPolicy:
+  # #191). Niet geverifieerd tegen de Keycloak-broncode. Geen jar vervangen. Fix in guava 33.7.2: Keycloak moet bumpen.
+  # Herzien: uiterlijk 2027-01-31, en verwijderen zodra een Keycloak-patch guava >= 33.7.2 meelevert (zie README, Supply chain).
+  - vulnerability: GHSA-xxph-c9ww-hj94
+    package:
+      name: guava
+      version: 33.6.0-jre
+  - vulnerability: CVE-2026-102554
+    package:
+      name: guava
+      version: 33.6.0-jre

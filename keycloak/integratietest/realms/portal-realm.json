@@ -182,8 +182,9 @@
         "nameIDPolicyFormat": "urn:oasis:names:tc:SAML:2.0:nameid-format:persistent",
         "postBindingAuthnRequest": "true",
         "postBindingResponse": "true",
-        "wantAssertionsSigned": "false",
-        "validateSignature": "false",
+        "wantAssertionsSigned": "true",
+        "validateSignature": "true",
+        "signingCertificate": "SETUP-VERVANGT-DIT",
         "syncMode": "FORCE"
       }
     }

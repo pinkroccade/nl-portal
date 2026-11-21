@@ -10,6 +10,7 @@ const DOCKERFILE = `ARG KEYCLOAK_VERSION=26.8.2
 ARG KEYCLOAK_DIGEST=${DIGEST}
 FROM quay.io/keycloak/keycloak:\${KEYCLOAK_VERSION}@\${KEYCLOAK_DIGEST} AS builder
 FROM quay.io/keycloak/keycloak:\${KEYCLOAK_VERSION}@\${KEYCLOAK_DIGEST}
+USER 1000
 `;
 const CONSISTENT = {
   "keycloak/provider/gradle.properties": "keycloakVersion=26.8.2\nkeycloakJavaRelease=21\n",
@@ -71,4 +72,24 @@ test("faalt als keycloakVersion of de Dockerfile-versie ontbreekt", () => {
     () => withRepo({ ...CONSISTENT, "keycloak/Dockerfile": "FROM scratch\n" }, checkKeycloakVersion),
     /KEYCLOAK_VERSION/,
   );
+});
+
+test("meldt een eindfase die niet expliciet als uid 1000 draait", () => {
+  const zonderUser = [
+    DOCKERFILE.replace("USER 1000\n", ""),
+    DOCKERFILE.replace("USER 1000", "USER root"),
+    DOCKERFILE.replace("USER 1000", "USER keycloak"),
+  ];
+  for (const dockerfile of zonderUser) {
+    const result = withRepo({ ...CONSISTENT, "keycloak/Dockerfile": dockerfile }, checkKeycloakVersion);
+    assert.equal(result.mismatches.length, 1, dockerfile);
+    assert.match(result.mismatches[0], /USER 1000/);
+  }
+});
+
+test("telt een USER 1000 in een eerdere fase niet als USER van de eindfase", () => {
+  const eerdereFase = DOCKERFILE.replace("AS builder\n", "AS builder\nUSER 1000\n").replace(/USER 1000\n$/, "");
+  const result = withRepo({ ...CONSISTENT, "keycloak/Dockerfile": eerdereFase }, checkKeycloakVersion);
+  assert.equal(result.mismatches.length, 1);
+  assert.match(result.mismatches[0], /USER 1000/);
 });

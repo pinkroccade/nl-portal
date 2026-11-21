@@ -22,15 +22,15 @@ shellcheck = "0.11.0"
 # --- Aggregaten ---
 
 [tasks.build]
-description = "Bouw backend en frontend"
+description = "Bouw backend, frontend en de Keycloak-provider"
 depends = ["backend:build", "frontend:build", "keycloak:build"]
 
 [tasks.test]
-description = "Draai de unit-tests van backend, frontend en scripts (integratietests: backend:integration-test)"
+description = "Draai de unit-tests van backend, frontend, Keycloak-provider en scripts (integratietests: backend:integration-test, keycloak:integration-test)"
 depends = ["backend:test", "frontend:test", "keycloak:test", "scripts:test", "perf:test"]
 
 [tasks.lint]
-description = "Lint, typecheck en formatteringscontrole van backend en frontend"
+description = "Lint, typecheck en formatteringscontrole van backend en frontend, plus de controles van workflows, mise-taken en Keycloak-versie"
 depends = ["backend:lint", "frontend:lint", "frontend:typecheck", "frontend:prettier", "perf:check", "workflows:lint", "mise:check-shell", "keycloak:check-version"]
 
 [tasks.arch-check]
@@ -380,9 +380,9 @@ depends = ["keycloak:image"]
 run = "syft docker:nl-portal-keycloak:dev -o cyclonedx-json=keycloak/sbom.cyclonedx.json"
 
 [tasks."security:keycloak-vuln-scan"]
-description = "Genereer de SBOM van het eigen Keycloak-image en scan die op bekende kwetsbaarheden (faalt op high/critical waarvoor een fix bestaat; de basisimage-treffers zonder fix staan in keycloak/README.md)"
+description = "Genereer de SBOM van het eigen Keycloak-image en scan die op bekende kwetsbaarheden (faalt op high/critical waarvoor een fix bestaat; uitzonderingen met reden en herzieningsdatum staan in keycloak/.grype.yaml)"
 depends = ["sbom:keycloak-image"]
-run = "grype sbom:keycloak/sbom.cyclonedx.json --fail-on high --only-fixed"
+run = "grype sbom:keycloak/sbom.cyclonedx.json --config keycloak/.grype.yaml --fail-on high --only-fixed"
 
 [tasks."security:frontend-vuln-scan"]
 description = "Genereer de frontend-SBOM en scan die op bekende kwetsbaarheden (faalt op high/critical)"

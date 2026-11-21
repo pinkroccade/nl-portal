@@ -14,14 +14,42 @@ het terugvalplan (zie "Terugvalplan").
 
 | Mapper-id | Bron | Configuratie | Gedrag |
 |---|---|---|---|
-| `nlportal-saml-authncontext-note-mapper` | `AuthnContextClassRef` van de SAML-assertion | `note` (bijv. `acr`) | Leeg bij ontbrekende `AuthnStatement` of `AuthnContextClassRef` |
-| `nlportal-saml-attribute-note-mapper` | SAML-attribuut | `attribute.name`, `note` | `String` of `NameID`; leeg bij ontbrekend attribuut; faalt bij meer dan een waarde (ook dubbel attribuut), lege waarde, ander type (zoals `EncryptedID`) of een versleuteld attribuut |
-| `nlportal-oidc-claim-note-mapper` | claim van het ID-token van de wallet | `claim.name`, `note` | Leeg bij ontbrekende claim; faalt bij een claim die geen enkele tekstwaarde is |
+| `nlportal-saml-authncontext-note-mapper` | `AuthnContextClassRef` van de gevalideerde SAML-assertion | `note` (bijv. `acr`) | Leeg bij een `AuthnStatement` zonder `AuthnContextClassRef`; faalt bij nul of meer dan een `AuthnStatement`, of als het statement dat Keycloak los in de context zet niet dat van de assertion is |
+| `nlportal-saml-attribute-note-mapper` | SAML-attribuut | `attribute.name`, `note` | `String` of `NameID`; leeg bij ontbrekend attribuut; faalt bij meer dan een waarde (ook dubbel attribuut), een attribuut zonder waarde, lege waarde, ander type (zoals `EncryptedID`), een waarde die zelf markup is (Keycloak levert een onbekend kindelement als tekst) of een versleuteld attribuut |
+| `nlportal-oidc-claim-note-mapper` | claim van het ID-token van de wallet | `claim.name`, `note` | Leeg bij ontbrekende claim in het gevalideerde ID-token (nooit uit access token of userinfo); faalt bij een claim die geen enkele tekstwaarde is |
 
-Gemeenschappelijk: **elke login zet de notitie expliciet** (de waarde of een lege tekst), zodat een waarde van een eerdere
+Gemeenschappelijk (basisklasse `SessionNoteMapper`): **elke login zet de notitie expliciet** (de waarde of een lege tekst), zodat een waarde van een eerdere
 login in een hergebruikte Keycloak-sessie niet blijft staan. De waarde wordt als tekst in de contextdata onthouden omdat
 Keycloak bij de eerste login de context serialiseert en de assertion dan verloren gaat. Een lege of ontbrekende `acr` is een
 weigering bij de callback (#506); de mapper verzint nooit een niveau.
+
+### Wat leeg betekent en wanneer de login faalt
+
+| Situatie | AuthnContextClassRef | SAML-attribuut | OIDC-claim |
+|---|---|---|---|
+| Bron ontbreekt (geen attribuut, geen claim, geen `AuthnContextClassRef`) | leeg | leeg | leeg |
+| Lege of niet-tekstwaarde, meer dan een waarde | n.v.t. | **faalt** | **faalt** |
+| Geen assertion of ID-token in de context en geen eerder onthouden waarde | **faalt** | **faalt** | **faalt** |
+| Ontbrekende `note`, `attribute.name` of `claim.name` in de mapperconfiguratie | **faalt** | **faalt** | **faalt** |
+
+Leeg is bewust een geldige uitkomst voor een ontbrekend attribuut (een gewone burger heeft geen `LegalSubjectID`); de
+callback van #506 weigert een lege of ontbrekende `acr`. Een attribuut dat er wel is maar geen geldige waarde heeft, is
+een fout. Er is geen validatiehaakje in de mapper-SPI, dus een fout in de configuratie geeft bij de eerste login een
+duidelijke melding in plaats van bij het opslaan.
+
+### Vertrouwensgrens: de SAML-mappers eisen een gecontroleerde handtekening
+
+De waarde (niveau, BSN) is alleen te vertrouwen als Keycloak de handtekening op de assertion heeft gecontroleerd. De twee
+SAML-mappers (`SamlSessionNoteMapper`) laten de login daarom falen als de koppeling niet zo staat: `validateSignature`
+aan, `wantAssertionsSigned` aan en een vastgepind `signingCertificate`. Anders kon iedereen die een SAML-response naar het
+endpoint van de broker post een willekeurig niveau en BSN in het token zetten. De realm-template (#505) moet die drie
+instellingen per koppeling zetten; de mapper is het vangnet als iemand ze in de beheerconsole uitzet.
+
+De integratietest (`handmatig.test.mjs`, met een eigen IdP die assertions ondertekent) bewijst met Keycloak 26.8.2: een
+ongetekende assertion, een assertion met een andere sleutel, een response met een ondertekende en een ongetekende
+assertion, een ondertekende assertion verstopt in `Extensions` of `Advice` (signature wrapping) en een opnieuw geposte
+assertion worden door Keycloak zelf geweigerd; twee `AuthnStatement`s met verschillend niveau en een koppeling met
+verkeerde instellingen worden door de mapper geweigerd. Deze set is verplicht bij elke Keycloak-bump.
 
 Client-mapper op `nl-portal-backend`: `oidc-usersessionmodel-note-mapper`, notitie `acr`, claim `acr`, alleen in het
 ID-token; de standaard client scope `acr` gaat van de client af (anders schrijven twee mappers dezelfde claim).
@@ -42,7 +70,8 @@ mise run security:keycloak-vuln-scan # grype op de SBOM (faalt op high/critical 
 ```
 
 `keycloak:build` en `keycloak:test` zitten in `mise run build` en `mise run test`; `keycloak:check-version` in
-`mise run lint`. De integratietest draait niet in `mise run test` (Docker).
+`mise run lint`. De integratietest draait niet in `mise run test` (Docker). Hij gebruikt vaste hostpoorten (18080 Keycloak, 18081 BFF-callback,
+18082 eigen IdP): de realms noemen die poorten in hun URL's, dus twee runs tegelijk botsen; draai er een per machine.
 
 ### Versie-gelijkheid en basisimage op digest
 
@@ -52,14 +81,28 @@ staat op digest, niet op tag. De build faalt bij verschil, op twee plekken: `key
 bestanden, en de Dockerfile controleert dat het basisimage de jar van die versie bevat. Bij een Keycloak-bump wijzig je
 versie, digest en `gradle.properties` samen en draai je `keycloak:verify-dependencies`.
 
-**De mappertests zijn verplicht in elke Renovate-PR die Keycloak bumpt**: `keycloak:test` en
-`keycloak:integration-test`. De mapper-SPI is bij Keycloak intern gemarkeerd (waarschuwing `KC-SERVICES0047`), dus een
-patchrelease kan hem breken.
+**De mappertests zijn verplicht bij elke Keycloak-bump**: `keycloak:test` en `keycloak:integration-test`. De mapper-SPI is
+bij Keycloak intern gemarkeerd (waarschuwing `KC-SERVICES0047`), dus een patchrelease kan hem breken.
+
+**Nog niet geautomatiseerd:** Renovate herkent de losse `ARG`-regels in de Dockerfile en `gradle.properties` niet als
+Keycloak-update, en geen CI-job draait deze taken. Dat is het eerste punt van #524 (regex-manager, CI-job). Tot dan:
+controleer wekelijks de Keycloak-releases en bump versie, digest en `gradle.properties` met de hand, zeker bij een
+beveiligingspatch.
+
+### Build van de provider
+
+`keycloak/provider` is een eigen Gradle-build buiten `backend/` (geen Spring-dependency-management of ArchUnit-lagen in de
+SPI), maar gebruikt de wrapper van `backend/` (`../../backend/gradlew`): de Gradle-versie komt dus van de backend en
+`backend/gradle.properties` geldt hier niet. Bumpt de backend Gradle, draai dan ook `keycloak:build`, `keycloak:test` en
+`keycloak:verify-dependencies`. De Java-bron compileert met `-Xlint:all -Werror`; een aparte formatteringscontrole (Spotless)
+is er niet, omdat die extra build-dependencies in `verification-metadata.xml` zou brengen voor een handvol klassen.
 
 ### Image
 
 Multi-stage: provider erin, `kc.sh build` met `KC_DB=postgres` en `KC_HEALTH_ENABLED=true` (geoptimaliseerde start, geen
-`start-dev`), start met `start --optimized`, niet-root (uid 1000) uit het basisimage. De bouwopties zijn vastgelegd in het
+`start-dev`), start met `start --optimized`, expliciet `USER 1000` (`keycloak:check-version` controleert dat). Code (`lib`, `providers`,
+`bin`) is van root en alleen leesbaar voor het proces; alleen `data/` is schrijfbaar, zodat een gecompromitteerd proces zijn eigen
+providers niet kan overschrijven. Het label `nl.nlportal.keycloak.provider.sha256` bevat de sha256 van de provider-jar in het image. De bouwopties zijn vastgelegd in het
 image; wie andere opties wil moet het image opnieuw bouwen. Runtime-instellingen (database, hostname, admin) blijven
 omgevingsvariabelen.
 
@@ -69,10 +112,22 @@ omgevingsvariabelen.
   runtime-dependencies; het image-SBOM omvat Keycloak, het besturingssysteem en de provider.
 - Bekende treffers bij 26.8.2 (basisimage, niet van de provider): `guava 33.6.0-jre` (GHSA-xxph-c9ww-hj94, fix 33.7.2: moet
   Keycloak upstream bumpen) en `sqlite-libs`/`java-21-openjdk-headless` van het besturingssysteem zonder beschikbare fix.
-  De scan gebruikt `--only-fixed`; de guava-treffer laat hem dus falen tot Keycloak bijwerkt.
+  De scan gebruikt `--only-fixed`. De guava-treffer staat als uitzondering in `keycloak/.grype.yaml`, met reden (geen
+  native deserialisatie van onvertrouwde bytes via de publieke poorten) en herzieningsdatum 2027-01-31; verwijder de regel zodra
+  een Keycloak-patch guava 33.7.2 of nieuwer meelevert. Een nieuwe treffer laat de scan dus falen.
 - Dependencies van de provider-build (alleen Keycloak-jars en testbibliotheken) staan in `provider/gradle/verification-metadata.xml`.
 - **Ondertekening en provenance van het image (cosign, attestatie) zijn nog niet gebouwd**: er is nog geen CI-workflow die dit
-  image bouwt en publiceert. Zie de open punten in de notitie bij #527 voor ticket #524 (CI).
+  image bouwt en publiceert. Zie "Uitgesteld" hieronder (#524).
+
+## Uitgesteld
+
+| Punt | Ticket |
+|---|---|
+| Realm-template en keycloak-config-cli met de mappers; realmtest (beide handtekeningvlaggen en vastgepind certificaat per SAML-koppeling, wissende mapper per notitie, accountconsole uit, scope `acr` van de client af) | #505 |
+| Renovate-regex-manager voor versie, digest en `gradle.properties`; CI-job voor `keycloak:test`, `check-version` en de integratietest; cosign en SLSA-provenance; SonarCloud-dekking voor `keycloak/provider` | #524 |
+| `acr`-volgordetabel (Basis < Midden < Substantieel < Hoog), onbekende en lege `acr` weigeren, niveau-afdwinging | #506 |
+| BSN uit `NameID`/`ActingSubjectID`/`LegalSubjectID`: `NameQualifier`, format en sectorprefix `s00000000:` controleren, elfproef; blokkeert livegang | #506 |
+| Echte DigiD (artifact-binding, `EncryptedID`) en echte wallet zijn niet getest; de simulator en de eigen IdP van de test zijn dat niet | #505, #506 |
 
 ## Terugvalplan
 

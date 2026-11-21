@@ -192,6 +192,17 @@ class SamlAttributeToSessionNoteMapperTest {
     }
 
     @Test
+    void laatDeLoginFalenBijEenWaardeDieZelfMarkupIs() {
+        // Keycloak levert een onbekend kindelement in een AttributeValue (bijvoorbeeld een EncryptedID) als tekst van de
+        // geserialiseerde XML: dat is geen BSN en mag nooit als waarde in het token komen.
+        String markup = "<saml:EncryptedID xmlns:saml=\"urn:oasis:names:tc:SAML:2.0:assertion\">AAAA</saml:EncryptedID>";
+        BrokeredIdentityContext context = loginMet(choice(attribuut(ACTING, markup)));
+
+        assertThatThrownBy(() -> verwerk(context)).isInstanceOf(IdentityBrokerException.class);
+        assertThat(sessionNotes(context)).isEmpty();
+    }
+
+    @Test
     void laatDeLoginFalenBijEenVersleuteldAttribuut() {
         // De naam zit in de versleuteling: een niet-ontsleuteld attribuut kan het gezochte zijn en wordt niet stil
         // overgeslagen.

@@ -27,13 +27,14 @@ async function adminToken() {
   return (await r.json()).access_token;
 }
 
-export async function admin(path, init = {}) {
+/** Roept de admin-API aan en faalt bij elke fout; een 404 is alleen toegestaan als de aanroeper dat vraagt (`tolerate404`). */
+export async function admin(path, init = {}, { tolerate404 = false } = {}) {
   const token = await adminToken();
   const r = await fetch(`${KC}/admin/realms${path}`, {
     ...init,
     headers: { authorization: `Bearer ${token}`, "content-type": "application/json", ...(init.headers ?? {}) },
   });
-  if (!r.ok && r.status !== 404) throw new Error(`${init.method ?? "GET"} ${path}: ${r.status} ${await r.text()}`);
+  if (!r.ok && !(tolerate404 && r.status === 404)) throw new Error(`${init.method ?? "GET"} ${path}: ${r.status} ${await r.text()}`);
   return r;
 }
 
@@ -223,19 +224,6 @@ export async function clearDigidRequestedLevel() {
   await admin("/portal/identity-provider/instances/digid", { method: "PUT", body: JSON.stringify(idp) });
 }
 
-export async function addPortalIdpMapper(mapper) {
-  const r = await admin(`/portal/identity-provider/instances/${mapper.identityProviderAlias}/mappers`, { method: "POST", body: JSON.stringify(mapper) });
-  return r.headers.get("location").split("/").pop();
-}
-
-export async function deletePortalIdpMapper(alias, id) {
-  await admin(`/portal/identity-provider/instances/${alias}/mappers/${id}`, { method: "DELETE" });
-}
-
-export async function portalUsersWithAttribute(attribute, value) {
-  return (await admin(`/portal/users?q=${attribute}:${value}`)).json();
-}
-
 export async function portalUsers() {
   return (await admin("/portal/users?max=100")).json();
 }
@@ -247,16 +235,6 @@ export async function deletePortalUsers() {
 export async function createPortalUser(user) {
   const r = await admin("/portal/users", { method: "POST", body: JSON.stringify({ enabled: true, ...user }) });
   return r.headers.get("location").split("/").pop();
-}
-
-export async function addPortalClientMapper(mapper) {
-  const clients = await (await admin("/portal/clients?clientId=nl-portal-backend")).json();
-  const r = await admin(`/portal/clients/${clients[0].id}/protocol-mappers/models`, { method: "POST", body: JSON.stringify(mapper) });
-  return { clientUuid: clients[0].id, id: r.headers.get("location").split("/").pop() };
-}
-
-export async function deletePortalClientMapper({ clientUuid, id }) {
-  await admin(`/portal/clients/${clientUuid}/protocol-mappers/models/${id}`, { method: "DELETE" });
 }
 
 // Het mappen van het walletniveau in de simulator: de client `portal-wallet-broker` in realm idp-sim stuurt `acr`
