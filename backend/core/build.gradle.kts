@@ -43,6 +43,11 @@ dependencies {
     implementation("io.micrometer:context-propagation")
     implementation(Dependencies.kotlinCoroutinesReactor)
 
+    // Limiet en circuit breaker per tenant en koppeling (epic #499, #507)
+    implementation(Dependencies.resilience4jCircuitBreaker)
+    implementation(Dependencies.resilience4jBulkhead)
+    implementation(Dependencies.resilience4jReactor)
+
     api(Dependencies.commonsCodec)
 
     // Apache Commons
@@ -63,6 +68,7 @@ dependencies {
     testImplementation(TestDependencies.springBootTestWebClient)
     testImplementation(TestDependencies.kotlinCoroutines)
     testImplementation(TestDependencies.mockitoKotlin)
+    testImplementation(TestDependencies.okHttpMockWebserver)
 }
 
 // Mutation testing (#95, ADR 0011). Bewust een eigen taak, niet onderdeel van `build`/`check`.

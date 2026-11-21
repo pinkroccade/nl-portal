@@ -27,6 +27,14 @@ import org.springframework.boot.context.properties.EnableConfigurationProperties
 import org.springframework.boot.test.context.runner.ApplicationContextRunner
 import org.springframework.context.annotation.Configuration
 import org.springframework.web.reactive.function.client.WebClient
+import nl.nlportal.core.tenancy.Betrouwbaarheidsniveau
+import nl.nlportal.core.tenancy.Inlogmiddel
+import nl.nlportal.core.tenancy.Oin
+import nl.nlportal.core.tenancy.Omgevingstype
+import nl.nlportal.core.tenancy.Sessie
+import nl.nlportal.core.tenancy.TenantDefinition
+import nl.nlportal.core.tenancy.TenantDirectory
+import nl.nlportal.core.tenancy.Thema
 
 class KoppelingenTest {
     @Configuration
@@ -60,17 +68,51 @@ class KoppelingenTest {
     }
 
     @Test
-    fun `de autoconfiguratie levert de koppelingen en de fabriek aan modules`() {
+    fun `de autoconfiguratie levert een register zodra de tenancy aanstaat, met de koppelingen voor elke tenant`() {
+        val basis =
+            ApplicationContextRunner()
+                .withConfiguration(AutoConfigurations.of(KoppelingAutoConfiguration::class.java))
+                .withBean(WebClient.Builder::class.java, { WebClient.builder() })
+                .withBean(ZgwJwtGenerator::class.java, { ZgwJwtGenerator() })
+                .withPropertyValues("nl-portal.koppelingen.zakenapi.url=https://zaken.example.nl", "nl-portal.koppeling-resilience.max-gelijktijdig=3")
+
+        basis.run { context -> assertTrue(context.getBeansOfType(KoppelingRegister::class.java).isEmpty()) }
+        basis
+            .withBean(TenantDirectory::class.java, { TenantDirectory(emptyList()) })
+            .run { context ->
+                assertNull(context.startupFailure)
+                assertEquals(1, context.getBeansOfType(KoppelingRegister::class.java).size)
+                assertEquals(3, context.getBean(KoppelingResilienceInstellingen::class.java).maxGelijktijdig)
+            }
+    }
+
+    @Test
+    fun `het register weigert bij het opstarten meer dan een tenant zolang de koppelingen niet per tenant zijn`() {
+        fun tenant(oin: Oin) = TenantDefinition(oin, "Gemeente", Omgevingstype.TEST, listOf("${oin.value}.example"), Thema(titel = "t"), setOf(Inlogmiddel.TEST), Betrouwbaarheidsniveau.SUBSTANTIEEL, Sessie())
         ApplicationContextRunner()
             .withConfiguration(AutoConfigurations.of(KoppelingAutoConfiguration::class.java))
             .withBean(WebClient.Builder::class.java, { WebClient.builder() })
             .withBean(ZgwJwtGenerator::class.java, { ZgwJwtGenerator() })
             .withPropertyValues("nl-portal.koppelingen.zakenapi.url=https://zaken.example.nl")
+            .withBean(TenantDirectory::class.java, { TenantDirectory(listOf(tenant(Oin("00000001234567890000")), tenant(Oin("00000009876543210000")))) })
+            .run { context -> assertNotNull(context.startupFailure) }
+    }
+
+    @Test
+    fun `de resilience-instellingen hebben een bron van standaardwaarden`() {
+        ApplicationContextRunner()
+            .withUserConfiguration(ResilienceConfiguration::class.java)
+            .withPropertyValues("nl-portal.koppeling-resilience.max-gelijktijdig=3")
             .run { context ->
-                assertNotNull(context.getBean(KoppelingWebClientFactory::class.java))
-                assertEquals("https://zaken.example.nl", context.getBean(KoppelingenProperties::class.java).voorModule("zakenapi", null).url)
+                val instellingen = context.getBean(KoppelingResilienceInstellingen::class.java)
+                assertEquals(3, instellingen.maxGelijktijdig)
+                assertEquals(KoppelingResilienceInstellingen().timeout, instellingen.timeout)
             }
     }
+
+    @Configuration
+    @EnableConfigurationProperties(KoppelingResilienceInstellingen::class)
+    class ResilienceConfiguration
 
     @Test
     fun `leverancier en versie van een koppeling zijn beschikbaar voor gedrag per leverancier`() {

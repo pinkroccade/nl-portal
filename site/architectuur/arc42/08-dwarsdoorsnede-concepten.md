@@ -108,11 +108,22 @@ via een rolling update wordt uitgerold, niet via hot reload; een andere OpenFeat
   issuer is de tenantbinding, er komt geen aparte tenant-claim bij.
 - **Identiteit.** Een realm per tenant op de publieke ID-broker, gegenereerd uit één template. De runtime
   vertrouwt alleen issuers uit de tenantconfiguratie en nooit de private ID-broker (zie ook 8.1).
-- **Per-tenant clientregister.** Een onveranderlijk register `OIN naar client`, bij opstarten gebouwd uit het
-  tenantbestand en ingebouwd in `core.koppeling` (de gedeelde `WebClient`-fabriek voor benoemde koppelingen), met limieten en
-  een circuit breaker per tenant en koppeling.
-  Architectuurchecks (`backend/architecture-test`) bewaken dat services het register gebruiken en geen
-  losse clients, globale stores of nieuwe coroutine-scopes.
+- **Per-tenant clientregister.** Een onveranderlijk register `OIN naar koppelingen` (`KoppelingRegister` in
+  `core.koppeling`), bij opstarten volledig gebouwd (alle clients, limieten en circuit breakers; een koppeling zonder volledige configuratie staat er niet in en telt als niet geconfigureerd, een ongeldige URL laat het opstarten falen). `registry.current(module)` leest de tenant uit de Reactor Context
+  (zonder tenant volgt een fout, nooit een standaardtenant) en geeft de `KoppelingClient` van die tenant. De client
+  is de enige weg naar een bron: ophalen en muteren met de authenticatie van de koppeling, één foutvorm volgens
+  RFC 9457 (`KoppelingException`; gesynthetiseerd bij een niet-conforme bron, een netwerkfout of een 502), één
+  `ResultPage`, **host-binding** (een absolute URL, zoals `next`, wordt alleen gevolgd onder de basis-URL van
+  dezelfde koppeling: schema, host, poort en padprefix; anders een fout zonder aanroep en dus zonder credentials;
+  redirects worden nooit gevolgd: de connector van elke koppeling staat in code op niet-volgen, onafhankelijk van `spring.http.clients.redirects`; padtekens `;` en gecodeerde `/`, `\`, NUL en `%` worden geweigerd), en een limiet op gelijktijdige aanroepen plus een circuit breaker per tenant en
+  koppeling (Resilience4j; standaardwaarden onder `nl-portal.koppeling-resilience`; alleen storingen van de bron
+  tellen, een 4xx of eigen weigering niet). Een client hoort bij één tenant en weigert een aanroep in de context van een andere tenant. Er worden geen headers of bodies gelogd en foutdetails van een bron gaan niet naar de
+  browser: het bericht van een `KoppelingException` is generiek met een correlatie-ID, en de GraphQL-foutafhandelaar
+  toont alleen dat. Tussenfase (stap 2 tot en met 6): elke tenant krijgt de koppelingen uit `nl-portal.koppelingen` (bij meer dan één tenant weigert het opstarten); de
+  koppelingen per tenant uit het tenantbestand komen met de migratie van elke module (T9 tot en met T21), die ook zijn
+  pakket uit `HttpClientRules.NOT_YET_MIGRATED` haalt.
+  Architectuurchecks (`backend/architecture-test`, `HttpClientRules`) bewaken dat buiten `core.koppeling` niemand een
+  `WebClient` (of `RestClient`, `RestTemplate`, het JDK-`HttpClient`, OkHttp, Apache of Jetty) bouwt of kent, `wiretap` aanzet, verzoekdetails logt of een `KoppelingClient` in een veld bewaart; elke regel heeft een overtredende fixture. De enige uitzondering is `core.modulestatus`, dat alleen het type `ExchangeFilterFunction` kent (alleen vrijgesteld van de typeregel, niet van de andere). `NOT_YET_MIGRATED` is een ratchet: een test faalt zodra een vermeld pakket geen overtreding meer heeft, en `nl.nlportal.form` en `nl.nlportal.commonground.authentication` staan er nog in zonder migratieticket (aandachtspunt voor het BFF-ticket en de formulieren).
 - **Drie lagen configuratie.** Het *tenantbestand* (Git: domeinen, URL's, thema, verwijzingen naar secrets;
   rolling restart), de *flag* (alleen aan/uit per module en tenant; `ops.<module>.enabled`, ook via een rolling restart) en de *secret store* (de secrets
   zelf, via ESO). Een module is bruikbaar als configuratie aanwezig is én de flag aanstaat. Zie
