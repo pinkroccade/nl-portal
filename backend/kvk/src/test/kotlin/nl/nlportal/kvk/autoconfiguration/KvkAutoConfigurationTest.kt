@@ -89,8 +89,7 @@ internal class KvkAutoConfigurationTest {
     }
 
     // Een omgevingsvariabele (hoofdletters met underscores) wordt als systeemomgeving gelezen, zoals de runtime dat doet.
-    private fun bron(waarden: Map<String, String>) =
-        if (waarden.keys.all { it == it.uppercase() }) SystemEnvironmentPropertySource(StandardEnvironment.SYSTEM_ENVIRONMENT_PROPERTY_SOURCE_NAME, waarden.toMutableMap<String, Any>()) else MapPropertySource("oud", waarden)
+    private fun bron(waarden: Map<String, String>) = if (waarden.keys.all { it == it.uppercase() }) SystemEnvironmentPropertySource(StandardEnvironment.SYSTEM_ENVIRONMENT_PROPERTY_SOURCE_NAME, waarden.toMutableMap<String, Any>()) else MapPropertySource("oud", waarden)
 
     @Configuration
     internal class TenancyConfiguration {
