@@ -36,9 +36,9 @@ draait haar eigen instantie tegen haar eigen ZGW-landschap.
 
 ## 7.4 Voorgesteld doelbeeld: gedeelde runtime met cellen
 
-> **Voorgesteld, nog niet gebouwd of ingericht.** Dit beschrijft het doelbeeld uit
+> **Geaccepteerd (2026-11-21), nog niet gebouwd of ingericht.** Dit beschrijft het doelbeeld uit
 > [ADR 0021](../../development/adr/0021-gedeelde-multi-tenant-runtime-met-cellen.md). Paragraaf 7.3 blijft het
-> geldende beeld totdat die ADR is geaccepteerd en uitgevoerd; er draait nog niets in productie.
+> geldende beeld totdat die ADR is uitgevoerd; er draait nog niets in productie.
 
 Pink biedt NL Portal als SaaS aan voor circa 50 gemeenten (tenants) binnen twee jaar. In plaats van een
 instantie per gemeente (7.3) draait één multi-tenant runtime, ingedeeld in **cellen**:

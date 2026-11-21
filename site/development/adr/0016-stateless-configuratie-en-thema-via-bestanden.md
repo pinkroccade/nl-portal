@@ -2,7 +2,19 @@
 
 ## Status
 
-Voorgesteld. Nog geen issue of implementatie; de uitwerking (spec en tickets) volgt na akkoord.
+Geaccepteerd op 2026-11-21, samen met [ADR 0021](./0021-gedeelde-multi-tenant-runtime-met-cellen.md), met twee
+wijzigingen:
+
+- **Punt 2 is vervangen door ADR 0021.** Eén deployment bedient meerdere gemeenten (tenants); de tenant wordt
+  per request uit het hostdomein afgeleid. Het alternatief "Tenant-resolutie per request" is daarmee gekozen.
+- **Punt 6 is aangepast.** "Geen hot reload" blijft staan. "Geen Reloader" vervalt: een checksum-annotatie
+  dekt alleen wat Helm rendert, en voor secrets die de External Secrets Operator roteert is Stakater Reloader
+  of een gelijkwaardig mechanisme nodig dat een rolling restart afdwingt (ADR 0021 besluit 5). De keuze
+  volgt bij de Helm-chart (#191). "Module aan/uit blijft een opstart-keuze" geldt niet meer: de module is
+  beschikbaar per tenant via een permission-flag (ADR 0021 besluit 4.3, ADR 0020).
+
+De overige punten (config-files, thema als bestand, fail-fast, validatie, preview, reikwijdte look & feel)
+gelden ongewijzigd, maar per tenant: de waarden staan in het tenantbestand.
 
 ## Context
 

@@ -18,12 +18,19 @@ Geen ADR nodig voor: een bugfix, een naamgevingskeuze binnen één module, iets 
 [`site/architectuur/arc42`](../../architectuur/arc42/index.md) hoofdstuk 4 (oplossingsstrategie) staat beschreven zonder dat er een
 alternatief serieus is overwogen.
 
-## Voorgestelde ADR's
+## Recent geaccepteerd (2026-11-21)
 
-- [ADR 0021: gedeelde multi-tenant runtime met cellen](./0021-gedeelde-multi-tenant-runtime-met-cellen.md)
-  (voorgesteld, ter review): gedeelde runtime met logische tenantscheiding, ingedeeld in cellen.
-- [ADR 0016: stateless configuratie en thema via bestanden](./0016-stateless-configuratie-en-thema-via-bestanden.md)
-  (voorgesteld).
+- [ADR 0022: backend-for-frontend als authenticatiepatroon](./0022-backend-for-frontend-als-authenticatiepatroon.md):
+  de backend is per tenant de vertrouwelijke OIDC-client; tokens blijven op de server.
+- [ADR 0021: gedeelde multi-tenant runtime met cellen](./0021-gedeelde-multi-tenant-runtime-met-cellen.md):
+  gedeelde runtime met logische tenantscheiding, ingedeeld in cellen; met aanvullingen bij acceptatie.
+- [ADR 0016: stateless configuratie en thema via bestanden](./0016-stateless-configuratie-en-thema-via-bestanden.md):
+  geaccepteerd; punt 2 vervangen door ADR 0021, punt 6 aangepast.
+- ADR 0020 en ADR 0002 hebben een aanvulling gekregen (moduleflag als permission-flag; de diepe client in
+  `core.koppeling` via het tenantregister).
+
+Het besluitenlog van de grilling-sessie staat in
+[`fase0-besluiten-multitenancy-bff.md`](../research/fase0-besluiten-multitenancy-bff.md).
 
 ## Status
 
