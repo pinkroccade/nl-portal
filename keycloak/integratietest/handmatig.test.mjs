@@ -43,6 +43,7 @@ function ondertekend({ authn = [MIDDEN], attributen = [{ naam: ACTING, waarden: 
     });
 }
 
+const gemeenschappelijkeVelden = (requestId) => ({ requestId, endpoint: ENDPOINT, sp: SP, idp: IDP });
 const esc = (s) => s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/"/g, "&quot;");
 const formulier = ({ xml, relayState }) =>
   `<html><body><form method="post" action="${ENDPOINT}"><input type="hidden" name="SAMLResponse" value="${Buffer.from(xml).toString("base64")}"/><input type="hidden" name="RelayState" value="${esc(relayState)}"/></form></body></html>`;
@@ -207,6 +208,7 @@ describe("Aanvallen op de vertrouwensgrens", () => {
   for (const [naam, config] of [
     ["handtekeningen niet gevalideerd", { validateSignature: "false" }],
     ["assertion niet ondertekend vereist", { wantAssertionsSigned: "false" }],
+    ["geen certificaat vastgepind", { signingCertificate: "" }],
   ]) {
     it(`weigert een geldig ondertekende assertion als de koppeling zo staat: ${naam}`, async () => {
       await zetKoppeling(config);
@@ -218,7 +220,7 @@ describe("Aanvallen op de vertrouwensgrens", () => {
   // M2: meerdere assertions en signature wrapping.
   it("weigert een response met een ondertekende en een ongetekende assertion", async () => {
     respons = ({ requestId }) => {
-      const gemeenschappelijk = { requestId, endpoint: ENDPOINT, sp: SP, idp: IDP };
+      const gemeenschappelijk = gemeenschappelijkeVelden(requestId);
       return response({
         requestId,
         endpoint: ENDPOINT,
@@ -233,7 +235,7 @@ describe("Aanvallen op de vertrouwensgrens", () => {
 
   it("weigert een ondertekende assertion die in Extensions is verstopt naast een ongetekende assertion", async () => {
     respons = ({ requestId }) => {
-      const gemeenschappelijk = { requestId, endpoint: ENDPOINT, sp: SP, idp: IDP };
+      const gemeenschappelijk = gemeenschappelijkeVelden(requestId);
       const echt = assertion({ id: nieuwId(), ...gemeenschappelijk, authn: [MIDDEN], attributen: [{ naam: ACTING, waarden: ["999990008"] }], sleutel });
       return response({
         requestId,
@@ -248,7 +250,7 @@ describe("Aanvallen op de vertrouwensgrens", () => {
 
   it("weigert een ondertekende assertion die in het Advice van een ongetekende assertion is verstopt", async () => {
     respons = ({ requestId }) => {
-      const gemeenschappelijk = { requestId, endpoint: ENDPOINT, sp: SP, idp: IDP };
+      const gemeenschappelijk = gemeenschappelijkeVelden(requestId);
       const echt = assertion({ id: nieuwId(), ...gemeenschappelijk, authn: [MIDDEN], attributen: [{ naam: ACTING, waarden: ["999990008"] }], sleutel });
       return response({
         requestId,
@@ -265,8 +267,10 @@ describe("Aanvallen op de vertrouwensgrens", () => {
     assertGeweigerd(await inloggen());
   });
 
-  // I3 (ASVS 6.8.3): een assertion mag maar een keer gebruikt worden.
-  it("weigert een opnieuw geposte assertion na een geslaagde login", async () => {
+  // I3 (ASVS 6.8.3). Let op wat dit bewijst: de assertion wordt opnieuw gepost in dezelfde, al afgeronde
+  // authenticatiesessie, en Keycloak weigert omdat die sessie weg is. Dat is geen bewijs van een cache van assertion-ID's;
+  // replay met een oude response in een nieuwe authenticatiesessie (nieuw AuthnRequest) is niet getest (criterium op #505).
+  it("weigert een opnieuw geposte assertion in een afgeronde authenticatiesessie", async () => {
     respons = ondertekend();
     const jar = new Jar();
     const eerste = await inloggen({ jar });

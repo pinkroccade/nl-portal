@@ -203,6 +203,15 @@ class SamlAttributeToSessionNoteMapperTest {
     }
 
     @Test
+    void laatDeLoginFalenBijMarkupMiddenInDeWaarde() {
+        // Een denylist op het begin van de tekst mist gemengde inhoud: elke waarde met markup faalt.
+        BrokeredIdentityContext context = loginMet(choice(attribuut(ACTING, "123456782<saml:EncryptedID/>")));
+
+        assertThatThrownBy(() -> verwerk(context)).isInstanceOf(IdentityBrokerException.class);
+        assertThat(sessionNotes(context)).isEmpty();
+    }
+
+    @Test
     void laatDeLoginFalenBijEenVersleuteldAttribuut() {
         // De naam zit in de versleuteling: een niet-ontsleuteld attribuut kan het gezochte zijn en wordt niet stil
         // overgeslagen.

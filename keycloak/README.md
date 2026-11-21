@@ -100,9 +100,8 @@ is er niet, omdat die extra build-dependencies in `verification-metadata.xml` zo
 ### Image
 
 Multi-stage: provider erin, `kc.sh build` met `KC_DB=postgres` en `KC_HEALTH_ENABLED=true` (geoptimaliseerde start, geen
-`start-dev`), start met `start --optimized`, expliciet `USER 1000` (`keycloak:check-version` controleert dat). Code (`lib`, `providers`,
-`bin`) is van root en alleen leesbaar voor het proces; alleen `data/` is schrijfbaar, zodat een gecompromitteerd proces zijn eigen
-providers niet kan overschrijven. Het label `nl.nlportal.keycloak.provider.sha256` bevat de sha256 van de provider-jar in het image. De bouwopties zijn vastgelegd in het
+`start-dev`), start met `start --optimized`, expliciet `USER 1000` (`keycloak:check-version` controleert dat). Code (`bin`, `conf`, `lib`, `providers`, `themes`) is van root en alleen leesbaar voor het proces; alleen `data/` is schrijfbaar, zodat een gecompromitteerd proces zijn eigen
+providers niet kan overschrijven (`integratietest/image-rechten.test.mjs` probeert dat in het gebouwde image als uid 1000 en moet falen; `start --optimized` start met deze rechten). Het label `nl.nlportal.keycloak.provider.sha256` bevat de sha256 van de provider-jar in het image. De bouwopties zijn vastgelegd in het
 image; wie andere opties wil moet het image opnieuw bouwen. Runtime-instellingen (database, hostname, admin) blijven
 omgevingsvariabelen.
 
@@ -123,8 +122,8 @@ omgevingsvariabelen.
 
 | Punt | Ticket |
 |---|---|
-| Realm-template en keycloak-config-cli met de mappers; realmtest (beide handtekeningvlaggen en vastgepind certificaat per SAML-koppeling, wissende mapper per notitie, accountconsole uit, scope `acr` van de client af) | #505 |
-| Renovate-regex-manager voor versie, digest en `gradle.properties`; CI-job voor `keycloak:test`, `check-version` en de integratietest; cosign en SLSA-provenance; SonarCloud-dekking voor `keycloak/provider` | #524 |
+| Realm-template en keycloak-config-cli met de mappers; realmtest (beide handtekeningvlaggen en vastgepind certificaat per SAML-koppeling, wissende mapper per notitie, geen identiteitskoppeling, accountconsole uit, scope `acr` van de client af, OIDC-koppeling van de wallet) | #505 |
+| Renovate-regex-manager (eigen groep) voor versie, digest en `gradle.properties`; CI-job voor `keycloak:test`, `check-version` en de integratietest; SBOM en grype in CI; cosign en SLSA-provenance; controlepunt voor de herzieningsdatum van `.grype.yaml` (2027-01-31); SonarCloud-dekking voor `keycloak/provider` | #524 |
 | `acr`-volgordetabel (Basis < Midden < Substantieel < Hoog), onbekende en lege `acr` weigeren, niveau-afdwinging | #506 |
 | BSN uit `NameID`/`ActingSubjectID`/`LegalSubjectID`: `NameQualifier`, format en sectorprefix `s00000000:` controleren, elfproef; blokkeert livegang | #506 |
 | Echte DigiD (artifact-binding, `EncryptedID`) en echte wallet zijn niet getest; de simulator en de eigen IdP van de test zijn dat niet | #505, #506 |
@@ -143,5 +142,11 @@ overslaan.**
   `nlportal-oidc-claim-note-mapper`, elk met `syncMode: FORCE`. keycloak-config-cli kent het mappertype pas als het in
   het image zit: draai hem tegen dit image.
 - Zet op `nl-portal-backend` de client-mappers `oidc-usersessionmodel-note-mapper` en haal de scope `acr` eraf.
+- Een SAML-koppeling met `useMetadataDescriptorUrl` (certificaat uit de metadata-URL, niet vastgepind) faalt gesloten: de mapper eist
+  een vastgepind `signingCertificate` en geeft anders een loginfout. Pin het certificaat in de koppeling.
+- De OIDC-koppeling (wallet): `nlportal-oidc-claim-note-mapper` vertrouwt het `VALIDATED_ID_TOKEN` en kijkt niet naar de
+  handtekeninginstelling van de koppeling. Dat is bewust: bij een authorization-code-flow over TLS met clientauthenticatie
+  mag de ID-tokenhandtekening volgens OIDC Core worden overgeslagen. De realmtest (#505) controleert dat de wallet-koppeling
+  zo is ingericht (code-flow, clientauthenticatie, TLS-endpoints) en geen implicit of hybrid flow gebruikt.
 - `integratietest/realms/portal-realm.json` en `idp-sim-realm.json` zijn een werkend voorbeeld; `integratietest/claims.test.mjs`
   is het uitgangspunt voor de realmtest.

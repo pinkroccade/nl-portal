@@ -53,7 +53,6 @@ export function nieuweSleutel(naam) {
 
 // --- XML in canonieke vorm: geen witruimte, attributen alfabetisch, geen lege-elementnotatie ---
 
-const escapeAttribuut = (s) => s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/"/g, "&quot;");
 const escapeTekst = (s) => s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
 
 function attribuut({ naam, waarden }) {

@@ -3,9 +3,14 @@
 #MISE depends=["keycloak:image"]
 set -euo pipefail
 
+# Node vindt `docker` onder Git Bash niet via de PATH (MSYS-notatie); geef het volledige pad mee (cygpath bestaat alleen onder Windows).
+DOCKER_BIN="$(command -v docker)"
+if command -v cygpath > /dev/null 2>&1; then DOCKER_BIN="$(cygpath -w "$DOCKER_BIN")"; fi
+export DOCKER_BIN
+
 cd "$(dirname "$0")/../../keycloak/integratietest"
 trap 'docker compose down -v' EXIT
 docker compose down -v > /dev/null 2>&1 || true
 docker compose up -d
 # Bestanden na elkaar: ze delen de realm portal (gebruikers worden tussen tests opgeruimd).
-node --test --test-concurrency=1 claims.test.mjs handmatig.test.mjs
+node --test --test-concurrency=1 image-rechten.test.mjs claims.test.mjs handmatig.test.mjs

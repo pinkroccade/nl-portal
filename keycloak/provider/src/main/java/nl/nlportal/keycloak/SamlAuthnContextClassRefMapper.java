@@ -71,10 +71,9 @@ public class SamlAuthnContextClassRefMapper extends SamlSessionNoteMapper {
         if (loose != null && loose != authn) {
             throw new IdentityBrokerException("Het AuthnStatement in de context is niet dat van de gevalideerde assertion");
         }
-        if (authn.getAuthnContext() != null
-                && authn.getAuthnContext().getSequence() != null
-                && authn.getAuthnContext().getSequence().getClassRef() != null) {
-            return authn.getAuthnContext().getSequence().getClassRef().getValue().toString();
+        var sequence = authn.getAuthnContext() == null ? null : authn.getAuthnContext().getSequence();
+        if (sequence != null && sequence.getClassRef() != null) {
+            return sequence.getClassRef().getValue().toString();
         }
         return "";
     }

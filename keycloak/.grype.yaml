@@ -11,6 +11,8 @@ ignore:
     package:
       name: guava
       version: 33.6.0-jre
+  # CVE-2026-102554 is de CVE-alias van GHSA-xxph-c9ww-hj94 (zelfde kwetsbaarheid, zelfde reden en herziening als hierboven).
+  # Grype kent geen vervaldatum: de herzieningsdatum staat als controlepunt in #524 (wekelijkse handmatige controle).
   - vulnerability: CVE-2026-102554
     package:
       name: guava
