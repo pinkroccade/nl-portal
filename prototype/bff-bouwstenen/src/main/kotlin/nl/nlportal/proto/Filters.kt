@@ -11,8 +11,6 @@ import org.springframework.web.server.ServerWebExchange
 import org.springframework.web.server.WebFilter
 import org.springframework.web.server.WebFilterChain
 import reactor.core.publisher.Mono
-import java.net.URLDecoder
-import java.nio.charset.StandardCharsets
 import java.time.Clock
 import java.time.Instant
 
@@ -70,10 +68,10 @@ class ReturnToAuthorizationRequestResolver(
         delegate.resolve(exchange, clientRegistrationId).map { withReturnTo(it, exchange) }
 
     private fun withReturnTo(request: OAuth2AuthorizationRequest, exchange: ServerWebExchange): OAuth2AuthorizationRequest {
-        val raw = exchange.request.queryParams.getFirst("returnTo")
-        val decoded = raw?.let { URLDecoder.decode(it, StandardCharsets.UTF_8) }
-        if (decoded == null || !SAFE_PATH.matches(decoded)) return request
-        return OAuth2AuthorizationRequest.from(request).attributes { it["return_to"] = decoded }.build()
+        // queryParams is al gedecodeerd; nog een keer decoderen zou een ander pad opleveren dan het gecontroleerde
+        val path = exchange.request.queryParams.getFirst("returnTo")
+        if (path == null || !SAFE_PATH.matches(path)) return request
+        return OAuth2AuthorizationRequest.from(request).attributes { it["return_to"] = path }.build()
     }
 
     private companion object {

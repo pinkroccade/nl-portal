@@ -53,6 +53,13 @@ object DiscardingAuthorizedClientRepository : ServerOAuth2AuthorizedClientReposi
     ): Mono<Void> = Mono.empty()
 }
 
+/** `jti` van een client-assertion: 32 bytes uit `SecureRandom`, base64url (256 bit). */
+object AssertionIds {
+    private val random = java.security.SecureRandom()
+
+    fun next(): String = ByteArray(32).also { random.nextBytes(it) }.let { java.util.Base64.getUrlEncoder().withoutPadding().encodeToString(it) }
+}
+
 const val SESSION_TENANT = "nlp.tenant"
 const val SESSION_CREATED_AT = "nlp.createdAt"
 
@@ -87,6 +94,12 @@ class SecurityConfig {
         val tokenClient = WebClientReactiveAuthorizationCodeTokenResponseClient().apply {
             val assertion = NimbusJwtClientAuthenticationParametersConverter<OAuth2AuthorizationCodeGrantRequest> { reg ->
                 registrations.keyFor(reg)
+            }
+            // RFC 10070 §4: aud is de issuer van de AS (enige waarde); NL GOV: jti minstens 128 bit, nooit hergebruikt
+            assertion.setJwtClientAssertionCustomizer { ctx ->
+                ctx.headers.type("client-authentication+jwt")
+                ctx.claims.audience(listOf(checkNotNull(ctx.authorizationGrantRequest.clientRegistration.providerDetails.issuerUri)))
+                ctx.claims.id(AssertionIds.next())
             }
             addParametersConverter(
                 Converter<OAuth2AuthorizationCodeGrantRequest, MultiValueMap<String, String>> { assertion.convert(it)!! },
@@ -130,7 +143,7 @@ class SecurityConfig {
             .oidcLogout {
                 it.clientRegistrationRepository(registrations).oidcSessionRegistry(oidcSessions).backChannel { b ->
                     b.logoutUri("/logout/connect/back-channel/{registrationId}")
-                        .logoutHandler(BackChannelLogoutHandler(oidcSessions, sessionRepository, redis))
+                        .logoutHandler(BackChannelLogoutHandler(oidcSessions, sessionRepository, redis, clock))
                 }
             }
             .build()
@@ -146,11 +159,14 @@ class SecurityConfig {
         exchange.session.flatMap { session ->
             session.attributes[SESSION_TENANT] = exchange.tenant.id
             session.attributes[SESSION_CREATED_AT] = clock.instant()
-            val html = "<!doctype html><meta charset=\"utf-8\"><meta http-equiv=\"refresh\" content=\"0;url=$target\">" +
-                "<title>Even geduld</title>"
+            // het pad is al gecontroleerd (ReturnToAuthorizationRequestResolver), maar het gaat toch geescaped in HTML
+            val safe = org.springframework.web.util.HtmlUtils.htmlEscape(target)
+            val html = "<!doctype html><meta charset=\"utf-8\"><meta http-equiv=\"refresh\" content=\"0;url=$safe\">" +
+                "<title>Even geduld</title><a href=\"$safe\">Doorgaan</a>"
             exchange.response.headers.contentType = MediaType.TEXT_HTML
             exchange.response.headers.cacheControl = "no-store"
             exchange.response.headers.set("Referrer-Policy", "no-referrer")
+            exchange.response.headers.set("Content-Security-Policy", "default-src 'none'; frame-ancestors 'none'")
             exchange.response.writeWith(
                 Mono.just(exchange.response.bufferFactory().wrap(html.toByteArray(StandardCharsets.UTF_8))),
             )
@@ -158,7 +174,7 @@ class SecurityConfig {
     }
 
     private fun failureHandler() = ServerAuthenticationFailureHandler { wfe, ex ->
-        org.slf4j.LoggerFactory.getLogger("nlp.login").warn("login geweigerd: {} query={}", ex.toString(), wfe.exchange.request.uri.rawQuery)
+        org.slf4j.LoggerFactory.getLogger("nlp.login").warn("login geweigerd: tenant={} fout={}", wfe.exchange.tenantOrNull?.id, ex.javaClass.simpleName)
         wfe.exchange.response.statusCode = HttpStatus.UNAUTHORIZED
         wfe.exchange.response.setComplete()
     }

@@ -50,17 +50,38 @@ class SessionTest : BffTestBase() {
         assertThat(get(b, "/api/session").status.value()).isEqualTo(401)
     }
 
-    @Test
-    fun `in Redis staat geen access- of refreshtoken, alleen het ID-token`() {
-        login(bosrand)
-        val values = redis.keys("spring:session:sessions:*").flatMap { key ->
-            redis.type(key).flatMapMany {
-                if (it.code() == "hash") redis.opsForHash<String, String>().entries(key).map { e -> "${e.key}=${e.value}" }
-                else redis.opsForValue().get(key).flux()
+    private fun allRedisValues(): String = redis.keys("*").flatMap { key ->
+        redis.type(key).flatMapMany {
+            when (it.code()) {
+                "hash" -> redis.opsForHash<String, String>().entries(key).map { e -> "${e.key}=${e.value}" }
+                "set" -> redis.opsForSet().members(key)
+                else -> redis.opsForValue().get(key).flux()
             }
-        }.collectList().block()!!.joinToString("\n")
+        }
+    }.collectList().block()!!.joinToString("\n")
+
+    @Test
+    fun `in Redis staat precies een JWT, het ID-token in de sessie, en het register bewaart geen token`() {
+        login(bosrand)
+        val jwt = Regex("eyJ[A-Za-z0-9_-]+[.]eyJ[A-Za-z0-9_-]+[.][A-Za-z0-9_-]*")
+        val values = allRedisValues()
         assertThat(values).contains("nlp.tenant")
-        // een JWT begint met eyJ: het ID-token is er een, het access-token mag er niet bij staan
-        assertThat(Regex("eyJ[A-Za-z0-9_-]+\\.eyJ[A-Za-z0-9_-]+\\.[A-Za-z0-9_-]+").findAll(values).count()).isEqualTo(1)
+        // een JWT begint met eyJ: het ID-token in de sessie is er een; het register mag er geen bewaren
+        assertThat(jwt.findAll(values).count()).isEqualTo(1)
+        val registry = redis.keys("nlp:oidc:session:*").collectList().block()!!
+        assertThat(registry).hasSize(1)
+        assertThat(redis.opsForValue().get(registry.single()).block()).doesNotContain("eyJ", "id_token", "acr")
+    }
+
+    @Test
+    fun `opnieuw inloggen met een bestaande sessie geeft een nieuw sessie-ID en maakt het oude waardeloos`() {
+        val first = login(bosrand)
+        val old = first.browser.jar.getValue(SESSION_COOKIE)
+        val again = login(bosrand, first.browser)
+        val fresh = again.browser.jar.getValue(SESSION_COOKIE)
+        assertThat(fresh).isNotEqualTo(old)
+        val stale = Browser(bosrand.host).also { it.jar[SESSION_COOKIE] = old }
+        assertThat(get(stale, "/api/session").status.value()).isEqualTo(401)
+        assertThat(get(again.browser, "/api/session").status.value()).isEqualTo(200)
     }
 }

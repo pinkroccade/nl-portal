@@ -9,7 +9,33 @@ import org.springframework.security.web.server.WebFilterExchange
 import org.springframework.security.web.server.authentication.logout.ServerLogoutHandler
 import org.springframework.session.ReactiveSessionRepository
 import reactor.core.publisher.Mono
+import java.time.Clock
 import java.time.Duration
+import java.time.Instant
+
+/**
+ * Beleid voor `iat`, `exp` en `jti` van een logout-token. Spring controleert `exp` alleen als die er is en kent geen
+ * maximale ouderdom; wij eisen alle drie, begrenzen de ouderdom en de levensduur, en koppelen de levensduur van de
+ * `jti`-sleutel aan `exp`, zodat een token niet na het verlopen van de sleutel nog geldig is.
+ */
+object LogoutTokenPolicy {
+    val CLOCK_SKEW: Duration = Duration.ofSeconds(60)
+    val MAX_AGE: Duration = Duration.ofMinutes(2)
+    val MAX_LIFETIME: Duration = Duration.ofMinutes(10)
+
+    /** De levensduur van de `jti`-sleutel, of `null` als het token niet voldoet. */
+    fun jtiTtl(token: OidcLogoutToken, now: Instant): Duration? {
+        token.getClaimAsString("jti") ?: return null
+        if (token.sessionId.isNullOrBlank() && token.subject.isNullOrBlank()) return null // par. 2.4: sub of sid
+        val iat = token.getClaimAsInstant("iat") ?: return null
+        val exp = token.getClaimAsInstant("exp") ?: return null
+        if (iat.isBefore(now.minus(MAX_AGE).minus(CLOCK_SKEW))) return null
+        if (iat.isAfter(now.plus(CLOCK_SKEW))) return null
+        if (Duration.between(iat, exp) > MAX_LIFETIME) return null
+        if (!exp.plus(CLOCK_SKEW).isAfter(now)) return null
+        return Duration.between(now, exp).plus(CLOCK_SKEW)
+    }
+}
 
 /**
  * Back-channel logout. Spring valideert het logout-token (handtekening, `iss`, `aud`, `events`, geen `nonce`,
@@ -23,16 +49,19 @@ class BackChannelLogoutHandler(
     private val registry: ReactiveOidcSessionRegistry,
     private val sessions: ReactiveSessionRepository<*>,
     private val redis: ReactiveStringRedisTemplate,
-    private val jtiTtl: Duration = Duration.ofMinutes(10),
+    private val clock: Clock,
 ) : ServerLogoutHandler {
     override fun logout(exchange: WebFilterExchange, authentication: Authentication): Mono<Void> {
         val token = authentication.principal as OidcLogoutToken
-        val jti = token.getClaimAsString("jti") ?: return reject(exchange)
-        return redis.opsForValue().setIfAbsent("nlp:oidc:jti:${token.issuer}|$jti", "1", jtiTtl).flatMap { first ->
+        val ttl = LogoutTokenPolicy.jtiTtl(token, clock.instant()) ?: return reject(exchange)
+        val key = "nlp:oidc:jti:${token.issuer}|${token.getClaimAsString("jti")}"
+        return redis.opsForValue().setIfAbsent(key, "1", ttl).flatMap { first ->
             if (!first) {
                 reject(exchange)
             } else {
+                // faalt het beeindigen, dan geeft de jti-sleutel vrij: de OP mag het opnieuw proberen (par. 2.8)
                 registry.removeSessionInformation(token).flatMap { sessions.deleteById(it.sessionId) }.then()
+                    .onErrorResume { e -> redis.delete(key).then(Mono.error(e)) }
             }
         }
     }

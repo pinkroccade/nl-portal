@@ -4,6 +4,8 @@ import no.nav.security.mock.oauth2.token.DefaultOAuth2TokenCallback
 import org.assertj.core.api.Assertions.assertThat
 import org.junit.jupiter.api.Test
 import org.springframework.test.web.reactive.server.EntityExchangeResult
+import java.time.Duration
+import java.time.Instant
 
 /** Uitloggen vanuit de browser en back-channel logout met een OIDC-sessieregister in Redis. */
 class LogoutTest : BffTestBase() {
@@ -15,10 +17,14 @@ class LogoutTest : BffTestBase() {
         sid: String? = null,
         sub: String = "999993653",
         claims: Map<String, Any> = mapOf("events" to event),
+        iat: Instant = clock.instant(),
+        exp: Instant = iat.plusSeconds(120),
         audience: String = t.clientId,
         issuerId: String = t.id,
     ): String {
         val all = claims.toMutableMap()
+        all["iat"] = iat.epochSecond
+        all["exp"] = exp.epochSecond
         sid?.let { all["sid"] = it }
         return server.issueToken(
             issuerId,
@@ -32,6 +38,13 @@ class LogoutTest : BffTestBase() {
         client.post().uri("/logout/connect/back-channel/$path").header("Host", "$host:$port")
             .header("Content-Type", "application/x-www-form-urlencoded")
             .bodyValue("logout_token=$token").exchange().expectBody().returnResult()
+
+    /** Dezelfde claims en header, maar met `alg: none` en zonder handtekening. */
+    private fun algNone(token: String): String {
+        val enc = java.util.Base64.getUrlEncoder().withoutPadding()
+        val header = enc.encodeToString("""{"alg":"none","typ":"logout+jwt"}""".toByteArray())
+        return header + "." + token.split(".")[1] + "."
+    }
 
     private fun alive(b: Browser) = get(b, "/api/session").status.value() == 200
 
@@ -88,6 +101,11 @@ class LogoutTest : BffTestBase() {
             "verkeerde audience" to logoutToken(bosrand, sid = "sid-x", audience = "iemand-anders"),
             "zonder events" to logoutToken(bosrand, sid = "sid-x", claims = emptyMap()),
             "met nonce" to logoutToken(bosrand, sid = "sid-x", claims = mapOf("events" to event, "nonce" to "n")),
+            "te oude iat" to logoutToken(bosrand, sid = "sid-x", iat = clock.instant().minus(Duration.ofMinutes(10)), exp = clock.instant().plusSeconds(30)),
+            "te lang geldig" to logoutToken(bosrand, sid = "sid-x", exp = clock.instant().plus(Duration.ofHours(1))),
+            "zonder sid en zonder sub" to logoutToken(bosrand, sub = ""),
+            "met een tweede events-vorm zonder het backchannel-event" to logoutToken(bosrand, sid = "sid-x", claims = mapOf("events" to mapOf("anders" to emptyMap<String, Any>()))),
+            "alg none" to algNone(logoutToken(bosrand, sid = "sid-x")),
             "geen jwt" to "geen-jwt",
             "ongetekend" to logoutToken(bosrand, sid = "sid-x").substringBeforeLast('.') + ".",
         )
@@ -96,6 +114,43 @@ class LogoutTest : BffTestBase() {
             assertThat(r.status.value()).describedAs(naam).isEqualTo(400)
             assertThat(alive(s.browser)).describedAs(naam).isTrue()
         }
+    }
+
+    @Test
+    fun `de jti-sleutel leeft tot exp plus klokmarge en de respons mag niet gecachet worden`() {
+        val token = logoutToken(bosrand, sid = "sid-t", exp = clock.instant().plusSeconds(300))
+        val r = backChannel(bosrand, token)
+        assertThat(r.status.value()).isEqualTo(200)
+        assertThat(r.responseHeaders.cacheControl).contains("no-store")
+        val ttl = redis.keys("nlp:oidc:jti:*").flatMap { redis.getExpire(it) }.blockFirst()!!
+        // 300 s tot exp plus 60 s marge, met wat speling voor afronding en looptijd
+        assertThat(ttl.seconds).isBetween(340L, 361L)
+    }
+
+    @Test
+    fun `faalt het beeindigen van de sessie dan is het token opnieuw aan te bieden`() {
+        val s = login(bosrand, sid = "sid-f")
+        val failing = object : org.springframework.session.ReactiveSessionRepository<org.springframework.session.Session> {
+            override fun createSession() = throw UnsupportedOperationException()
+            override fun save(session: org.springframework.session.Session) = reactor.core.publisher.Mono.empty<Void>()
+            override fun findById(id: String) = reactor.core.publisher.Mono.empty<org.springframework.session.Session>()
+            override fun deleteById(id: String): reactor.core.publisher.Mono<Void> = reactor.core.publisher.Mono.error(IllegalStateException("redis-hik"))
+        }
+        val registry = RedisOidcSessionRegistry(redis, java.time.Duration.ofHours(8))
+        val handler = BackChannelLogoutHandler(registry, failing, redis, clock)
+        val jwt = logoutToken(bosrand, sid = "sid-f")
+        val parsed = com.nimbusds.jwt.SignedJWT.parse(jwt).jwtClaimsSet
+        val logoutToken = org.springframework.security.oauth2.client.oidc.authentication.logout.OidcLogoutToken.withTokenValue(jwt)
+            .issuer(parsed.issuer).audience(parsed.audience).subject(parsed.subject).sessionId("sid-f").jti(parsed.jwtid)
+            .events(event).claims { it["iat"] = parsed.issueTime.toInstant(); it["exp"] = parsed.expirationTime.toInstant() }.build()
+        val exchange = org.springframework.security.web.server.WebFilterExchange(
+            org.springframework.mock.web.server.MockServerWebExchange.from(org.springframework.mock.http.server.reactive.MockServerHttpRequest.post("/")),
+            { reactor.core.publisher.Mono.empty() },
+        )
+        val auth = org.springframework.security.authentication.TestingAuthenticationToken(logoutToken, null)
+        org.assertj.core.api.Assertions.assertThatThrownBy { handler.logout(exchange, auth).block() }.hasMessageContaining("redis-hik")
+        assertThat(redis.keys("nlp:oidc:jti:*").collectList().block()).isEmpty()
+        assertThat(alive(s.browser)).isTrue()
     }
 
     @Test

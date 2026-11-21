@@ -1,10 +1,10 @@
 package nl.nlportal.proto
 
 import com.nimbusds.jose.JWSAlgorithm
-import com.nimbusds.jose.crypto.ECDSAVerifier
-import com.nimbusds.jose.jwk.Curve
-import com.nimbusds.jose.jwk.ECKey
-import com.nimbusds.jose.jwk.gen.ECKeyGenerator
+import com.nimbusds.jose.crypto.RSASSAVerifier
+import com.nimbusds.jose.jwk.RSAKey
+
+import com.nimbusds.jose.jwk.gen.RSAKeyGenerator
 import com.nimbusds.jwt.SignedJWT
 import no.nav.security.mock.oauth2.MockOAuth2Server
 import no.nav.security.mock.oauth2.OAuth2Config
@@ -40,8 +40,8 @@ import java.util.concurrent.TimeUnit
 import java.util.concurrent.atomic.AtomicReference
 
 /** Een bestuurbare klok voor de absolute sessietimeout. */
-class MutableClock(private val start: Instant) : Clock() {
-    private val now = AtomicReference(start)
+class MutableClock : Clock() {
+    private val now = AtomicReference(Instant.now())
 
     override fun getZone(): ZoneId = ZoneOffset.UTC
 
@@ -54,7 +54,7 @@ class MutableClock(private val start: Instant) : Clock() {
     }
 
     fun reset() {
-        now.set(start)
+        now.set(Instant.now())
     }
 }
 
@@ -62,10 +62,10 @@ class MutableClock(private val start: Instant) : Clock() {
 class TestClockConfig {
     @Bean
     @Primary
-    fun mutableClock(): MutableClock = MutableClock(Instant.parse("2026-11-21T10:00:00Z"))
+    fun mutableClock(): MutableClock = MutableClock()
 }
 
-class TenantFixture(val id: String, val host: String, val clientId: String, val key: ECKey)
+class TenantFixture(val id: String, val host: String, val clientId: String, val key: RSAKey)
 
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
 @Import(TestClockConfig::class)
@@ -184,11 +184,13 @@ abstract class BffTestBase {
         check(req.getHeader("Authorization") == null) { "Authorization-header meegestuurd" }
         check(form["client_assertion_type"] == "urn:ietf:params:oauth:client-assertion-type:jwt-bearer")
         val jwt = SignedJWT.parse(form.getValue("client_assertion"))
-        check(jwt.verify(ECDSAVerifier(t.key.toPublicJWK()))) { "handtekening klopt niet met de sleutel van ${t.id}" }
-        check(jwt.header.algorithm == JWSAlgorithm.ES256)
+        check(jwt.verify(RSASSAVerifier(t.key.toPublicJWK()))) { "handtekening klopt niet met de sleutel van ${t.id}" }
+        check(jwt.header.algorithm == JWSAlgorithm.PS256)
         check(jwt.header.keyID == t.key.keyID)
         check(jwt.jwtClaimsSet.issuer == t.clientId && jwt.jwtClaimsSet.subject == t.clientId)
-        check(jwt.jwtClaimsSet.audience.single() == server.tokenEndpointUrl(t.id).toString())
+        check(jwt.jwtClaimsSet.audience.single() == t.issuer) { "aud moet de issuer zijn" }
+        check(jwt.header.type?.toString() == "client-authentication+jwt") { "typ: ${jwt.header.type}" }
+        check(java.util.Base64.getUrlDecoder().decode(jwt.jwtClaimsSet.jwtid).size >= 32) { "jti korter dan 256 bit" }
         check(jwt.jwtClaimsSet.jwtid != null && jwt.jwtClaimsSet.expirationTime != null)
         return jwt
     }
@@ -208,7 +210,7 @@ abstract class BffTestBase {
         val wijdeveld = fixture("wijdeveld", "wijdeveld.test")
 
         private fun fixture(id: String, host: String): TenantFixture {
-            val key = ECKeyGenerator(Curve.P_256).keyID("$id-key-1").algorithm(JWSAlgorithm.ES256).generate()
+            val key = RSAKeyGenerator(3072).keyID("$id-key-1").algorithm(JWSAlgorithm.PS256).generate()
             Files.writeString(tempDir.resolve("$id.jwk"), key.toJSONString())
             return TenantFixture(id, host, "nl-portal-backend-$id", key)
         }

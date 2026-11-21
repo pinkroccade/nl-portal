@@ -1,6 +1,5 @@
 package nl.nlportal.proto
 
-import com.nimbusds.jwt.SignedJWT
 import org.springframework.data.redis.core.ReactiveStringRedisTemplate
 import org.springframework.security.core.authority.AuthorityUtils
 import org.springframework.security.oauth2.client.oidc.authentication.logout.OidcLogoutToken
@@ -14,7 +13,6 @@ import tools.jackson.databind.json.JsonMapper
 import tools.jackson.module.kotlin.jacksonMapperBuilder
 import tools.jackson.module.kotlin.readValue
 import java.time.Duration
-import java.util.Date
 
 /**
  * Register van OIDC-sessies in Redis: welke portaalsessie hoort bij welke `sid` (en `sub`) van welke issuer.
@@ -27,12 +25,13 @@ class RedisOidcSessionRegistry(
 ) : ReactiveOidcSessionRegistry {
     private val mapper: JsonMapper = jacksonMapperBuilder().build()
 
-    data class Stored(val sessionId: String, val authorities: Map<String, String>, val idToken: String)
+    /** Alleen wat het register nodig heeft: geen token en geen andere claims (zoals BSN of acr). */
+    data class Stored(val sessionId: String, val authorities: Map<String, String>, val iss: String, val sub: String?, val sid: String?)
 
     override fun saveSessionInformation(info: OidcSessionInformation): Mono<Void> {
         val idToken = info.principal.idToken
         val iss = idToken.issuer.toString()
-        val stored = Stored(info.sessionId, info.authorities, idToken.tokenValue)
+        val stored = Stored(info.sessionId, info.authorities, iss, idToken.subject, idToken.getClaimAsString("sid"))
         val ops = redis.opsForValue()
         return ops.set(sessionKey(info.sessionId), mapper.writeValueAsString(stored), ttl)
             .then(index(sidKey(iss, idToken.getClaimAsString("sid")), info.sessionId))
@@ -62,10 +61,12 @@ class RedisOidcSessionRegistry(
         redis.opsForSet().add(key, sessionId).then(redis.expire(key, ttl)).then()
 
     private fun toInformation(s: Stored): OidcSessionInformation {
-        val claims = SignedJWT.parse(s.idToken).jwtClaimsSet.claims.mapValues { (_, v) ->
-            if (v is Date) v.toInstant() else v
-        }
-        val idToken = OidcIdToken.withTokenValue(s.idToken).claims { it.putAll(claims) }.build()
+        val idToken = OidcIdToken.withTokenValue("niet-bewaard")
+            .claims { c ->
+                c["iss"] = s.iss
+                s.sub?.let { c["sub"] = it }
+                s.sid?.let { c["sid"] = it }
+            }.build()
         return OidcSessionInformation(s.sessionId, s.authorities, DefaultOidcUser(AuthorityUtils.NO_AUTHORITIES, idToken))
     }
 

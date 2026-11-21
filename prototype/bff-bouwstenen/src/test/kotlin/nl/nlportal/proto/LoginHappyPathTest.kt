@@ -28,7 +28,7 @@ class LoginHappyPathTest : BffTestBase() {
             assertThat(flow.lowercase()).startsWith("__host-nlp-flow=")
                 .contains("httponly", "secure", "path=/", "samesite=lax").doesNotContain("domain")
             assertThat(flow).containsPattern("Max-Age=\\d+")
-            assertThat(b.jar.keys).containsExactly("__Host-nlp-flow")
+            assertThat(b.jar.keys).containsExactly(FLOW_COOKIE)
 
             // 2. callback: sessiecookie __Host-Http-, Strict, flowcookie weg
             val back = idpAuthorize(authorize)
@@ -48,5 +48,16 @@ class LoginHappyPathTest : BffTestBase() {
             assertThat(page.status.value()).isEqualTo(200)
             assertThat(String(page.responseBody!!)).contains("BSN-${t.id}").contains("\"tenant\":\"${t.id}\"")
         }
+    }
+
+    @Test
+    fun `de tussenpagina escapet het return-pad, decodeert een keer, en heeft een CSP en een gewone link`() {
+        val b = Browser(bosrand.host)
+        enqueueTokens(bosrand)
+        val start = get(b, "/oauth2/authorization/bosrand?returnTo=" + java.net.URLEncoder.encode("/pad?a=1&b=2&c=x%20y", Charsets.UTF_8))
+        val cb = callback(b, idpAuthorize(start.responseHeaders.location!!), bosrand.issuer)
+        val body = String(cb.responseBody!!)
+        assertThat(body).contains("url=/pad?a=1&amp;b=2&amp;c=x%20y\"").contains("<a href=\"/pad?a=1&amp;b=2&amp;c=x%20y\">")
+        assertThat(cb.responseHeaders.getFirst("Content-Security-Policy")).isEqualTo("default-src 'none'; frame-ancestors 'none'")
     }
 }

@@ -23,7 +23,6 @@ import java.time.Duration
 data class ProtoProperties(
     val tenants: List<TenantProperties> = emptyList(),
     val absoluteSessionTimeout: Duration = Duration.ofHours(8),
-    val inactivityTimeout: Duration = Duration.ofMinutes(15),
     val flowCookieMaxAge: Duration = Duration.ofMinutes(5),
 )
 

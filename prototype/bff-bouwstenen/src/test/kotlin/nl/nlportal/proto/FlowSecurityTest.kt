@@ -2,9 +2,13 @@ package nl.nlportal.proto
 
 import org.assertj.core.api.Assertions.assertThat
 import org.junit.jupiter.api.Test
+import org.junit.jupiter.api.extension.ExtendWith
+import org.springframework.boot.test.system.CapturedOutput
+import org.springframework.boot.test.system.OutputCaptureExtension
 import java.net.URI
 
 /** De flowcookie en pre-auth-sessie, en de issuercontrole van de authorization response (RFC 9207). */
+@ExtendWith(OutputCaptureExtension::class)
 class FlowSecurityTest : BffTestBase() {
 
     private class Started(val browser: Browser, val callbackUri: URI, val flowCookie: String)
@@ -14,7 +18,7 @@ class FlowSecurityTest : BffTestBase() {
         val b = Browser(t.host)
         val s = get(b, "/oauth2/authorization/${t.id}")
         val back = idpAuthorize(s.responseHeaders.location!!)
-        return Started(b, back, b.jar.getValue("__Host-nlp-flow"))
+        return Started(b, back, b.jar.getValue(FLOW_COOKIE))
     }
 
     private fun sessionCookieSet(r: org.springframework.test.web.reactive.server.EntityExchangeResult<*>) =
@@ -23,7 +27,7 @@ class FlowSecurityTest : BffTestBase() {
     @Test
     fun `het flowcookie van tenant A wordt op tenant B geweigerd`() {
         val s = start(bosrand)
-        val other = Browser(wijdeveld.host).also { it.jar["__Host-nlp-flow"] = s.flowCookie }
+        val other = Browser(wijdeveld.host).also { it.jar[FLOW_COOKIE] = s.flowCookie }
         val r = callback(other, URI.create(s.callbackUri.toString().replace("/bosrand", "/wijdeveld")), wijdeveld.issuer)
         assertThat(r.status.value()).isEqualTo(401)
         assertThat(sessionCookieSet(r)).isFalse()
@@ -37,9 +41,9 @@ class FlowSecurityTest : BffTestBase() {
         val s = start(bosrand)
         val first = callback(s.browser, s.callbackUri, bosrand.issuer)
         assertThat(first.status.value()).isEqualTo(200)
-        assertThat(s.browser.jar).doesNotContainKey("__Host-nlp-flow")
+        assertThat(s.browser.jar).doesNotContainKey(FLOW_COOKIE)
 
-        val replay = Browser(bosrand.host).also { it.jar["__Host-nlp-flow"] = s.flowCookie }
+        val replay = Browser(bosrand.host).also { it.jar[FLOW_COOKIE] = s.flowCookie }
         val r = callback(replay, s.callbackUri, bosrand.issuer)
         assertThat(r.status.value()).isEqualTo(401)
         assertThat(sessionCookieSet(r)).isFalse()
@@ -66,7 +70,7 @@ class FlowSecurityTest : BffTestBase() {
             assertThat(sessionCookieSet(r)).isFalse()
             assertThat(r.responseHeaders["Set-Cookie"]!!.single()).contains("Max-Age=0")
             // de flow is opgeruimd: de juiste issuer helpt daarna niet meer
-            val retry = Browser(bosrand.host).also { it.jar["__Host-nlp-flow"] = s.flowCookie }
+            val retry = Browser(bosrand.host).also { it.jar[FLOW_COOKIE] = s.flowCookie }
             assertThat(callback(retry, s.callbackUri, bosrand.issuer).status.value()).isEqualTo(401)
         }
     }
@@ -96,5 +100,16 @@ class FlowSecurityTest : BffTestBase() {
             val cb = callback(b, back, bosrand.issuer)
             assertThat(String(cb.responseBody!!)).contains("content=\"0;url=$expected\"")
         }
+    }
+
+    @Test
+    fun `een geweigerde login logt geen code, state of error_description`(output: CapturedOutput) {
+        val b = Browser(bosrand.host)
+        val s = get(b, "/oauth2/authorization/bosrand")
+        val state = org.springframework.web.util.UriComponentsBuilder.fromUri(s.responseHeaders.location!!).build().queryParams.getFirst("state")!!
+        val q = "/login/oauth2/code/bosrand?error=access_denied&error_description=geheim-van-de-aanvaller&state=$state&iss=" +
+            java.net.URLEncoder.encode(bosrand.issuer, Charsets.UTF_8)
+        assertThat(get(b, q).status.value()).isEqualTo(401)
+        assertThat(output.all).contains("login geweigerd").doesNotContain("geheim-van-de-aanvaller").doesNotContain(state)
     }
 }
