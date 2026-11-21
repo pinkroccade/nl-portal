@@ -76,11 +76,10 @@ test("devSetup rendert dezelfde waarden in realm, compose en :app", () => {
     // De realms worden uit het tenantbestand gegenereerd; keycloak-config-cli leest de geheimen uit de omgeving (compose),
     // dus het realm bevat alleen een verwijzing en .env bevat de waarde.
     const realm = JSON.parse(read(REALM_UITVOER(OIN)));
-    const m2m = realm.clients.find((c) => c.clientId === "nl-portal-m2m");
-    assert.equal(m2m.secret, "$(env:KEYCLOAK_M2M_CLIENT_SECRET)");
+    assert.equal(realm.clients.find((c) => c.clientId === "nl-portal-m2m"), undefined, "er is geen m2m-client en dus geen clientgeheim");
     assert.equal(realm.displayName, "Gemeente De Bosrand");
-    assert.match(read(COMPOSE_ENV), new RegExp(`^KEYCLOAK_M2M_CLIENT_SECRET=${secrets.KEYCLOAK_M2M_CLIENT_SECRET}$`, "m"));
-    assert.ok(!JSON.stringify(realm).includes(secrets.KEYCLOAK_M2M_CLIENT_SECRET));
+    assert.match(read(COMPOSE_ENV), new RegExp("^REDIS_PASSWORD=" + secrets.REDIS_PASSWORD + "$", "m"));
+    assert.ok(!JSON.stringify(realm).includes(secrets.REDIS_PASSWORD));
 
     // Het sleutelpaar van nl-portal-backend: de private JWK in de gitignored map voor de backend, de publieke in het realm.
     const prive = JSON.parse(read(CLIENTSLEUTEL_UITVOER(OIN)));
@@ -92,11 +91,8 @@ test("devSetup rendert dezelfde waarden in realm, compose en :app", () => {
     assert.ok(prive.d);
     // Alleen de eigenaar leest de private sleutel (POSIX; Windows kent deze modus niet).
     if (process.platform !== "win32") assert.equal(statSync(join(root, CLIENTSLEUTEL_UITVOER(OIN))).mode & 0o777, 0o600);
-    assert.match(
-      read("backend/app/.env.properties"),
-      new RegExp(`^KEYCLOAK_CLIENT_SECRET=${secrets.KEYCLOAK_M2M_CLIENT_SECRET}$`, "m"),
-    );
-    assert.match(read(APP_DEV_OUTPUT), new RegExp(`KEYCLOAK_CLIENT_SECRET=${secrets.KEYCLOAK_M2M_CLIENT_SECRET}`));
+    assert.match(read("backend/app/.env.properties"), new RegExp("^REDIS_PASSWORD=" + secrets.REDIS_PASSWORD + "$", "m"));
+    assert.doesNotMatch(read(APP_DEV_OUTPUT), /KEYCLOAK_CLIENT_SECRET/);
     for (const name of APP_DEV_SECRETS) assert.match(read(APP_DEV_OUTPUT), new RegExp(`^${name}=${secrets[name]}$`, "m"));
 
     // Open Zaak, Objects, Open Notificaties, Open Klant en Open Product delen de JWT-secrets en tokens

@@ -150,19 +150,13 @@ export function genereerRealm({ tenant, realm, brokerUrl, clientSleutels, idp = 
     redirectUris: origins.map((o) => `${o}/login/oauth2/code/${oin}`),
     postLogoutRedirectUris: origins.map((o) => `${o}/`).join("##"),
     backchannelLogoutUrl: `${origin}/logout/connect/back-channel/${oin}`,
-    spaOrigin: origin,
-    spaRedirectUris: origins.map((o) => `${o}/*`),
-    spaWebOrigins: origins,
     digidAuthnContextClassRefs: JSON.stringify([DIGID_NIVEAU[niveau]]),
     idp,
   };
 
   let uit = leesJson("realm.json");
   for (const middel of inlogmiddelen.filter((m) => m in KOPPELINGEN)) uit = voegSamen(uit, leesJson(`inlogmiddel/${middel}.json`));
-  // Alleen in ontwikkeling: de demo-gebruikers met vaste wachtwoorden (hashes in Git) en de tussenfase-SPA-client (tot #506).
-  if (ontwikkeling) {
-    if (inlogmiddelen.includes("test")) uit = voegSamen(uit, leesJson("demo-gebruikers.json"));
-    uit = voegSamen(uit, leesJson("tussenfase/spa.json"));
-  }
+  // Alleen in ontwikkeling: de demo-gebruikers met vaste wachtwoorden (hashes in Git).
+  if (ontwikkeling && inlogmiddelen.includes("test")) uit = voegSamen(uit, leesJson("demo-gebruikers.json"));
   return vul(uit, context);
 }

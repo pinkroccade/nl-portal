@@ -50,6 +50,15 @@ export default defineConfig({
   html: {
     cspNonce: "##NL_PORTAL_NONCE##",
   },
+  // Alleen voor `pnpm dev`: de backend staat achter hetzelfde domein als de frontend (BFF), dus ook hier same-origin.
+  server: {
+    proxy: Object.fromEntries(
+      ["/graphql", "/api", "/oauth2", "/login/oauth2", "/logout"].map((pad) => [
+        pad,
+        "http://localhost:8080",
+      ]),
+    ),
+  },
   plugins: [react()],
   test: {
     css: true,

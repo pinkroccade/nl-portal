@@ -14,11 +14,11 @@ note as frontend_rules
 end note
 api ..> authentication #orange : gat (1)
 app ..> api #orange : gat (1)
-app ..> authentication #orange : gat (2)
+app ..> authentication #orange : gat (1)
 app ..> localization #orange : gat (5)
 app ..> user_interface #orange : gat (7)
 app_dev ..> api #orange : gat (3)
-app_dev ..> authentication #orange : gat (2)
+app_dev ..> authentication #orange : gat (1)
 app_dev ..> localization #orange : gat (7)
 app_dev ..> user_interface #orange : gat (11)
 user_interface ..> api #orange : gat (55)

@@ -20,6 +20,7 @@ import { get } from "lodash-es";
 import { FormField } from "@gemeente-denhaag/form-field";
 import { FormLabel } from "@gemeente-denhaag/form-label";
 import { LocalizationProvider } from "@nl-portal/nl-portal-localization";
+import { csrfHeaders } from "@nl-portal/nl-portal-authentication";
 import { FileUpload } from "@gemeente-denhaag/file-upload";
 import { File } from "@gemeente-denhaag/file";
 import { Alert } from "@gemeente-denhaag/alert";
@@ -110,9 +111,8 @@ const PortalFileUpload = ({
 
     const upload = fetch(uploadLink, {
       method: "POST",
-      headers: {
-        Authorization: `Bearer ${FormIoUploader.getOidcToken()}`,
-      },
+      credentials: "same-origin",
+      headers: csrfHeaders(),
       body: formData,
     })
       .then(async (response) => {
@@ -205,7 +205,6 @@ const FieldComponent = Components.components.field;
 class FormIoUploader extends FieldComponent {
   private reactRoot: Root | null;
   private pendingUploads = new Set<Promise<void>>();
-  static globalOidcToken = "";
 
   constructor(component: any, options: any, data: any) {
     super(component, options, data);
@@ -242,12 +241,6 @@ class FormIoUploader extends FieldComponent {
   get emptyValue(): UploadedFile[] {
     return [];
   }
-
-  static setOidcToken = (oidcToken: string) => {
-    FormIoUploader.globalOidcToken = oidcToken;
-  };
-
-  static getOidcToken = () => FormIoUploader.globalOidcToken;
 
   onChangeHandler = (files: UploadedFile[]) => {
     if (this.shouldConditionallyClear()) return;

@@ -13,11 +13,10 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-import { OidcContext } from "@nl-portal/nl-portal-authentication";
-import { useContext, useState } from "react";
+import { csrfHeaders } from "@nl-portal/nl-portal-authentication";
+import { useState } from "react";
 
 const useDownload = (href: string, filename?: string) => {
-  const { oidcToken } = useContext(OidcContext);
   const [loading, setLoading] = useState(false);
 
   const onClick = async (event: React.MouseEvent<HTMLElement>) => {
@@ -25,7 +24,8 @@ const useDownload = (href: string, filename?: string) => {
     setLoading(true);
 
     const response = await fetch(href, {
-      headers: { Authorization: `Bearer ${oidcToken}` },
+      credentials: "same-origin",
+      headers: csrfHeaders(),
     });
 
     setLoading(false);

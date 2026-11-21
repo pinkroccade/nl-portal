@@ -319,6 +319,16 @@ export const EN_GB_MESSAGES: Messages = {
     "auth.inactive.close": "Close",
     "auth.inactive.logout": "Log out",
     "auth.inactive.stayLoggedIn": "Stay logged in",
+    "auth.login.title": "Log in",
+    "auth.login.mislukt": "Logging in failed. Please try again.",
+    "auth.login.verlopen":
+      "Your session has expired. Log in again to continue.",
+    "auth.login.fout":
+      "We cannot check whether you are logged in right now. Please try again later.",
+    "auth.login.button.digid": "Log in with DigiD",
+    "auth.login.button.wallet": "Log in with your wallet",
+    "auth.login.button.eherkenning": "Log in with eHerkenning",
+    "auth.login.button.test": "Log in as test user",
     "form.cancel": "Cancel",
     "form.submit": "Submit",
     "form.success.title": "Success",

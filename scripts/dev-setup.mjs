@@ -18,8 +18,9 @@ import { genereerRealm } from "./lib/realm.mjs";
 import { leesTenantbestanden } from "./lib/tenantbestand.mjs";
 
 export const SECRET_NAMES = [
-  "KEYCLOAK_M2M_CLIENT_SECRET",
   "KEYCLOAK_ADMIN_PASSWORD",
+  // Redis voor de sessies van de BFF: ACL-gebruiker `nlportal` (de default-gebruiker staat uit).
+  "REDIS_PASSWORD",
   "KEYCLOAK_DB_PASSWORD",
   // Open Zaak: JWT-secrets van de ZGW-clients en de koppeling met Open Notificaties.
   "OPENZAAK_NLPORTAL_SECRET",
@@ -63,15 +64,15 @@ export const TEMPLATES = [
   { template: "backend/app/.env.properties.example", output: "backend/app/.env.properties" },
 ];
 
-// :app-dev leest zijn secrets uit een eigen, gitignored bestand: het client-secret van de m2m-client
-// (als KEYCLOAK_CLIENT_SECRET) en de secrets en tokens waarmee het de ZGW-componenten aanroept.
-export const APP_DEV_SECRETS = ["OPENZAAK_NLPORTAL_SECRET", "OBJECTS_API_TOKEN", "OPENKLANT_API_TOKEN", "OPENPRODUCT_API_TOKEN"];
+// :app-dev leest zijn secrets uit een eigen, gitignored bestand: het Redis-wachtwoord van de BFF-sessies en de secrets en tokens
+// waarmee het de ZGW-componenten aanroept.
+export const APP_DEV_SECRETS = ["REDIS_PASSWORD", "OPENZAAK_NLPORTAL_SECRET", "OBJECTS_API_TOKEN", "OPENKLANT_API_TOKEN", "OPENPRODUCT_API_TOKEN"];
 export const APP_DEV_OUTPUT = "backend/app-dev/.env.properties";
 // Tenants: waar de tenantbestanden staan en waar het realm en de clientsleutel per tenant terechtkomen (gitignored).
 export const TENANTS_MAP = "docker-compose/imports/tenants";
 export const REALM_UITVOER = (oin) => `docker-compose/.generated/keycloak/${oin}.json`;
 export const CLIENTSLEUTEL_UITVOER = (oin) => `docker-compose/.generated/tenants/${oin}/clientsleutel.jwk.json`;
-// Tot de BFF van #506 gebruiken de bestaande configuratie, de SPA en de perf-seed de realmnaam `nlportal`; met één tenant is
+// Tot de tweede tenant gebruiken de bestaande configuratie en de perf-seed de realmnaam `nlportal`; met één tenant is
 // dat geen conflict. Een tweede tenant (stap 8) krijgt zijn OIN als realmnaam (ADR 0021 besluit 3).
 export const DEV_REALM = "nlportal";
 export const DEV_BROKER_URL = "http://localhost:8082";
@@ -147,7 +148,6 @@ export function devSetup(root, secrets = generateSecrets()) {
     APP_DEV_OUTPUT,
     [
       "# Gegenereerd door mise run dev:setup (gitignored).",
-      `KEYCLOAK_CLIENT_SECRET=${secrets.KEYCLOAK_M2M_CLIENT_SECRET}`,
       ...APP_DEV_SECRETS.map((name) => `${name}=${secrets[name]}`),
       "",
     ].join("\n"),

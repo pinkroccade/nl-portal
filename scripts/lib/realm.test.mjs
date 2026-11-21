@@ -48,11 +48,11 @@ const ALLE = {
 const NIET_DEV = { acceptatie: ACC, test: OTA, productie: PRD, "productie met wallet": PRD_WALLET };
 
 for (const [naam, tenant] of Object.entries(ALLE)) {
-  test(`${naam}: clients zijn de backend en de m2m-client (plus de tussenfase-SPA alleen in ontwikkeling); accountconsole staat uit`, () => {
+  test(`${naam}: de enige client is nl-portal-backend (geen SPA-client, geen m2m-client); accountconsole staat uit`, () => {
     const r = realm(tenant);
-    const aan = r.clients.filter((c) => c.enabled !== false).map((c) => c.clientId).sort();
-    const spa = tenant.omgevingstype === "ontwikkeling" ? ["nl-portal"] : [];
-    assert.deepEqual(aan, [...spa, "nl-portal-backend", "nl-portal-m2m"].sort());
+    const aan = r.clients.filter((c) => c.enabled !== false).map((c) => c.clientId);
+    assert.deepEqual(aan, ["nl-portal-backend"]);
+    assert.ok(!(r.clientScopes ?? []).some((sc) => sc.name === "aanvrager"), "de scope aanvrager hoorde bij de token exchange");
     for (const id of ["account", "account-console"]) assert.equal(client(r, id).enabled, false, id);
   });
 
@@ -72,11 +72,10 @@ for (const [naam, tenant] of Object.entries(ALLE)) {
     const jwks = JSON.parse(c.attributes["jwks.string"]);
     assert.deepEqual(jwks.keys.map((k) => [k.kid, k.alg, k.use, k.kty]), [[sleutel.kid, "PS256", "sig", "RSA"]]);
     assert.equal(jwks.keys[0].d, undefined, "de private sleutel hoort nooit in het realm");
-    const domein = tenant.domeinen[0];
-    const origin = tenant.omgevingstype === "ontwikkeling" ? `http://${domein}:3000` : `https://${domein}`;
-    assert.deepEqual(c.redirectUris, [`${origin}/login/oauth2/code/${tenant.oin}`]);
-    assert.equal(c.attributes["post.logout.redirect.uris"], `${origin}/`);
-    assert.equal(c.attributes["backchannel.logout.url"], `${origin}/logout/connect/back-channel/${tenant.oin}`);
+    const origins = tenant.domeinen.map((domein) => (tenant.omgevingstype === "ontwikkeling" ? `http://${domein}:3000` : `https://${domein}`));
+    assert.deepEqual(c.redirectUris, origins.map((origin) => `${origin}/login/oauth2/code/${tenant.oin}`));
+    assert.equal(c.attributes["post.logout.redirect.uris"], origins.map((origin) => `${origin}/`).join("##"));
+    assert.equal(c.attributes["backchannel.logout.url"], `${origins[0]}/logout/connect/back-channel/${tenant.oin}`);
     for (const uri of [...c.redirectUris, ...c.attributes["post.logout.redirect.uris"].split("##")]) assert.doesNotMatch(uri, /[*+]/, uri);
     assert.deepEqual(c.webOrigins, []);
   });
@@ -152,16 +151,27 @@ test("tijdens sleutelrotatie staan beide publieke sleutels in de JWKS", () => {
   assert.deepEqual(jwks.keys.map((k) => k.kid), [sleutel.kid, tweede.kid]);
 });
 
-test("de tussenfase-SPA-client en de m2m-client staan er nog in ontwikkeling (tot de BFF van #506)", () => {
+test("er is geen SPA-client, geen m2m-client en geen token exchange meer, ook niet in ontwikkeling (de BFF van #506)", () => {
   const r = realm(DEV);
-  const spa = client(r, "nl-portal");
-  assert.equal(spa.publicClient, true);
-  assert.deepEqual(spa.redirectUris, ["http://localhost:3000/*"]);
-  assert.deepEqual(spa.webOrigins, ["http://localhost:3000"]);
-  const m2m = client(r, "nl-portal-m2m");
-  assert.equal(m2m.attributes["standard.token.exchange.enabled"], "true");
-  assert.equal(m2m.secret, "$(env:KEYCLOAK_M2M_CLIENT_SECRET)");
-  assert.ok(r.clientScopes.some((s) => s.name === "aanvrager"));
+  assert.equal(client(r, "nl-portal"), undefined);
+  assert.equal(client(r, "nl-portal-m2m"), undefined);
+  assert.ok(!JSON.stringify(r).includes("standard.token.exchange.enabled"));
+  assert.ok(!JSON.stringify(r).includes("KEYCLOAK_M2M_CLIENT_SECRET"));
+});
+
+test("de testgebruiker krijgt inlogmiddel test, niveau Basis en zijn BSN op dezelfde claims als de koppelingen", () => {
+  const r = realm(DEV);
+  const burger = r.users.find((u) => u.username === "burger");
+  assert.deepEqual(burger.attributes, { bsn: ["999993847"], inlogmiddel: ["test"], acr: ["Basis"] });
+  const mappers = Object.fromEntries(client(r, "nl-portal-backend").protocolMappers.filter((m) => m.name.startsWith("test-")).map((m) => [m.name, m.config]));
+  assert.equal(mappers["test-inlogmiddel"]["claim.name"], "inlogmiddel");
+  assert.equal(mappers["test-acr"]["claim.name"], "acr");
+  assert.equal(mappers["test-bsn"]["claim.name"], "acting_subject_id");
+  for (const m of Object.values(mappers)) {
+    assert.equal(m["id.token.claim"], "true");
+    assert.equal(m["access.token.claim"], "false");
+    assert.equal(m["userinfo.token.claim"], "false");
+  }
 });
 
 // --- Testinlogmiddel: alleen in niet-productie ---
@@ -169,7 +179,7 @@ test("de tussenfase-SPA-client en de m2m-client staan er nog in ontwikkeling (to
 test("dev: het testinlogmiddel geeft de standaard browserflow en de demo-gebruikers; geen koppelingen", () => {
   const r = realm(DEV);
   assert.equal(r.browserFlow, "browser");
-  assert.deepEqual(r.users.map((u) => u.username).sort(), ["bedrijf", "burger"]);
+  assert.deepEqual(r.users.map((u) => u.username).sort(), ["burger"]);
   for (const u of r.users) assert.equal(u.credentials.length, 1);
   assert.deepEqual(r.identityProviders, []);
 });
@@ -277,7 +287,7 @@ test("het realm-id volgt uit de parameter en een tenant zonder domein wordt gewe
 for (const [naam, tenant] of Object.entries(NIET_DEV)) {
   test(`${naam}: geen SPA-client, geen directe grants, geen wildcard-redirect, geen offline tokens`, () => {
     const r = realm(tenant);
-    assert.equal(client(r, "nl-portal"), undefined, "de tussenfase-SPA-client hoort alleen in ontwikkeling");
+    assert.equal(client(r, "nl-portal"), undefined, "er is geen SPA-client meer");
     for (const c of r.clients) {
       assert.ok(!c.directAccessGrantsEnabled, `${c.clientId}: directAccessGrantsEnabled`);
       assert.ok(!c.implicitFlowEnabled, `${c.clientId}: implicitFlowEnabled`);
