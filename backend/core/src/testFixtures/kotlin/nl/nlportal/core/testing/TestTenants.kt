@@ -101,7 +101,7 @@ object TestTenants {
     fun zgwKoppeling(
         url: String,
         clientId: String,
-        geheimnaam: String = "zaken-secret",
+        geheimnaam: String,
         oin: Oin = BOSRAND,
     ) = koppeling(url, TenantKoppelingAuth(TenantKoppelingAuthType.ZGW_JWT, clientId = clientId, secret = geheim(geheimnaam, oin)), oin = oin)
 

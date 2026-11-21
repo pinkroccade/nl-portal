@@ -29,7 +29,7 @@ val UITGESLOTEN_ZAAKTYPEN = listOf("c2d3e114-bbe4-478d-80de-e8a8c8f8a948", "4d69
 /** Tenant Bosrand met een koppeling en modulegegevens voor Zaken API naar [url]; elk request draait als deze tenant. */
 fun zakenApiTestTenant(url: String) =
     TestTenants.tenant(
-        koppelingen = mapOf("zakenapi" to TestTenants.zgwKoppeling(url.trimEnd('/'), "valtimo_client")),
+        koppelingen = mapOf("zakenapi" to TestTenants.zgwKoppeling(url.trimEnd('/'), "valtimo_client", "zaken-secret")),
         modules = mapOf("zakenapi" to ZakenApiConfiguratie(uitgeslotenZaaktypen = UITGESLOTEN_ZAAKTYPEN)),
     )
 

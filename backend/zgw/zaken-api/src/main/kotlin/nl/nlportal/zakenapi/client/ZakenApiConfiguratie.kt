@@ -42,7 +42,7 @@ data class ZakenApiConfiguratie(
 
 /** Draagt [ZakenApiConfiguratie] bij aan het tenantbestand; geregistreerd via `META-INF/services`. */
 class ZakenApiTenantConfiguratie : TenantModuleConfiguratie<ZakenApiConfiguratie> {
-    override val naam = "zakenapi"
+    override val naam = ZakenApiClient.MODULE
     override val klasse: KClass<ZakenApiConfiguratie> = ZakenApiConfiguratie::class
 
     /** Modulegegevens zonder de koppeling waar ze bij horen, valt bij het laden op en niet pas bij de eerste inwoner. */
@@ -51,7 +51,7 @@ class ZakenApiTenantConfiguratie : TenantModuleConfiguratie<ZakenApiConfiguratie
         context: ModuleContext,
     ): List<ModuleOvertreding> =
         valideer(configuratie) +
-            if ("zakenapi" in context.koppelingen) emptyList() else listOf(ModuleOvertreding("", "vereist koppelingen.zakenapi"))
+            if (ZakenApiClient.MODULE in context.koppelingen) emptyList() else listOf(ModuleOvertreding("", "vereist koppelingen.zakenapi"))
 
     override fun valideer(configuratie: ZakenApiConfiguratie): List<ModuleOvertreding> =
         configuratie.uitgeslotenZaaktypen.mapIndexedNotNull { index, waarde ->
@@ -67,7 +67,7 @@ class ZakenApiTenantConfiguratie : TenantModuleConfiguratie<ZakenApiConfiguratie
  * modulegegevens faalt `getZaken` pas bij de eerste inwoner. (Het omgekeerde, modulegegevens zonder koppeling, weigert de loader.)
  */
 fun controleerKoppelingenHebbenModulegegevens(directory: TenantDirectory) {
-    val zonder = directory.tenants.filter { "zakenapi" in it.koppelingen && it.module(ZakenApiConfiguratie::class) == null }
+    val zonder = directory.tenants.filter { ZakenApiClient.MODULE in it.koppelingen && it.module(ZakenApiConfiguratie::class) == null }
     check(zonder.isEmpty()) {
         "Tenant " + zonder.joinToString { it.oin.value } + ": koppelingen.zakenapi vereist modules.zakenapi (ook `modules.zakenapi: {}` voor de standaardwaarden)"
     }

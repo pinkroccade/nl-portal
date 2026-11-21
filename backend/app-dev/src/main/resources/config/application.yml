@@ -116,10 +116,6 @@ nl-portal:
                     port: 3310
         zakenapi:
             enabled: true
-            properties:
-                url: http://localhost:8001
-                clientId: nl-portal
-                secret: ${OPENZAAK_NLPORTAL_SECRET}
         objectenapi:
             enabled: true
             properties:

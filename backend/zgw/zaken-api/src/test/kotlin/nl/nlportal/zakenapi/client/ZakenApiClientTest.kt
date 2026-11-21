@@ -53,7 +53,7 @@ class ZakenApiClientTest {
     private fun bouwClient(configuratie: ZakenApiConfiguratie = ZakenApiConfiguratie()): ZakenApiClient {
         val tenant =
             TestTenants.tenant(
-                koppelingen = mapOf("zakenapi" to TestTenants.zgwKoppeling(host, "gzac")),
+                koppelingen = mapOf("zakenapi" to TestTenants.zgwKoppeling(host, "gzac", "zaken-secret")),
                 modules = mapOf("zakenapi" to configuratie),
             )
         return ZakenApiClient(TestTenants.register(tenant), TestTenants.directory(tenant), { "$host/catalogi/api/v1/zaaktypen/$it" }, moduleStatus)

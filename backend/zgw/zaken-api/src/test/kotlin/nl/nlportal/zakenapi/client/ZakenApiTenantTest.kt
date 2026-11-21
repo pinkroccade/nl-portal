@@ -92,7 +92,7 @@ class ZakenApiTenantTest {
     ): TenantDefinition =
         TestTenants.tenant(
             oin,
-            koppelingen = mapOf("zakenapi" to TestTenants.zgwKoppeling(url(bron), clientId, oin = oin)),
+            koppelingen = mapOf("zakenapi" to TestTenants.zgwKoppeling(url(bron), clientId, "zaken-secret", oin = oin)),
             modules = mapOf("zakenapi" to configuratie),
         )
 
