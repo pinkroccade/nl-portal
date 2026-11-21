@@ -18,6 +18,8 @@ package nl.nlportal.haalcentraalbrp.autoconfiguration
 import nl.nlportal.core.koppeling.KoppelingAutoConfiguration
 import nl.nlportal.core.koppeling.KoppelingRegister
 import nl.nlportal.core.tenancy.TenantDirectory
+import nl.nlportal.core.tenancy.VervallenProperties
+import nl.nlportal.haalcentraalbrp.tenant.BrpTenantConfiguratie
 import nl.nlportal.haalcentraalbrp.service.HaalCentraalBrpService
 import org.springframework.boot.autoconfigure.AutoConfiguration
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean
@@ -37,4 +39,8 @@ class HaalCentraalBrpAutoConfiguration {
         koppelingRegister: KoppelingRegister,
         tenantDirectory: TenantDirectory,
     ): HaalCentraalBrpService = HaalCentraalBrpService(koppelingRegister, tenantDirectory)
+
+    /** De oude `...properties.*` (apiKey, ssl, brpFields, ...) zijn vervallen: staan ze nog gezet, dan weigert core het opstarten. */
+    @Bean
+    fun haalCentraalBrpVervallenProperties() = VervallenProperties(BrpTenantConfiguratie.MODULE, "nl-portal.config.haalcentraal-brp.properties")
 }

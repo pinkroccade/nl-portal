@@ -22,10 +22,8 @@ spring:
 
 nl-portal:
     tenancy:
-        directory: src/test/resources/tenants
-    geheimen:
-        "00000099000000000001":
-            brp-sleutel: test-sleutel
+        # Zelfde tenantbestanden als :app (zelfde mockpoort 56789): een tenantbestand minder om bij elke migratie bij te werken.
+        directory: ../app/src/test/resources/tenants
     security:
         cors:
             -   path: "/**"

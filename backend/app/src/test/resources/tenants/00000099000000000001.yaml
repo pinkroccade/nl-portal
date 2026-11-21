@@ -11,16 +11,14 @@ koppelingen:
         url: http://localhost:56789/haalcentraal/api/brp
         leverancier: Haal Centraal BRP-mock
         auth:
-            type: api-key
-            headerNaam: X-API-KEY
-            waarde: 00000099000000000001.brp-sleutel
+            # Geen sleutel: de mocks vragen er geen; in productie authenticeert de cloud gateway.
+            type: geen
     brp-bewoning:
         url: http://localhost:56789/haalcentraal/api/bewoning
         leverancier: Haal Centraal Bewoning-mock
         auth:
-            type: api-key
-            headerNaam: X-API-KEY
-            waarde: 00000099000000000001.brp-sleutel
+            # Geen sleutel: de mocks vragen er geen; in productie authenticeert de cloud gateway.
+            type: geen
 modules:
     brp:
         # Doelbinding BRP per gemeente; leeg of weglaten geeft de standaardvelden en alle woonplaatsen.

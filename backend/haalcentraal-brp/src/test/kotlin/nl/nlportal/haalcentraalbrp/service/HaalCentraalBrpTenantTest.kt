@@ -1,5 +1,5 @@
 /*
- * Copyright 2015-2026 Den Haag, Ritense, the Netherlands.
+ * Copyright 2026 PinkRoccade Local Government B.V.
  *
  * Licensed under EUPL, Version 1.2 (the "License");
  * you may not use this file except in compliance with the License.
@@ -73,11 +73,12 @@ internal class HaalCentraalBrpTenantTest {
         TestTenants.metTenant(wijdeVeld) { service.getPersoon(burger) }
 
         assertThat(serverWijdeVeld.requestCount).isEqualTo(1)
+        assertThat(serverWijdeVeld.takeRequest().body.readUtf8()).contains("999993653")
         assertThat(serverBosrand.requestCount).isZero()
     }
 
     @Test
-    fun `de velden en aanvullende headers van de eigen tenant gaan mee, met de sleutel van de koppeling en zonder token`() {
+    fun `de velden en aanvullende headers van de eigen tenant gaan mee, vragen om json en sturen geen token of sleutel mee`() {
         serverBosrand.enqueue(personen())
         serverWijdeVeld.enqueue(personen())
         val service =
@@ -95,7 +96,8 @@ internal class HaalCentraalBrpTenantTest {
         assertThat(bosrandVerzoek.path).isEqualTo("/personen")
         assertThat(bosrandVerzoek.body.readUtf8()).contains("\"fields\":[\"naam\"]")
         assertThat(bosrandVerzoek.getHeader("x-doelbinding")).isEqualTo("bosrand")
-        assertThat(bosrandVerzoek.getHeader("X-API-KEY")).isNotBlank()
+        assertThat(bosrandVerzoek.getHeader("Accept")).isEqualTo("application/json")
+        assertThat(bosrandVerzoek.getHeader("X-API-KEY")).isNull()
         assertThat(bosrandVerzoek.getHeader("Authorization")).isNull()
         val wijdeVeldVerzoek = serverWijdeVeld.takeRequest()
         assertThat(wijdeVeldVerzoek.body.readUtf8()).contains("\"fields\":[\"leeftijd\"]")
@@ -170,21 +172,64 @@ internal class HaalCentraalBrpTenantTest {
     }
 
     @Test
-    fun `een bron die faalt geeft een koppelingsfout zonder het BSN in het bericht`() {
-        serverBosrand.enqueue(MockResponse().setResponseCode(500))
+    fun `een tenant zonder BRP-configuratie krijgt ook voor bewoningen geen stil null, net als voor personen`() {
+        val tenant = TestTenants.tenant(bosrand, koppelingen = mapOf("brp" to koppeling(serverBosrand, bosrand), "brp-bewoning" to koppeling(serverBosrand, bosrand)))
+        val service = HaalCentraalBrpService(TestTenants.register(tenant), TestTenants.directory(tenant))
+
+        assertThrows<ModuleNotConfiguredException> { TestTenants.metTenant(bosrand) { service.getBewoningen(burger, "1") } }
+        assertThrows<ModuleNotConfiguredException> { TestTenants.metTenant(bosrand) { service.getBewonersAantal(burger, "1", "Bosrand") } }
+
+        assertThat(serverBosrand.requestCount).isZero()
+    }
+
+    @Test
+    fun `een koppeling met een api-key stuurt de sleutel van de eigen tenant mee, nooit het token van de inwoner`() {
+        serverBosrand.enqueue(personen())
+        val tenant =
+            TestTenants.tenant(
+                bosrand,
+                koppelingen = mapOf("brp" to koppeling(serverBosrand, bosrand, metSleutel = true)),
+                modules = mapOf("brp" to BrpConfiguratie()),
+            )
+        val geheimen = TestTenants.geheimen(TestTenants.geheim("brp-sleutel", bosrand) to "sleutel-van-bosrand")
+        val service = HaalCentraalBrpService(TestTenants.register(tenant, geheimen = geheimen), TestTenants.directory(tenant))
+
+        TestTenants.metTenant(bosrand) { service.getPersoon(burger) }
+
+        val verzoek = serverBosrand.takeRequest()
+        assertThat(verzoek.getHeader("X-API-KEY")).isEqualTo("sleutel-van-bosrand")
+        assertThat(verzoek.getHeader("Authorization")).isNull()
+    }
+
+    @Test
+    fun `een bron die faalt geeft een koppelingsfout zonder het BSN in het bericht, ook als de bron het BSN in zijn foutbody noemt`() {
+        serverBosrand.enqueue(
+            MockResponse()
+                .setResponseCode(500)
+                .addHeader("Content-Type", "application/problem+json")
+                .setBody("""{"type":"about:blank","title":"Persoon 999993653 onbekend","status":500,"detail":"BSN 999993653 niet gevonden"}"""),
+        )
         val service = service()
 
         val fout = assertThrows<KoppelingException> { TestTenants.metTenant(bosrand) { service.getPersoon(burger) } }
 
         assertThat(fout.message).doesNotContain("999993653")
+        assertThat(fout.toString()).doesNotContain("999993653")
     }
 
+    /** Standaard zonder inloggegeven (bron achter de cloud gateway); [metSleutel] geeft een api-key. */
     private fun koppeling(
         server: MockWebServer,
         oin: Oin,
+        metSleutel: Boolean = false,
     ) = TestTenants.koppeling(
         server.url("/").toString().trimEnd('/'),
-        auth = TenantKoppelingAuth(TenantKoppelingAuthType.API_KEY, headerNaam = "X-API-KEY", waarde = TestTenants.geheim("brp-sleutel", oin)),
+        auth =
+            if (metSleutel) {
+                TenantKoppelingAuth(TenantKoppelingAuthType.API_KEY, headerNaam = "X-API-KEY", waarde = TestTenants.geheim("brp-sleutel", oin))
+            } else {
+                TenantKoppelingAuth(TenantKoppelingAuthType.GEEN)
+            },
         oin = oin,
     )
 

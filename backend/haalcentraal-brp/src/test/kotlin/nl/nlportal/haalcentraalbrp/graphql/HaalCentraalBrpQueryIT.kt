@@ -19,6 +19,8 @@ import tools.jackson.databind.JsonNode
 import nl.nlportal.commonground.authentication.WithBurgerUser
 import nl.nlportal.core.tenancy.GeheimenBron
 import nl.nlportal.core.tenancy.TenantDirectory
+import nl.nlportal.core.tenancy.TenantKoppelingAuth
+import nl.nlportal.core.tenancy.TenantKoppelingAuthType
 import nl.nlportal.core.testing.TestTenants
 import nl.nlportal.core.testing.VasteTenantWebFilter
 import nl.nlportal.haalcentraalbrp.tenant.BrpConfiguratie
@@ -29,7 +31,6 @@ import okhttp3.mockwebserver.MockWebServer
 import okhttp3.mockwebserver.RecordedRequest
 import org.junit.jupiter.api.AfterAll
 import org.junit.jupiter.api.Assertions.assertEquals
-import org.junit.jupiter.api.Assertions.assertNotNull
 import org.junit.jupiter.api.Assertions.assertNull
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
@@ -80,8 +81,8 @@ internal class HaalCentraalBrpQueryIT(
                 TestTenants.tenant(
                     koppelingen =
                         mapOf(
-                            "brp" to TestTenants.koppeling("$basis/brp"),
-                            "brp-bewoning" to TestTenants.koppeling("$basis/bewoning"),
+                            "brp" to TestTenants.koppeling("$basis/brp", TenantKoppelingAuth(TenantKoppelingAuthType.GEEN)),
+                            "brp-bewoning" to TestTenants.koppeling("$basis/bewoning", TenantKoppelingAuth(TenantKoppelingAuthType.GEEN)),
                         ),
                     modules =
                         mapOf(
@@ -104,6 +105,10 @@ internal class HaalCentraalBrpQueryIT(
 
     @BeforeEach
     internal fun setUp() {
+        // De server is gedeeld: leeg de wachtrij, anders leest takeRequest() het verzoek van een eerdere test.
+        while (server.takeRequest(0, TimeUnit.MILLISECONDS) != null) {
+            // leegmaken
+        }
         setupMockServer()
     }
 
@@ -153,7 +158,8 @@ internal class HaalCentraalBrpQueryIT(
         val verzoek = server.takeRequest(5, TimeUnit.SECONDS)!!
         assertEquals("/brp/personen", verzoek.path)
         assertEquals("test-doelbinding", verzoek.getHeader("x-doelbinding"))
-        assertNotNull(verzoek.getHeader("X-Api-Key"))
+        assertEquals("application/json", verzoek.getHeader("Accept"))
+        assertNull(verzoek.getHeader("X-Api-Key"))
         assertNull(verzoek.getHeader("Authorization"))
     }
 

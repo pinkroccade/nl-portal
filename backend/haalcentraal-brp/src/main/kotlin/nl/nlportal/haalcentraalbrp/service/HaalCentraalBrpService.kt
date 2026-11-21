@@ -51,7 +51,7 @@ class HaalCentraalBrpService(
                     fields = configuratie.velden,
                 )
             register
-                .current(BrpTenantConfiguratie.PERSONEN)
+                .current(BrpTenantConfiguratie.MODULE, BrpTenantConfiguratie.PERSONEN)
                 .post<BrpApiRequest, BrpApiResponse>("/personen", brpApiRequest, configuratie.aanvullendeHeaders)
                 .personen
                 .singleOrNull()
@@ -62,48 +62,61 @@ class HaalCentraalBrpService(
             null
         }
 
+    /**
+     * De bewoningen van een adres. Zonder `modules.brp` voor de tenant faalt dit gesloten (zoals [getPersoon]); alleen een ontbrekende
+     * bewoningskoppeling (optioneel, `koppelingen.brp-bewoning`) of een bronfout geeft `null`.
+     */
     suspend fun getBewoningen(
         authentication: PortalAuthentication,
         adresseerbaarObjectIdentificatie: String,
-    ): BewoningenApiResponse? =
-        try {
-            if (authentication.identiteit.vertegenwoordigde is Vertegenwoordigde.Burger) {
-                val bewoningenApiRequest =
-                    BewoningenApiRequest(
-                        type = "BewoningMetPeildatum",
-                        peildatum = LocalDate.now().format(DateTimeFormatter.ofPattern("yyyy-MM-dd")),
-                        adresseerbaarObjectIdentificatie = adresseerbaarObjectIdentificatie,
-                    )
-                val configuratie = directory.module<BrpConfiguratie>()
-                register
-                    .current(BrpTenantConfiguratie.MODULE, BrpTenantConfiguratie.BEWONING)
-                    .post<BewoningenApiRequest, BewoningenApiResponse>("/bewoningen", bewoningenApiRequest, configuratie.aanvullendeHeaders)
-            } else {
-                logger.warn { "Authentication is not supported" }
-                null
-            }
-        } catch (ex: KoppelingException) {
-            // Geen stacktrace of oorzaak: die kunnen het BSN bevatten. De referentie vindt de aanroep terug.
-            logger.error { "Bewoningen ophalen mislukt: koppeling '${ex.koppeling}', soort ${ex.soort}, referentie ${ex.correlatieId}" }
-            null
-        } catch (ex: ModuleNotConfiguredException) {
-            logger.warn { "Bewoningen ophalen kan niet: ${ex.message}" }
-            null
-        }
+    ): BewoningenApiResponse? = bewoningen(authentication, directory.module<BrpConfiguratie>(), adresseerbaarObjectIdentificatie)
 
     suspend fun getBewonersAantal(
         authentication: PortalAuthentication,
         adresseerbaarObjectIdentificatie: String,
         woonplaats: String? = null,
     ): Int? {
-        if (allowedBewoningRequest(directory.module<BrpConfiguratie>(), woonplaats)) {
-            return getBewoningen(authentication, adresseerbaarObjectIdentificatie)
+        val configuratie = directory.module<BrpConfiguratie>()
+        if (allowedBewoningRequest(configuratie, woonplaats)) {
+            return bewoningen(authentication, configuratie, adresseerbaarObjectIdentificatie)
                 ?.bewoningen
                 ?.firstOrNull()
                 ?.bewoners
                 ?.size
         }
         return null
+    }
+
+    private suspend fun bewoningen(
+        authentication: PortalAuthentication,
+        configuratie: BrpConfiguratie,
+        adresseerbaarObjectIdentificatie: String,
+    ): BewoningenApiResponse? {
+        if (authentication.identiteit.vertegenwoordigde !is Vertegenwoordigde.Burger) {
+            logger.warn { "Authentication is not supported" }
+            return null
+        }
+        val client =
+            try {
+                register.current(BrpTenantConfiguratie.MODULE, BrpTenantConfiguratie.BEWONING)
+            } catch (ex: ModuleNotConfiguredException) {
+                // De bewoningskoppeling is optioneel: zonder die koppeling zijn er geen bewoningen (zoals vroeger zonder bewoningApiUrl).
+                logger.warn { "Bewoningen ophalen kan niet: koppeling '${BrpTenantConfiguratie.BEWONING}' is voor deze tenant niet ingesteld" }
+                return null
+            }
+        val request =
+            BewoningenApiRequest(
+                type = "BewoningMetPeildatum",
+                peildatum = LocalDate.now().format(DateTimeFormatter.ofPattern("yyyy-MM-dd")),
+                adresseerbaarObjectIdentificatie = adresseerbaarObjectIdentificatie,
+            )
+        return try {
+            client.post<BewoningenApiRequest, BewoningenApiResponse>("/bewoningen", request, configuratie.aanvullendeHeaders)
+        } catch (ex: KoppelingException) {
+            // Geen stacktrace of oorzaak: die kunnen het BSN bevatten. De referentie vindt de aanroep terug.
+            logger.error { "Bewoningen ophalen mislukt: koppeling '${ex.koppeling}', soort ${ex.soort}, referentie ${ex.correlatieId}" }
+            null
+        }
     }
 
     private fun determineOfficialLastName(persoon: BrpPersoon): String {

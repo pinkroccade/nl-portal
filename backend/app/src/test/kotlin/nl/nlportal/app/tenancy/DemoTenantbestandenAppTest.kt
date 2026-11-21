@@ -1,5 +1,5 @@
 /*
- * Copyright 2015-2026 Den Haag, Ritense, the Netherlands.
+ * Copyright 2026 PinkRoccade Local Government B.V.
  *
  * Licensed under EUPL, Version 1.2 (the "License");
  * you may not use this file except in compliance with the License.
@@ -39,13 +39,6 @@ class DemoTenantbestandenAppTest {
     @Test
     fun `de tenantbestanden van de app-tests voldoen aan de validator`() {
         val result = TenantFileLoader(modules = modules).load(Path.of("src/test/resources/tenants"))
-
-        assertThat(result.violations).isEmpty()
-    }
-
-    @Test
-    fun `de tenantbestanden van de app-dev-tests voldoen aan de validator`() {
-        val result = TenantFileLoader(modules = modules).load(Path.of("../app-dev/src/test/resources/tenants"))
 
         assertThat(result.violations).isEmpty()
     }

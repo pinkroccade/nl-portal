@@ -20,6 +20,10 @@ import nl.nlportal.core.testing.TestTenants
 import nl.nlportal.haalcentraalbrp.service.HaalCentraalBrpService
 import org.assertj.core.api.Assertions.assertThat
 import org.junit.jupiter.api.Test
+import org.junit.jupiter.api.assertThrows
+import org.springframework.core.env.MapPropertySource
+import org.springframework.core.env.StandardEnvironment
+import nl.nlportal.core.tenancy.VervallenProperties
 import org.springframework.boot.autoconfigure.AutoConfigurations
 import org.springframework.boot.test.context.runner.ApplicationContextRunner
 import org.springframework.context.annotation.Bean
@@ -36,6 +40,18 @@ internal class HaalCentraalBrpAutoConfigurationTest {
         contextRunner
             .withPropertyValues("nl-portal.config.haalcentraal-brp.enabled=true")
             .run { context -> assertThat(context).hasSingleBean(HaalCentraalBrpService::class.java) }
+    }
+
+    @Test
+    fun `de oude properties van de module zijn vervallen en weigeren het opstarten, met een verwijzing naar modules brp`() {
+        contextRunner
+            .withPropertyValues("nl-portal.config.haalcentraal-brp.enabled=true")
+            .run { context ->
+                val vervallen = context.getBean(VervallenProperties::class.java)
+                assertThat(vervallen).isEqualTo(VervallenProperties("brp", "nl-portal.config.haalcentraal-brp.properties"))
+                val oudeInstelling = StandardEnvironment().apply { propertySources.addFirst(MapPropertySource("oud", mapOf("nl-portal.config.haalcentraal-brp.properties.api-key" to "x"))) }
+                assertThrows<IllegalStateException> { vervallen.controleer(oudeInstelling) }.also { assertThat(it.message).contains("modules.brp") }
+            }
     }
 
     @Test

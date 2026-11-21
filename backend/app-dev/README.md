@@ -23,8 +23,8 @@ setup.
 
 The tenancy is on, like in `:app`: `nl-portal.tenancy.directory` points at the demo tenant in
 [`docker-compose/imports/tenants`](../../docker-compose/imports/tenants), which holds the `koppelingen` and `modules` of the
-modules that were migrated to the tenant file (so far `haalcentraal-brp`). Their secrets are inlined under `nl-portal.geheimen`
-in `application.yml`. Requests need the host `localhost` (a tenant domain).
+modules that were migrated to the tenant file (so far `haalcentraal-brp`). The demo mocks need no secrets
+(`auth.type: geen`); a source that does would get its secret inlined under `nl-portal.geheimen` in `application.yml`. Requests need the host `localhost` (a tenant domain).
 
 GraphQL is at http://localhost:8080/graphql (GraphiQL and introspection are on). Log in with the test
 users from the [docker-compose stack](../../docker-compose/README.md).

@@ -50,10 +50,6 @@ nl-portal:
     tenancy:
         # De demo-tenant van de compose-stack; bootRun draait in deze moduleomgeving.
         directory: ../../docker-compose/imports/tenants
-    geheimen:
-        # Sleutel van de BRP-koppeling van de demo-tenant (de mocks vragen er geen).
-        "00000099000000000001":
-            brp-sleutel: lokale-mock-vraagt-geen-sleutel
     support:
         ping-endpoint:
             enabled: false
