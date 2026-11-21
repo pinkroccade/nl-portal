@@ -45,7 +45,8 @@ principe dat geen controle kan zien; noem in de review het principe-ID als een w
 
 - (P-01, P-02) Een wijziging aan authenticatie, autorisatie of gegevensverwerking noemt de ASVS-eisen die ze
   raakt, en een nieuwe eis die we uitvoeren krijgt een rij in de traceerbaarheidsmatrix. Een token of geheim dat
-  naar de browser gaat, vraagt een ADR.
+  naar de browser gaat, vraagt een ADR. OAuth-code volgt het NL GOV Assurance profile for OAuth 2.0; RFC 9700
+  geldt alleen waar het profiel niets specifiekers zegt.
 
 ### Privacy en dataminimalisatie
 

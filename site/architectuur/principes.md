@@ -65,16 +65,20 @@ Reviewpunt: [security by design](https://github.com/pinkroccade/nl-portal/blob/m
 ### P-02 Tokens en geheimen verlaten de server niet
 
 **Statement:** Toegangstokens, verversingstokens en clientgeheimen blijven op de server; de browser krijgt ze
-niet (backend-for-frontend, ADR 0022). De OAuth-inrichting volgt RFC 9700; zolang token exchange bestaat, volgt
-hij RFC 8693 zonder impersonation.
+niet (backend-for-frontend, ADR 0022). De OAuth-inrichting volgt het NL GOV Assurance profile for OAuth 2.0;
+RFC 9700 is de basis waar het profiel niets specifiekers zegt. Zolang token exchange bestaat, volgt hij RFC 8693
+zonder impersonation.
 
-**Rationale:** Een token in de browser is via XSS of een gecompromitteerde extensie uit te lezen. RFC 9700
-ontraadt de flows en het tokengebruik die dat mogelijk maken.
+**Rationale:** Een token in de browser is via XSS of een gecompromitteerde extensie uit te lezen. Het NL GOV-profiel
+staat op de pas-toe-of-leg-uitlijst en is voor de overheid de norm; RFC 9700 ontraadt daarnaast de flows en het
+tokengebruik die tokens blootstellen.
 
-**Implications:** Nieuwe authenticatiecode gaat uit van een vertrouwelijke client op de server. Een afwijking
-vraagt een ADR.
+**Implications:** Nieuwe authenticatiecode gaat uit van een vertrouwelijke client op de server die zich met
+`private_key_jwt` authenticeert (profiel 2.1.1, 2.3.3); de huidige token exchange met `client_secret` staat als
+Open in de traceerbaarheidsmatrix. Waar profiel en RFC 9700 verschillen, wint het profiel. Een afwijking van het
+profiel vraagt een ADR.
 
-**Bron:** `N-RFC-9700`, `N-RFC-8693`, `N-ASVS-5.0`
+**Bron:** `N-NLGOV-OAUTH-1.1.0`, `N-RFC-9700`, `N-RFC-8693`, `N-ASVS-5.0`
 
 **Toetsing:** Fitness test: `CommonGroundAuthenticationConverterTokenExchangeTest`;
 Reviewpunt: [security by design](https://github.com/pinkroccade/nl-portal/blob/main/CODING_STANDARDS.md#security-by-design)

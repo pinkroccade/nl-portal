@@ -38,6 +38,7 @@ raadpleegdatum in de [normatieve bronnen](../../compliance/normatieve-bronnen.md
 |---|---|---|
 | **BIO2** (Baseline Informatiebeveiliging Overheid 2, op basis van ISO/IEC 27002:2022) | `N-BIO2-1.3` | P-01, P-03, P-04, P-05, P-07, P-08, P-15 |
 | **OWASP ASVS 5.0** level 2 als basis | `N-ASVS-5.0` | P-01, P-02, P-03, P-07 |
+| **NL GOV Assurance profile for OAuth 2.0** als norm voor de OAuth-inrichting, met RFC 9700 als basis waar het profiel niets specifiekers zegt | `N-NLGOV-OAUTH-1.1.0`, `N-RFC-9700` | P-02 |
 | **AVG**: minimale gegevensverwerking en gegevensbescherming door ontwerp (art. 5 en 25) | `N-AVG-2016` | P-05, P-06 |
 | **Open standaarden**: de pas-toe-of-leg-uitlijst van Forum Standaardisatie, waaronder de NLGov REST API Design Rules en WCAG 2.2 | `N-FS-PTOLU`, `N-NLAPI-2.2`, `N-WCAG-2.2` | P-09, P-10, P-11 |
 | **Referentiearchitecturen**: NORA, GEMMA en het Common Ground 5-lagenmodel | `N-NORA-3.0`, `N-GEMMA-2`, `N-CG-5LAGEN` | P-06, P-08, P-12, P-13, P-14 |
