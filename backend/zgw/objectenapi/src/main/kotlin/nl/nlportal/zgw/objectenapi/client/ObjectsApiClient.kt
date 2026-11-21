@@ -17,6 +17,7 @@ package nl.nlportal.zgw.objectenapi.client
 
 import nl.nlportal.core.util.requireConfigured
 import io.netty.handler.logging.LogLevel.TRACE
+import java.net.URI
 import java.util.UUID
 import nl.nlportal.core.util.Mapper
 import nl.nlportal.zgw.objectenapi.autoconfiguration.ObjectsApiClientConfig.ObjectsApiClientConfigProperties
@@ -55,7 +56,7 @@ open class ObjectsApiClient(
                 )
             }.awaitBodyOrNull()
 
-    suspend inline fun <reified T> getObjectByUrl(url: String): ObjectsApiObject<T>? =
+    suspend inline fun <reified T> getObjectByUrl(url: URI): ObjectsApiObject<T>? =
         webClientWithoutBaseUrl()
             .get()
             .uri(url)

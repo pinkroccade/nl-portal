@@ -21,7 +21,8 @@ import nl.nlportal.catalogiapi.client.CatalogiApiConfig
 import nl.nlportal.commonground.authentication.WithBedrijfUser
 import nl.nlportal.commonground.authentication.WithBurgerUser
 import nl.nlportal.documentenapi.client.DocumentApisConfig
-import nl.nlportal.zakenapi.client.ZakenApiConfig
+import nl.nlportal.zaken.ZakenTestTenantConfiguratie
+import org.springframework.boot.test.context.TestConfiguration
 import okhttp3.mockwebserver.Dispatcher
 import okhttp3.mockwebserver.MockResponse
 import okhttp3.mockwebserver.MockWebServer
@@ -47,7 +48,6 @@ import org.springframework.test.context.DynamicPropertySource
 @TestInstance(PER_METHOD)
 internal class ZaakQueryIT(
     @Autowired private val httpGraphQlTester: HttpGraphQlTester,
-    @Autowired private val zakenApiConfig: ZakenApiConfig,
     @Autowired private val catalogiApiConfig: CatalogiApiConfig,
     @Autowired private val documentApisConfig: DocumentApisConfig,
     @Autowired private val besluitenApiConfig: BesluitenApiConfig,
@@ -62,7 +62,6 @@ internal class ZaakQueryIT(
         @JvmStatic
         @DynamicPropertySource
         fun properties(propsRegistry: DynamicPropertyRegistry) {
-            propsRegistry.add("nl-portal.config.zakenapi.properties.url") { url }
             propsRegistry.add("nl-portal.config.besluitenapi.properties.url") { url }
         }
 
@@ -81,12 +80,14 @@ internal class ZaakQueryIT(
         }
     }
 
+    @TestConfiguration
+    class Tenants : ZakenTestTenantConfiguratie({ url })
+
     @BeforeEach
     internal fun setUp() {
         setupMockOpenZaakServer()
         url = server?.url("/").toString()
 
-        zakenApiConfig.properties.url = url
         catalogiApiConfig.properties.url = url
         besluitenApiConfig.properties.url = url
         documentApisConfig.properties.getConfig("openzaak").url = url

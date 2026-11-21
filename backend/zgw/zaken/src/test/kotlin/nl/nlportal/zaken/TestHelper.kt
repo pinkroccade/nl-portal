@@ -18,7 +18,7 @@ package nl.nlportal.zaken
 import nl.nlportal.documentenapi.domain.Document
 import nl.nlportal.documentenapi.domain.DocumentStatus.IN_BEWERKING
 import nl.nlportal.documentenapi.domain.Vertrouwelijkheid.OPENBAAR
-import nl.nlportal.zakenapi.domain.ResultPage
+import nl.nlportal.core.koppeling.ResultPage
 import nl.nlportal.zakenapi.domain.ZaakDocument
 import nl.nlportal.zakenapi.domain.ZaakRol
 import okhttp3.mockwebserver.MockResponse

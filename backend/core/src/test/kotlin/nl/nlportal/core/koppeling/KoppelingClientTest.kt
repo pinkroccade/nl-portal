@@ -308,6 +308,45 @@ class KoppelingClientTest {
         assertThat(bron.requestCount).isEqualTo(3)
     }
 
+    @Test
+    fun `url geeft de absolute URL van een pad onder de basis en weigert een pad erbuiten`() {
+        val e =
+            fout {
+                val client = register().current("zaken")
+                assertThat(client.url("/zaken/api/v1/zaken/1")).isEqualTo(bron.url("/zaken/api/v1/zaken/1").toString())
+                client.url("http://evil.example/zaken")
+            }
+
+        assertThat(e.soort).isEqualTo(KoppelingFoutsoort.HOST_BINDING)
+        assertThat(buitenstaander.requestCount).isZero()
+    }
+
+    @Test
+    fun `een post met queryparameters stuurt ze mee in de URL`() {
+        bron.enqueue(json("""{"id":"1"}"""))
+
+        val antwoord = alsTenant(bosrand) { register().current("zaken").post<Map<String, String>, Zaak>("/zaken/_zoek", mapOf("a" to "b"), query = mapOf("page" to listOf("2"), "pageSize" to listOf("5"))) }
+
+        assertThat(antwoord).isEqualTo(Zaak("1"))
+        assertThat(bron.takeRequest().path).isEqualTo("/zaken/_zoek?page=2&pageSize=5")
+    }
+
+    @Test
+    fun `een post met een Content-Type header stuurt een formuliermap als JSON en niet als formulier`() {
+        bron.enqueue(json("""{"id":"1"}"""))
+        val body =
+            org.springframework.util.LinkedMultiValueMap<String, Any>().apply {
+                add("a", "b")
+                add("open", true)
+            }
+
+        alsTenant(bosrand) { register().current("zaken").post<Any, Zaak>("/zaken/_zoek", body, headers = mapOf("Content-Type" to "application/json")) }
+
+        val verzoek = bron.takeRequest()
+        assertThat(verzoek.getHeader("Content-Type")).startsWith("application/json")
+        assertThat(verzoek.body.readUtf8()).isEqualTo("""{"a":["b"],"open":[true]}""")
+    }
+
     // Host-binding
 
     @Test

@@ -15,46 +15,67 @@
  */
 package nl.nlportal.zakenapi.client
 
-import nl.nlportal.catalogiapi.client.CatalogiApiConfig.CatalogiApiConfigProperties
+import kotlinx.coroutines.test.runTest
 import nl.nlportal.core.modulestatus.ModuleState
 import nl.nlportal.core.modulestatus.ModuleStatusRegistry
+import nl.nlportal.core.tenancy.TenantContextMissingException
+import nl.nlportal.core.testing.TestTenants
 import nl.nlportal.core.util.ModuleNotConfiguredException
-import nl.nlportal.zakenapi.client.ZakenApiConfig.ZakenApiConfigProperties
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Test
-import org.junit.jupiter.api.assertDoesNotThrow
 import org.junit.jupiter.api.assertThrows
-import org.springframework.web.reactive.function.client.WebClient
 import java.util.UUID
 
 class ZakenApiClientConfigurationTest {
-    private fun client() = ZakenApiClient(ZakenApiConfigProperties(), CatalogiApiConfigProperties(), WebClient.builder())
+    private val registry = ModuleStatusRegistry()
 
-    @Test
-    fun `client can be created without configuration`() {
-        assertDoesNotThrow { client() }
+    /** Een tenant zonder koppeling `zakenapi` en zonder `modules.zakenapi`. */
+    private fun client(): ZakenApiClient {
+        val tenant = TestTenants.tenant()
+        return ZakenApiClient(TestTenants.register(tenant), TestTenants.directory(tenant), { throw ModuleNotConfiguredException("catalogiapi", "url") }, registry)
     }
 
     @Test
-    fun `client fails clearly on use without configuration`() {
-        assertThrows<ModuleNotConfiguredException> { client().webClient }
-    }
+    fun `client fails clearly on use for a tenant without koppeling`() =
+        runTest {
+            TestTenants.alsTenant {
+                assertThrows<ModuleNotConfiguredException> { client().zaken().get(UUID.randomUUID()).retrieve() }
+            }
+        }
 
     @Test
-    fun `urls fail clearly without configuration`() {
-        assertThrows<ModuleNotConfiguredException> { client().getZaakUrl("1") }
-        assertThrows<ModuleNotConfiguredException> { client().getZaakTypeUrl(UUID.randomUUID()) }
-    }
+    fun `urls fail clearly without configuration`() =
+        runTest {
+            TestTenants.alsTenant {
+                assertThrows<ModuleNotConfiguredException> { client().getZaakUrl(UUID.randomUUID()) }
+                assertThrows<ModuleNotConfiguredException> { client().getZaakTypeUrl(UUID.randomUUID()) }
+            }
+        }
 
     @Test
-    fun `ontbrekende configuratie komt als NOT_CONFIGURED in de modulestatus`() {
-        val registry = ModuleStatusRegistry()
-        val client = ZakenApiClient(ZakenApiConfigProperties(), CatalogiApiConfigProperties(), WebClient.builder(), registry)
+    fun `modulegegevens fail clearly for a tenant without modules zakenapi`() =
+        runTest {
+            TestTenants.alsTenant {
+                assertThrows<ModuleNotConfiguredException> { client().configuratie() }
+            }
+        }
 
-        assertThrows<ModuleNotConfiguredException> { client.webClient }
+    @Test
+    fun `without a tenant there is no koppeling and no configuration, fail closed`() =
+        runTest {
+            assertThrows<TenantContextMissingException> { client().zaken().get(UUID.randomUUID()).retrieve() }
+            assertThrows<TenantContextMissingException> { client().configuratie() }
+        }
 
-        val status = registry.snapshot().single()
-        assertEquals("zakenapi", status.module)
-        assertEquals(ModuleState.NOT_CONFIGURED, status.status)
-    }
+    @Test
+    fun `ontbrekende configuratie komt als NOT_CONFIGURED in de modulestatus`() =
+        runTest {
+            TestTenants.alsTenant {
+                assertThrows<ModuleNotConfiguredException> { client().zaken().get(UUID.randomUUID()).retrieve() }
+            }
+
+            val status = registry.snapshot().single()
+            assertEquals("zakenapi", status.module)
+            assertEquals(ModuleState.NOT_CONFIGURED, status.status)
+        }
 }
