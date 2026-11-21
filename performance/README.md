@@ -59,7 +59,7 @@ PERF_USERNAME=<gebruiker> PERF_PASSWORD=<wachtwoord> mise run perf:smoke
 |---|---|
 | `PERF_USERNAME`, `PERF_PASSWORD` | verplicht |
 | `PERF_BACKEND_URL` | `http://localhost:8080` |
-| `PERF_KEYCLOAK_URL` | `http://localhost:8082/auth` |
+| `PERF_KEYCLOAK_URL` | `http://localhost:8082` |
 | `PERF_REALM` | `nlportal` |
 | `PERF_CLIENT_ID` | `nl-portal` |
 

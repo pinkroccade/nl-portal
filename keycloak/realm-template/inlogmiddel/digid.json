@@ -1,0 +1,35 @@
+{
+  "identityProviders": [
+    {
+      "alias": "digid",
+      "displayName": "DigiD",
+      "providerId": "saml",
+      "enabled": true,
+      "trustEmail": false,
+      "storeToken": false,
+      "addReadTokenRoleOnCreate": false,
+      "linkOnly": false,
+      "firstBrokerLoginFlowAlias": "auto-broker-login",
+      "config": {
+        "singleSignOnServiceUrl": "{{idp.digid.singleSignOnServiceUrl}}",
+        "idpEntityId": "{{idp.digid.idpEntityId}}",
+        "entityId": "{{brokerUrl}}/realms/{{realm}}",
+        "nameIDPolicyFormat": "urn:oasis:names:tc:SAML:2.0:nameid-format:persistent",
+        "postBindingAuthnRequest": "true",
+        "postBindingResponse": "true",
+        "wantAssertionsSigned": "true",
+        "validateSignature": "true",
+        "signingCertificate": "{{idp.digid.signingCertificate}}",
+        "syncMode": "FORCE",
+        "authnContextClassRefs": "{{digidAuthnContextClassRefs}}",
+        "authnContextComparisonType": "minimum"
+      }
+    }
+  ],
+  "identityProviderMappers": [
+    { "name": "acr", "identityProviderAlias": "digid", "identityProviderMapper": "nlportal-saml-authncontext-note-mapper", "config": { "syncMode": "FORCE", "note": "acr" } },
+    { "name": "acting", "identityProviderAlias": "digid", "identityProviderMapper": "nlportal-saml-attribute-note-mapper", "config": { "syncMode": "FORCE", "attribute.name": "urn:nl-eid-gdi:1.0:ActingSubjectID", "note": "acting_subject_id" } },
+    { "name": "legal", "identityProviderAlias": "digid", "identityProviderMapper": "nlportal-saml-attribute-note-mapper", "config": { "syncMode": "FORCE", "attribute.name": "urn:nl-eid-gdi:1.0:LegalSubjectID", "note": "legal_subject_id" } },
+    { "name": "gebruikersnaam", "identityProviderAlias": "digid", "identityProviderMapper": "saml-username-idp-mapper", "config": { "syncMode": "IMPORT", "template": "${ALIAS}.${NAMEID}", "target": "LOCAL" } }
+  ]
+}

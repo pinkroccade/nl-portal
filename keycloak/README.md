@@ -105,6 +105,11 @@ providers niet kan overschrijven (`integratietest/image-rechten.test.mjs` probee
 image; wie andere opties wil moet het image opnieuw bouwen. Runtime-instellingen (database, hostname, admin) blijven
 omgevingsvariabelen.
 
+**Alleen `start --optimized`.** Een gewone `start`, of een bouwoptie die afwijkt van het image (bijvoorbeeld `KC_HTTP_RELATIVE_PATH` of een andere
+`KC_DB`), laat Keycloak zichzelf opnieuw bouwen. Dat faalt bewust: `lib/quarkus` is niet schrijfbaar voor het proces, zodat een
+gecompromitteerd proces geen code kan wijzigen. Zet zo'n optie in de Dockerfile en bouw het image opnieuw. Keycloak draait dus op
+het pad `/` (geen `/auth`): de compose-stack en de backend- en frontendconfiguratie gebruiken `http://localhost:8082`.
+
 ## Supply chain
 
 - SBOM en scan van het eigen image: `sbom:keycloak-image` en `security:keycloak-vuln-scan`. De provider-jar heeft geen
@@ -148,5 +153,27 @@ overslaan.**
   handtekeninginstelling van de koppeling. Dat is bewust: bij een authorization-code-flow over TLS met clientauthenticatie
   mag de ID-tokenhandtekening volgens OIDC Core worden overgeslagen. De realmtest (#505) controleert dat de wallet-koppeling
   zo is ingericht (code-flow, clientauthenticatie, TLS-endpoints) en geen implicit of hybrid flow gebruikt.
-- `integratietest/realms/portal-realm.json` en `idp-sim-realm.json` zijn een werkend voorbeeld; `integratietest/claims.test.mjs`
-  is het uitgangspunt voor de realmtest.
+- `integratietest/realms/portal-realm.json` en `idp-sim-realm.json` zijn een werkend voorbeeld voor de mappertests; het
+  echte template staat in `realm-template/`.
+
+### Realm-template (#505)
+
+Eén template voor alle tenants: `realm-template/realm.json` (de basis) plus een fragment per inlogmiddel
+(`realm-template/inlogmiddel/<naam>.json`: `test`, `digid`, `wallet`). `scripts/lib/realm.mjs` vult het met de waarden uit het
+tenantbestand (`docker-compose/imports/tenants`) en voegt alleen de fragmenten van de ingeschakelde inlogmiddelen toe;
+`mise run dev:setup` genereert zo per tenant `docker-compose/.generated/keycloak/<oin>.json` plus een sleutelpaar voor
+`private_key_jwt` (de private JWK komt in `docker-compose/.generated/tenants/<oin>/clientsleutel.jwk.json`, de publieke in het realm).
+keycloak-config-cli (service `nl-portal-keycloak-config` in de compose) laadt het resultaat tegen dit image. Geheimen staan niet
+in het realm: de m2m-client en de wallet-koppeling verwijzen naar kcc-substitutie (`$(env:NAAM)`).
+
+Wat de generator afdwingt en de realmtest (`scripts/lib/realm.test.mjs`, in `mise run test`) bewijst, per gegenereerd realm:
+alleen `nl-portal-backend` (private_key_jwt, PS256, PKCE S256, `at+jwt`, exacte redirect- en post-logout-URI's, back-channel
+logout-URL, geen service-account, geen directe grants), tot #506 ook de huidige SPA-client en `nl-portal-m2m`; accountconsole uit;
+scope `acr` van `nl-portal-backend` af; per koppeling een mapper voor elke notitie die een client-mapper leest;
+SAML met `validateSignature`, `wantAssertionsSigned` en een vastgepind `signingCertificate`, minimumniveau als
+`authnContextClassRef`; wallet met code-flow, PKCE S256, clientauthenticatie en TLS; geen identiteitskoppeling; SSO-tijden niet
+langer dan het portaal; buiten ontwikkeling alleen `https`-koppelingen. Het testinlogmiddel (demo-gebruikers en de standaard
+browserflow) bestaat alleen als de tenant het kent; de generator weigert het in productie, en een realm zonder testinlogmiddel
+heeft de flow `alleen-koppelingen` en geen gebruikers.
+`integratietest/realm-kcc.test.mjs` laadt dezelfde realms met keycloak-config-cli in een echte Keycloak en doorloopt een code-flow
+met een `private_key_jwt`-assertion.
