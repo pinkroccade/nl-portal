@@ -324,6 +324,37 @@ class KoppelingClientStreamTest {
         assertThat(e.soort).isEqualTo(KoppelingFoutsoort.TIMEOUT)
     }
 
+    @Test
+    fun `headers per aanroep gaan mee op een stroom`() {
+        bron.enqueue(bytes("x"))
+
+        alsTenant { register().current("documenten").getStream("/download", headers = mapOf("X-Eigen" to "waarde")).bytes() }
+
+        assertThat(bron.takeRequest().getHeader("X-Eigen")).isEqualTo("waarde")
+    }
+
+    @Test
+    fun `een stiltetimeout na de eerste respons telt niet als storing van de bron`() {
+        repeat(2) { bron.enqueue(bytes("traag").setBodyDelay(3, TimeUnit.SECONDS)) }
+        bron.enqueue(bytes("daarna"))
+        val register = register(KoppelingResilienceInstellingen(vensterGrootte = 2, minimumAanroepen = 2, timeout = Duration.ofMillis(300)))
+
+        repeat(2) { assertThat(fout { register.current("documenten").getStream("/a").bytes() }.soort).isEqualTo(KoppelingFoutsoort.TIMEOUT) }
+        val daarna = alsTenant { register.current("documenten").getStream("/c").bytes() }
+
+        assertThat(String(daarna)).isEqualTo("daarna")
+    }
+
+    @Test
+    fun `de timeout van de eerste respons loopt niet dubbel op`() {
+        bron.enqueue(bytes("laat").setHeadersDelay(5, TimeUnit.SECONDS))
+        val start = System.nanoTime()
+
+        fout { register(KoppelingResilienceInstellingen(timeout = Duration.ofMillis(600))).current("documenten").getStream("/a").bytes() }
+
+        assertThat(Duration.ofNanos(System.nanoTime() - start)).isLessThan(Duration.ofMillis(1100))
+    }
+
     // beheertUrl: het aanwijzen van de koppeling bij een URL die een bron teruggaf
 
     private fun beheert(

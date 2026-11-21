@@ -20,6 +20,7 @@ import org.junit.jupiter.api.Test
 import reactor.core.publisher.Flux
 import reactor.core.publisher.Mono
 import reactor.core.publisher.Sinks
+import java.time.Duration
 
 /**
  * De stroombewaker zonder netwerk en zonder klok: een stroom die na de eerste respons stokt en eindigt (door een stiltetimeout of
@@ -90,5 +91,88 @@ class KoppelingBewakerStroomTest {
         val derde = runCatching { bewaker.beschermdStroom<String> { Flux.just("a") }.blockLast() }.exceptionOrNull()
 
         assertThat((derde as KoppelingException).soort).isEqualTo(KoppelingFoutsoort.CIRCUIT_OPEN)
+    }
+
+    private fun stroomResultaat(
+        bewaker: KoppelingBewaker,
+        bouw: (StroomFase) -> Flux<String>,
+    ) = runCatching { bewaker.beschermdStroom(bouw).blockLast() }.exceptionOrNull()
+
+    @Test
+    fun `een geweigerde stroom bij een open circuit breaker houdt de plek in de limiet niet vast`() {
+        val bewaker = bewaker()
+        repeat(2) { stroomResultaat(bewaker) { Flux.error(timeout()) } }
+
+        // Met één plek in de limiet blijft elke volgende weigering CIRCUIT_OPEN zolang de plek terugkomt (anders LIMIET).
+        repeat(3) {
+            val fout = stroomResultaat(bewaker) { Flux.just("a") }
+            assertThat((fout as KoppelingException).soort).isEqualTo(KoppelingFoutsoort.CIRCUIT_OPEN)
+        }
+    }
+
+    @Test
+    fun `een tweede gelijktijdige stroom boven de limiet wordt geweigerd met LIMIET`() {
+        val bewaker = bewaker()
+        val bron = Sinks.many().unicast().onBackpressureBuffer<String>()
+        val eerste = bewaker.beschermdStroom { bron.asFlux() }.subscribe({}, {})
+
+        val fout = stroomResultaat(bewaker) { Flux.just("a") }
+        eerste.dispose()
+
+        assertThat((fout as KoppelingException).soort).isEqualTo(KoppelingFoutsoort.LIMIET)
+    }
+
+    @Test
+    fun `een geslaagde eerste respons telt als succes in het venster van de circuit breaker`() {
+        val bewaker = bewaker()
+        bewaker.beschermdStroom { fase -> Flux.just("a").doOnSubscribe { fase.koptekstOntvangen() } }.blockLast()
+        stroomResultaat(bewaker) { Flux.error(timeout()) }
+
+        // 1 succes + 1 storing in een venster van 2 aanroepen = 50%: de circuit breaker is open.
+        val volgende = stroomResultaat(bewaker) { Flux.just("a") }
+
+        assertThat((volgende as KoppelingException).soort).isEqualTo(KoppelingFoutsoort.CIRCUIT_OPEN)
+    }
+
+    @Test
+    fun `een onverwachte fout die geen KoppelingException is telt niet als storing`() {
+        val bewaker = bewaker()
+
+        repeat(3) { stroomResultaat(bewaker) { Flux.error(IllegalStateException("kapot")) } }
+        val volgende = runCatching { bewaker.beschermdStroom { Flux.just("a") }.blockLast() }
+
+        assertThat(volgende.getOrNull()).isEqualTo("a")
+    }
+
+    @Test
+    fun `een onverwachte fout bij een gewone aanroep telt niet als storing`() {
+        val bewaker = bewaker()
+
+        repeat(3) { runCatching { bewaker.beschermd(Mono.error<String>(IllegalStateException("kapot"))).block() } }
+
+        assertThat(bewaker.beschermd(Mono.just("ok")).block()).isEqualTo("ok")
+    }
+
+    @Test
+    fun `annuleren voor de eerste respons in halfopen geeft de proefplek terug`() {
+        val bewaker =
+            KoppelingBewaker(
+                "documenten",
+                "tenant/documenten-halfopen",
+                KoppelingResilienceInstellingen(
+                    vensterGrootte = 2,
+                    minimumAanroepen = 2,
+                    wachttijdOpen = Duration.ofMillis(10),
+                    halfOpenAanroepen = 1,
+                ),
+            )
+        repeat(2) { stroomResultaat(bewaker) { Flux.error(timeout()) } }
+        Thread.sleep(100)
+
+        val bron = Sinks.many().unicast().onBackpressureBuffer<String>()
+        bewaker.beschermdStroom { bron.asFlux() }.subscribe().dispose()
+
+        // De proefplek is terug: een volgende aanroep wordt toegelaten in plaats van CIRCUIT_OPEN.
+        assertThat(stroomResultaat(bewaker) { Flux.just("a") }).isNull()
     }
 }
