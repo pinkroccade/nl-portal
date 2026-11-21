@@ -63,7 +63,7 @@ class GraphQlSessieTest : BffTestBasis() {
         val resultaat = vraag(opB, query)
 
         val body = String(resultaat.responseBody!!)
-        assertThat(body).describedAs(body).contains("errors", "No Authentication").doesNotContain("gebruiker-van-a", "999993653")
+        assertThat(body).describedAs(body).contains("errors", "UNAUTHENTICATED").doesNotContain("gebruiker-van-a", "999993653", "No Authentication")
         assertThat(body).describedAs(body).containsPattern("\"data\":(null|[{]\"[A-Za-z]+\":null[}])")
         assertThat(uitgaand()).describedAs("uitgaande aanroepen").isEqualTo(voor)
         assertThat(BffTestOmgeving.gebeurtenissen.map { it.type }).contains(GebeurtenisType.SESSIE_TENANT_MISMATCH)
@@ -79,7 +79,7 @@ class GraphQlSessieTest : BffTestBasis() {
         val resultaat = vraag(anoniem, "{ bffTestWie }")
 
         assertThat(resultaat.status.value()).isEqualTo(200)
-        assertThat(String(resultaat.responseBody!!)).contains("errors", "No Authentication")
+        assertThat(String(resultaat.responseBody!!)).contains("errors", "UNAUTHENTICATED")
         assertThat(uitgaand()).isEqualTo(voor)
     }
 }

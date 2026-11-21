@@ -26,6 +26,8 @@ import org.junit.jupiter.api.Test
 import org.mockito.Mockito.RETURNS_DEEP_STUBS
 import org.mockito.Mockito.mock
 import org.mockito.Mockito.`when`
+import org.springframework.security.authentication.AuthenticationCredentialsNotFoundException
+import org.springframework.security.authentication.BadCredentialsException
 
 class GraphQLExceptionHandlerTest {
     private val env: DataFetchingEnvironment =
@@ -47,5 +49,24 @@ class GraphQLExceptionHandlerTest {
         assertEquals("Koppeling 'brp' is niet beschikbaar (referentie ${fout.correlatieId})", graphqlFout.message)
         assertEquals(mapOf("code" to "KOPPELING_FOUT", "correlatieId" to fout.correlatieId), graphqlFout.extensions)
         assertFalse(graphqlFout.toSpecification().toString().contains("999993653"))
+    }
+
+    @Test
+    fun `een ontbrekende identiteit krijgt de code UNAUTHENTICATED en een melding zonder detail`() {
+        val fout = AuthenticationCredentialsNotFoundException("An Authentication object was not found; sessie 4f3a van 999993653")
+
+        val graphqlFout = GraphQLExceptionHandler().resolveException(fout, env).block()!!.single()
+
+        assertEquals("Niet geauthenticeerd", graphqlFout.message)
+        assertEquals(mapOf("code" to "UNAUTHENTICATED"), graphqlFout.extensions)
+        assertFalse(graphqlFout.toSpecification().toString().contains("999993653"))
+    }
+
+    @Test
+    fun `elke andere authenticatiefout krijgt dezelfde code`() {
+        val graphqlFout = GraphQLExceptionHandler().resolveException(BadCredentialsException("geheim detail"), env).block()!!.single()
+
+        assertEquals("UNAUTHENTICATED", graphqlFout.extensions["code"])
+        assertFalse(graphqlFout.message.contains("geheim"))
     }
 }

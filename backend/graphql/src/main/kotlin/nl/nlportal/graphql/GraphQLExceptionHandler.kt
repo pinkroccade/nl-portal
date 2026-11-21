@@ -21,7 +21,12 @@ import graphql.schema.DataFetchingEnvironment
 import nl.nlportal.core.koppeling.KoppelingException
 import nl.nlportal.core.modulegate.ModuleNotAvailableException
 import org.springframework.graphql.execution.DataFetcherExceptionResolverAdapter
+import org.springframework.security.core.AuthenticationException
 
+/**
+ * Zet fouten om naar een GraphQL-fout met een stabiele `extensions.code`. `UNAUTHENTICATED` (geen identiteit: de sessie is verlopen of
+ * ongeldig) laat de frontend de sessie als verlopen behandelen; `/graphql` geeft daarvoor geen HTTP 401 omdat anonieme queries bestaan.
+ */
 class GraphQLExceptionHandler : DataFetcherExceptionResolverAdapter() {
     override fun resolveToSingleError(
         ex: Throwable,
@@ -29,10 +34,13 @@ class GraphQLExceptionHandler : DataFetcherExceptionResolverAdapter() {
     ): GraphQLError? =
         GraphqlErrorBuilder
             .newError()
-            .message(ex.message)
+            // Bij een authenticatiefout nooit de melding van de bron doorgeven: alleen een generieke tekst.
+            .message(if (ex is AuthenticationException) "Niet geauthenticeerd" else ex.message)
             .also { error ->
                 when (ex) {
                     is ModuleNotAvailableException -> error.extensions(mapOf("code" to "MODULE_NOT_AVAILABLE", "module" to ex.module))
+
+                    is AuthenticationException -> error.extensions(mapOf("code" to "UNAUTHENTICATED"))
 
                     // Foutdetails van een bron gaan niet naar de browser: alleen een generieke code en de referentie voor de log.
                     is KoppelingException -> error.extensions(mapOf("code" to "KOPPELING_FOUT", "correlatieId" to ex.correlatieId))

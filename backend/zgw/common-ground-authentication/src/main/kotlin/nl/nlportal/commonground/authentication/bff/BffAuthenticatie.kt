@@ -19,6 +19,7 @@ import com.nimbusds.jose.jwk.RSAKey
 import nl.nlportal.core.tenancy.TenantContext
 import nl.nlportal.core.tenancy.TenantDirectory
 import nl.nlportal.portal.authentication.domain.Identiteit
+import org.slf4j.LoggerFactory
 import org.springframework.core.convert.converter.Converter
 import org.springframework.http.HttpHeaders
 import org.springframework.http.HttpStatus
@@ -221,7 +222,11 @@ class UitlogHandler(
             webExchange.session.flatMap { session ->
                 val opgeslagen = session.getAttribute<String>(SessieAttributen.IDENTITEIT)?.let { OpgeslagenIdentiteit.parse(it) }
                 if (opgeslagen != null) {
-                    bouwUrl(webExchange, oin.value, opgeslagen.idToken)?.let { webExchange.attributes[BffNamen.EXCHANGE_UITLOG_URL] = it }
+                    // Een fout bij het bouwen van de IdP-URL (ontbrekende registratie, kapot eindpunt) mag het beëindigen van de sessie nooit tegenhouden.
+                    runCatching { bouwUrl(webExchange, oin.value, opgeslagen.idToken) }
+                        .onFailure { log.warn("Uitlog-URL niet te bouwen voor tenant {}: {}", oin.value, it.javaClass.simpleName) }
+                        .getOrNull()
+                        ?.let { webExchange.attributes[BffNamen.EXCHANGE_UITLOG_URL] = it }
                     gebeurtenissen.registreer(Beveiligingsgebeurtenis(GebeurtenisType.UITGELOGD, oin.value, Actor(opgeslagen.issuer, opgeslagen.subject), "geslaagd"))
                 }
                 session.attributes.clear()
@@ -254,7 +259,10 @@ class UitlogHandler(
                     .Oin(oin),
             ) ?: return null
         val registratie = registraties.voor(tenant.oin)
-        val eindpunt = registratie.providerDetails.configurationMetadata["end_session_endpoint"]?.toString() ?: return null
+        val eindpunt =
+            registratie.providerDetails.configurationMetadata["end_session_endpoint"]
+                ?.toString()
+                ?.takeIf(::isAbsolutHttpUrl) ?: return null
         return UriComponentsBuilder
             .fromUriString(eindpunt)
             .queryParam("id_token_hint", idToken)
@@ -263,5 +271,11 @@ class UitlogHandler(
             .encode()
             .build()
             .toUri()
+    }
+
+    private fun isAbsolutHttpUrl(waarde: String): Boolean = runCatching { URI.create(waarde.trim()) }.getOrNull()?.let { it.scheme in setOf("http", "https") && !it.host.isNullOrBlank() } == true
+
+    private companion object {
+        val log = LoggerFactory.getLogger(UitlogHandler::class.java)
     }
 }
