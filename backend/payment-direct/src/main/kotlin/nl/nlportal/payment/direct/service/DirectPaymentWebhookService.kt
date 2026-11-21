@@ -94,8 +94,6 @@ class DirectPaymentWebhookService(
 
     companion object {
         private val logger = KotlinLogging.logger {}
-        const val HEADER_X_GCS_SIGNATURE: String = WebhookHandtekeningen.HEADER_X_GCS_SIGNATURE
-        const val HEADER_X_GCS_KEYID: String = WebhookHandtekeningen.HEADER_X_GCS_KEYID
 
         fun isUUID(orderId: String?): Boolean =
             try {

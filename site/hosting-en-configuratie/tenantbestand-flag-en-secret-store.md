@@ -137,7 +137,11 @@ modules:
 De postsale-webhook (`POST /api/public/payment/direct/postsale`) is publiek en anoniem; de handtekening (`X-GCS-Signature`, `X-GCS-KeyId`) is de enige
 controle. De tenant volgt uit het hostdomein waarop de webhook binnenkomt en moet gelijk zijn aan de tenant van de `keyId`: alleen de `webhookSleutelId`'s uit het
 eigen tenantbestand gelden, een sleutel van een andere tenant is onbekend en geeft `Request is not valid`. De webhook is een benoemde uitzondering op de CSRF- en
-Origin-regel van de BFF. Een `webhookSleutelId` staat bij een tenant bij hoogstens een profiel.
+Origin-regel van de BFF. Een `webhookSleutelId` staat bij een tenant bij hoogstens een profiel en bij hoogstens een tenant: staat hij bij twee tenants (een gekopieerd
+sleutelpaar), dan weigert de applicatie het opstarten, met de OIN's maar zonder sleutel of geheim in de melding (ADR 0021 besluit 5).
+
+De handtekening van uitgaande verzoeken (`gcs-v1-hmac`) volgt de Worldline-SDK: methode, content-type, datum (`Tue, 03 Nov 2026 10:00:00 GMT`), de
+`X-GCS-*`-headers van het verzoek, en het pad met de gedecodeerde query. Een `Date` die een module zelf meegeeft, wordt vervangen.
 
 Eisen aan de omgeving (ook als acceptatiecriterium voor de ingress in #191):
 

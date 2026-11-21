@@ -15,6 +15,10 @@
  */
 package nl.nlportal.payment.direct.service
 
+import ch.qos.logback.classic.Level
+import ch.qos.logback.classic.Logger
+import ch.qos.logback.classic.spi.ILoggingEvent
+import ch.qos.logback.core.read.ListAppender
 import kotlinx.coroutines.runBlocking
 import nl.nlportal.core.koppeling.KoppelingException
 import nl.nlportal.core.tenancy.TenantContextMissingException
@@ -34,6 +38,10 @@ import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertThrows
+import org.mockito.kotlin.any
+import org.mockito.kotlin.mock
+import org.mockito.kotlin.whenever
+import org.slf4j.LoggerFactory
 import org.springframework.http.HttpStatus
 import org.springframework.web.server.ResponseStatusException
 
@@ -207,5 +215,55 @@ class DirectPaymentTenantTest {
         val fout = assertThrows<KoppelingException> { TestTenants.metTenant(bosrand) { service.doDirectPayment(verzoek) } }
 
         assertThat(fout.message).doesNotContain("123456782", "api-geheim")
+    }
+
+    @Test
+    fun `de melding van een onbekend profiel bevat de identifier niet`() {
+        val service = service(PaymentTestTenants.tenant(bosrand, url(bosrandBron)))
+        val vrijeInvoer = "bestaat-niet\r\nFOUT 999993653"
+
+        val betaling = assertThrows<ResponseStatusException> { TestTenants.metTenant(bosrand) { service.doDirectPayment(verzoek.copy(identifier = vrijeInvoer)) } }
+        val status = assertThrows<ResponseStatusException> { TestTenants.metTenant(bosrand) { service.getDirectPaymentStatus(vrijeInvoer, "1") } }
+
+        listOf(betaling, status).forEach { assertThat(it.message).doesNotContain("bestaat-niet", "999993653", "FOUT") }
+    }
+
+    @Test
+    fun `een koppelingsfout wordt gelogd met de referentie, zonder identifier, bronantwoord of stacktrace`() {
+        bosrandBron.enqueue(MockResponse().setResponseCode(500).setBody("api-geheim BSN 123456782"))
+        val service = service(PaymentTestTenants.tenant(bosrand, url(bosrandBron)))
+        val appender = ListAppender<ILoggingEvent>().apply { start() }
+        val logger = LoggerFactory.getLogger(DirectPaymentService::class.java) as Logger
+        logger.addAppender(appender)
+        try {
+            val fout = assertThrows<KoppelingException> { TestTenants.metTenant(bosrand) { service.doDirectPayment(verzoek) } }
+
+            val regels = appender.list.filter { it.level == Level.ERROR }
+            assertThat(regels).hasSize(1)
+            assertThat(regels.single().formattedMessage).contains(fout.correlatieId).doesNotContain(PROFIEL, "123456782", "api-geheim")
+            assertThat(regels.single().throwableProxy).isNull()
+        } finally {
+            logger.detachAppender(appender)
+        }
+    }
+
+    @Test
+    fun `een onverwachte fout wordt gelogd met alleen het type, zonder bericht of stacktrace`() {
+        val client = mock<DirectPaymentClient>()
+        runBlocking { whenever(client.hostedCheckout(any(), any())).thenThrow(IllegalStateException("BSN 123456782 in de fout")) }
+        val tenant = PaymentTestTenants.tenant(bosrand, url(bosrandBron))
+        val service = DirectPaymentService(TestTenants.directory(tenant), client)
+        val appender = ListAppender<ILoggingEvent>().apply { start() }
+        val logger = LoggerFactory.getLogger(DirectPaymentService::class.java) as Logger
+        logger.addAppender(appender)
+        try {
+            assertThrows<IllegalStateException> { TestTenants.metTenant(bosrand) { service.doDirectPayment(verzoek) } }
+
+            val regel = appender.list.single { it.level == Level.ERROR }
+            assertThat(regel.formattedMessage).contains("IllegalStateException").doesNotContain("123456782", PROFIEL)
+            assertThat(regel.throwableProxy).isNull()
+        } finally {
+            logger.detachAppender(appender)
+        }
     }
 }

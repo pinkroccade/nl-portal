@@ -104,18 +104,22 @@ class DirectPaymentWebhookTest {
     }
 
     @Test
-    fun `dezelfde keyId bij twee tenants valideert elk tegen het eigen geheim`() {
+    fun `dezelfde keyId bij twee tenants weigert het opstarten, met de OIN's maar zonder sleutel of geheim in de melding`() {
         val gelijkeSleutel = "gedeelde-sleutel"
         val tenants =
             arrayOf(
                 PaymentTestTenants.tenant(bosrand, configuratie = DirectPaymentConfiguratie(profielen = mapOf("p" to PaymentTestTenants.profiel(bosrand, gelijkeSleutel)))),
                 PaymentTestTenants.tenant(wijdeVeld, configuratie = DirectPaymentConfiguratie(profielen = mapOf("p" to PaymentTestTenants.profiel(wijdeVeld, gelijkeSleutel)))),
             )
-        val service = service(*tenants)
 
-        assertThat(verwerk(service, bosrand, koppen(gelijkeSleutel, handtekening(geheimBosrand)))).startsWith("Request successful")
-        assertThat(verwerk(service, bosrand, koppen(gelijkeSleutel, handtekening(geheimWijdeVeld)))).isEqualTo("Request is not valid")
-        assertThat(verwerk(service, wijdeVeld, koppen(gelijkeSleutel, handtekening(geheimWijdeVeld)))).startsWith("Request successful")
+        val fout = assertThrows<IllegalStateException> { service(*tenants) }
+
+        assertThat(fout.message).contains(bosrand.value, wijdeVeld.value).doesNotContain(gelijkeSleutel, geheimBosrand, geheimWijdeVeld)
+    }
+
+    @Test
+    fun `verschillende keyId's bij twee tenants starten gewoon`() {
+        service(*beide)
     }
 
     @Test

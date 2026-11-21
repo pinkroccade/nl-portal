@@ -24,7 +24,10 @@ import com.onlinepayments.domain.Order
 import com.onlinepayments.domain.OrderReferences
 import io.github.oshai.kotlinlogging.KLogger
 import io.github.oshai.kotlinlogging.KotlinLogging
+import nl.nlportal.core.koppeling.KoppelingException
+import nl.nlportal.core.tenancy.TenantContextMissingException
 import nl.nlportal.core.tenancy.TenantDirectory
+import nl.nlportal.core.util.ModuleNotConfiguredException
 import nl.nlportal.payment.direct.client.DirectPaymentClient
 import nl.nlportal.payment.direct.configuratie.DirectPaymentConfiguratie
 import nl.nlportal.payment.direct.configuratie.DirectPaymentProfiel
@@ -38,20 +41,21 @@ open class DirectPaymentService(
     private val directory: TenantDirectory,
     private val directPaymentClient: DirectPaymentClient,
 ) {
-    /** Het profiel van de huidige tenant (fail-closed: zonder tenant of zonder moduleconfiguratie volgt een fout). */
-    private suspend fun profiel(identificatie: String): Pair<DirectPaymentConfiguratie, DirectPaymentProfiel> {
-        val configuratie = directory.module<DirectPaymentConfiguratie>()
-        val profiel =
-            configuratie.profiel(identificatie)
-                ?: throw ResponseStatusException(HttpStatus.BAD_REQUEST, "Could not found direct payment profile for the identifier $identificatie")
-        return configuratie to profiel
-    }
+    /**
+     * Het profiel met deze identifier, uit de configuratie van de huidige tenant. De identifier is vrije invoer van de client en
+     * staat daarom nooit in de melding of in de log.
+     */
+    private fun profiel(
+        configuratie: DirectPaymentConfiguratie,
+        identificatie: String,
+    ): DirectPaymentProfiel = configuratie.profiel(identificatie) ?: throw ResponseStatusException(HttpStatus.BAD_REQUEST, "Onbekend betaalprofiel")
 
     suspend fun getDirectPaymentStatus(
         identifier: String,
         hostedCheckoutId: String,
     ): DirectPaymentStatus {
-        val (_, paymentDirectProfile) = profiel(identifier)
+        // Fail-closed: zonder tenant of zonder moduleconfiguratie volgt een fout.
+        val paymentDirectProfile = profiel(directory.module<DirectPaymentConfiguratie>(), identifier)
 
         val directPaymentStatusResponse =
             directPaymentClient.hostedCheckoutStatus(
@@ -71,7 +75,8 @@ open class DirectPaymentService(
      */
     suspend fun doDirectPayment(paymentRequest: DirectPaymentRequest): DirectPaymentResponse {
         try {
-            val (configuratie, paymentDirectProfile) = profiel(paymentRequest.identifier)
+            val configuratie = directory.module<DirectPaymentConfiguratie>()
+            val paymentDirectProfile = profiel(configuratie, paymentRequest.identifier)
 
             val hostedCheckoutSpecificInput =
                 HostedCheckoutSpecificInput()
@@ -125,8 +130,19 @@ open class DirectPaymentService(
             return DirectPaymentResponse(
                 redirectUrl = response.redirectUrl,
             )
+        } catch (ex: KoppelingException) {
+            // Nooit het bronantwoord of de oorzaak loggen: alleen koppeling, soort en referentie.
+            logger.error { "Betaling starten mislukt: koppeling '${ex.koppeling}', ${ex.soort}, referentie ${ex.correlatieId}" }
+            throw ex
+        } catch (ex: ResponseStatusException) {
+            throw ex
+        } catch (ex: ModuleNotConfiguredException) {
+            throw ex
+        } catch (ex: TenantContextMissingException) {
+            throw ex
         } catch (ex: Exception) {
-            logger.error(ex) { "Error while do payment for ${paymentRequest.identifier} - ${ex.message}" }
+            // Alleen het type: het bericht of de stacktrace kan gegevens uit het antwoord of de invoer bevatten.
+            logger.error { "Betaling starten mislukt: onverwachte fout (${ex::class.simpleName})" }
             throw ex
         }
     }

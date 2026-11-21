@@ -23,6 +23,11 @@ spring:
 nl-portal:
     tenancy:
         directory: src/test/resources/tenants
+    geheimen:
+        # Geheimen van de testtenant (zie tenants/00000099000000000001.yaml): <oin>.<naam>
+        "00000099000000000001":
+            payment-direct-api-geheim: test-api-geheim
+            payment-direct-webhook-geheim: test-webhook-geheim
     security:
         endpoints:
             unsecured: /api/public/**

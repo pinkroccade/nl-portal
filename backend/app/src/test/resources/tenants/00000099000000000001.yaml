@@ -6,3 +6,21 @@ domeinen:
     - bosrand.example
 thema:
     titel: Mijn De Bosrand
+
+# Betalen via Worldline Direct, zodat de :app-tests de module met echte waarden laden. De geheimen staan in application.yml van de tests.
+koppelingen:
+    payment-direct:
+        url: http://localhost:56789/payment
+        auth:
+            type: gcs-v1-hmac
+            clientId: test-api-sleutel
+            secret: 00000099000000000001.payment-direct-api-geheim
+modules:
+    payment-direct:
+        webhookUrl: http://bosrand.example/api/public/payment/direct/postsale
+        profielen:
+            belastingzaken:
+                pspId: TAX
+                returnUrl: http://bosrand.example
+                webhookSleutelId: test-webhook-sleutel
+                webhookGeheim: 00000099000000000001.payment-direct-webhook-geheim

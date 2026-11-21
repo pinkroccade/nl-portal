@@ -39,7 +39,8 @@ class WebhookHandtekeningen(
     private val perTenant: Map<Oin, WebhooksHelper> =
         directory.tenants
             .mapNotNull { tenant -> tenant.module<DirectPaymentConfiguratie>()?.let { tenant.oin to sleutels(it, bron) } }
-            .associate { (oin, sleutels) -> oin to WebhooksHelper(DefaultMarshaller.INSTANCE, SecretKeyStore { sleutel -> sleutels[sleutel] ?: throw SecretKeyNotAvailableException(sleutel, "Sleutel is onbekend voor deze tenant") }) }
+            .also(::weigerSleutelsBijMeerdereTenants)
+            .associate { (oin, sleutels) -> oin to WebhooksHelper(DefaultMarshaller.INSTANCE, sleutelopslag(sleutels)) }
 
     /** Is de handtekening van dit verzoek geldig met een sleutel van [tenant]? Een tenant zonder webhooksleutels weigert alles. */
     fun isGeldig(
@@ -58,6 +59,26 @@ class WebhookHandtekeningen(
             true
         } catch (e: SignatureValidationException) {
             false
+        }
+    }
+
+    /** Een onbekend sleutel-ID geeft `SecretKeyNotAvailableException`: de SDK geeft anders een NPE op `null`. */
+    private fun sleutelopslag(sleutels: Map<String, String>) = SecretKeyStore { sleutel -> sleutels[sleutel] ?: throw SecretKeyNotAvailableException(sleutel, "Sleutel is onbekend voor deze tenant") }
+
+    /**
+     * Een sleutel-ID bij twee tenants wijst op een gekopieerd sleutelpaar (ADR 0021 besluit 5): weigeren bij het opstarten. De melding
+     * noemt de OIN's, nooit het sleutel-ID of een geheim.
+     */
+    private fun weigerSleutelsBijMeerdereTenants(sleutelsPerTenant: List<Pair<Oin, Map<String, String>>>) {
+        val dubbel =
+            sleutelsPerTenant
+                .flatMap { (oin, sleutels) -> sleutels.keys.map { it to oin } }
+                .groupBy({ it.first }, { it.second })
+                .values
+                .filter { it.size > 1 }
+        check(dubbel.isEmpty()) {
+            "Een webhook-sleutel-ID van payment-direct staat bij meer dan een tenant (OIN's: ${dubbel.flatten().distinct().joinToString()}); " +
+                "elke tenant heeft een eigen sleutel-ID"
         }
     }
 
