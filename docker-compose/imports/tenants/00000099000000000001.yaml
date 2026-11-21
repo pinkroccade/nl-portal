@@ -1,0 +1,7 @@
+# Fictieve demo-tenant Gemeente De Bosrand. Het OIN is fictief en moet tussen aanhalingstekens staan.
+oin: "00000099000000000001"
+naam: Gemeente De Bosrand
+domeinen:
+    - localhost
+thema:
+    titel: Mijn De Bosrand
