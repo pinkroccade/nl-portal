@@ -1,5 +1,5 @@
 /*
- * Copyright 2015-2026 Den Haag, Ritense, the Netherlands.
+ * Copyright 2026 PinkRoccade Local Government B.V.
  *
  * Licensed under EUPL, Version 1.2 (the "License");
  * you may not use this file except in compliance with the License.
@@ -24,10 +24,10 @@ import nl.nlportal.core.tenancy.NietErfbaar
  */
 data class DirectPaymentConfiguratie(
     /** De URL die de betaalprovider aanroept; zet hem in het verzoek zodat hij per omgeving en tenant verschilt. */
-    val webhookUrl: String? = null,
-    val customTemplateUrl: String? = null,
-    val toonResultaatPagina: Boolean = false,
-    val profielen: Map<String, DirectPaymentProfiel>,
+    @NietErfbaar val webhookUrl: String? = null,
+    @NietErfbaar val customTemplateUrl: String? = null,
+    @NietErfbaar val toonResultaatPagina: Boolean = false,
+    @NietErfbaar val profielen: Map<String, DirectPaymentProfiel>,
 ) {
     /** Het profiel met deze naam, anders het profiel met dit PSP-ID. */
     fun profiel(identificatie: String): DirectPaymentProfiel? = profielen[identificatie] ?: profielen.values.firstOrNull { it.pspId == identificatie }

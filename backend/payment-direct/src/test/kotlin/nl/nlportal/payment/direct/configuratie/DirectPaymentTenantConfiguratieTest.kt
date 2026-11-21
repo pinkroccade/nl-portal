@@ -1,5 +1,5 @@
 /*
- * Copyright 2015-2026 Den Haag, Ritense, the Netherlands.
+ * Copyright 2026 PinkRoccade Local Government B.V.
  *
  * Licensed under EUPL, Version 1.2 (the "License");
  * you may not use this file except in compliance with the License.
@@ -22,6 +22,8 @@ import nl.nlportal.core.tenancy.TenantModules
 import org.assertj.core.api.Assertions.assertThat
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.io.TempDir
+import org.junit.jupiter.params.ParameterizedTest
+import org.junit.jupiter.params.provider.ValueSource
 import java.nio.file.Files
 import java.nio.file.Path
 
@@ -190,9 +192,18 @@ class DirectPaymentTenantConfiguratieTest {
         assertThat(resultaat.violations.map { it.code }).containsExactly(Code.GEHEIM_VAN_ANDERE_TENANT)
     }
 
-    @Test
-    fun `het webhooksleutel-id komt nooit uit de gedeelde basis`() {
-        Files.writeString(dir.resolve("base.yaml"), "omgevingstype: test\ninlogmiddelen: [test]\nmodules:\n  payment-direct:\n    profielen:\n      a:\n        webhookSleutelId: uit-de-basis\n")
+    @ParameterizedTest
+    @ValueSource(
+        strings = [
+            "webhookUrl: https://basis.example/postsale",
+            "customTemplateUrl: sjabloon.html",
+            "toonResultaatPagina: true",
+            "profielen:\n      a:\n        webhookSleutelId: uit-de-basis",
+            "profielen:\n      a:\n        returnUrl: https://basis.example/terug",
+        ],
+    )
+    fun `instellingen per gemeente komen nooit uit de gedeelde basis`(basisWaarde: String) {
+        Files.writeString(dir.resolve("base.yaml"), "omgevingstype: test\ninlogmiddelen: [test]\nmodules:\n  payment-direct:\n    $basisWaarde\n")
         Files.writeString(dir.resolve("$oin.yaml"), "oin: \"$oin\"\nnaam: Gemeente\ndomeinen: [bosrand.example]\nthema:\n  titel: De Bosrand\n")
 
         val resultaat = TenantFileLoader(modules = modules).load(dir)
