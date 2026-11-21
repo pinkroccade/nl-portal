@@ -75,6 +75,7 @@ dependencies {
     testImplementation(TestDependencies.kotlinCoroutines)
     testImplementation(TestDependencies.mockitoKotlin)
     testImplementation(TestDependencies.okHttpMockWebserver)
+    testImplementation("io.projectreactor:reactor-test")
 }
 
 // Mutation testing (#95, ADR 0011). Bewust een eigen taak, niet onderdeel van `build`/`check`.
