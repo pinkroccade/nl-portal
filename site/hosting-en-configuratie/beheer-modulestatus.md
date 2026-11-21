@@ -16,12 +16,12 @@ Er staan nooit URL's, foutmeldingen, stacktraces of geheimen in. Een herstelde A
 
 ## Beveiliging
 
-- **Netwerkscheiding:** zet beheer op een eigen poort met `MANAGEMENT_SERVER_PORT` (bijvoorbeeld `8091`) en publiceer die poort niet via de publieke ingress. Zonder deze variabele draait het endpoint op de gewone poort en rust de beveiliging alleen op authenticatie.
+- **Netwerkscheiding:** de actuator draait altijd op een eigen poort, standaard `8091` (`MANAGEMENT_SERVER_PORT`). Publiceer die poort niet via de publieke ingress. Op de applicatiepoort bestaat de actuator niet (404) en de managementpoort kent geen tenantresolutie, zodat probes en metrics niet onder een tenant vallen.
 - **Authenticatie:** HTTP Basic met een beheerrol, los van de JWT van gebruikers. Zonder ingestelde gebruiker is het endpoint dicht (altijd 401).
 
 | Omgevingsvariabele | Betekenis |
 |---|---|
-| `MANAGEMENT_SERVER_PORT` | Eigen beheerpoort (optioneel, aanbevolen) |
+| `MANAGEMENT_SERVER_PORT` | Eigen beheerpoort (standaard `8091`; verplicht anders dan de applicatiepoort) |
 | `NLPORTAL_BEHEER_GEBRUIKERSNAAM` | Gebruikersnaam |
 | `NLPORTAL_BEHEER_WACHTWOORDHASH` | Wachtwoordhash met prefix, bijvoorbeeld `{bcrypt}$2a$10$...` |
 
@@ -39,7 +39,7 @@ In een Compose-bestand schrijf je elke `$` in de hash als `$$`; in een `env_file
 
 - **Geen throttling in de applicatie.** Een teller per pod helpt niet bij meerdere pods. De primaire maatregel is netwerkscheiding: publiceer de beheerpoort niet via de publieke ingress en beperk toegang met een netwerkpolicy. Throttling hoort bij de ingress. Mislukte aanmeldingen komen als waarschuwing in de log, zonder gebruikersnaam of wachtwoord.
 - **Geen `refresh` of `restart`.** Die actuator-endpoints zijn uitgezet: configuratiewijzigingen gaan via een rolling update (ADR 0016). Alleen `health` is publiek bereikbaar via `/actuator/health`.
-- **Een waarschuwing, geen startfout.** Zonder `MANAGEMENT_SERVER_PORT` draait het endpoint op de publieke poort en waarschuwt de applicatie bij het opstarten. Productie moet de variabele zetten; de health-probes blijven op de gewone poort tot je ze verplaatst.
+- **Een startfout.** De applicatie start niet als de managementpoort ontbreekt of gelijk is aan de applicatiepoort, of als `refresh`, `restart` of `*` in `management.endpoints.web.exposure.include` staat. De health-probes (`/actuator/health/liveness` en `/readiness`) horen op de managementpoort.
 
 ## Docker Compose
 

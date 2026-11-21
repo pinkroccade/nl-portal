@@ -24,6 +24,9 @@ val bootJar: org.springframework.boot.gradle.tasks.bundling.BootJar by tasks
 bootJar.enabled = false
 jar.enabled = true
 
+// core is een bibliotheek met twee main-klassen (validator-CLI en schemagenerator): Spring Boot hoeft er geen te kiezen.
+tasks.named("resolveMainClassName") { enabled = false }
+
 dependencies {
     implementation(kotlin("stdlib-jdk8"))
 
@@ -37,6 +40,8 @@ dependencies {
 
     // Jackson
     api(Dependencies.jacksonKotlinModule)
+    implementation("io.micrometer:context-propagation")
+    implementation(Dependencies.kotlinCoroutinesReactor)
 
     api(Dependencies.commonsCodec)
 
@@ -108,4 +113,37 @@ tasks.named("pitest") {
         println("Overlevende mutanten: ${survivors.size} (details: build/reports/pitest/index.html)")
         survivors.forEach { (file, line, what) -> println("  $file:$line  $what") }
     }
+}
+// Tenantbestand (epic #499): het JSON-schema wordt uit de Kotlin-typen gegenereerd en gecommit; TenantSchemaTest
+// faalt als het bestand verouderd is. `mise run backend:tenant-schema` werkt het bij.
+tasks.register<JavaExec>("generateTenantSchema") {
+    group = "tenancy"
+    description = "Genereert schema/tenant.schema.json uit de typen van het tenantbestand"
+    classpath = sourceSets["main"].runtimeClasspath
+    mainClass.set("nl.nlportal.core.tenancy.TenantSchemaGenerator")
+    args(
+        layout.projectDirectory
+            .file("schema/tenant.schema.json")
+            .asFile.absolutePath,
+    )
+}
+
+// De tenantvalidator als releaseartefact: een zelfstandige jar met alleen wat de validator nodig heeft (geen Spring).
+tasks.register<Jar>("tenantValidatorJar") {
+    group = "tenancy"
+    description = "Bouwt build/libs/nl-portal-tenant-validator.jar, de CLI voor CI van tenantbestanden"
+    archiveFileName.set("nl-portal-tenant-validator.jar")
+    manifest { attributes["Main-Class"] = "nl.nlportal.core.tenancy.TenantValidatorCli" }
+    dependsOn(tasks.named("classes"))
+    from(sourceSets["main"].output)
+    val nodig = setOf("org.jetbrains.kotlin", "org.jetbrains", "tools.jackson.core", "tools.jackson.module", "com.fasterxml.jackson.core", "org.yaml")
+    from({
+        configurations.runtimeClasspath
+            .get()
+            .resolvedConfiguration.resolvedArtifacts
+            .filter { it.moduleVersion.id.group in nodig }
+            .map { zipTree(it.file) }
+    })
+    exclude("META-INF/*.SF", "META-INF/*.RSA", "META-INF/*.DSA", "META-INF/spring/**", "META-INF/MANIFEST.MF", "module-info.class", "META-INF/versions/**/module-info.class")
+    duplicatesStrategy = DuplicatesStrategy.EXCLUDE
 }

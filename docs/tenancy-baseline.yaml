@@ -15,6 +15,8 @@
 # Na een wijziging: `mise run arch:diagram` en de bijgewerkte .puml/.svg committen.
 version: 1
 beoordeeld: {datum: 2026-11-06, bron: "onderzoek #146, commit 9300129ac", status: voorlopig}
+# Opnieuw gemeten bij #504 (T5, tenantmodel en -resolutie): geen nieuwe signalen; de nieuwe TenancyProperties wordt alleen door
+# TenancyAutoConfiguration gelezen, en de actuator/metrics-aanpassing raakt geen van de vier signalen.
 modules:
   ":core":
     omvang: L

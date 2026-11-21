@@ -1,5 +1,10 @@
 server:
     port: 0
+    forward-headers-strategy: none
+
+management:
+    server:
+        port: 0
 
 spring:
     profiles:
@@ -16,6 +21,8 @@ spring:
                     issuer-uri: http://localhost:9999/auth/realms/test
 
 nl-portal:
+    tenancy:
+        directory: src/test/resources/tenants
     security:
         endpoints:
             unsecured: /api/public/**
