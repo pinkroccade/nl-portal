@@ -91,7 +91,14 @@ class KoppelingClient internal constructor(
         body: B,
         type: ParameterizedTypeReference<T>,
         headers: Map<String, String> = emptyMap(),
-    ): T = uitvoeren(HttpMethod.POST, pad, emptyMap(), headers, body) { it.bodyToMono(type) }
+        query: Map<String, List<String>> = emptyMap(),
+    ): T = uitvoeren(HttpMethod.POST, pad, query, headers, body) { it.bodyToMono(type) }
+
+    /**
+     * De absolute URL van [pad] onder de basis-URL van deze koppeling, bijvoorbeeld als waarde van een filter (`zaak=<URL>`).
+     * Een pad of URL buiten de basis-URL wordt geweigerd met een [KoppelingException] (zie [HostBinding]).
+     */
+    fun url(pad: String): String = bind(pad, emptyMap()).toString()
 
     suspend fun <B : Any, T : Any> put(
         pad: String,
@@ -264,7 +271,8 @@ suspend inline fun <reified B : Any, reified T : Any> KoppelingClient.post(
     pad: String,
     body: B,
     headers: Map<String, String> = emptyMap(),
-): T = post(pad, body, typeReferentie<T>(), headers)
+    query: Map<String, List<String>> = emptyMap(),
+): T = post(pad, body, typeReferentie<T>(), headers, query)
 
 /** De typereferentie voor [T], met de generieke parameters bewaard (`ResultPage<Zaak>`). */
 inline fun <reified T : Any> typeReferentie(): ParameterizedTypeReference<T> = object : ParameterizedTypeReference<T>() {}

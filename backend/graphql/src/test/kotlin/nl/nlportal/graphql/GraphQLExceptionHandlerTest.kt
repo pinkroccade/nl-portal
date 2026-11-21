@@ -20,6 +20,8 @@ import graphql.schema.DataFetchingEnvironment
 import nl.nlportal.core.koppeling.KoppelingException
 import nl.nlportal.core.koppeling.KoppelingFoutsoort
 import nl.nlportal.core.koppeling.KoppelingProblem
+import nl.nlportal.core.tenancy.TenantContextMissingException
+import nl.nlportal.core.util.ModuleNotConfiguredException
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertFalse
 import org.junit.jupiter.api.Test
@@ -47,5 +49,15 @@ class GraphQLExceptionHandlerTest {
         assertEquals("Koppeling 'brp' is niet beschikbaar (referentie ${fout.correlatieId})", graphqlFout.message)
         assertEquals(mapOf("code" to "KOPPELING_FOUT", "correlatieId" to fout.correlatieId), graphqlFout.extensions)
         assertFalse(graphqlFout.toSpecification().toString().contains("999993653"))
+    }
+
+    @Test
+    fun `een ontbrekende configuratie of tenant toont de browser een generieke melding, zonder module, instelling of OIN`() {
+        listOf(ModuleNotConfiguredException("zakenapi", "koppeling 'zakenapi'"), TenantContextMissingException()).forEach { fout ->
+            val graphqlFout = GraphQLExceptionHandler().resolveException(fout, env).block()!!.single()
+
+            assertEquals("De gevraagde functie is niet beschikbaar", graphqlFout.message)
+            assertEquals(mapOf("code" to "CONFIGURATIE_ONTBREEKT"), graphqlFout.extensions)
+        }
     }
 }

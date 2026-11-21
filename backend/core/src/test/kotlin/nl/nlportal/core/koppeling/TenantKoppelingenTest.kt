@@ -151,6 +151,20 @@ class TenantKoppelingenTest {
         assertThat(ongeldigeUrl.message).startsWith("Tenant ${bosrand.value}: koppelingen.zaken.url: ")
     }
 
+    @Test
+    fun `een zgw-jwt-geheim korter dan 32 tekens weigert het opstarten, met OIN en veld maar zonder het geheim`() {
+        val auth = TenantKoppelingAuth(TenantKoppelingAuthType.ZGW_JWT, clientId = "client", secret = TestTenants.geheim("zgw"))
+        val kort = TestTenants.geheimen(TestTenants.geheim("zgw") to "te-kort-geheim")
+        val lang = TestTenants.geheimen(TestTenants.geheim("zgw") to "x".repeat(32))
+        val tenant = TestTenants.tenant(bosrand, koppelingen = mapOf("zaken" to TestTenants.koppeling(url(bosrandBron), auth)))
+
+        val fout = assertThrows<IllegalStateException> { TestTenants.register(tenant, geheimen = kort) }
+
+        assertThat(fout.message).isEqualTo("Tenant ${bosrand.value}: koppeling 'zaken': auth.secret: een ZGW-geheim is minstens 32 tekens lang")
+        assertThat(fout.message).doesNotContain("te-kort-geheim")
+        assertThat(TestTenants.metTenant(bosrand) { TestTenants.register(tenant, geheimen = lang).current("zaken") }).isNotNull
+    }
+
     private fun oud(bron: MockWebServer) =
         Koppeling().apply {
             url = url(bron)

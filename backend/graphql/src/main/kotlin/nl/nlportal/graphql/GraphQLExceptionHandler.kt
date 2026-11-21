@@ -20,6 +20,8 @@ import graphql.GraphqlErrorBuilder
 import graphql.schema.DataFetchingEnvironment
 import nl.nlportal.core.koppeling.KoppelingException
 import nl.nlportal.core.modulegate.ModuleNotAvailableException
+import nl.nlportal.core.tenancy.TenantContextMissingException
+import nl.nlportal.core.util.ModuleNotConfiguredException
 import org.springframework.graphql.execution.DataFetcherExceptionResolverAdapter
 
 class GraphQLExceptionHandler : DataFetcherExceptionResolverAdapter() {
@@ -29,15 +31,22 @@ class GraphQLExceptionHandler : DataFetcherExceptionResolverAdapter() {
     ): GraphQLError? =
         GraphqlErrorBuilder
             .newError()
-            .message(ex.message)
+            .message(if (ex is ModuleNotConfiguredException || ex is TenantContextMissingException) GENERIEKE_MELDING else ex.message)
             .also { error ->
                 when (ex) {
                     is ModuleNotAvailableException -> error.extensions(mapOf("code" to "MODULE_NOT_AVAILABLE", "module" to ex.module))
 
                     // Foutdetails van een bron gaan niet naar de browser: alleen een generieke code en de referentie voor de log.
+                    // De melding kan de OIN of de naam van een instelling noemen: die gaat niet naar de browser.
+                    is ModuleNotConfiguredException, is TenantContextMissingException -> error.extensions(mapOf("code" to "CONFIGURATIE_ONTBREEKT"))
+
                     is KoppelingException -> error.extensions(mapOf("code" to "KOPPELING_FOUT", "correlatieId" to ex.correlatieId))
                 }
             }.path(env.executionStepInfo.path)
             .location(env.field.sourceLocation)
             .build()
+
+    private companion object {
+        const val GENERIEKE_MELDING = "De gevraagde functie is niet beschikbaar"
+    }
 }
