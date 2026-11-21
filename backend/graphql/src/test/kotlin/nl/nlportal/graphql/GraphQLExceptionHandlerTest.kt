@@ -17,9 +17,12 @@ package nl.nlportal.graphql
 
 import graphql.language.SourceLocation
 import graphql.schema.DataFetchingEnvironment
+import nl.nlportal.core.koppeling.KoppelingConfiguratieException
 import nl.nlportal.core.koppeling.KoppelingException
 import nl.nlportal.core.koppeling.KoppelingFoutsoort
 import nl.nlportal.core.koppeling.KoppelingProblem
+import nl.nlportal.core.tenancy.TenantContextMissingException
+import nl.nlportal.core.util.ModuleNotConfiguredException
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertFalse
 import org.junit.jupiter.api.Test
@@ -47,5 +50,34 @@ class GraphQLExceptionHandlerTest {
         assertEquals("Koppeling 'brp' is niet beschikbaar (referentie ${fout.correlatieId})", graphqlFout.message)
         assertEquals(mapOf("code" to "KOPPELING_FOUT", "correlatieId" to fout.correlatieId), graphqlFout.extensions)
         assertFalse(graphqlFout.toSpecification().toString().contains("999993653"))
+    }
+
+    @Test
+    fun `een module die voor de tenant niet is ingesteld toont de browser geen configuratiedetails zoals de OIN`() {
+        val fout = ModuleNotConfiguredException("BrpConfiguratie", "Tenant Oin(value=00000099000000000001): modulegegevens")
+
+        val graphqlFout = GraphQLExceptionHandler().resolveException(fout, env).block()!!.single()
+
+        assertEquals("Module is niet beschikbaar", graphqlFout.message)
+        assertEquals(mapOf("code" to "MODULE_NOT_AVAILABLE"), graphqlFout.extensions)
+        assertFalse(graphqlFout.toSpecification().toString().contains("00000099000000000001"))
+    }
+
+    @Test
+    fun `een request zonder tenant toont de browser een generieke melding`() {
+        val graphqlFout = GraphQLExceptionHandler().resolveException(TenantContextMissingException(), env).block()!!.single()
+
+        assertEquals("Niet geautoriseerd", graphqlFout.message)
+        assertEquals(mapOf("code" to "NIET_GEAUTORISEERD"), graphqlFout.extensions)
+    }
+
+    @Test
+    fun `een configuratiefout van een koppeling toont de browser een generieke melding zonder headernaam`() {
+        val fout = KoppelingConfiguratieException("Header 'X-Doelbinding-Geheim' hoort bij de koppeling")
+
+        val graphqlFout = GraphQLExceptionHandler().resolveException(fout, env).block()!!.single()
+
+        assertEquals("Koppeling is niet beschikbaar", graphqlFout.message)
+        assertEquals(mapOf("code" to "KOPPELING_FOUT"), graphqlFout.extensions)
     }
 }

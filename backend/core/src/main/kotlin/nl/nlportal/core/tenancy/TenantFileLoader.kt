@@ -259,10 +259,18 @@ class TenantFileLoader(
                 geheimVerwijzingen(configuratie, pad).filterNot { (_, verwijzing) -> verwijzing.valtOnder(bestand.oin) }.forEach { (geheimPad, _) ->
                     violations += buitenNaamruimte(geheimPad).alsViolation(naam)
                 }
-                modules.valideer(module, configuratie, ModuleContext(bestand.koppelingen.keys)).forEach {
+                modules.valideer(module, configuratie, ModuleContext(bestand.koppelingen.keys, authHeaders(bestand))).forEach {
                     violations += TenantFileViolation(Code.MODULE_CONFIGURATIE_ONGELDIG, naam, "$pad.${it.pad}".trimEnd('.'), it.bericht)
                 }
                 module to configuratie
+            }.toMap()
+
+    private fun authHeaders(bestand: TenantBestand): Map<String, String> =
+        bestand.koppelingen
+            .mapNotNull { (naam, koppeling) ->
+                koppeling.auth.headerNaam
+                    ?.takeIf { koppeling.auth.type == TenantKoppelingAuthType.API_KEY }
+                    ?.let { naam to it }
             }.toMap()
 
     /** De enige plek die de OIN van de tenant in het bericht zet van de overtredingen vanaf [vanaf] onder `koppelingen` en `modules` (story 14). */

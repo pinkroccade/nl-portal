@@ -43,6 +43,9 @@ enum class KoppelingAuthType {
     ZGW_JWT,
     OAUTH2_CLIENT_CREDENTIALS,
     OAUTH2_PRIVATE_KEY_JWT,
+
+    /** Geen authenticatie door de app (bron achter de cloud gateway). */
+    GEEN,
 }
 
 class KoppelingAuth {

@@ -18,8 +18,12 @@ package nl.nlportal.graphql
 import graphql.GraphQLError
 import graphql.GraphqlErrorBuilder
 import graphql.schema.DataFetchingEnvironment
+import io.github.oshai.kotlinlogging.KotlinLogging
+import nl.nlportal.core.koppeling.KoppelingConfiguratieException
 import nl.nlportal.core.koppeling.KoppelingException
 import nl.nlportal.core.modulegate.ModuleNotAvailableException
+import nl.nlportal.core.tenancy.TenantContextMissingException
+import nl.nlportal.core.util.ModuleNotConfiguredException
 import org.springframework.graphql.execution.DataFetcherExceptionResolverAdapter
 
 class GraphQLExceptionHandler : DataFetcherExceptionResolverAdapter() {
@@ -29,15 +33,42 @@ class GraphQLExceptionHandler : DataFetcherExceptionResolverAdapter() {
     ): GraphQLError? =
         GraphqlErrorBuilder
             .newError()
-            .message(ex.message)
+            .message(melding(ex))
             .also { error ->
                 when (ex) {
                     is ModuleNotAvailableException -> error.extensions(mapOf("code" to "MODULE_NOT_AVAILABLE", "module" to ex.module))
 
                     // Foutdetails van een bron gaan niet naar de browser: alleen een generieke code en de referentie voor de log.
                     is KoppelingException -> error.extensions(mapOf("code" to "KOPPELING_FOUT", "correlatieId" to ex.correlatieId))
+
+                    // Interne configuratie (OIN, koppelingnaam, headernaam) gaat niet naar de browser: alleen een generieke code, de details staan in de log.
+                    is ModuleNotConfiguredException -> error.extensions(mapOf("code" to "MODULE_NOT_AVAILABLE"))
+
+                    is TenantContextMissingException -> error.extensions(mapOf("code" to "NIET_GEAUTORISEERD"))
+
+                    is KoppelingConfiguratieException -> error.extensions(mapOf("code" to "KOPPELING_FOUT"))
                 }
             }.path(env.executionStepInfo.path)
             .location(env.field.sourceLocation)
             .build()
+
+    private fun melding(ex: Throwable): String? =
+        when (ex) {
+            is ModuleNotConfiguredException -> logEnGeneriek(ex, "Module is niet beschikbaar")
+            is TenantContextMissingException -> logEnGeneriek(ex, "Niet geautoriseerd")
+            is KoppelingConfiguratieException -> logEnGeneriek(ex, "Koppeling is niet beschikbaar")
+            else -> ex.message
+        }
+
+    private fun logEnGeneriek(
+        ex: Throwable,
+        generiek: String,
+    ): String {
+        log.warn { "GraphQL-fout naar de browser vervangen door '$generiek': ${ex.message}" }
+        return generiek
+    }
+
+    private companion object {
+        val log = KotlinLogging.logger {}
+    }
 }

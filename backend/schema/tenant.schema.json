@@ -90,7 +90,7 @@
             "properties" : {
               "type" : {
                 "type" : "string",
-                "enum" : [ "api-key", "bearer", "zgw-jwt", "oauth2-client-credentials", "oauth2-private-key-jwt" ]
+                "enum" : [ "api-key", "bearer", "zgw-jwt", "oauth2-client-credentials", "oauth2-private-key-jwt", "geen" ]
               },
               "headerNaam" : {
                 "type" : "string",
