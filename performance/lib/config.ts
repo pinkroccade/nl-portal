@@ -21,7 +21,7 @@ function verplicht(env: Env, naam: string): string {
 /** Leest de perf-configuratie uit de omgeving; zonder opgave geldt de lokale compose-stack. */
 export function loadConfig(env: Env): PerfConfig {
   const backend = zonderSlashAchteraan(env.PERF_BACKEND_URL ?? "http://localhost:8080");
-  const keycloak = zonderSlashAchteraan(env.PERF_KEYCLOAK_URL ?? "http://localhost:8082/auth");
+  const keycloak = zonderSlashAchteraan(env.PERF_KEYCLOAK_URL ?? "http://localhost:8082");
   const realm = env.PERF_REALM ?? "nlportal";
 
   return {

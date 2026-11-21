@@ -105,6 +105,11 @@ providers niet kan overschrijven (`integratietest/image-rechten.test.mjs` probee
 image; wie andere opties wil moet het image opnieuw bouwen. Runtime-instellingen (database, hostname, admin) blijven
 omgevingsvariabelen.
 
+**Alleen `start --optimized`.** Een gewone `start`, of een bouwoptie die afwijkt van het image (bijvoorbeeld `KC_HTTP_RELATIVE_PATH` of een andere
+`KC_DB`), laat Keycloak zichzelf opnieuw bouwen. Dat faalt bewust: `lib/quarkus` is niet schrijfbaar voor het proces, zodat een
+gecompromitteerd proces geen code kan wijzigen. Zet zo'n optie in de Dockerfile en bouw het image opnieuw. Keycloak draait dus op
+het pad `/` (geen `/auth`): de compose-stack en de backend- en frontendconfiguratie gebruiken `http://localhost:8082`.
+
 ## Supply chain
 
 - SBOM en scan van het eigen image: `sbom:keycloak-image` en `security:keycloak-vuln-scan`. De provider-jar heeft geen
@@ -143,10 +148,46 @@ overslaan.**
   het image zit: draai hem tegen dit image.
 - Zet op `nl-portal-backend` de client-mappers `oidc-usersessionmodel-note-mapper` en haal de scope `acr` eraf.
 - Een SAML-koppeling met `useMetadataDescriptorUrl` (certificaat uit de metadata-URL, niet vastgepind) faalt gesloten: de mapper eist
-  een vastgepind `signingCertificate` en geeft anders een loginfout. Pin het certificaat in de koppeling.
+  een vastgepind `signingCertificate` en geeft anders een loginfout. Pin het certificaat in de koppeling; de realm-generator weigert
+  een metadata-URL al bij het genereren.
 - De OIDC-koppeling (wallet): `nlportal-oidc-claim-note-mapper` vertrouwt het `VALIDATED_ID_TOKEN` en kijkt niet naar de
   handtekeninginstelling van de koppeling. Dat is bewust: bij een authorization-code-flow over TLS met clientauthenticatie
   mag de ID-tokenhandtekening volgens OIDC Core worden overgeslagen. De realmtest (#505) controleert dat de wallet-koppeling
   zo is ingericht (code-flow, clientauthenticatie, TLS-endpoints) en geen implicit of hybrid flow gebruikt.
-- `integratietest/realms/portal-realm.json` en `idp-sim-realm.json` zijn een werkend voorbeeld; `integratietest/claims.test.mjs`
-  is het uitgangspunt voor de realmtest.
+- `integratietest/realms/portal-realm.json` en `idp-sim-realm.json` zijn een werkend voorbeeld voor de mappertests; het
+  echte template staat in `realm-template/`.
+
+### Realm-template (#505)
+
+Eén template voor alle tenants: `realm-template/realm.json` (de basis) plus een fragment per inlogmiddel
+(`realm-template/inlogmiddel/<naam>.json`: `digid`, `wallet`; het testinlogmiddel heeft geen fragment). Alleen in ontwikkeling komen
+`realm-template/demo-gebruikers.json` (demo-gebruikers met vaste wachtwoordhash, bij het testinlogmiddel) en `realm-template/tussenfase/spa.json`
+(de SPA-client `nl-portal`, tot #506) erbij. `scripts/lib/realm.mjs` vult het met de waarden uit het
+tenantbestand (`docker-compose/imports/tenants`) en voegt alleen de fragmenten van de ingeschakelde inlogmiddelen toe;
+`mise run dev:setup` genereert zo per tenant `docker-compose/.generated/keycloak/<oin>.json` plus een sleutelpaar voor
+`private_key_jwt` (de private JWK komt in `docker-compose/.generated/tenants/<oin>/clientsleutel.jwk.json`, de publieke in het realm).
+keycloak-config-cli (service `nl-portal-keycloak-config` in de compose) laadt het resultaat tegen dit image. Geheimen staan niet
+in het realm: de m2m-client en de wallet-koppeling verwijzen naar kcc-substitutie (`$(env:NAAM)`).
+
+Wat de generator afdwingt en de realmtest (`scripts/lib/realm.test.mjs`, in `mise run test`) bewijst, per gegenereerd realm:
+alleen `nl-portal-backend` (private_key_jwt, PS256, PKCE S256, `at+jwt`, exacte redirect- en post-logout-URI's, back-channel
+logout-URL, geen service-account, geen directe grants), tot #506 ook de huidige SPA-client en `nl-portal-m2m`; accountconsole uit;
+scope `acr` van `nl-portal-backend` af; per koppeling een mapper voor elke notitie die een client-mapper leest;
+SAML met `validateSignature`, `wantAssertionsSigned` en een vastgepind `signingCertificate`, minimumniveau als
+`authnContextClassRef`; wallet met code-flow, PKCE S256, clientauthenticatie en TLS; geen identiteitskoppeling; SSO-tijden niet
+langer dan het portaal; buiten ontwikkeling alleen `https`-koppelingen. Het testinlogmiddel (de standaard
+browserflow; demo-gebruikers alleen in ontwikkeling) bestaat alleen als de tenant het kent; de generator weigert het in productie, en een realm
+zonder testinlogmiddel heeft de flow `alleen-koppelingen` en geen gebruikers. Buiten ontwikkeling staat er geen SPA-client, geen
+directe grant (ROPC), geen wildcard-redirect en geen `offline_access`; offline sessies zijn begrensd op 8 uur en refresh-tokens roteren.
+`nl-portal-backend` krijgt alleen de scope `basic`, geen `profile` of `email`: de gebruikersnaam van een gebrokerde gebruiker is `<alias>.<UUID>`
+(nooit de NameID of een ander nummer) en staat niet in een token; wat Keycloak per koppeling onthoudt (de federated identity) is de NameID.
+Gebruikersevents worden niet opgeslagen en niet gelogd (`eventsEnabled: false`, geen `eventsListeners`): een event van een brokerlogin bevat
+de NameID (`identity_provider_identity` = `s00000000:<bsn>`) en het IP-adres, dus een inloghistorie per BSN (ADR 0022 besluit 11, ASVS 5.0
+16.2.5 en 14.2.6). Dat blijft zo tot er een filter is dat die details weglaat (realm-chart, #191); admin-events staan aan zonder
+representaties. `integratietest/handmatig.test.mjs` vraagt Keycloak na een DigiD-brokerlogin zelf wat er bewaard is.
+Verder weigert de generator: een metadata-URL bij een koppeling (alleen een vastgepind certificaat), `$(` in tenant- of koppelingsgegevens
+(kcc-substitutie), een domein dat geen hostnaam is, een niet-https-broker buiten ontwikkeling, een onbekend minimumniveau of onder
+substantieel in productie, en sessietijden van nul of met een inactiviteit boven de absolute duur.
+`integratietest/handmatig.test.mjs` bewijst tegen het echte image dat een oude, geldige SAML-response in een nieuwe authenticatiesessie wordt geweigerd (ASVS 6.8.3).
+`integratietest/realm-kcc.test.mjs` laadt dezelfde realms met keycloak-config-cli in een echte Keycloak en doorloopt een code-flow
+met een `private_key_jwt`-assertion.

@@ -13,14 +13,16 @@ lokale omgeving met willekeurige secrets, vanaf de repo-root:
 mise run dev:setup
 ```
 
-Dit rendert de templates onder `docker-compose/templates/` (de Keycloak-realms en de seed-gegevens van Open Zaak,
-Objects, Open Notificaties, Open Klant en Open Product) naar het gitignored `docker-compose/.generated/`. Alle
+Dit rendert de templates onder `docker-compose/templates/` (de seed-gegevens van Open Zaak, Objects, Open Notificaties,
+Open Klant en Open Product) naar het gitignored `docker-compose/.generated/` en genereert per tenant het Keycloak-realm
+(uit `keycloak/realm-template/` en `docker-compose/imports/tenants`, geladen door keycloak-config-cli) met een sleutelpaar
+voor `private_key_jwt`. Bouw eerst het eigen Keycloak-image: `mise run keycloak:image`. Alle
 secrets komen in `docker-compose/.env`: het Keycloak-client-secret, de JWT-secrets en API-tokens tussen de
 componenten, de databasewachtwoorden, de Django-`SECRET_KEY`'s, de beheerderswachtwoorden en het RabbitMQ-wachtwoord.
 Ook `backend/app/.env.properties` en `backend/app-dev/.env.properties` worden gegenereerd. Zonder deze stap weigert
 `docker compose` te starten. Draaide de stack al, start hem dan opnieuw met lege databases:
-`docker compose down -v && docker compose up -d`. De testgebruikers (`burger`, `bedrijf`) staan met een
-wachtwoordhash in de realm-template.
+`docker compose down -v && docker compose up -d`. De testgebruikers (`burger`, `bedrijf`) staan, alleen in het ontwikkelrealm, met een
+wachtwoordhash in het realm-template (`keycloak/realm-template/demo-gebruikers.json`).
 
 ## 1. Remote — evaluate the released product
 

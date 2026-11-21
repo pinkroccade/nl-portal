@@ -27,7 +27,7 @@ De koppeling met de backend verloopt via de volgende environment variabelen van 
 
 | Variabele | Betekenis |
 | --------- | --------- |
-| `JWKS_URI` | Wijst de backend naar het realm waarmee hij tokens valideert: `<keycloak-url>/realms/<realm>/protocol/openid-connect/certs`. Draait je Keycloak onder een pad (zoals de demo-omgeving, met `KC_HTTP_RELATIVE_PATH=/auth`), neem dat pad dan mee: `<keycloak-url>/auth/realms/<realm>/protocol/openid-connect/certs`. |
+| `JWKS_URI` | Wijst de backend naar het realm waarmee hij tokens valideert: `<keycloak-url>/realms/<realm>/protocol/openid-connect/certs`. Draait je Keycloak onder een pad (met `KC_HTTP_RELATIVE_PATH=/auth`), neem dat pad dan mee: `<keycloak-url>/auth/realms/<realm>/protocol/openid-connect/certs`. De demo-omgeving draait op het pad `/`. |
 | `KEYCLOAK_ISSUER_URI` | Verplicht. De publieke URL van de realm, gelijk aan de `iss`-claim: `<keycloak-url>/realms/<realm>` (met `/auth` ervoor als Keycloak onder dat pad draait). Tokens met een andere issuer worden geweigerd. |
 | `KEYCLOAK_TOKEN_URI` | Optioneel. Token-endpoint voor de token exchange, bijvoorbeeld het interne adres van Keycloak. Leeg: `<KEYCLOAK_ISSUER_URI>/protocol/openid-connect/token`. Zie [Keycloak-koppeling](./deployment-guide.md#backend-keycloak-koppeling). |
 | `KEYCLOAK_CLIENT_ID` | Client id van de m2m (backend) client |
@@ -112,13 +112,11 @@ De [audience mappers](./keycloak-token-exchange.md#stap-2-audience-mappers) zett
 De docker-compose demo-omgeving in de monorepo bevat een volledig werkend voorbeeld van alle bovenstaande configuratie, ingericht op de standard token exchange. Gebruik deze als referentie bij het inrichten van een eigen Keycloak:
 
 * `docker-compose/docker-compose.yaml` — de Keycloak service. Let op dat hier géén `KC_FEATURES` staat: dat is precies wat de standard token exchange oplevert.
-* `docker-compose/templates/keycloak/nlportal-realm.json` — een template (secrets als placeholders; `mise run dev:setup` rendert het naar het gitignored `docker-compose/.generated/keycloak/`) voor een volledig realm met de twee clients, de `aanvrager` client scope, de audience mappers, de `middel` mapper en testgebruikers (`burger` met BSN attribuut en `authenticationMethod` `digid`, `bedrijf` met KVK attribuut en `authenticationMethod` `eherkenning`).
+* `keycloak/realm-template/` — het ene realm-template (basis plus een fragment per inlogmiddel). `mise run dev:setup` genereert er per tenant (`docker-compose/imports/tenants`) een realm uit in het gitignored `docker-compose/.generated/keycloak/`, met de twee clients, de `aanvrager` client scope, de audience mappers, de `middel` mapper en testgebruikers (`burger` met BSN attribuut en `authenticationMethod` `digid`, `bedrijf` met KVK attribuut en `authenticationMethod` `eherkenning`), plus de clients `nl-portal-backend` voor de BFF (zie [keycloak/README.md](https://github.com/pinkroccade/nl-portal/blob/main/keycloak/README.md)). De service `nl-portal-keycloak-config` laadt het realm met keycloak-config-cli in het eigen image `nl-portal-keycloak` (bouw het met `mise run keycloak:image`).
 
-De bestandsnamen van de realm-imports eindigen op `-realm.json`. Dat is geen vormvoorkeur: Keycloak gebruikt die naamgeving om de importvolgorde te bepalen, en zonder die naamgeving start Keycloak 26 niet op.
+Geheimen staan niet in het gegenereerde realm: de m2m-client verwijst naar `$(env:KEYCLOAK_M2M_CLIENT_SECRET)`, dat kcc uit de omgeving van de compose haalt.
 
-**Let op bij een bestaande omgeving:** Keycloak importeert met strategie `IGNORE_EXISTING`. Draaide je de stack al vóórdat het realm op de standard token exchange werd omgezet, dan blijft het oude realm in de database van de `nl-portal-keycloak-database` container staan en wordt de nieuwe versie **niet** geïmporteerd. De backend verwacht dan standard token exchange terwijl het realm nog op de legacy variant staat, met als resultaat `Standard token exchange is not enabled for the requested client` bij elke login.
-
-Het oude realm verdwijnt pas als je het volume van de `nl-portal-keycloak-database` container weggooit. Het eenvoudigste commando daarvoor doet meteen iets ruimers:
+**Let op bij een bestaande omgeving:** keycloak-config-cli werkt het realm bij, dus een wijziging in het template of de tenantbestanden neem je over met `mise run dev:setup` en daarna `docker compose run --rm nl-portal-keycloak-config`. Handmatige wijzigingen in een door kcc beheerd onderdeel (clients, koppelingen, flows) worden daarbij teruggezet. Wil je een geheel verse omgeving, gooi dan het volume van de `nl-portal-keycloak-database` container weg:
 
 ```
 docker compose down -v

@@ -1,0 +1,47 @@
+{
+  "users": [
+    {
+      "username": "bedrijf",
+      "firstName": "Bedrijf A",
+      "emailVerified": false,
+      "attributes": {
+        "kvk": [
+          "14127293"
+        ],
+        "authenticationMethod": [
+          "eherkenning"
+        ]
+      },
+      "enabled": true,
+      "credentials": [
+        {
+          "type": "password",
+          "secretData": "{\"value\":\"XylqzMtNjygUAJ3jVEiYBe+sJkv62e4amYP9K1pBbuEGNXFCqsxzzM2evtV3WGB/W1oieKHR3/ZLc7ahPOFmCQ==\",\"salt\":\"1EtqkMzBxgdrREg7mqQEpw==\",\"additionalParameters\":{}}",
+          "credentialData": "{\"hashIterations\":27500,\"algorithm\":\"pbkdf2-sha256\",\"additionalParameters\":{}}"
+        }
+      ]
+    },
+    {
+      "username": "burger",
+      "firstName": "Merel",
+      "lastName": "Kooyman",
+      "emailVerified": false,
+      "attributes": {
+        "bsn": [
+          "999993847"
+        ],
+        "authenticationMethod": [
+          "digid"
+        ]
+      },
+      "enabled": true,
+      "credentials": [
+        {
+          "type": "password",
+          "secretData": "{\"value\":\"A+kZDRBDbzI9bkTgr6SS3Vcsd664rDFYZxHO0hvL0IGrQwTCyy1nsiU+L+82QXRWJRVE8UaabJzDhrhVMS2+RQ==\",\"salt\":\"qOmvvc3URomYEwsmk6Qs4w==\",\"additionalParameters\":{}}",
+          "credentialData": "{\"hashIterations\":210000,\"algorithm\":\"pbkdf2-sha512\",\"additionalParameters\":{}}"
+        }
+      ]
+    }
+  ]
+}

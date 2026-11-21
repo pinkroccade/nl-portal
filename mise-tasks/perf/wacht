@@ -3,7 +3,7 @@
 set -euo pipefail
 
 limiet="${PERF_WACHT_SECONDEN:-900}"
-keycloak="${PERF_KEYCLOAK_URL:-http://localhost:8082/auth}/realms/${PERF_REALM:-nlportal}"
+keycloak="${PERF_KEYCLOAK_URL:-http://localhost:8082}/realms/${PERF_REALM:-nlportal}"
 backend="${PERF_BACKEND_URL:-http://localhost:8080}/graphql"
 
 import_klaar() {
