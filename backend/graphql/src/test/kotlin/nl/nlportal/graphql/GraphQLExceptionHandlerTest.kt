@@ -30,6 +30,21 @@ import org.mockito.Mockito.mock
 import org.mockito.Mockito.`when`
 
 class GraphQLExceptionHandlerTest {
+    @Test
+    fun `een niet geconfigureerde module of een ontbrekende tenant toont de browser geen OIN of configuratienaam`() {
+        val geenModule = ModuleNotConfiguredException("payment-direct", "Tenant 00000099000000000001: modulegegevens")
+        val geenTenant = TenantContextMissingException()
+
+        val moduleFout = GraphQLExceptionHandler().resolveException(geenModule, env).block()!!.single()
+        val tenantFout = GraphQLExceptionHandler().resolveException(geenTenant, env).block()!!.single()
+
+        assertEquals("De module is niet beschikbaar", moduleFout.message)
+        assertEquals(mapOf("code" to "MODULE_NIET_GECONFIGUREERD"), moduleFout.extensions)
+        assertEquals("De aanvraag kan niet worden verwerkt", tenantFout.message)
+        assertEquals(mapOf("code" to "TENANT_ONTBREEKT"), tenantFout.extensions)
+        assertFalse(moduleFout.toSpecification().toString().contains("00000099000000000001"))
+    }
+
     private val env: DataFetchingEnvironment =
         mock(DataFetchingEnvironment::class.java, RETURNS_DEEP_STUBS).also {
             `when`(it.field.sourceLocation).thenReturn(SourceLocation(1, 1))
@@ -49,15 +64,5 @@ class GraphQLExceptionHandlerTest {
         assertEquals("Koppeling 'brp' is niet beschikbaar (referentie ${fout.correlatieId})", graphqlFout.message)
         assertEquals(mapOf("code" to "KOPPELING_FOUT", "correlatieId" to fout.correlatieId), graphqlFout.extensions)
         assertFalse(graphqlFout.toSpecification().toString().contains("999993653"))
-    }
-
-    @Test
-    fun `een ontbrekende configuratie of tenant toont de browser een generieke melding, zonder module, instelling of OIN`() {
-        listOf(ModuleNotConfiguredException("zakenapi", "koppeling 'zakenapi'"), TenantContextMissingException()).forEach { fout ->
-            val graphqlFout = GraphQLExceptionHandler().resolveException(fout, env).block()!!.single()
-
-            assertEquals("De gevraagde functie is niet beschikbaar", graphqlFout.message)
-            assertEquals(mapOf("code" to "CONFIGURATIE_ONTBREEKT"), graphqlFout.extensions)
-        }
     }
 }

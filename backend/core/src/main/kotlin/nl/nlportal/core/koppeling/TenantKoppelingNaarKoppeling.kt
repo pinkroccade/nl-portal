@@ -60,7 +60,7 @@ internal fun TenantKoppeling.naarKoppeling(
                 value = geheim("waarde", bestand.auth.waarde)
                 token = geheim("token", bestand.auth.token)
                 clientId = bestand.auth.clientId
-                secret = geheim("secret", bestand.auth.secret)
+                secret = zgwSecret ?: geheim("secret", bestand.auth.secret)
                 tokenUrl = bestand.auth.tokenUrl
                 privateKeyFile = bestand.auth.privateKeyBestand
             }
