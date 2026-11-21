@@ -258,3 +258,18 @@ export async function addPortalClientMapper(mapper) {
 export async function deletePortalClientMapper({ clientUuid, id }) {
   await admin(`/portal/clients/${clientUuid}/protocol-mappers/models/${id}`, { method: "DELETE" });
 }
+
+// Het mappen van het walletniveau in de simulator: de client `portal-wallet-broker` in realm idp-sim stuurt `acr`
+// via een vaste claimmapper. Voor een test die een wallet zonder niveau nabootst halen we die mapper weg en zetten
+// we hem daarna terug.
+export async function removeWalletSimMapper(name) {
+  const clients = await (await admin("/idp-sim/clients?clientId=portal-wallet-broker")).json();
+  const client = clients[0];
+  const mapper = client.protocolMappers.find((m) => m.name === name);
+  await admin(`/idp-sim/clients/${client.id}/protocol-mappers/models/${mapper.id}`, { method: "DELETE" });
+  return { clientUuid: client.id, mapper: { ...mapper, id: undefined } };
+}
+
+export async function restoreWalletSimMapper({ clientUuid, mapper }) {
+  await admin(`/idp-sim/clients/${clientUuid}/protocol-mappers/models`, { method: "POST", body: JSON.stringify(mapper) });
+}

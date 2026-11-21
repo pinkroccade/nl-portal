@@ -16,6 +16,8 @@ import {
   exchange,
   portalUsers,
   portalUsersWithAttribute,
+  removeWalletSimMapper,
+  restoreWalletSimMapper,
   login,
   loginForIdToken,
   provisionDigidSigningCert,
@@ -31,6 +33,14 @@ before(async () => {
 });
 
 // Een claim die er niet is of leeg is, geldt voor de backend als afwezig.
+// Een geweigerde login toont een Keycloak-foutpagina (geen wachtwoordformulier, geen code). Alleen code === null zou
+// ook slagen bij een kapotte simulator; daarom toetsen we ook dat het een foutpagina van Keycloak is.
+const assertGeweigerd = (result) => {
+  assert.equal(result.code, null);
+  assert.ok(!result.wachtwoordformulier, `terugval op het wachtwoordformulier: ${result.pageText}`);
+  assert.match(result.pageText ?? "", /sorry|error|authenticat|identity provider/i, `geen foutpagina van Keycloak: ${result.pageText}`);
+};
+
 const afwezig = (waarde) => waarde === undefined || waarde === "";
 
 describe("DigiD via SAML-broker", () => {
@@ -143,7 +153,7 @@ describe("Beperkingen en randgevallen van Keycloak", () => {
     try {
       await setSimUserAttribute("maria", "legal_subject_id", ["999990008", "999990016"]);
       const result = await login({ idp: "digid", username: "maria", password: "maria" });
-      assert.equal(result.code, null);
+      assertGeweigerd(result);
     } finally {
       await setSimUserAttribute("maria", "legal_subject_id", ["999990008"]);
     }
@@ -229,6 +239,30 @@ describe("Herauthenticatie in dezelfde Keycloak-sessie", () => {
     }
   });
 
+  // De ingebouwde wallet-mapper (oidc-user-session-note-idp-mapper) zet een notitie alleen als de claim er is; een
+  // waarde van de eerste login blijft dan staan. Deze test hoort rood te zijn op de ingebouwde mapper en groen op een
+  // wissende wallet-mapper.
+  it("laat acr en acting_subject_id van de wallet niet blijven hangen als dezelfde gebruiker met prompt=login opnieuw inlogt zonder die claims", async () => {
+    const jar = new Jar();
+    let verwijderd;
+    try {
+      const eerste = await loginForIdToken({ idp: "wallet", username: "jan", password: "jan", jar });
+      assert.equal(eerste.idToken.acr, "http://eidas.europa.eu/LoA/high");
+      assert.ok(eerste.idToken.acting_subject_id, "de eerste wallet-login levert geen BSN");
+      verwijderd = await removeWalletSimMapper("acr-eidas");
+      await setSimUserAttribute("jan", "acting_subject_id", null);
+      const tweede = await login({ idp: "wallet", username: "jan", password: "jan", jar, prompt: "login" });
+      assert.ok(tweede.code, `geen code: ${tweede.pageText ?? tweede.errorDescription}`);
+      const token = decodeJwt((await exchange(tweede)).id_token);
+      assert.equal(token.inlogmiddel, "wallet");
+      assert.ok(afwezig(token.acr), `niveau van de eerdere login blijft staan: ${token.acr}`);
+      assert.ok(afwezig(token.acting_subject_id), `BSN van de eerdere login blijft staan: ${token.acting_subject_id}`);
+    } finally {
+      if (verwijderd) await restoreWalletSimMapper(verwijderd);
+      await setSimUserAttribute("jan", "acting_subject_id", ["999990008"]);
+    }
+  });
+
   // Zonder prompt=login is er geen nieuwe login: Keycloak geeft de bestaande sessie terug, ook als de IdP inmiddels
   // andere gegevens zou leveren. Daarom start de BFF elke login met prompt=login en toetst auth_time.
   it("geeft zonder prompt=login binnen een lopende sessie geen nieuwe login maar het token van de eerdere", async () => {
@@ -257,7 +291,7 @@ describe("Herauthenticatie in dezelfde Keycloak-sessie", () => {
     const jar = new Jar();
     await loginForIdToken({ idp: "digid", username: "jan", password: "jan", jar });
     const wallet = await login({ idp: "wallet", username: "jan", password: "jan", jar, prompt: "login" });
-    assert.equal(wallet.code, null);
+    assertGeweigerd(wallet);
   });
 });
 
@@ -268,7 +302,7 @@ describe("Koppeling van identiteiten en browserflow", () => {
     try {
       const result = await loginForIdToken({ idp: "wallet", username: "jan", password: "jan" });
       if (result.idToken) assert.notEqual(result.idToken.sub, bestaand, "de wallet-login is bij de bestaande gebruiker uitgekomen");
-      else assert.equal(result.code, null);
+      else assertGeweigerd(result);
     } finally {
       await deletePortalUsers();
     }

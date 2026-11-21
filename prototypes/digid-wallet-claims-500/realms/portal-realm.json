@@ -196,11 +196,21 @@
     {
       "name": "acr",
       "identityProviderAlias": "wallet",
-      "identityProviderMapper": "oidc-user-session-note-idp-mapper",
+      "identityProviderMapper": "nlportal-oidc-claim-note-mapper",
       "config": {
         "syncMode": "FORCE",
-        "claims": "[{\"key\":\"acr\",\"value\":\".*\"},{\"key\":\"acting_subject_id\",\"value\":\".*\"}]",
-        "are.claim.values.regex": "true"
+        "claim.name": "acr",
+        "note": "acr"
+      }
+    },
+    {
+      "name": "acting-wallet",
+      "identityProviderAlias": "wallet",
+      "identityProviderMapper": "nlportal-oidc-claim-note-mapper",
+      "config": {
+        "syncMode": "FORCE",
+        "claim.name": "acting_subject_id",
+        "note": "acting_subject_id"
       }
     },
     {
