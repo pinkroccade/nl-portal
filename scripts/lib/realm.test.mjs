@@ -75,7 +75,8 @@ for (const [naam, tenant] of Object.entries(ALLE)) {
     const origins = tenant.domeinen.map((domein) => (tenant.omgevingstype === "ontwikkeling" ? `http://${domein}:3000` : `https://${domein}`));
     assert.deepEqual(c.redirectUris, origins.map((origin) => `${origin}/login/oauth2/code/${tenant.oin}`));
     assert.equal(c.attributes["post.logout.redirect.uris"], origins.map((origin) => `${origin}/`).join("##"));
-    assert.equal(c.attributes["backchannel.logout.url"], `${origins[0]}/logout/connect/back-channel/${tenant.oin}`);
+    // B-L3: het back-channel-endpoint bestaat nog niet (T24); een URL laat Keycloak elk sessie-einde stil mislukt aanroepen.
+    assert.ok(!Object.keys(c.attributes).some((k) => k.startsWith("backchannel.logout")), "geen back-channel-logout registreren zonder endpoint");
     for (const uri of [...c.redirectUris, ...c.attributes["post.logout.redirect.uris"].split("##")]) assert.doesNotMatch(uri, /[*+]/, uri);
     assert.deepEqual(c.webOrigins, []);
   });
@@ -88,9 +89,11 @@ for (const [naam, tenant] of Object.entries(ALLE)) {
     assert.deepEqual(notities, ["acr", "acting_subject_id", "identity_provider", "legal_subject_id"]);
     for (const m of noteMappers(c)) {
       assert.equal(m.protocolMapper, "oidc-usersessionmodel-note-mapper");
-      assert.equal(m.config["id.token.claim"], "true");
       assert.equal(m.config["access.token.claim"], "false");
-      assert.equal(m.config["userinfo.token.claim"], "false");
+      // Het BSN (acting_subject_id) staat alleen in userinfo: het ID-token gaat als id_token_hint de browser in.
+      const bsn = m.config["user.session.note"] === "acting_subject_id";
+      assert.equal(m.config["id.token.claim"], String(!bsn), m.name);
+      assert.equal(m.config["userinfo.token.claim"], String(bsn), m.name);
     }
   });
 
@@ -128,7 +131,8 @@ for (const [naam, tenant] of Object.entries(ALLE)) {
     assert.deepEqual(config.attributes.map((a) => a.name), ["username", "email", "firstName", "lastName"]);
     // Een gebruikersnaam als digid.s00000000:999990008 mag niet op een tekencontrole stranden.
     assert.deepEqual(Object.keys(config.attributes.find((a) => a.name === "username").validations ?? {}), ["length"]);
-    assert.equal(config.unmanagedAttributePolicy, "ADMIN_EDIT", "alleen beheer schrijft de attributen (bsn, kvk) van de demo-gebruikers");
+    // Buiten ontwikkeling kan niemand een gebruikersattribuut schrijven dat een claim kan worden (B-M1).
+    assert.equal(config.unmanagedAttributePolicy, tenant.omgevingstype === "ontwikkeling" ? "ADMIN_EDIT" : "ADMIN_VIEW");
   });
 
   test(`${naam}: er staat geen geheim in het realm; geheimen verwijzen naar kcc-substitutie`, () => {
@@ -167,12 +171,27 @@ test("de testgebruiker krijgt inlogmiddel test, niveau Basis en zijn BSN op deze
   assert.equal(mappers["test-inlogmiddel"]["claim.name"], "inlogmiddel");
   assert.equal(mappers["test-acr"]["claim.name"], "acr");
   assert.equal(mappers["test-bsn"]["claim.name"], "acting_subject_id");
-  for (const m of Object.values(mappers)) {
-    assert.equal(m["id.token.claim"], "true");
-    assert.equal(m["access.token.claim"], "false");
-    assert.equal(m["userinfo.token.claim"], "false");
+  for (const [naam, m] of Object.entries(mappers)) {
+    const bsn = naam === "test-bsn";
+    assert.equal(m["id.token.claim"], String(!bsn), naam);
+    assert.equal(m["access.token.claim"], "false", naam);
+    assert.equal(m["userinfo.token.claim"], String(bsn), naam);
   }
 });
+
+for (const [naam, tenant] of [
+  ["zonder testinlogmiddel", { ...DEV, inlogmiddelen: ["digid"] }],
+  ["acceptatie", ACC],
+  ["productie", PRD],
+]) {
+  test(`B-M1, ${naam}: geen test-mappers die claims uit gebruikersattributen schrijven`, () => {
+    const r = realm(tenant);
+    const namen = client(r, "nl-portal-backend").protocolMappers.map((m) => m.name);
+    assert.deepEqual(namen.filter((n) => n.startsWith("test-")), []);
+    assert.ok(!client(r, "nl-portal-backend").protocolMappers.some((m) => m.protocolMapper === "oidc-usermodel-attribute-mapper"));
+    assert.equal(r.users, undefined, "geen demo-gebruikers");
+  });
+}
 
 // --- Testinlogmiddel: alleen in niet-productie ---
 

@@ -18,7 +18,7 @@ import { fileURLToPath } from "node:url";
 import { clientAssertion, maakClientSleutel } from "../../scripts/lib/clientsleutel.mjs";
 import { genereerRealm } from "../../scripts/lib/realm.mjs";
 import { leesTenantbestanden } from "../../scripts/lib/tenantbestand.mjs";
-import { KC, admin, decodeJwt, login, waitForKeycloak } from "./stack.mjs";
+import { KC, admin, decodeJwt, login, userinfo, waitForKeycloak } from "./stack.mjs";
 
 const repoRoot = resolve(dirname(fileURLToPath(import.meta.url)), "..", "..");
 // Eén plek voor de kcc-versie: de compose-stack.
@@ -149,6 +149,16 @@ describe("keycloak-config-cli laadt het realm-template", () => {
     assert.equal(JSON.parse(c.attributes["jwks.string"]).keys[0].kid, sleutel.kid);
     assert.ok(!c.defaultClientScopes.includes("acr"), "scope acr hoort van nl-portal-backend af");
     assert.deepEqual(c.protocolMappers.map((m) => m.name).sort(), ["acr", "acting-subject-id", "audience", "inlogmiddel", "legal-subject-id", "test-acr", "test-bsn", "test-inlogmiddel"]);
+  });
+
+  it("B-M1: het acceptatierealm heeft de test-mappers niet en een alleen-lezen gebruikersprofiel; B-L3: geen back-channel-logout-URL", async () => {
+    const [c] = await rep("acceptatie", `/clients?clientId=${CLIENT}`);
+    assert.deepEqual(c.protocolMappers.map((m) => m.name).sort(), ["acr", "acting-subject-id", "audience", "inlogmiddel", "legal-subject-id"]);
+    assert.ok(!c.attributes["backchannel.logout.url"], "geen back-channel-logout-URL geregistreerd");
+    const profiel = await (await admin("/acceptatie/users/profile")).json();
+    assert.equal(profiel.unmanagedAttributePolicy, "ADMIN_VIEW");
+    const dev = await (await admin("/nlportal/users/profile")).json();
+    assert.equal(dev.unmanagedAttributePolicy, "ADMIN_EDIT");
   });
 
   it("de accountconsole staat uit en het accountrealm is niet bereikbaar voor gebruikers", async () => {
@@ -327,11 +337,12 @@ describe("login met het testinlogmiddel en geen token exchange meer", () => {
     assert.equal(id.azp, CLIENT);
     assert.equal(id.acr, "Basis");
     assert.equal(id.inlogmiddel, "test");
-    assert.equal(id.acting_subject_id, "999993847");
+    assert.equal(id.acting_subject_id, undefined, "het BSN staat niet in het ID-token (id_token_hint gaat de browser in)");
+    assert.equal((await userinfo(body.access_token, "nlportal")).acting_subject_id, "999993847", "het BSN staat in userinfo");
     assert.ok(id.auth_time, "auth_time ontbreekt");
     assert.equal(id.middel, undefined, "de oude claim middel bestaat niet meer");
     assert.equal(id.aanvrager, undefined);
-    // De mappers zetten de identiteit alleen in het ID-token: het access-token is voor de BFF zelf en draagt geen BSN.
+    // De BSN-mapper zet het BSN alleen in userinfo: het access-token is voor de BFF zelf en draagt geen BSN.
     assert.ok(!JSON.stringify(decodeJwt(body.access_token)).includes("999993847"), "het access-token draagt geen BSN");
     assert.equal(body.refresh_token, undefined);
   });
@@ -391,7 +402,8 @@ describe("SAML-login (gesimuleerd DigiD) tegen het gegenereerde realm", () => {
     assert.equal(id.iss, `${KC}/realms/samllogin`);
     assert.equal(id.inlogmiddel, "digid");
     assert.equal(id.acr, "urn:oasis:names:tc:SAML:2.0:ac:classes:MobileTwoFactorContract");
-    assert.equal(id.acting_subject_id, BSN);
+    assert.equal(id.acting_subject_id, undefined, "het BSN staat niet in het ID-token");
+    assert.equal((await userinfo(body.access_token, "samllogin")).acting_subject_id, BSN, "het BSN staat in userinfo");
     assert.ok(id.legal_subject_id === undefined || id.legal_subject_id === "");
     assert.ok(!JSON.stringify(decodeJwt(body.access_token)).includes(BSN), "het access-token draagt geen BSN");
   });

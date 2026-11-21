@@ -99,6 +99,7 @@ test("devSetup rendert dezelfde waarden in realm, compose en :app", () => {
     // Alleen de eigenaar leest de private sleutel (POSIX; Windows kent deze modus niet).
     if (process.platform !== "win32") assert.equal(statSync(join(root, CLIENTSLEUTEL_UITVOER(OIN))).mode & 0o777, 0o600);
     assert.match(read("backend/app/.env.properties"), new RegExp("^REDIS_PASSWORD=" + secrets.REDIS_PASSWORD + "$", "m"));
+    assert.match(read("backend/app/.env.properties"), /^REDIS_SSL=false$/m, "bootRun op de host praat met de TLS-loze Redis van de compose");
     assert.doesNotMatch(read(APP_DEV_OUTPUT), /KEYCLOAK_CLIENT_SECRET/);
     assert.match(
       read("backend/app/.env.properties"),

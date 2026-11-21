@@ -20,6 +20,7 @@ import {
   samlAuthnRequest,
   setDigidRequestedLevel,
   setSimUserAttribute,
+  userinfo,
   waitForKeycloak,
 } from "./stack.mjs";
 
@@ -42,11 +43,12 @@ const afwezig = (waarde) => waarde === undefined || waarde === "";
 describe("DigiD via SAML-broker", () => {
   beforeEach(() => setDigidRequestedLevel(DIGID.midden));
 
-  it("zet inlogmiddel digid, betrouwbaarheidsniveau en BSN van de actor als claim in het ID-token", async () => {
-    const { idToken } = await loginForIdToken({ idp: "digid", username: "jan", password: "jan" });
+  it("zet inlogmiddel digid, betrouwbaarheidsniveau en BSN van de actor (in userinfo, niet in het ID-token)", async () => {
+    const { idToken, userinfo } = await loginForIdToken({ idp: "digid", username: "jan", password: "jan" });
     assert.equal(idToken.inlogmiddel, "digid");
     assert.equal(idToken.acr, DIGID.midden);
-    assert.equal(idToken.acting_subject_id, "999990008");
+    assert.equal(userinfo.acting_subject_id, "999990008");
+    assert.ok(afwezig(idToken.acting_subject_id), "het BSN staat niet in het ID-token");
     assert.ok(afwezig(idToken.legal_subject_id));
   });
 
@@ -75,8 +77,9 @@ describe("DigiD via SAML-broker", () => {
   });
 
   it("geeft bij vertegenwoordiging LegalSubjectID als aparte claim naast de BSN van de actor", async () => {
-    const { idToken } = await loginForIdToken({ idp: "digid", username: "maria", password: "maria" });
-    assert.equal(idToken.acting_subject_id, "999990020");
+    const { idToken, userinfo } = await loginForIdToken({ idp: "digid", username: "maria", password: "maria" });
+    assert.equal(userinfo.acting_subject_id, "999990020");
+    assert.ok(afwezig(idToken.acting_subject_id), "het BSN staat niet in het ID-token");
     assert.equal(idToken.legal_subject_id, "999990008");
   });
 
@@ -133,19 +136,21 @@ describe("Eerste login van een nieuwe gebruiker", () => {
 
   it("zet bij DigiD acr, inlogmiddel en de BSN's ook als de Keycloak-gebruiker nog niet bestaat", async () => {
     await deletePortalUsers();
-    const { idToken } = await loginForIdToken({ idp: "digid", username: "maria", password: "maria" });
+    const { idToken, userinfo } = await loginForIdToken({ idp: "digid", username: "maria", password: "maria" });
     assert.equal(idToken.acr, DIGID.midden);
     assert.equal(idToken.inlogmiddel, "digid");
-    assert.equal(idToken.acting_subject_id, "999990020");
+    assert.equal(userinfo.acting_subject_id, "999990020");
+    assert.ok(afwezig(idToken.acting_subject_id), "het BSN staat niet in het ID-token");
     assert.equal(idToken.legal_subject_id, "999990008");
   });
 
   it("zet bij de wallet acr, inlogmiddel en de BSN ook als de Keycloak-gebruiker nog niet bestaat", async () => {
     await deletePortalUsers();
-    const { idToken } = await loginForIdToken({ idp: "wallet", username: "jan", password: "jan" });
+    const { idToken, userinfo } = await loginForIdToken({ idp: "wallet", username: "jan", password: "jan" });
     assert.equal(idToken.acr, "http://eidas.europa.eu/LoA/high");
     assert.equal(idToken.inlogmiddel, "wallet");
-    assert.equal(idToken.acting_subject_id, "999990008");
+    assert.equal(userinfo.acting_subject_id, "999990008");
+    assert.ok(afwezig(idToken.acting_subject_id), "het BSN staat niet in het ID-token");
   });
 });
 
@@ -174,15 +179,17 @@ describe("Herauthenticatie in dezelfde Keycloak-sessie", () => {
     try {
       const eerste = await loginForIdToken({ idp: "wallet", username: "jan", password: "jan", jar });
       assert.equal(eerste.idToken.acr, "http://eidas.europa.eu/LoA/high");
-      assert.ok(eerste.idToken.acting_subject_id, "de eerste wallet-login levert geen BSN");
+      assert.ok(eerste.userinfo.acting_subject_id, "de eerste wallet-login levert geen BSN");
       verwijderd = await removeWalletSimMapper("acr-eidas");
       await setSimUserAttribute("jan", "acting_subject_id", null);
       const tweede = await login({ idp: "wallet", username: "jan", password: "jan", jar, prompt: "login" });
       assert.ok(tweede.code, `geen code: ${tweede.pageText ?? tweede.errorDescription}`);
-      const token = decodeJwt((await exchange(tweede)).id_token);
+      const tokens = await exchange(tweede);
+      const token = decodeJwt(tokens.id_token);
+      const info = await userinfo(tokens.access_token);
       assert.equal(token.inlogmiddel, "wallet");
       assert.ok(afwezig(token.acr), `niveau van de eerdere login blijft staan: ${token.acr}`);
-      assert.ok(afwezig(token.acting_subject_id), `BSN van de eerdere login blijft staan: ${token.acting_subject_id}`);
+      assert.ok(afwezig(info.acting_subject_id), `BSN van de eerdere login blijft staan: ${info.acting_subject_id}`);
     } finally {
       if (verwijderd) await restoreWalletSimMapper(verwijderd);
       await setSimUserAttribute("jan", "acting_subject_id", ["999990008"]);
@@ -254,16 +261,17 @@ describe("Koppeling van identiteiten en browserflow", () => {
 
 describe("Wallet via OIDC-broker", () => {
   it("zet inlogmiddel wallet, het niveau uit de acr van de wallet en de BSN als claim in het ID-token", async () => {
-    const { idToken } = await loginForIdToken({ idp: "wallet", username: "jan", password: "jan" });
+    const { idToken, userinfo } = await loginForIdToken({ idp: "wallet", username: "jan", password: "jan" });
     assert.equal(idToken.inlogmiddel, "wallet");
     assert.equal(idToken.acr, "http://eidas.europa.eu/LoA/high");
-    assert.equal(idToken.acting_subject_id, "999990008");
+    assert.equal(userinfo.acting_subject_id, "999990008");
+    assert.ok(afwezig(idToken.acting_subject_id), "het BSN staat niet in het ID-token");
   });
 
   it("geeft DigiD en wallet voor dezelfde burger dezelfde BSN-claim, de sleutel voor gegevensaanvragen", async () => {
     const digid = await loginForIdToken({ idp: "digid", username: "jan", password: "jan" });
     const wallet = await loginForIdToken({ idp: "wallet", username: "jan", password: "jan" });
-    assert.equal(digid.idToken.acting_subject_id, wallet.idToken.acting_subject_id);
+    assert.equal(digid.userinfo.acting_subject_id, wallet.userinfo.acting_subject_id);
     assert.notEqual(digid.idToken.sub, wallet.idToken.sub);
   });
 

@@ -147,7 +147,9 @@ overslaan.**
   `nlportal-saml-attribute-note-mapper` (`acting_subject_id`, `legal_subject_id`), en per OIDC-koppeling (wallet)
   `nlportal-oidc-claim-note-mapper`, elk met `syncMode: FORCE`. keycloak-config-cli kent het mappertype pas als het in
   het image zit: draai hem tegen dit image.
-- Zet op `nl-portal-backend` de client-mappers `oidc-usersessionmodel-note-mapper` en haal de scope `acr` eraf.
+- Zet op `nl-portal-backend` de client-mappers `oidc-usersessionmodel-note-mapper` en haal de scope `acr` eraf. De mapper voor
+  `acting_subject_id` (het BSN) zet de claim alleen in userinfo (`userinfo.token.claim: true`, `id.token.claim: false`): het ID-token gaat als
+  `id_token_hint` de browser in en de BFF leest het BSN uit userinfo.
 - Een SAML-koppeling met `useMetadataDescriptorUrl` (certificaat uit de metadata-URL, niet vastgepind) faalt gesloten: de mapper eist
   een vastgepind `signingCertificate` en geeft anders een loginfout. Pin het certificaat in de koppeling; de realm-generator weigert
   een metadata-URL al bij het genereren.
@@ -171,14 +173,16 @@ keycloak-config-cli (service `nl-portal-keycloak-config` in de compose) laadt he
 in het realm: de wallet-koppeling verwijst naar kcc-substitutie (`$(env:NAAM)`).
 
 Wat de generator afdwingt en de realmtest (`scripts/lib/realm.test.mjs`, in `mise run test`) bewijst, per gegenereerd realm:
-alleen `nl-portal-backend` (private_key_jwt, PS256, PKCE S256, `at+jwt`, exacte redirect- en post-logout-URI's, back-channel
-logout-URL, geen service-account, geen directe grants), geen SPA-client, geen `nl-portal-m2m` en geen token exchange; accountconsole uit;
+alleen `nl-portal-backend` (private_key_jwt, PS256, PKCE S256, `at+jwt`, exacte redirect- en post-logout-URI's, geen
+back-channel-logout-URL zolang het endpoint ontbreekt (T24 #523 zet hem terug), geen service-account, geen directe grants), geen SPA-client, geen `nl-portal-m2m` en geen token exchange; accountconsole uit;
 scope `acr` van `nl-portal-backend` af; per koppeling een mapper voor elke notitie die een client-mapper leest;
 SAML met `validateSignature`, `wantAssertionsSigned` en een vastgepind `signingCertificate`, minimumniveau als
 `authnContextClassRef`; wallet met code-flow, PKCE S256, clientauthenticatie en TLS; geen identiteitskoppeling; SSO-tijden niet
 langer dan het portaal; buiten ontwikkeling alleen `https`-koppelingen. Het testinlogmiddel (de standaard
 browserflow; demo-gebruikers alleen in ontwikkeling) bestaat alleen als de tenant het kent; de generator weigert het in productie, en een realm
-zonder testinlogmiddel heeft de flow `alleen-koppelingen` en geen gebruikers. Buiten ontwikkeling staat er geen SPA-client, geen
+zonder testinlogmiddel heeft de flow `alleen-koppelingen` en geen gebruikers. De mappers die claims uit gebruikersattributen
+schrijven (`test-inlogmiddel`, `test-acr`, `test-bsn`, fragment `inlogmiddel/test.json`) zitten alleen in een realm met het testinlogmiddel, en
+buiten ontwikkeling is `unmanagedAttributePolicy` `ADMIN_VIEW`, zodat niemand een attribuut kan zetten dat een claim wordt. Buiten ontwikkeling staat er geen SPA-client, geen
 directe grant (ROPC), geen wildcard-redirect en geen `offline_access`; offline sessies zijn begrensd op 8 uur en refresh-tokens roteren.
 `nl-portal-backend` krijgt alleen de scope `basic`, geen `profile` of `email`: de gebruikersnaam van een gebrokerde gebruiker is `<alias>.<UUID>`
 (nooit de NameID of een ander nummer) en staat niet in een token; wat Keycloak per koppeling onthoudt (de federated identity) is de NameID.

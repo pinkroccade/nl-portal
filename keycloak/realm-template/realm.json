@@ -63,10 +63,7 @@
         "client_credentials.use_refresh_token": "false",
         "use.refresh.tokens": "false",
         "oauth2.device.authorization.grant.enabled": "false",
-        "post.logout.redirect.uris": "{{postLogoutRedirectUris}}",
-        "backchannel.logout.url": "{{backchannelLogoutUrl}}",
-        "backchannel.logout.session.required": "true",
-        "backchannel.logout.revoke.offline.tokens": "false"
+        "post.logout.redirect.uris": "{{postLogoutRedirectUris}}"
       },
       "defaultClientScopes": [
         "basic"
@@ -121,9 +118,9 @@
             "user.session.note": "acting_subject_id",
             "claim.name": "acting_subject_id",
             "jsonType.label": "String",
-            "id.token.claim": "true",
+            "id.token.claim": "false",
             "access.token.claim": "false",
-            "userinfo.token.claim": "false",
+            "userinfo.token.claim": "true",
             "introspection.token.claim": "false"
           }
         },
@@ -139,51 +136,6 @@
             "access.token.claim": "false",
             "userinfo.token.claim": "false",
             "introspection.token.claim": "false"
-          }
-        },
-        {
-          "name": "test-inlogmiddel",
-          "protocol": "openid-connect",
-          "protocolMapper": "oidc-usermodel-attribute-mapper",
-          "config": {
-            "user.attribute": "inlogmiddel",
-            "claim.name": "inlogmiddel",
-            "jsonType.label": "String",
-            "id.token.claim": "true",
-            "access.token.claim": "false",
-            "userinfo.token.claim": "false",
-            "introspection.token.claim": "false",
-            "lightweight.claim": "false"
-          }
-        },
-        {
-          "name": "test-acr",
-          "protocol": "openid-connect",
-          "protocolMapper": "oidc-usermodel-attribute-mapper",
-          "config": {
-            "user.attribute": "acr",
-            "claim.name": "acr",
-            "jsonType.label": "String",
-            "id.token.claim": "true",
-            "access.token.claim": "false",
-            "userinfo.token.claim": "false",
-            "introspection.token.claim": "false",
-            "lightweight.claim": "false"
-          }
-        },
-        {
-          "name": "test-bsn",
-          "protocol": "openid-connect",
-          "protocolMapper": "oidc-usermodel-attribute-mapper",
-          "config": {
-            "user.attribute": "bsn",
-            "claim.name": "acting_subject_id",
-            "jsonType.label": "String",
-            "id.token.claim": "true",
-            "access.token.claim": "false",
-            "userinfo.token.claim": "false",
-            "introspection.token.claim": "false",
-            "lightweight.claim": "false"
           }
         }
       ]
@@ -244,7 +196,7 @@
         "providerId": "declarative-user-profile",
         "config": {
           "kc.user.profile.config": [
-            "{\"attributes\":[{\"name\":\"username\",\"displayName\":\"${username}\",\"validations\":{\"length\":{\"min\":3,\"max\":255}},\"permissions\":{\"view\":[\"admin\",\"user\"],\"edit\":[\"admin\"]}},{\"name\":\"email\",\"displayName\":\"${email}\",\"validations\":{\"email\":{},\"length\":{\"max\":255}},\"permissions\":{\"view\":[\"admin\",\"user\"],\"edit\":[\"admin\"]}},{\"name\":\"firstName\",\"displayName\":\"${firstName}\",\"permissions\":{\"view\":[\"admin\",\"user\"],\"edit\":[\"admin\"]}},{\"name\":\"lastName\",\"displayName\":\"${lastName}\",\"permissions\":{\"view\":[\"admin\",\"user\"],\"edit\":[\"admin\"]}}],\"unmanagedAttributePolicy\":\"ADMIN_EDIT\"}"
+            "{\"attributes\":[{\"name\":\"username\",\"displayName\":\"${username}\",\"validations\":{\"length\":{\"min\":3,\"max\":255}},\"permissions\":{\"view\":[\"admin\",\"user\"],\"edit\":[\"admin\"]}},{\"name\":\"email\",\"displayName\":\"${email}\",\"validations\":{\"email\":{},\"length\":{\"max\":255}},\"permissions\":{\"view\":[\"admin\",\"user\"],\"edit\":[\"admin\"]}},{\"name\":\"firstName\",\"displayName\":\"${firstName}\",\"permissions\":{\"view\":[\"admin\",\"user\"],\"edit\":[\"admin\"]}},{\"name\":\"lastName\",\"displayName\":\"${lastName}\",\"permissions\":{\"view\":[\"admin\",\"user\"],\"edit\":[\"admin\"]}}],\"unmanagedAttributePolicy\":\"{{unmanagedAttributePolicy}}\"}"
           ]
         }
       }

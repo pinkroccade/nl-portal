@@ -127,7 +127,7 @@ class Inlogbeslisser {
         private val ONDERSTEUND = setOf(Inlogmiddel.DIGID, Inlogmiddel.TEST)
 
         private const val SAML = "urn:oasis:names:tc:SAML:2.0:ac:classes:"
-        private const val EIDAS = "http://eidas.europa.eu/LoA/"
+        private const val EIDAS = "http://eidas.europa.eu/LoA/" // NOSONAR: eIDAS-LoA-identifier (URI-naam), geen netwerkverbinding
 
         /**
          * De volgordetabel per inlogmiddel: Basis < Midden < Substantieel < Hoog. DigiD stuurt zijn vier URN's als

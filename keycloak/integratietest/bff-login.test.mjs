@@ -1,7 +1,7 @@
 // De echte login van de BFF (#506, slice 1): de backend (`:app:bootRun`) tegen het echte Keycloak van de dev-compose (eigen image,
 // realm uit keycloak/realm-template), gedreven als een browser. Bewijst wat de testprovider van de ITs niet kan: dat Keycloak het
 // authorization-request van de BFF aanneemt (PS256 `private_key_jwt`, PKCE, `prompt=login`), de callback `iss` meestuurt, het
-// ID-token `acr`, `inlogmiddel`, `acting_subject_id` en `auth_time` bevat die `Inlogbeslisser` accepteert, de sessiecookie
+// ID-token `acr`, `inlogmiddel` en `auth_time` en de userinfo `acting_subject_id` bevat die `Inlogbeslisser` accepteert, de sessiecookie
 // werkt en uitloggen de sessie bij Keycloak beëindigt.
 //
 // Draaien: `mise run keycloak:bff-login-test` (zet de stack zelf op en ruimt hem op). Los tegen een draaiende stack: zie de
@@ -164,7 +164,8 @@ describe("echte login van de BFF tegen Keycloak", () => {
     assert.equal(claims.iss, `${KEYCLOAK}/realms/${REALM}`);
     assert.equal(claims.acr, "Basis");
     assert.equal(claims.inlogmiddel, "test");
-    assert.equal(claims.acting_subject_id, BSN);
+    assert.equal(claims.acting_subject_id, undefined, "het BSN staat niet in het ID-token: id_token_hint gaat de browser in");
+    assert.ok(!eind.toString().includes(BSN), "geen BSN in de logout-redirect");
     assert.ok(claims.auth_time, "auth_time ontbreekt");
     assert.equal(eind.searchParams.get("post_logout_redirect_uri"), `${PUBLIEK}/`);
     const klaar = await b.volg(eind.toString(), {}, { stop: (u) => u.startsWith(PUBLIEK) });
