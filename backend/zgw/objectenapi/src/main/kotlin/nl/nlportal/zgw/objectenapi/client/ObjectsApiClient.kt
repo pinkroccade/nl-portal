@@ -53,8 +53,7 @@ open class ObjectsApiClient(
             throw bronStatus(e, T::class.java.simpleName)
         }
 
-    suspend inline fun <reified T> getObjectByUrl(url: String): ObjectsApiObject<T>? =
-        koppeling().get(url, typeReferentie<ObjectsApiObject<T>>(), headers = CRS_HEADERS)
+    suspend inline fun <reified T> getObjectByUrl(url: String): ObjectsApiObject<T>? = koppeling().get(url, typeReferentie<ObjectsApiObject<T>>(), headers = CRS_HEADERS)
 
     suspend inline fun <reified T> getObjects(
         objectSearchParameters: List<ObjectSearchParameter>,
@@ -75,8 +74,7 @@ open class ObjectsApiClient(
         objectsApiObject: UpdateObjectsApiObjectRequest<T>,
     ): ObjectsApiObject<T> = koppeling().put("$OBJECTEN_PAD/$objectUuid", objectsApiObject, typeReferentie<ObjectsApiObject<T>>(), CRS_HEADERS)
 
-    suspend inline fun <reified T> createObject(objectsApiObject: CreateObjectsApiObjectRequest<T>): ObjectsApiObject<T> =
-        koppeling().post(OBJECTEN_PAD, objectsApiObject, typeReferentie<ObjectsApiObject<T>>(), CRS_HEADERS)
+    suspend inline fun <reified T> createObject(objectsApiObject: CreateObjectsApiObjectRequest<T>): ObjectsApiObject<T> = koppeling().post(OBJECTEN_PAD, objectsApiObject, typeReferentie<ObjectsApiObject<T>>(), CRS_HEADERS)
 
     suspend fun deleteObjectById(id: UUID) {
         koppeling().delete("$OBJECTEN_PAD/$id", CRS_HEADERS)

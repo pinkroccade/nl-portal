@@ -15,7 +15,10 @@
  */
 package nl.nlportal.zgw.objectenapi.autoconfiguration
 
+import nl.nlportal.core.koppeling.KoppelingAutoConfiguration
 import nl.nlportal.core.koppeling.KoppelingRegister
+import nl.nlportal.core.tenancy.TenantDirectory
+import nl.nlportal.core.tenancy.VervallenProperties
 import nl.nlportal.zgw.objectenapi.client.ObjectsApiClient
 import nl.nlportal.zgw.objectenapi.service.ObjectenApiService
 import org.springframework.boot.autoconfigure.AutoConfiguration
@@ -23,7 +26,7 @@ import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty
 import org.springframework.context.annotation.Bean
 
-@AutoConfiguration
+@AutoConfiguration(after = [KoppelingAutoConfiguration::class])
 @ConditionalOnProperty(prefix = "nl-portal.config.objectenapi", name = ["enabled"], havingValue = "true")
 class ObjectsApiAutoConfiguration {
     @Bean
@@ -33,4 +36,12 @@ class ObjectsApiAutoConfiguration {
     @Bean
     @ConditionalOnMissingBean(ObjectenApiService::class)
     fun objectenApiService(objectsApiClient: ObjectsApiClient): ObjectenApiService = ObjectenApiService(objectsApiClient)
+
+    /** Aan zonder een tenant met `koppelingen.objectenapi` weigert het opstarten. */
+    @Bean
+    fun objectenApiKoppelingControle(directory: TenantDirectory) = ObjectenApiKoppelingControle(directory)
+
+    /** De oude `...properties.*` (url, token) zijn vervallen: staan ze nog gezet, dan weigert core het opstarten. */
+    @Bean
+    fun objectenApiVervallenProperties() = VervallenProperties(ObjectsApiClient.MODULE, "nl-portal.config.objectenapi.properties", vervanging = "koppelingen.${ObjectsApiClient.MODULE}")
 }

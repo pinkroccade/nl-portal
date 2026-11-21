@@ -49,8 +49,7 @@ class ObjectenApiService(
     /** Een object-URL komt uit het antwoord van een andere bron: de koppeling volgt hem alleen onder zijn eigen basis-URL (host-binding). */
     suspend inline fun <reified T> getObjectByUrl(url: String): ObjectsApiObject<T>? = objectsApiClient.getObjectByUrl(url)
 
-    suspend inline fun <reified T> createObject(createObjectsApiObjectRequest: CreateObjectsApiObjectRequest<T>): ObjectsApiObject<T> =
-        objectsApiClient.createObject(createObjectsApiObjectRequest)
+    suspend inline fun <reified T> createObject(createObjectsApiObjectRequest: CreateObjectsApiObjectRequest<T>): ObjectsApiObject<T> = objectsApiClient.createObject(createObjectsApiObjectRequest)
 
     suspend fun deleteObjectById(objectId: UUID) {
         objectsApiClient.deleteObjectById(objectId)

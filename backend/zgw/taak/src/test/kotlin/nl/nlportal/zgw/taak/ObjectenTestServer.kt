@@ -34,7 +34,18 @@ open class ObjectenTestTenantConfiguratie {
     @Bean
     open fun tenantDirectory(): TenantDirectory =
         TestTenants.directory(
-            TestTenants.tenant(koppelingen = mapOf("objectenapi" to TestTenants.koppeling(ObjectenTestServer.server.url("/").toString().trimEnd('/')))),
+            TestTenants.tenant(
+                koppelingen =
+                    mapOf(
+                        "objectenapi" to
+                            TestTenants.koppeling(
+                                ObjectenTestServer.server
+                                    .url("/")
+                                    .toString()
+                                    .trimEnd('/'),
+                            ),
+                    ),
+            ),
         )
 
     @Bean

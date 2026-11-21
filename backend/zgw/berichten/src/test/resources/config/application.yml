@@ -10,8 +10,6 @@ nl-portal:
     config:
         objectenapi:
             enabled: true
-            properties:
-                token: test-token
         documentenapis:
             enabled: true
             properties:

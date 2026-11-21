@@ -40,8 +40,6 @@ nl-portal:
 
         objectenapi:
             enabled: true
-            properties:
-                token: 0000000000000000000000000000000000000000
     authentication:
         machtingsdienst:
             resource-url: classpath:machtigingsdiensten.json

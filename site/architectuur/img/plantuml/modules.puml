@@ -19,7 +19,7 @@ package "functionaliteit" {
   [:zgw:catalogi-api\n<size:10>omvang S, risico laag, tenancy: config, webclient</size>] as zgw_catalogi_api #CFE8CF
   [:zgw:common-ground-authentication / :zgw:common-ground-authentication-test\n<size:10>omvang L, risico hoog, tenancy: config, webclient</size>] as zgw_common_ground_authentication #F4B6B6
   [:zgw:documenten-api\n<size:10>omvang M, risico hoog, tenancy: config, webclient</size>] as zgw_documenten_api #F4B6B6
-  [:zgw:objectenapi\n<size:10>omvang M, risico hoog, tenancy: config, webclient</size>] as zgw_objectenapi #F4B6B6
+  [:zgw:objectenapi\n<size:10>omvang M, risico hoog</size>] as zgw_objectenapi #F4B6B6
   [:zgw:openklant\n<size:10>omvang M, risico middel, tenancy: config, webclient</size>] as zgw_openklant #FBE3A6
   [:zgw:openproduct\n<size:10>omvang M, risico middel, tenancy: config, webclient</size>] as zgw_openproduct #FBE3A6
   [:zgw:taak\n<size:10>omvang S, risico middel, tenancy: config</size>] as zgw_taak #FBE3A6
@@ -38,6 +38,7 @@ note as tenancy_rules
   noNewCoroutineScopes: geen GlobalScope, CoroutineScope(...) of runBlocking: de tenant valt dan uit de Reactor Context (voorgesteld, niet actief)
   tenantRegistryComplete: elke tenant levert bij het opstarten een volledig register op (voorgesteld, niet actief)
 end note
+form --> core #grey
 form --> zgw_objectenapi #green : bewaakt
 graphql --> core #grey
 haalcentraal_brp --> core #grey
