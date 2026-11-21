@@ -1,5 +1,9 @@
 server:
     port: 8080
+    # Spring volgt zelf geen Forwarded of X-Forwarded-*: de tenantresolutie doet dat alleen van de vertrouwde proxies
+    # (nl-portal.tenancy.trusted-proxies). Expliciet, want Spring Boot zet het op Kubernetes anders aan; de runtime
+    # start niet met native of framework (ForwardedHeadersGuard).
+    forward-headers-strategy: none
 
 management:
     server:

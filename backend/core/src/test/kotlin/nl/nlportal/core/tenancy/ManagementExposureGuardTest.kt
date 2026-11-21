@@ -68,4 +68,23 @@ class ManagementExposureGuardTest {
             .hasMessageContaining("management.server.port")
             .hasMessageContaining("refresh")
     }
+
+    @Test
+    fun `de lijstvorm van de exposure telt ook`() {
+        assertThat(
+            fouten(
+                "management.server.port" to "8091",
+                "management.endpoints.web.exposure.include[0]" to "health",
+                "management.endpoints.web.exposure.include[1]" to "refresh",
+            ),
+        ).hasSize(1)
+        assertThat(fouten("management.server.port" to "8091", "management.endpoints.web.exposure.include[0]" to "*")).hasSize(1)
+        assertThat(fouten("management.server.port" to "8091", "management.endpoints.web.exposure.include[0]" to "health")).isEmpty()
+    }
+
+    @Test
+    fun `zonder server-port geldt 8080 en een managementpoort 8080 wordt geweigerd`() {
+        assertThat(fouten("management.server.port" to "8080")).hasSize(1)
+        assertThat(fouten("management.server.port" to "8091")).isEmpty()
+    }
 }

@@ -153,6 +153,18 @@ class TenantWebFilterTest {
     }
 
     @Test
+    fun `zonder Host-header telt de request-URI alleen bij een in-memory request zonder afzenderadres`() {
+        fun zonderHost(van: InetSocketAddress?) =
+            MockServerWebExchange
+                .from(MockServerHttpRequest.get("http://bosrand.example/x").also { builder -> van?.let { builder.remoteAddress(it) } })
+                .also { filter.filter(it, chain).block() }
+
+        assertThat(zonderHost(null).tenant()).isEqualTo(bosrand.value)
+        zonderHost(buitenstaander).isKaleNotFound()
+        zonderHost(ingress).isKaleNotFound()
+    }
+
+    @Test
     fun `gespoofte forwarded-headers van een niet-vertrouwd adres tellen niet`() {
         aanroep("onbekend.example", headers = mapOf("X-Forwarded-Host" to "bosrand.example")).isKaleNotFound()
         aanroep("onbekend.example", headers = mapOf("Forwarded" to "host=bosrand.example")).isKaleNotFound()
@@ -186,10 +198,18 @@ class TenantWebFilterTest {
     @Test
     fun `een onleesbare forwarded-header van een vertrouwde proxy valt niet terug op Host`() {
         aanroep("bosrand.example", van = ingress, headers = mapOf("X-Forwarded-Host" to "")).isKaleNotFound()
-        aanroep("bosrand.example", van = ingress, headers = mapOf("Forwarded" to "for=1.2.3.4")).also {
-            assertThat(it.tenant()).describedAs("Forwarded zonder host=: Host telt").isEqualTo(bosrand.value)
-        }
+        aanroep("bosrand.example", van = ingress, headers = mapOf("Forwarded" to "for=1.2.3.4")).isKaleNotFound()
+        aanroep("intern.svc", van = ingress, headers = mapOf("Forwarded" to "for=1.2.3.4", "X-Forwarded-Host" to "bosrand.example")).isKaleNotFound()
         aanroep("bosrand.example", van = ingress, headers = mapOf("Forwarded" to "host=\"[::1\"")).isKaleNotFound()
+    }
+
+    @Test
+    fun `Forwarded en X-Forwarded-Host die elkaar tegenspreken geven 404, ook van een vertrouwde proxy`() {
+        // De ingress overschrijft X-Forwarded-Host maar laat een door de client gestuurde Forwarded soms staan.
+        aanroep("intern.svc", van = ingress, headers = mapOf("Forwarded" to "host=wijdeveld.example", "X-Forwarded-Host" to "bosrand.example")).isKaleNotFound()
+        assertThat(aanroep("intern.svc", van = ingress, headers = mapOf("Forwarded" to "host=Bosrand.example:443", "X-Forwarded-Host" to "bosrand.example")).tenant())
+            .describedAs("zelfde host in beide headers")
+            .isEqualTo(bosrand.value)
     }
 
     @Test

@@ -23,6 +23,7 @@ import org.slf4j.MDC
 import org.springframework.http.server.reactive.observation.DefaultServerRequestObservationConvention
 import org.springframework.http.server.reactive.observation.ServerRequestObservationContext
 import reactor.core.publisher.Hooks
+import reactor.util.context.Context
 
 /** Voegt de tenant (OIN) als label toe aan de HTTP-metrics en -traces van elk request. */
 class TenantServerRequestObservationConvention : DefaultServerRequestObservationConvention() {
@@ -40,22 +41,35 @@ class TenantServerRequestObservationConvention : DefaultServerRequestObservation
 /**
  * De brug van de Reactor Context naar de MDC via Micrometer context-propagation: elke logregel die tijdens een request
  * wordt geschreven krijgt `oin`. Dit is de enige plek in `core` die MDC (thread-local) aanraakt.
+ *
+ * De brug leest de MDC terug om de waarde over een schedulerwissel mee te nemen, en gebruikt daarvoor een eigen
+ * contextsleutel ([CONTEXT_SLEUTEL], als tekst) en niet die van [TenantContext]. Een MDC-waarde kan zo nooit als
+ * tenant in de Reactor Context terechtkomen: [TenantContext] leest alleen wat [TenantWebFilter] erin schreef.
  */
 object OinMdcBridge {
     const val MDC_SLEUTEL = "oin"
 
+    /** Sleutel in de Reactor Context voor de MDC-brug; bewust niet de sleutel van [TenantContext]. */
+    internal const val CONTEXT_SLEUTEL = "nl.nlportal.core.tenancy.OinMdc"
+
     init {
         ContextRegistry.getInstance().registerThreadLocalAccessor(
-            object : ThreadLocalAccessor<Oin> {
-                override fun key(): Any = TenantContext.SLEUTEL
+            object : ThreadLocalAccessor<String> {
+                override fun key(): Any = CONTEXT_SLEUTEL
 
-                override fun getValue(): Oin? = MDC.get(MDC_SLEUTEL)?.let(::Oin)
+                override fun getValue(): String? = MDC.get(MDC_SLEUTEL)
 
-                override fun setValue(value: Oin) = MDC.put(MDC_SLEUTEL, value.value)
+                override fun setValue(value: String) = MDC.put(MDC_SLEUTEL, value)
 
                 override fun setValue() = MDC.remove(MDC_SLEUTEL)
             },
         )
         Hooks.enableAutomaticContextPropagation()
     }
+
+    /** Zet de OIN in [context] voor de MDC-brug; [TenantWebFilter] schrijft dit samen met de tenant zelf. */
+    internal fun schrijf(
+        context: Context,
+        oin: Oin,
+    ): Context = context.put(CONTEXT_SLEUTEL, oin.value)
 }

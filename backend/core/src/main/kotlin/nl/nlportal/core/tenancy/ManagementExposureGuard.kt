@@ -16,6 +16,8 @@
 package nl.nlportal.core.tenancy
 
 import org.springframework.beans.factory.InitializingBean
+import org.springframework.boot.context.properties.bind.Bindable
+import org.springframework.boot.context.properties.bind.Binder
 import org.springframework.core.env.Environment
 
 /**
@@ -33,20 +35,24 @@ class ManagementExposureGuard(
 
     fun controleer(): List<String> =
         buildList {
-            val beheerpoort = environment.getProperty("management.server.port")?.toIntOrNull()
-            val serverpoort = environment.getProperty("server.port")?.toIntOrNull()
+            val binder = Binder.get(environment)
+            val beheerpoort = binder.bind("management.server.port", Int::class.javaObjectType).orElse(null)
+            val serverpoort = binder.bind("server.port", Int::class.javaObjectType).orElse(STANDAARD_SERVERPOORT)
             if (beheerpoort == null) {
                 add("management.server.port is niet ingesteld; de actuator hoort op een eigen poort (MANAGEMENT_SERVER_PORT)")
             } else if (beheerpoort != 0 && beheerpoort == serverpoort) {
                 add("management.server.port is gelijk aan server.port; de actuator mag niet op de applicatiepoort")
             }
-            val exposure = environment.getProperty("management.endpoints.web.exposure.include").orEmpty()
-            val bloot = exposure.split(',').map { it.trim().lowercase() }
+            val exposure: List<String> = binder.bind("management.endpoints.web.exposure.include", Bindable.listOf(String::class.java)).orElse(null).orEmpty()
+            val bloot =
+                exposure
+                    .map { it.trim().lowercase() }
             if ("*" in bloot) add("management.endpoints.web.exposure.include bevat '*'; noem de endpoints expliciet")
             VERBODEN.filter { it in bloot }.forEach { add("Het endpoint '$it' mag niet in de exposure: configuratie is niet live te wijzigen") }
         }
 
     private companion object {
+        const val STANDAARD_SERVERPOORT = 8080
         val VERBODEN = listOf("refresh", "restart")
     }
 }

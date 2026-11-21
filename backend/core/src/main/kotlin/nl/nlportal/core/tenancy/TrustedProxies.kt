@@ -25,7 +25,11 @@ import java.net.InetSocketAddress
 class TrustedProxies(
     adressen: List<String>,
 ) {
-    private val matchers = adressen.map { IpAddressMatcher(it) }
+    private val matchers =
+        adressen.map { adres ->
+            require(adres.substringAfter('/', "").trim().toIntOrNull() != 0) { "Het blok $adres vertrouwt elk adres; noem de adressen van de ingress" }
+            IpAddressMatcher(adres)
+        }
 
     fun trusts(afzender: InetSocketAddress?): Boolean {
         val ip = afzender?.address?.hostAddress?.substringBefore('%') ?: return false

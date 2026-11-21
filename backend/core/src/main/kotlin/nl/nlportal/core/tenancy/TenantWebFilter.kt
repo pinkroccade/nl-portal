@@ -54,7 +54,7 @@ class TenantWebFilter(
             return exchange.response.setComplete()
         }
         exchange.attributes[ATTRIBUUT] = tenant.oin
-        return chain.filter(exchange).contextWrite { it.put(TenantContext.SLEUTEL, tenant.oin) }
+        return chain.filter(exchange).contextWrite { OinMdcBridge.schrijf(it.put(TenantContext.SLEUTEL, tenant.oin), tenant.oin) }
     }
 
     /** De managementpoort is een kindcontext die de filters van de hoofdcontext ziet; daar hoort geen tenantresolutie. */
@@ -66,8 +66,10 @@ class TenantWebFilter(
         }
         val hosts = request.headers["Host"]
         return when {
-            // Geen Host-header (HTTP/1.0, of een in-memory request met een absolute URI): de host van de request-URI.
-            hosts.isNullOrEmpty() -> request.uri.authority
+            // Zonder Host-header telt alleen een in-memory request (geen afzenderadres, absolute URI) via de request-URI.
+            // Een echte verbinding heeft altijd een afzenderadres: Reactor Netty vult `request.uri` dan zelf aan, bijvoorbeeld
+            // met `localhost`, en dat mag geen tenant opleveren.
+            hosts.isNullOrEmpty() -> if (request.remoteAddress == null) request.uri.authority else null
 
             hosts.size == 1 -> hosts.single()
 
@@ -75,35 +77,53 @@ class TenantWebFilter(
         }
     }
 
-    /** `null`: geen forwarded host aangegeven. Een lege of onbruikbare waarde is wel aangegeven en valt dus niet terug op `Host`. */
+    /**
+     * `null`: geen forwarded host aangegeven. Een lege of onbruikbare waarde is wel aangegeven en valt dus niet terug op
+     * `Host`; een `Forwarded` zonder `host=` is onbruikbaar. Staan `Forwarded` en `X-Forwarded-Host` er allebei en
+     * spreken ze elkaar tegen, dan is de host onbruikbaar: een ingress overschrijft niet altijd beide headers.
+     */
     private fun forwardedHost(request: ServerHttpRequest): String? {
-        request.headers["Forwarded"]?.let { waarden ->
-            val laatste = waarden.joinToString(",").split(',').last()
-            val host =
-                laatste
-                    .split(';')
-                    .map { it.trim() }
-                    .firstOrNull { it.startsWith("host=", ignoreCase = true) }
-                    ?.substring("host=".length)
-                    ?.trim()
-                    ?.removeSurrounding("\"")
-            if (host != null) return host
+        val forwarded = request.headers["Forwarded"]?.let { hostUitForwarded(it) ?: ONBRUIKBAAR }
+        val xForwardedHost =
+            request.headers["X-Forwarded-Host"]?.let { waarden ->
+                waarden
+                    .joinToString(",")
+                    .split(',')
+                    .last()
+                    .trim()
+            }
+        return when {
+            forwarded == null -> xForwardedHost
+            xForwardedHost == null -> forwarded
+            TenantDirectory.normaliseerHost(forwarded) == TenantDirectory.normaliseerHost(xForwardedHost) -> xForwardedHost
+            else -> ONBRUIKBAAR
         }
-        request.headers["X-Forwarded-Host"]?.let { waarden ->
-            return waarden
-                .joinToString(",")
-                .split(',')
-                .last()
-                .trim()
-        }
-        return null
     }
+
+    private fun hostUitForwarded(waarden: List<String>): String? =
+        waarden
+            .joinToString(",")
+            .split(',')
+            .last()
+            .split(';')
+            .map { it.trim() }
+            .firstOrNull { it.startsWith("host=", ignoreCase = true) }
+            ?.substring("host=".length)
+            ?.trim()
+            ?.removeSurrounding("\"")
 
     companion object {
         /** Vóór `WebFilterChainProxy` van Spring Security (-100). */
         const val ORDER = -200
 
-        /** Attribuut op de exchange met de [Oin], voor wie buiten de Reactor Context moet lezen (bijvoorbeeld observability). */
-        const val ATTRIBUUT = "nl.nlportal.core.tenancy.Oin"
+        /** Hostwaarde die nooit een tenant oplevert (dus 404). */
+        private const val ONBRUIKBAAR = ""
+
+        /**
+         * Attribuut op de exchange met de [Oin], alleen voor de observation-convention van `core.tenancy` (de Reactor
+         * Context is er niet bij het afsluiten van de observation). `internal`: andere modules lezen de tenant uitsluitend
+         * via [TenantContext].
+         */
+        internal const val ATTRIBUUT = "nl.nlportal.core.tenancy.Oin"
     }
 }

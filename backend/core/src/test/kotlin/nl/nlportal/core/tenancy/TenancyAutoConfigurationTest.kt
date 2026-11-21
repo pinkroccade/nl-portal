@@ -99,4 +99,32 @@ class TenancyAutoConfigurationTest {
             assertThat(it).hasFailed()
         }
     }
+
+    @Test
+    fun `een tenantmap die false heet of leeg is zet de tenancy niet stil uit maar weigert het opstarten`() {
+        runner.withPropertyValues("nl-portal.tenancy.directory=false").run { assertThat(it).hasFailed() }
+        runner.withPropertyValues("nl-portal.tenancy.directory=").run { assertThat(it).hasFailed() }
+    }
+
+    @Test
+    fun `op Kubernetes zonder server-forward-headers-strategy start de context niet`() {
+        geldigeTenant()
+
+        runner
+            .withPropertyValues("nl-portal.tenancy.directory=$dir", "spring.main.cloud-platform=kubernetes")
+            .run { assertThat(it).hasFailed() }
+        runner
+            .withPropertyValues("nl-portal.tenancy.directory=$dir", "spring.main.cloud-platform=kubernetes", "server.forward-headers-strategy=none")
+            .run { assertThat(it).hasNotFailed() }
+    }
+
+    @Test
+    fun `een ForwardedHeaderTransformer in de context laat de context niet starten`() {
+        geldigeTenant()
+
+        runner
+            .withPropertyValues("nl-portal.tenancy.directory=$dir")
+            .withBean(org.springframework.web.server.adapter.ForwardedHeaderTransformer::class.java)
+            .run { assertThat(it).hasFailed() }
+    }
 }

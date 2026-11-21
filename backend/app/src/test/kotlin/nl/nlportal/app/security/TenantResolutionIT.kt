@@ -26,6 +26,7 @@ import org.springframework.http.HttpStatusCode
 import org.springframework.test.web.reactive.server.WebTestClient
 import reactor.core.publisher.Flux
 import reactor.core.publisher.Mono
+import reactor.core.scheduler.Schedulers
 import java.time.Duration
 
 /**
@@ -38,6 +39,8 @@ class TenantResolutionIT(
     @LocalServerPort private val serverPort: Int,
     @LocalManagementPort private val managementPort: Int,
 ) {
+    private val bosrand = "00000099000000000001"
+
     private fun client(port: Int = serverPort) = WebTestClient.bindToServer().baseUrl("http://localhost:$port").build()
 
     private fun get(
@@ -89,36 +92,102 @@ class TenantResolutionIT(
 
     @Test
     fun `refresh en restart bestaan nergens`() {
+        // In :app vraagt de security-keten eerst om inloggegevens (401); de 404 zonder security toetst TenancyOverHttpTest
+        // in core, en de exposure uit de geleverde application.yml toetst ShippedConfigurationTest.
         for (poort in listOf(serverPort, managementPort)) {
             for (endpoint in listOf("refresh", "restart")) {
-                // Op de applicatiepoort bestaat de actuator niet (404); op de managementpoort vraagt alles buiten health om inloggegevens.
                 client(poort).post().uri("/actuator/$endpoint").header("Host", "bosrand.example").exchange().expectStatus().value {
-                    assertThat(it).describedAs("poort $poort").isIn(401, 404)
+                    assertThat(it).describedAs("poort $poort $endpoint").isIn(401, 404)
                 }
             }
         }
     }
 
     @Test
-    fun `200 parallelle requests over een bekende en een onbekende host lekken niet`() {
+    fun `een IP-literal als host geeft 404`() {
+        for (host in listOf("127.0.0.1", "127.0.0.1:$serverPort", "[::1]:$serverPort", "10.1.2.3")) {
+            get("/api/public/tenant-probe", host)
+                .expectStatus()
+                .isNotFound
+                .expectBody()
+                .isEmpty
+        }
+    }
+
+    @Test
+    fun `de code achter de tenantresolutie leest de tenant van het request, ook na een dispatcherwissel`() {
+        for (host in listOf("bosrand.example", "localhost", "BOSRAND.example.:8443")) {
+            get("/api/public/tenant-probe", host)
+                .expectStatus()
+                .isOk
+                .expectBody(String::class.java)
+                .isEqualTo(bosrand)
+        }
+    }
+
+    @Test
+    fun `een coroutine die de Reactor Context verliest, ziet geen standaardtenant`() {
+        get("/api/public/tenant-verloren-probe", "bosrand.example")
+            .expectStatus()
+            .isOk
+            .expectBody(String::class.java)
+            .isEqualTo("geen-tenant")
+    }
+
+    @Test
+    fun `de OIN staat in de MDC van de logregels van een request, ook na een threadwissel`() {
+        get("/api/public/mdc-probe", "bosrand.example")
+            .expectStatus()
+            .isOk
+            .expectBody(String::class.java)
+            .isEqualTo(bosrand)
+    }
+
+    @Test
+    fun `de OIN staat in de MDC van suspend-code na een dispatcherwissel`() {
+        get("/api/public/mdc-suspend-probe", "bosrand.example")
+            .expectStatus()
+            .isOk
+            .expectBody(String::class.java)
+            .isEqualTo(bosrand)
+    }
+
+    @Test
+    fun `200 parallelle requests lekken niet en lezen altijd de tenant van hun eigen host`() {
+        // De testconfiguratie heeft één tenant (stap 7 maakt er meer); de echte cross-tenant-lektest volgt in stap 8.
+        // Dit toetst dat elk request altijd een tenant heeft, ook onder belasting, en dat een onbekende host nooit een tenant krijgt.
+        val hosten = listOf("bosrand.example", "localhost", "onbekend.example", "BOSRAND.example:8443")
         val resultaten =
             Flux
                 .range(0, 200)
                 .flatMapSequential({ i ->
-                    val bekend = i % 2 == 0
+                    val host = hosten[i % hosten.size]
                     Mono
                         .fromCallable {
-                            bekend to get("/graphql", if (bekend) "bosrand.example" else "onbekend.example").returnResult(String::class.java).status
-                        }.subscribeOn(
-                            reactor.core.scheduler.Schedulers
-                                .boundedElastic(),
-                        )
+                            val antwoord = get("/api/public/tenant-probe", host).returnResult(String::class.java)
+                            Triple(
+                                host,
+                                antwoord.status,
+                                antwoord.responseBody
+                                    .collectList()
+                                    .block(Duration.ofSeconds(30))
+                                    .orEmpty()
+                                    .joinToString(""),
+                            )
+                        }.subscribeOn(Schedulers.boundedElastic())
                 }, 50)
                 .collectList()
                 .block(Duration.ofSeconds(60))!!
 
         assertThat(resultaten).hasSize(200)
-        assertThat(resultaten.filter { it.first }.map { it.second }).doesNotContain(HttpStatusCode.valueOf(404))
-        assertThat(resultaten.filterNot { it.first }.map { it.second }).containsOnly(HttpStatusCode.valueOf(404))
+        resultaten.forEach { (host, status, body) ->
+            if (host == "onbekend.example") {
+                assertThat(status).describedAs(host).isEqualTo(HttpStatusCode.valueOf(404))
+                assertThat(body).describedAs(host).isEmpty()
+            } else {
+                assertThat(status).describedAs(host).isEqualTo(HttpStatusCode.valueOf(200))
+                assertThat(body).describedAs(host).isEqualTo(bosrand)
+            }
+        }
     }
 }
