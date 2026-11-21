@@ -23,7 +23,7 @@ Evaluatie gebeurt per request met de [evaluatiecontext](./deployment-guide.md#fe
 ## Module-flags
 
 Een backendmodule kan per request aan of uit staan met een module-flag `ops.<module>.enabled`. Staat hij uit, dan
-geeft een GraphQL-query een fout `Module '<module>' is niet beschikbaar` (`extensions.code` is `MODULE_NIET_BESCHIKBAAR`) en een
+geeft een GraphQL-query een fout `Module '<module>' is niet beschikbaar` (`extensions.code` is `MODULE_NOT_AVAILABLE`) en een
 REST-resource HTTP 503; de velden blijven in het GraphQL-schema staan. De `modules`-lijst van `GET /api/public/frontend` en de
 modulestatus op de beheerpoort volgen dezelfde flag. Een flag die ontbreekt betekent: uit. Hoe je een module hierop overzet staat in
 [het patroon](../development/workflows/module-gate-patroon.md).

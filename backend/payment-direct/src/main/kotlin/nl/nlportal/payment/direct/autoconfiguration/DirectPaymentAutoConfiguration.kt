@@ -20,8 +20,10 @@ import nl.nlportal.core.koppeling.KoppelingRegister
 import nl.nlportal.core.tenancy.GeheimenBron
 import nl.nlportal.core.tenancy.TenancyAutoConfiguration
 import nl.nlportal.core.tenancy.TenantDirectory
+import nl.nlportal.core.tenancy.VervallenProperties
 import nl.nlportal.payment.direct.api.DirectPaymentController
 import nl.nlportal.payment.direct.client.DirectPaymentClient
+import nl.nlportal.payment.direct.configuratie.DirectPaymentTenantConfiguratie
 import nl.nlportal.payment.direct.graphql.DirectPaymentMutation
 import nl.nlportal.payment.direct.graphql.DirectPaymentQuery
 import nl.nlportal.payment.direct.service.DirectPaymentService
@@ -41,6 +43,10 @@ import org.springframework.context.annotation.Bean
 @AutoConfiguration(after = [TenancyAutoConfiguration::class, KoppelingAutoConfiguration::class])
 @ConditionalOnBean(KoppelingRegister::class)
 class DirectPaymentAutoConfiguration {
+    /** Ook `enabled` is vervallen: de hele oude prefix weigert het opstarten, met een verwijzing naar `modules.payment-direct`. */
+    @Bean
+    fun directPaymentVervallenProperties() = VervallenProperties(DirectPaymentTenantConfiguratie.NAAM, "nl-portal.config.payment.direct")
+
     @Bean
     @ConditionalOnMissingBean(DirectPaymentClient::class)
     fun directPaymentClient(register: KoppelingRegister): DirectPaymentClient = DirectPaymentClient(register)

@@ -44,11 +44,11 @@ class GraphQLExceptionHandlerTest {
         }
 
     @Test
-    fun `een module die uit staat geeft de code MODULE_NIET_BESCHIKBAAR met de modulenaam en de eigen melding`() {
+    fun `een module die uit staat geeft de code MODULE_NOT_AVAILABLE met de modulenaam en de eigen melding`() {
         val graphqlFout = GraphQLExceptionHandler().resolveException(ModuleNotAvailableException("berichten"), env).block()!!.single()
 
         assertEquals("Module 'berichten' is niet beschikbaar", graphqlFout.message)
-        assertEquals(mapOf("code" to "MODULE_NIET_BESCHIKBAAR", "module" to "berichten"), graphqlFout.extensions)
+        assertEquals(mapOf("code" to "MODULE_NOT_AVAILABLE", "module" to "berichten"), graphqlFout.extensions)
     }
 
     @Test

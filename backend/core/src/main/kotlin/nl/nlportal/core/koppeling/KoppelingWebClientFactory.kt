@@ -146,24 +146,14 @@ internal class KoppelingWebClientFactory(
         basisPad: String,
     ) = ExchangeFilterFunction.ofRequestProcessor { verzoek ->
         val datum = GCS_DATUM.format(ZonedDateTime.now(klok).withZoneSameInstant(ZoneOffset.UTC))
-        val pad = verzoek.url().rawPath.removePrefix(basisPad) + (verzoek.url().query?.let { "?$it" } ?: "")
-        val contentType =
-            verzoek
-                .headers()
-                .contentType
-                ?.toString()
-                .orEmpty()
-        val gcsHeaders =
-            verzoek
-                .headers()
-                .headerNames()
-                .flatMap { naam -> verzoek.headers()[naam].orEmpty().map { naam.lowercase(Locale.ENGLISH) to it.replace(HEADER_REGELEINDE, " ").trim() } }
-                .filter { (naam, _) -> naam.startsWith("x-gcs") }
-                .sortedBy { (naam, _) -> naam }
-                .map { (naam, waarde) -> "$naam:$waarde" }
-        val teOndertekenen = (listOf(verzoek.method().name(), contentType, datum) + gcsHeaders + pad).joinToString("\n", postfix = "\n")
-        val mac = Mac.getInstance("HmacSHA256").apply { init(SecretKeySpec(secret.toByteArray(), "HmacSHA256")) }
-        val handtekening = Base64.getEncoder().encodeToString(mac.doFinal(teOndertekenen.toByteArray()))
+        val koppen = verzoek.headers()
+        val teOndertekenen =
+            (
+                listOf(verzoek.method().name(), koppen.getFirst(HttpHeaders.CONTENT_TYPE).orEmpty(), datum) +
+                    canoniekeGcsHeaders(koppen) +
+                    relatiefPad(verzoek.url(), basisPad)
+            ).joinToString("\n", postfix = "\n")
+        val handtekening = hmacSha256Base64(secret, teOndertekenen)
         Mono.just(
             ClientRequest
                 .from(verzoek)
@@ -172,6 +162,33 @@ internal class KoppelingWebClientFactory(
                     it.set(HttpHeaders.AUTHORIZATION, "GCS v1HMAC:$sleutelId:$handtekening")
                 }.build(),
         )
+    }
+
+    /** De `X-GCS-*`-headers als `naam:waarde`: naam in kleine letters, waarde met regeleinden vervangen door een spatie en getrimd, gesorteerd op naam. */
+    private fun canoniekeGcsHeaders(koppen: HttpHeaders): List<String> =
+        koppen
+            .headerNames()
+            .flatMap { naam -> koppen[naam].orEmpty().map { naam.lowercase(Locale.ENGLISH) to it.replace(HEADER_REGELEINDE, " ").trim() } }
+            .filter { (naam, _) -> naam.startsWith("x-gcs") }
+            .sortedBy { (naam, _) -> naam }
+            .map { (naam, waarde) -> "$naam:$waarde" }
+
+    /** Het gecodeerde pad zonder het pad van de basis-URL (alleen op een segmentgrens), plus de gedecodeerde query. */
+    private fun relatiefPad(
+        url: URI,
+        basisPad: String,
+    ): String {
+        val pad = url.rawPath.orEmpty()
+        val relatief = if (pad == basisPad || pad.startsWith("$basisPad/")) pad.removePrefix(basisPad) else pad
+        return relatief + (url.query?.let { "?$it" } ?: "")
+    }
+
+    private fun hmacSha256Base64(
+        secret: String,
+        tekst: String,
+    ): String {
+        val mac = Mac.getInstance("HmacSHA256").apply { init(SecretKeySpec(secret.toByteArray(), "HmacSHA256")) }
+        return Base64.getEncoder().encodeToString(mac.doFinal(tekst.toByteArray()))
     }
 
     private fun bearer(token: () -> Mono<String>) =

@@ -168,7 +168,7 @@ class BerichtenQueryIT(
                 .document(query)
                 .execute()
                 .errors()
-                .expect { it.message == "Module 'berichten' is niet beschikbaar" && it.extensions["code"] == "MODULE_NIET_BESCHIKBAAR" }
+                .expect { it.message == "Module 'berichten' is niet beschikbaar" && it.extensions["code"] == "MODULE_NOT_AVAILABLE" }
                 .verify()
         }
     }
@@ -182,7 +182,7 @@ class BerichtenQueryIT(
             .document(TestHelper.graphqlBerichtenPageRequest)
             .execute()
             .errors()
-            .expect { it.message == "Module 'berichten' is niet beschikbaar" && it.extensions["code"] == "MODULE_NIET_BESCHIKBAAR" }
+            .expect { it.message == "Module 'berichten' is niet beschikbaar" && it.extensions["code"] == "MODULE_NOT_AVAILABLE" }
             .verify()
     }
 

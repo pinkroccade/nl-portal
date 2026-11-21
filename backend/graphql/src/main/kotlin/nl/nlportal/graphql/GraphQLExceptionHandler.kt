@@ -41,7 +41,7 @@ class GraphQLExceptionHandler : DataFetcherExceptionResolverAdapter() {
     ): GraphQLError? {
         val uitkomst =
             when (ex) {
-                is ModuleNotAvailableException -> Uitkomst(ex.message, mapOf("code" to "MODULE_NIET_BESCHIKBAAR", "module" to ex.module))
+                is ModuleNotAvailableException -> Uitkomst(ex.message, mapOf("code" to "MODULE_NOT_AVAILABLE", "module" to ex.module))
 
                 // Foutdetails van een bron gaan niet naar de browser: alleen een generieke code en de referentie voor de log.
                 is KoppelingException -> Uitkomst(ex.message, mapOf("code" to "KOPPELING_FOUT", "correlatieId" to ex.correlatieId))

@@ -10,16 +10,18 @@ flags staat in [ADR 0014](../adr/0014-feature-flags-via-openfeature.md), de rege
 - De beans van de module (service, GraphQL-controller, REST-resource) bestaan altijd, ook als de module uit staat.
 - Elke GraphQL-query of -mutatie en elke REST-resource van de module roept eerst `ModuleGate.require(...)` aan.
   Staat de flag uit, dan volgt een duidelijke "niet beschikbaar"-fout:
-  - GraphQL: een fout met de melding `Module 'berichten' is niet beschikbaar` en `extensions.code = MODULE_NIET_BESCHIKBAAR`.
+  - GraphQL: een fout met de melding `Module 'berichten' is niet beschikbaar` en `extensions.code = MODULE_NOT_AVAILABLE`.
   - REST: HTTP 503 met een `ProblemDetail`-antwoord (`detail`: dezelfde melding).
-- Alle GraphQL-fouten van modules zetten `GraphQLExceptionHandler` om, op één plek, met Nederlandse codes in `extensions.code`:
+- Alle GraphQL-fouten van modules zetten `GraphQLExceptionHandler` om, op één plek, met codes in `extensions.code`:
 
   | Code | Wanneer | Melding naar de browser |
   |---|---|---|
-  | `MODULE_NIET_BESCHIKBAAR` | de module-flag staat uit (met `extensions.module`) | `Module '<module>' is niet beschikbaar` |
+  | `MODULE_NOT_AVAILABLE` | de module-flag staat uit (met `extensions.module`) | `Module '<module>' is niet beschikbaar` |
   | `MODULE_NIET_GECONFIGUREERD` | de tenant heeft geen `modules.<naam>` | `De module is niet beschikbaar` |
   | `TENANT_ONTBREEKT` | het verzoek heeft geen tenant | `De aanvraag kan niet worden verwerkt` |
   | `KOPPELING_FOUT` | de bron van een koppeling faalt (met `extensions.correlatieId`) | `Koppeling '<naam>' is niet beschikbaar (referentie <id>)` |
+
+  `MODULE_NOT_AVAILABLE` is bestaand contract (clients kunnen erop toetsen) en blijft daarom Engels.
 
   De meldingen van `MODULE_NIET_GECONFIGUREERD` en `TENANT_ONTBREEKT` zijn vaste teksten: de OIN en de naam van een instelling gaan
   alleen naar de log. Een nieuw type fout voeg je toe aan `GraphQLExceptionHandler.afhandeling`.

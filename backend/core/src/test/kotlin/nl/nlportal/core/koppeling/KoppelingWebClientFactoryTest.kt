@@ -197,6 +197,36 @@ class KoppelingWebClientFactoryTest {
     }
 
     @Test
+    fun `gcs-v1-hmac ondertekent het content-type letterlijk zoals het wordt verstuurd, ook met parameters`() {
+        factory
+            .webClient("testmodule", gcsKoppeling())
+            .post()
+            .uri("/v2/TAX/hostedcheckouts")
+            .header(HttpHeaders.CONTENT_TYPE, "application/json; charset=utf-8")
+            .bodyValue("{}")
+            .retrieve()
+            .bodyToMono(String::class.java)
+            .block()
+
+        assertEquals("GCS v1HMAC:sleutel-id:lKO/Sgf+cu1Iukw7ikyIRYtD2bfu2rqVeDxbki8fccM=", verzoeken.last().headers().getFirst("Authorization"))
+    }
+
+    @Test
+    fun `gcs-v1-hmac haalt het pad van de basis-url alleen weg op een segmentgrens`() {
+        val koppeling = gcsKoppeling().apply { url = "https://api.example.nl/pay" }
+
+        factory
+            .webClient("testmodule", koppeling)
+            .get()
+            .uri("https://api.example.nl/payment/x")
+            .retrieve()
+            .bodyToMono(String::class.java)
+            .block()
+
+        assertEquals("GCS v1HMAC:sleutel-id:Q41qk1U60M8sp1KLS2at/kBNDTLiK2LUQphFyNs6vyg=", verzoeken.last().headers().getFirst("Authorization"))
+    }
+
+    @Test
     fun `gcs-v1-hmac ondertekent X-GCS-headers in kleine letters, getrimd en gesorteerd op naam`() {
         factory
             .webClient("testmodule", gcsKoppeling())

@@ -106,7 +106,7 @@ open class DirectPaymentService(
                         hostedCheckoutSpecificInput,
                     )
 
-            // only enable creditcard support if creditcardEnabled is enabled
+            // Kaartbetalingen alleen als het profiel creditcardAan heeft.
             if (paymentDirectProfile.creditcardAan) {
                 checkoutRequest.withCardPaymentMethodSpecificInput(
                     CardPaymentMethodSpecificInputBase()
@@ -114,7 +114,7 @@ open class DirectPaymentService(
                 )
             }
 
-            // if webhookUrl property is configured, set webhook url in the request. Benefit is dynamically set the webhook url per environment.
+            // Is webhookUrl in de configuratie gezet, dan gaat die mee in het verzoek, zodat de webhook per omgeving een eigen adres heeft.
             configuratie.webhookUrl?.let {
                 checkoutRequest.withFeedbacks(
                     Feedbacks().withWebhooksUrls(listOf(it)),
@@ -130,19 +130,17 @@ open class DirectPaymentService(
             return DirectPaymentResponse(
                 redirectUrl = response.redirectUrl,
             )
-        } catch (ex: KoppelingException) {
-            // Nooit het bronantwoord of de oorzaak loggen: alleen koppeling, soort en referentie.
-            logger.error { "Betaling starten mislukt: koppeling '${ex.koppeling}', ${ex.soort}, referentie ${ex.correlatieId}" }
-            throw ex
-        } catch (ex: ResponseStatusException) {
-            throw ex
-        } catch (ex: ModuleNotConfiguredException) {
-            throw ex
-        } catch (ex: TenantContextMissingException) {
-            throw ex
         } catch (ex: Exception) {
-            // Alleen het type: het bericht of de stacktrace kan gegevens uit het antwoord of de invoer bevatten.
-            logger.error { "Betaling starten mislukt: onverwachte fout (${ex::class.simpleName})" }
+            when (ex) {
+                // Nooit het bronantwoord of de oorzaak loggen: alleen koppeling, soort en referentie.
+                is KoppelingException -> logger.error { "Betaling starten mislukt: koppeling '${ex.koppeling}', ${ex.soort}, referentie ${ex.correlatieId}" }
+
+                // Bekende fouten: de aanroeper of de GraphQL-foutafhandeling regelt de melding (en de log).
+                is ResponseStatusException, is ModuleNotConfiguredException, is TenantContextMissingException -> Unit
+
+                // Alleen het type: het bericht of de stacktrace kan gegevens uit het antwoord of de invoer bevatten.
+                else -> logger.error { "Betaling starten mislukt: onverwachte fout (${ex::class.simpleName})" }
+            }
             throw ex
         }
     }
