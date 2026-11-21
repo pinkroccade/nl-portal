@@ -16,14 +16,6 @@
 package nl.nlportal.zaken
 
 import nl.nlportal.core.security.OauthSecurityAutoConfiguration
-import nl.nlportal.core.tenancy.GeheimenBron
-import nl.nlportal.core.tenancy.TenantDirectory
-import nl.nlportal.core.tenancy.TenantKoppelingAuth
-import nl.nlportal.core.tenancy.TenantKoppelingAuthType
-import nl.nlportal.core.testing.TestTenants
-import nl.nlportal.core.testing.VasteTenantWebFilter
-import nl.nlportal.documentenapi.configuratie.DocumentApiConfiguratie
-import nl.nlportal.documentenapi.configuratie.DocumentenApiConfiguratie
 import org.springframework.boot.autoconfigure.SpringBootApplication
 import org.springframework.boot.runApplication
 import org.springframework.context.annotation.Bean
@@ -47,34 +39,4 @@ class TestApplication {
             .authorizeExchange {
                 it.anyExchange().permitAll()
             }.build()
-
-    /** De tenant van de tests: de Documenten API staat als koppeling en als module in het tenantbestand. */
-    @Bean
-    fun tenantDirectory(): TenantDirectory =
-        TestTenants.directory(
-            TestTenants.tenant(
-                koppelingen =
-                    mapOf(
-                        "documenten-api" to
-                            TestTenants.koppeling(
-                                "http://localhost:8001",
-                                auth = TenantKoppelingAuth(TenantKoppelingAuthType.ZGW_JWT, clientId = "test-client", secret = TestTenants.geheim("documenten-secret")),
-                            ),
-                    ),
-                modules =
-                    mapOf(
-                        "documenten-api" to
-                            DocumentenApiConfiguratie(
-                                standaardDocumentApi = "documenten-api",
-                                documentApis = mapOf("documenten-api" to DocumentApiConfiguratie(rsin = "051845623", documentTypeUrl = "http://localhost/catalogi/api/v1/informatieobjecttypen/1")),
-                            ),
-                    ),
-            ),
-        )
-
-    @Bean
-    fun geheimenBron(): GeheimenBron = TestTenants.ALLE_GEHEIMEN
-
-    @Bean
-    fun vasteTenantWebFilter() = VasteTenantWebFilter()
 }
