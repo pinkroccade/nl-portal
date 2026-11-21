@@ -47,10 +47,18 @@ internal class TenancyIngesteld : Condition {
 @Conditional(TenancyIngesteld::class)
 @EnableConfigurationProperties(TenancyProperties::class)
 class TenancyAutoConfiguration {
+    /** De bijdragen van de modules op het klassenpad (`ServiceLoader`); een eigen bean vervangt ze, bijvoorbeeld in een test. */
     @Bean
-    fun tenantDirectory(properties: TenancyProperties): TenantDirectory {
+    @ConditionalOnMissingBean(TenantModules::class)
+    fun tenantModules(): TenantModules = TenantModules.ontdek()
+
+    @Bean
+    fun tenantDirectory(
+        properties: TenancyProperties,
+        modules: TenantModules,
+    ): TenantDirectory {
         require(!properties.directory.isNullOrBlank()) { "nl-portal.tenancy.directory is leeg; noem de map met de tenantbestanden" }
-        val tenants = TenantFileLoader().load(Path.of(properties.directory!!)).orThrow()
+        val tenants = TenantFileLoader(modules = modules).load(Path.of(properties.directory!!)).orThrow()
         logger.info { "Tenants geladen: ${tenants.joinToString { "${it.oin} (${it.domeinen.joinToString()})" }}" }
         return TenantDirectory(tenants)
     }

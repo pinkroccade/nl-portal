@@ -24,37 +24,40 @@ import nl.nlportal.core.tenancy.TenantKoppelingAuthType
 
 /**
  * Maakt van de koppeling uit het tenantbestand de [Koppeling] voor het register, met de geheimen opgelost via [bron]. Een
- * verwijzing naar een geheim dat in de secret store ontbreekt weigert het opstarten, met de OIN en de naam van het geheim
- * (nooit een waarde) in de melding (story 14).
+ * verwijzing naar een geheim dat in de secret store ontbreekt weigert het opstarten, met de OIN en het veld in de melding
+ * (nooit de naam of waarde van het geheim: dat kan een geheim zijn, story 14).
  */
 internal fun TenantKoppeling.naarKoppeling(
     oin: Oin,
     naam: String,
     bron: GeheimenBron,
 ): Koppeling {
-    fun geheim(verwijzing: GeheimVerwijzing?): String? =
+    fun geheim(
+        veld: String,
+        verwijzing: GeheimVerwijzing?,
+    ): String? =
         verwijzing?.let {
             try {
                 bron.vereis(it)
             } catch (e: GeheimOntbreektException) {
-                throw IllegalStateException("Tenant ${oin.value}: koppeling '$naam': ${e.message}", e)
+                throw IllegalStateException("Tenant ${oin.value}: koppeling '$naam': auth.$veld: geheim staat niet in de secret store of is leeg", e)
             }
         }
-    val k = this
+    val bestand = this
     return Koppeling().apply {
-        url = k.url
-        leverancier = k.leverancier
-        versie = k.versie
+        url = bestand.url
+        leverancier = bestand.leverancier
+        versie = bestand.versie
         auth =
             KoppelingAuth().apply {
-                type = k.auth.type.naarType()
-                headerName = k.auth.headerNaam
-                value = geheim(k.auth.waarde)
-                token = geheim(k.auth.token)
-                clientId = k.auth.clientId
-                secret = geheim(k.auth.secret)
-                tokenUrl = k.auth.tokenUrl
-                privateKeyFile = k.auth.privateKeyBestand
+                type = bestand.auth.type.naarType()
+                headerName = bestand.auth.headerNaam
+                value = geheim("waarde", bestand.auth.waarde)
+                token = geheim("token", bestand.auth.token)
+                clientId = bestand.auth.clientId
+                secret = geheim("secret", bestand.auth.secret)
+                tokenUrl = bestand.auth.tokenUrl
+                privateKeyFile = bestand.auth.privateKeyBestand
             }
     }
 }

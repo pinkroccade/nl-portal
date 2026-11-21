@@ -16,8 +16,11 @@
 package nl.nlportal.core.koppeling
 
 import io.github.oshai.kotlinlogging.KotlinLogging
+import nl.nlportal.core.tenancy.GeheimenBron
 import nl.nlportal.core.tenancy.Oin
 import nl.nlportal.core.tenancy.TenantContext
+import nl.nlportal.core.tenancy.TenantDefinition
+import nl.nlportal.core.tenancy.controleerOpstart
 import nl.nlportal.core.util.ModuleNotConfiguredException
 import nl.nlportal.core.util.requireConfigured
 import org.springframework.web.reactive.function.client.WebClient
@@ -57,7 +60,8 @@ class KoppelingRegister internal constructor(
         /**
          * Bouwt het register. [koppelingenPerTenant] is de tussenfase (nog niet gemigreerde modules lezen `nl-portal.koppelingen`):
          * een onvolledige koppeling blijft dan weg met een waarschuwing. [gemigreerd] komt uit het tenantbestand: een koppeling
-         * die niet te bouwen is weigert het opstarten, met de OIN in de melding (story 14). Bij dezelfde naam wint [gemigreerd].
+         * die niet te bouwen is weigert het opstarten, met de OIN in de melding (story 14). Dezelfde naam in beide bronnen weigert het
+         * opstarten: een half gemigreerde module valt zo meteen op en gebruikt nooit stil de oude, gedeelde koppeling.
          */
         fun bouw(
             koppelingenPerTenant: Map<Oin, Map<String, Koppeling>>,
@@ -70,10 +74,36 @@ class KoppelingRegister internal constructor(
             val tenants = koppelingenPerTenant.keys + gemigreerd.keys
             return KoppelingRegister(
                 tenants.associateWith { oin ->
+                    val dubbel = koppelingenPerTenant[oin].orEmpty().keys.intersect(gemigreerd[oin].orEmpty().keys)
+                    check(dubbel.isEmpty()) {
+                        "Tenant ${oin.value}: koppeling '${dubbel.first()}' staat in het tenantbestand en in nl-portal.koppelingen; haal haar uit nl-portal.koppelingen, de module is gemigreerd"
+                    }
                     val tussenfase = koppelingenPerTenant[oin].orEmpty().mapNotNull { (naam, koppeling) -> maakClient(factory, oin, naam, koppeling, resilience)?.let { naam to it } }
                     val eigen = gemigreerd[oin].orEmpty().map { (naam, koppeling) -> naam to maakStrengeClient(factory, oin, naam, koppeling, resilience) }
                     (tussenfase + eigen).toMap()
                 },
+            )
+        }
+
+        /**
+         * De opstartbouw van het register voor [tenants]: eerst de opstartcontrole per tenant (regels voor koppelingen, naamruimte en
+         * aanwezigheid van elk geheim, ook in `modules`), dan het register. De autoconfiguratie en de testhulp gebruiken deze ene route.
+         */
+        fun bouwUitTenants(
+            tenants: List<TenantDefinition>,
+            bron: GeheimenBron,
+            tussenfase: Map<Oin, Map<String, Koppeling>> = emptyMap(),
+            webClientBuilder: WebClient.Builder,
+            resilience: KoppelingResilienceInstellingen = KoppelingResilienceInstellingen(),
+            zgwJwtGenerator: ZgwJwtGenerator = ZgwJwtGenerator(),
+        ): KoppelingRegister {
+            tenants.forEach { it.controleerOpstart(bron) }
+            return bouw(
+                tussenfase,
+                webClientBuilder,
+                resilience,
+                zgwJwtGenerator,
+                gemigreerd = tenants.associate { tenant -> tenant.oin to tenant.koppelingen.mapValues { (naam, koppeling) -> koppeling.naarKoppeling(tenant.oin, naam, bron) } },
             )
         }
 

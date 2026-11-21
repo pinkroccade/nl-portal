@@ -110,12 +110,19 @@ value class GeheimVerwijzing(
         require(naam.matches(FORMAAT)) { "Een geheimverwijzing is de naam van een geheim in de secret store, geen waarde" }
     }
 
+    /**
+     * Valt de naam onder de naamruimte van [oin]? Het eerste segment van de naam is de OIN (daarna `.`, `-` of `_`), zodat een bestand
+     * nooit naar de geheimen van een andere tenant kan verwijzen (ADR 0021 besluit 4 punt 5).
+     */
+    fun valtOnder(oin: String) = naam.length > oin.length + 1 && naam.startsWith(oin) && naam[oin.length] in SCHEIDINGSTEKENS
+
     /** De naam is geen geheim; de tekstweergave laat wel zien dat het een verwijzing is. */
     override fun toString() = "geheim:$naam"
 
     companion object {
         const val PATROON = "^[a-z0-9]+([._-][a-z0-9]+)*\$"
         private val FORMAAT = Regex(PATROON)
+        private const val SCHEIDINGSTEKENS = "._-"
     }
 }
 
@@ -208,13 +215,13 @@ data class TenantDefinition(
     /** De gebonden en gevalideerde modulegegevens per modulenaam; lees ze via [module]. */
     val modules: Map<String, Any> = emptyMap(),
 ) {
-    /** De configuratie van de module met klasse [klasse] voor deze tenant, of `null` als de tenant er geen heeft. */
-    fun <T : Any> module(klasse: KClass<T>): T? = modules.values.firstOrNull { klasse.isInstance(it) }?.let { klasse.javaObjectType.cast(it) }
+    /** De configuratie van de module met precies de klasse [klasse] voor deze tenant, of `null` als de tenant er geen heeft. */
+    fun <T : Any> module(klasse: KClass<T>): T? = modules.values.firstOrNull { it::class == klasse }?.let { klasse.javaObjectType.cast(it) }
 
     inline fun <reified T : Any> module(): T? = module(T::class)
 
     /** Als [module], maar een tenant zonder configuratie voor de module is een fout: de module is voor deze tenant niet ingericht. */
-    fun <T : Any> requireModule(klasse: KClass<T>): T = module(klasse) ?: throw ModuleNotConfiguredException(klasse.simpleName ?: "module", "modules (tenant $oin)")
+    fun <T : Any> requireModule(klasse: KClass<T>): T = module(klasse) ?: throw ModuleNotConfiguredException(klasse.simpleName ?: "module", "Tenant $oin: modulegegevens")
 
     inline fun <reified T : Any> requireModule(): T = requireModule(T::class)
 }

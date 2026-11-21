@@ -103,7 +103,7 @@ class TenantFileLoaderModulesTest {
 
     private fun codes(result: TenantFileResult) = result.violations.map { it.code }
 
-    private val koppelingen = "koppelingen:\n  zaken:\n    url: https://zaken.example.nl\n    auth:\n      type: api-key\n      headerNaam: X-Api-Key\n      waarde: zaken-sleutel\n"
+    private val koppelingen = "koppelingen:\n  zaken:\n    url: https://zaken.example.nl\n    auth:\n      type: api-key\n      headerNaam: X-Api-Key\n      waarde: $bosrand.zaken-sleutel\n"
 
     @Test
     fun `een module draagt zijn getypeerde configuratie bij en de tenant leest hem getypeerd`() {
@@ -122,11 +122,11 @@ class TenantFileLoaderModulesTest {
                         grens: 9000000000
                         niveau: HOOG
                         timeout: PT30S
-                        geheim: proef-sleutel
+                        geheim: $bosrand.proef-sleutel
                         klantId: klant-1
                         profielen:
                           standaard:
-                            apiKey: proef-profiel-sleutel
+                            apiKey: $bosrand.proef-profiel-sleutel
                             naam: Standaard
                     """.trimIndent(),
             ),
@@ -143,13 +143,13 @@ class TenantFileLoaderModulesTest {
         assertThat(configuratie.grens).isEqualTo(9_000_000_000L)
         assertThat(configuratie.niveau).isEqualTo(ProefNiveau.HOOG)
         assertThat(configuratie.timeout).isEqualTo(Duration.ofSeconds(30))
-        assertThat(configuratie.geheim).isEqualTo(GeheimVerwijzing("proef-sleutel"))
+        assertThat(configuratie.geheim).isEqualTo(GeheimVerwijzing("$bosrand.proef-sleutel"))
         assertThat(configuratie.klantId).isEqualTo("klant-1")
         assertThat(
             configuratie.profielen
                 .getValue("standaard")
                 .apiKey.naam,
-        ).isEqualTo("proef-profiel-sleutel")
+        ).isEqualTo("$bosrand.proef-profiel-sleutel")
         assertThat(result.tenants.single().module<ProefConfiguratie>()).isSameAs(configuratie)
     }
 
@@ -346,7 +346,7 @@ class TenantFileLoaderModulesTest {
         assertThat(koppeling.leverancier).isEqualTo("Open Zaak")
         assertThat(koppeling.versie).isEqualTo("1.31")
         assertThat(koppeling.auth.type).isEqualTo(TenantKoppelingAuthType.API_KEY)
-        assertThat(koppeling.auth.waarde).isEqualTo(GeheimVerwijzing("zaken-sleutel"))
+        assertThat(koppeling.auth.waarde).isEqualTo(GeheimVerwijzing("$bosrand.zaken-sleutel"))
         assertThat(koppeling.auth.toString()).doesNotContain("zaken-sleutel")
     }
 
@@ -389,10 +389,10 @@ class TenantFileLoaderModulesTest {
         schrijf("base.yaml", basis)
         val auths =
             listOf(
-                "type: bearer\n      token: bearer-token",
-                "type: zgw-jwt\n      clientId: client\n      secret: zgw-secret",
-                "type: oauth2-client-credentials\n      tokenUrl: https://idp.example.nl/token\n      clientId: client\n      secret: oauth-secret",
-                "type: oauth2-private-key-jwt\n      tokenUrl: https://idp.example.nl/token\n      clientId: client\n      privateKeyBestand: /geheimen/sleutel.pem",
+                "type: bearer\n      token: $bosrand.bearer-token",
+                "type: zgw-jwt\n      clientId: client\n      secret: $bosrand.zgw-secret",
+                "type: oauth2-client-credentials\n      tokenUrl: https://idp.example.nl/token\n      clientId: client\n      secret: $bosrand.oauth-secret",
+                "type: oauth2-private-key-jwt\n      tokenUrl: https://idp.example.nl/token\n      clientId: client\n      privateKeyBestand: /geheimen/$bosrand/sleutel.pem",
             )
         auths.forEach { auth ->
             schrijf("$bosrand.yaml", tenant(extra = "koppelingen:\n  zaken:\n    url: https://zaken.example.nl\n    auth:\n      $auth"))
@@ -406,7 +406,7 @@ class TenantFileLoaderModulesTest {
         schrijf("base.yaml", basis)
         val ongeldig = listOf("geen url", "ftp://zaken.example.nl", "https://", "https://gebruiker:wachtwoord@zaken.example.nl", "/relatief")
         ongeldig.forEach { url ->
-            schrijf("$bosrand.yaml", tenant(extra = "koppelingen:\n  zaken:\n    url: \"$url\"\n    auth:\n      type: bearer\n      token: t"))
+            schrijf("$bosrand.yaml", tenant(extra = "koppelingen:\n  zaken:\n    url: \"$url\"\n    auth:\n      type: bearer\n      token: $bosrand.t"))
 
             val result = laad()
 
@@ -416,7 +416,7 @@ class TenantFileLoaderModulesTest {
         }
         schrijf(
             "$bosrand.yaml",
-            tenant(extra = "koppelingen:\n  zaken:\n    url: https://zaken.example.nl\n    auth:\n      type: oauth2-client-credentials\n      tokenUrl: nietuurl\n      clientId: c\n      secret: s"),
+            tenant(extra = "koppelingen:\n  zaken:\n    url: https://zaken.example.nl\n    auth:\n      type: oauth2-client-credentials\n      tokenUrl: nietuurl\n      clientId: c\n      secret: $bosrand.s"),
         )
         assertThat(laad().violations.map { it.pad }).containsExactly("koppelingen.zaken.auth.tokenUrl")
     }
@@ -424,7 +424,7 @@ class TenantFileLoaderModulesTest {
     @Test
     fun `een secret als waarde in plaats van een verwijzing weigert het opstarten zonder het secret te noemen`() {
         schrijf("base.yaml", basis)
-        schrijf("$bosrand.yaml", tenant(extra = koppelingen.replace("zaken-sleutel", "\"Dit Is Een Secret!\"")))
+        schrijf("$bosrand.yaml", tenant(extra = koppelingen.replace("$bosrand.zaken-sleutel", "\"Dit Is Een Secret!\"")))
 
         val result = laad()
 
@@ -457,14 +457,14 @@ class TenantFileLoaderModulesTest {
     @Test
     fun `de tenant vult de koppeling uit de basis aan met zijn eigen credentials`() {
         schrijf("base.yaml", basis + "koppelingen:\n  zaken:\n    url: https://zaken.example.nl\n    auth:\n      type: zgw-jwt\n")
-        schrijf("$bosrand.yaml", tenant(extra = "koppelingen:\n  zaken:\n    auth:\n      clientId: bosrand\n      secret: bosrand-zaken-secret"))
+        schrijf("$bosrand.yaml", tenant(extra = "koppelingen:\n  zaken:\n    auth:\n      clientId: bosrand\n      secret: $bosrand.zaken-secret"))
         schrijf("$wijdeVeld.yaml", tenant(oin = wijdeVeld, domein = "wijdeveld.example", extra = "koppelingen:\n  zaken:\n    url: https://zaken.wijdeveld.example\n    auth:\n      clientId: wijdeveld"))
 
         val result = laad(meerdere = true)
 
         // Het Wijde Veld geeft geen secret op en erft er geen: onvolledig, met zijn OIN in de melding.
         assertThat(codes(result)).containsExactly(Code.KOPPELING_ONVOLLEDIG)
-        assertThat(result.violations.single().bericht).contains(wijdeVeld).doesNotContain("bosrand-zaken-secret")
+        assertThat(result.violations.single().bericht).contains(wijdeVeld).doesNotContain("$bosrand.zaken-secret")
         assertThat(result.violations.single().pad).isEqualTo("koppelingen.zaken.auth.secret")
 
         Files.delete(dir.resolve("$wijdeVeld.yaml"))
@@ -476,7 +476,7 @@ class TenantFileLoaderModulesTest {
                 .getValue("zaken")
         assertThat(bosrandAlleen.url).isEqualTo("https://zaken.example.nl")
         assertThat(bosrandAlleen.auth.clientId).isEqualTo("bosrand")
-        assertThat(bosrandAlleen.auth.secret).isEqualTo(GeheimVerwijzing("bosrand-zaken-secret"))
+        assertThat(bosrandAlleen.auth.secret).isEqualTo(GeheimVerwijzing("$bosrand.zaken-secret"))
     }
 
     // --- de SPI zelf ---

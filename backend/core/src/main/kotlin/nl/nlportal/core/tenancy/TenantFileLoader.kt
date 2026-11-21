@@ -21,9 +21,10 @@ import org.yaml.snakeyaml.Yaml
 import org.yaml.snakeyaml.constructor.SafeConstructor
 import org.yaml.snakeyaml.error.MarkedYAMLException
 import org.yaml.snakeyaml.error.YAMLException
+import tools.jackson.core.JacksonException
 import tools.jackson.databind.json.JsonMapper
 import tools.jackson.module.kotlin.KotlinModule
-import java.net.URI
+import java.math.BigInteger
 import java.nio.file.Files
 import java.nio.file.Path
 import kotlin.io.path.extension
@@ -57,6 +58,7 @@ data class TenantFileViolation(
         GEHEIM_NIET_ALS_VERWIJZING,
         KOPPELING_ONVOLLEDIG,
         MODULE_CONFIGURATIE_ONGELDIG,
+        GEHEIM_VAN_ANDERE_TENANT,
     }
 
     override fun toString() = "$bestand${pad?.let { " ($it)" } ?: ""}: $code - $bericht"
@@ -150,8 +152,9 @@ class TenantFileLoader(
         val bestand =
             try {
                 mapper.convertValue(samengevoegd, TenantBestand::class.java)
-            } catch (e: tools.jackson.core.JacksonException) {
+            } catch (e: JacksonException) {
                 violations += TenantFileViolation(Code.ONGELDIGE_WAARDE, naam, e.path.joinToString(".") { it.propertyName ?: "[]" }.ifEmpty { null }, "Een waarde heeft niet de verwachte vorm")
+                metOin(violations, voor, samengevoegd["oin"] as? String)
                 return null
             }
         return controleerBestand(naam, pad.nameWithoutExtension, bestand, violations)?.let { Geladen(naam, it) }
@@ -176,6 +179,7 @@ class TenantFileLoader(
         controleerSessie(naam, bestand.sessie, violations)
         controleerKoppelingen(naam, bestand, violations)
         val gebonden = bindModules(naam, bestand, violations)
+        metOin(violations, voor, bestand.oin)
         if (violations.size != voor) return null
 
         return TenantDefinition(
@@ -224,29 +228,11 @@ class TenantFileLoader(
         violations: MutableList<TenantFileViolation>,
     ) {
         bestand.koppelingen.forEach { (koppeling, definitie) ->
-            val pad = "koppelingen.$koppeling"
-            if (!isHttpUrl(definitie.url)) {
-                violations += TenantFileViolation(Code.ONGELDIGE_WAARDE, naam, "$pad.url", "Tenant ${bestand.oin}: de url is geen http(s)-url met een host en zonder inloggegevens")
-            }
-            if (definitie.auth.tokenUrl?.let(::isHttpUrl) == false) {
-                violations += TenantFileViolation(Code.ONGELDIGE_WAARDE, naam, "$pad.auth.tokenUrl", "Tenant ${bestand.oin}: de tokenUrl is geen http(s)-url met een host en zonder inloggegevens")
-            }
-            definitie.auth.ontbrekendeVelden().forEach {
-                violations +=
-                    TenantFileViolation(
-                        Code.KOPPELING_ONVOLLEDIG,
-                        naam,
-                        "$pad.auth.$it",
-                        "Tenant ${bestand.oin}: koppeling '$koppeling' is onvolledig, ${definitie.auth.type.waarde} vraagt om auth.$it",
-                    )
-            }
+            definitie.regelovertredingen(koppeling, bestand.oin, bestand.omgevingstype).forEach { violations += it.alsViolation(naam) }
         }
     }
 
-    private fun isHttpUrl(url: String): Boolean {
-        val uri = runCatching { URI(url) }.getOrNull() ?: return false
-        return uri.scheme?.lowercase() in setOf("http", "https") && !uri.host.isNullOrBlank() && uri.userInfo == null
-    }
+    private fun Regelovertreding.alsViolation(bestand: String) = TenantFileViolation(code, bestand, pad, bericht)
 
     /** Bindt de ruwe `modules.<naam>` aan de configuratieklasse van de module en past de regels van de module toe. */
     private fun bindModules(
@@ -259,24 +245,27 @@ class TenantFileLoader(
                 val pad = "modules.$module"
                 val spi = modules.configuratie(module) ?: return@mapNotNull null
                 if (ruw == null) {
-                    violations += TenantFileViolation(Code.ONGELDIGE_WAARDE, naam, pad, "Tenant ${bestand.oin}: de configuratie van module '$module' is leeg")
+                    violations += TenantFileViolation(Code.ONGELDIGE_WAARDE, naam, pad, "de configuratie van module '$module' is leeg")
                     return@mapNotNull null
                 }
                 val configuratie =
                     try {
                         mapper.convertValue(ruw, spi.klasse.java)
-                    } catch (e: tools.jackson.core.JacksonException) {
+                    } catch (e: JacksonException) {
                         val veld = e.path.joinToString(".") { it.propertyName ?: "[]" }
-                        violations += TenantFileViolation(Code.ONGELDIGE_WAARDE, naam, if (veld.isEmpty()) pad else "$pad.$veld", "Tenant ${bestand.oin}: een waarde heeft niet de verwachte vorm")
+                        violations += TenantFileViolation(Code.ONGELDIGE_WAARDE, naam, if (veld.isEmpty()) pad else "$pad.$veld", "een waarde heeft niet de verwachte vorm")
                         return@mapNotNull null
                     }
-                modules.valideer(module, configuratie).forEach {
-                    violations += TenantFileViolation(Code.MODULE_CONFIGURATIE_ONGELDIG, naam, "$pad.${it.pad}".trimEnd('.'), "Tenant ${bestand.oin}: ${it.bericht}")
+                geheimVerwijzingen(configuratie, pad).filterNot { (_, verwijzing) -> verwijzing.valtOnder(bestand.oin) }.forEach { (geheimPad, _) ->
+                    violations += buitenNaamruimte(geheimPad).alsViolation(naam)
+                }
+                modules.valideer(module, configuratie, ModuleContext(bestand.koppelingen.keys)).forEach {
+                    violations += TenantFileViolation(Code.MODULE_CONFIGURATIE_ONGELDIG, naam, "$pad.${it.pad}".trimEnd('.'), it.bericht)
                 }
                 module to configuratie
             }.toMap()
 
-    /** Zet de OIN van de tenant in het bericht van de overtredingen vanaf [vanaf] onder `koppelingen` en `modules` (story 14). */
+    /** De enige plek die de OIN van de tenant in het bericht zet van de overtredingen vanaf [vanaf] onder `koppelingen` en `modules` (story 14). */
     private fun metOin(
         violations: MutableList<TenantFileViolation>,
         vanaf: Int,
@@ -434,12 +423,12 @@ class TenantFileLoader(
                     }
                 }
 
-                SchemaKnoop.Waar -> {
+                SchemaKnoop.Booleaans -> {
                     inhoud == null || inhoud is Boolean
                 }
 
                 SchemaKnoop.Geheel -> {
-                    inhoud == null || inhoud is Int || inhoud is Long || inhoud is java.math.BigInteger
+                    inhoud == null || inhoud is Int || inhoud is Long || inhoud is BigInteger
                 }
             }
         if (!goed) {
@@ -482,6 +471,13 @@ class TenantFileLoader(
                 (waarde as? List<*>)?.forEach { controleerNietErfbaar(knoop.items, it, "$pad[]", bestand, violations) }
             }
 
+            // Een verwijzing als item van een lijst of waarde van een map heeft geen eigenschap die niet-erfbaar kan zijn: de knoop zelf telt.
+            is SchemaKnoop.Tekst -> {
+                if (knoop.geheimVerwijzing && waarde != null) {
+                    violations += TenantFileViolation(Code.NIET_ERFBARE_WAARDE_IN_BASIS, bestand, pad, "Dit hoort bij één tenant en kan niet uit de gedeelde basis komen")
+                }
+            }
+
             else -> {}
         }
     }
@@ -516,7 +512,7 @@ class TenantFileLoader(
         private const val BASIS = "base"
         private const val MAX_BESTAND = 64 * 1024
 
-        /** Eigenschappen die bij precies één tenant horen en dus nooit uit de gedeelde basis komen; hier komen later ook credentials en sleutels. */
+        /** Eigenschappen die bij precies één tenant horen en dus nooit uit de gedeelde basis komen; credentials en sleutels volgen uit [GeheimVerwijzing] en [NietErfbaar]. */
         private val NIET_ERFBAAR = listOf("oin", "naam", "domeinen")
 
         private val GEHEIMVERWIJZING = Regex(GeheimVerwijzing.PATROON)

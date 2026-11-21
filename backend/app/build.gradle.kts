@@ -41,6 +41,7 @@ dependencies {
         developmentOnly("io.netty:netty-resolver-dns-native-macos::osx-aarch_64")
     }
 
+    testImplementation(testFixtures(project(":core")))
     testImplementation(project(":zgw:common-ground-authentication-test"))
     testImplementation(TestDependencies.springBootTest)
     // testImplementation(TestDependencies.springSecurityTest)

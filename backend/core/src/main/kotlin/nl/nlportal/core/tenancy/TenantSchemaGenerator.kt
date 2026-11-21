@@ -63,7 +63,7 @@ object TenantSchemaGenerator {
                 linkedMapOf<String, Any?>("type" to "object", "additionalProperties" to schema(knoop.waarde))
             }
 
-            SchemaKnoop.Waar -> {
+            SchemaKnoop.Booleaans -> {
                 mapOf("type" to "boolean")
             }
 

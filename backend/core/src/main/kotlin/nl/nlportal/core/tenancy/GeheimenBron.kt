@@ -17,16 +17,15 @@ package nl.nlportal.core.tenancy
 
 import org.springframework.core.env.Environment
 
-class GeheimOntbreektException(
-    naam: String,
-) : IllegalStateException("Geheim '$naam' staat niet in de secret store")
+/** Het bericht noemt de naam niet: een tenantbestand dat een waarde als naam gebruikt, mag die niet in de log krijgen. Wie opvangt, meldt het veld en de OIN. */
+class GeheimOntbreektException : IllegalStateException("Geheim staat niet in de secret store of is leeg")
 
 /** De secret store zoals de runtime hem ziet: lost een [GeheimVerwijzing] op naar de waarde, of `null` als die er niet is. */
 fun interface GeheimenBron {
     fun resolve(verwijzing: GeheimVerwijzing): String?
 
     /** De waarde, of [GeheimOntbreektException] (zonder waarde in het bericht) als het geheim ontbreekt of leeg is. */
-    fun vereis(verwijzing: GeheimVerwijzing): String = resolve(verwijzing)?.takeIf { it.isNotBlank() } ?: throw GeheimOntbreektException(verwijzing.naam)
+    fun vereis(verwijzing: GeheimVerwijzing): String = resolve(verwijzing)?.takeIf { it.isNotBlank() } ?: throw GeheimOntbreektException()
 }
 
 /**

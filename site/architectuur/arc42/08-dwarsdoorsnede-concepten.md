@@ -131,7 +131,10 @@ via een rolling update wordt uitgerold, niet via hot reload; een andere OpenFeat
   in `TenantDefinition.modules` (`tenant.module<T>()`; `TenantDirectory.module<T>()` leest de tenant uit de context). Een module die niet
   op het klassenpad staat is een onbekende eigenschap en weigert het opstarten. `koppelingen.<naam>` (url, auth, leverancier, versie) volgt hetzelfde pad:
   geheimen zijn alleen een `GeheimVerwijzing` (de naam in de secret store, opgelost via `GeheimenBron`, standaard `nl-portal.geheimen.<naam>` uit
-  de omgeving); een waarde die geen naam is, een onvolledige koppeling (per auth type de verplichte velden), een ongeldige url of een geheim dat in de secret
+  de omgeving). Elke verwijzing valt onder de naamruimte van de eigen OIN: de naam begint met `<oin>.` (of `<oin>-`, `<oin>_`) en een sleutelbestand staat in een
+  map `<oin>` (ADR 0021 besluit 4 punt 5); loader en validator-CLI weigeren een verwijzing naar een andere OIN (`GEHEIM_VAN_ANDERE_TENANT`). Het register is bij
+  opstarten volledig: ook elk geheim in `modules.<naam>` wordt opgelost (de melding noemt OIN en veld, nooit de naam of waarde), en `url` en `tokenUrl` zijn in
+  productie alleen `https`. Dezelfde regels draaien in de testhulp (`KoppelingRegister.bouwUitTenants`). Een waarde die geen naam is, een onvolledige koppeling (per auth type de verplichte velden), een ongeldige url of een geheim dat in de secret
   store ontbreekt weigert het opstarten, met de OIN in de melding (story 14). Credentials (elke `GeheimVerwijzing`, en elk veld met `@NietErfbaar`)
   worden nooit uit de gedeelde basis geërfd (story 11). Het gepubliceerde schema (`backend/schema/tenant.schema.json`) wordt in `:app` gegenereerd,
   waar alle modules op het klassenpad staan.

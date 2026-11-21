@@ -46,7 +46,7 @@ internal sealed interface SchemaKnoop {
 
     object Duur : SchemaKnoop
 
-    object Waar : SchemaKnoop
+    object Booleaans : SchemaKnoop
 
     object Geheel : SchemaKnoop
 }
@@ -111,7 +111,7 @@ internal class TenantSchemaModel(
             }
 
             klasse == Boolean::class -> {
-                SchemaKnoop.Waar
+                SchemaKnoop.Booleaans
             }
 
             klasse == Int::class || klasse == Long::class -> {

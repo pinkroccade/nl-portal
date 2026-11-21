@@ -84,7 +84,7 @@ koppelingen:
         auth:
             type: zgw-jwt     # api-key | bearer | zgw-jwt | oauth2-client-credentials | oauth2-private-key-jwt
             clientId: bosrand # per tenant, nooit uit base.yaml
-            secret: bosrand-zaken-secret   # naam van het geheim; de waarde staat in de secret store
+            secret: 00000099000000000001.zaken-secret   # naam van het geheim, altijd met de eigen OIN vooraan; de waarde staat in de secret store
 modules:
     brp:                      # de configuratie die de module bijdraagt (TenantModuleConfiguratie)
         brpFields: [naam, geboortedatum]
@@ -92,8 +92,14 @@ modules:
 
 De runtime weigert te starten bij een koppeling zonder verplichte velden voor haar `auth.type` (de melding noemt de OIN), een geheim dat geen naam
 is (de waarde zelf wordt nooit getoond), een geheim dat niet in de secret store staat, en een `modules.<naam>` zonder bijbehorende module. Credentials en
-geheimverwijzingen mogen niet in `base.yaml` staan. Geheimen lost de runtime op uit de omgeving: de naam `bosrand-zaken-secret` is de omgevingsvariabele
-`NL_PORTAL_GEHEIMEN_BOSRAND_ZAKEN_SECRET` (of de property `nl-portal.geheimen.bosrand-zaken-secret`). De validator-CLI kent de modules die op het
+geheimverwijzingen mogen niet in `base.yaml` staan. Geheimen lost de runtime op uit de omgeving: de naam `00000099000000000001.zaken-secret` is de omgevingsvariabele
+`NL_PORTAL_GEHEIMEN_00000099000000000001_ZAKEN_SECRET` (of de property `nl-portal.geheimen.00000099000000000001.zaken-secret`).
+Elke geheimverwijzing begint met de OIN van het eigen bestand (gevolgd door `.`, `-` of `_`), en een `privateKeyBestand` staat in een map met de eigen
+OIN (`/run/secrets/<oin>/client.pem`, zonder `..` en zonder andere OIN-map): een verwijzing naar de naamruimte van een andere tenant weigert het opstarten
+(`GEHEIM_VAN_ANDERE_TENANT`), ook in de validator-CLI. Zo kan een gekopieerd tenantbestand nooit stil de geheimen van een andere gemeente gebruiken. De
+meldingen noemen het veld en de OIN, nooit de naam of waarde van een geheim. Voor `modules.<naam>` geldt hetzelfde, en elk geheim daarin moet bij het opstarten
+in de secret store staan. `url` en `tokenUrl` zijn in een productieomgeving alleen `https`. Let op: de controle "is dit een naam" is een heuristiek (een
+geheim van alleen kleine letters en cijfers past in het patroon); de OIN-prefix en de Git-review zijn de echte bewaking. De validator-CLI kent de modules die op het
 klassenpad staan: `java -cp nl-portal-tenant-validator.jar:<module-jars> nl.nlportal.core.tenancy.TenantValidatorCli <map>`.
 
 Eisen aan de omgeving (ook als acceptatiecriterium voor de ingress in #191):

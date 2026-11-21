@@ -25,6 +25,11 @@ data class ModuleOvertreding(
     val bericht: String,
 )
 
+/** Wat een module over de tenant weet bij het valideren van zijn eigen configuratie: de namen van de koppelingen in het tenantbestand. */
+data class ModuleContext(
+    val koppelingen: Set<String> = emptySet(),
+)
+
 /**
  * Het haakpunt waarmee een module zijn getypeerde configuratieklasse bijdraagt aan het tenantbestand als `modules.<naam>`
  * (epic #499, "Core-seam"). Schema, loader, validator-CLI en de opstartvalidatie nemen elke bijdrage mee, zonder dat core
@@ -47,6 +52,15 @@ interface TenantModuleConfiguratie<T : Any> {
 
     /** Regels over de samenhang van de waarden, bovenop de vorm; wordt bij het laden en bij de validator-CLI toegepast. */
     fun valideer(configuratie: T): List<ModuleOvertreding> = emptyList()
+
+    /**
+     * Als [valideer], met de [context] van de tenant: voor een regel als "de koppeling die dit veld noemt bestaat". Een module
+     * overschrijft de ene of de andere; deze standaard geeft de context niet door.
+     */
+    fun valideer(
+        configuratie: T,
+        context: ModuleContext,
+    ): List<ModuleOvertreding> = valideer(configuratie)
 }
 
 /** De bijdragen van alle modules die op het klassenpad staan, gevalideerd op naam en vorm. */
@@ -62,7 +76,8 @@ class TenantModules private constructor(
     internal fun valideer(
         naam: String,
         configuratie: Any,
-    ): List<ModuleOvertreding> = (perNaam.getValue(naam) as TenantModuleConfiguratie<Any>).valideer(configuratie)
+        context: ModuleContext,
+    ): List<ModuleOvertreding> = (perNaam.getValue(naam) as TenantModuleConfiguratie<Any>).valideer(configuratie, context)
 
     companion object {
         private val NAAM = Regex("^[a-z][a-z0-9-]*$")
@@ -76,7 +91,7 @@ class TenantModules private constructor(
             return van(gevonden)
         }
 
-        /** Voor tests en voor wie de bijdragen zelf aanlevert; weigert een ongeldige of dubbele naam en een klasse zonder primaire constructor. */
+        /** Voor tests en voor wie de bijdragen zelf aanlevert; weigert een ongeldige of dubbele naam, een gedeelde klasse en een klasse zonder primaire constructor. */
         fun van(configuraties: List<TenantModuleConfiguratie<*>>): TenantModules {
             configuraties.forEach {
                 check(it.naam.matches(NAAM)) { "Modulenaam '${it.naam}' is ongeldig: kleine letters, cijfers en streepjes, beginnend met een letter" }
@@ -84,6 +99,10 @@ class TenantModules private constructor(
             }
             configuraties.groupBy { it.naam }.filterValues { it.size > 1 }.keys.firstOrNull()?.let {
                 error("Meerdere modules dragen de naam '$it' bij aan het tenantbestand")
+            }
+            // Een module zoekt zijn configuratie op klasse (TenantDefinition.module): twee modules met een klasse zouden elkaars gegevens lezen.
+            configuraties.groupBy { it.klasse }.values.firstOrNull { it.size > 1 }?.let { dubbel ->
+                error("De modules ${dubbel.joinToString { "'${it.naam}'" }} gebruiken dezelfde configuratieklasse; elke module heeft een eigen klasse")
             }
             return TenantModules(configuraties.sortedBy { it.naam })
         }

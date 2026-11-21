@@ -19,7 +19,6 @@ import kotlinx.coroutines.reactor.ReactorContext
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withContext
 import nl.nlportal.core.koppeling.KoppelingRegister
-import nl.nlportal.core.koppeling.naarKoppeling
 import nl.nlportal.core.tenancy.Betrouwbaarheidsniveau
 import nl.nlportal.core.tenancy.GeheimVerwijzing
 import nl.nlportal.core.tenancy.GeheimenBron
@@ -53,8 +52,15 @@ object TestTenants {
     /** Elk geheim lost op naar een lange testwaarde (lang genoeg voor een ZGW-JWT-sleutel); gebruik [geheimen] voor eigen waarden. */
     val ALLE_GEHEIMEN = GeheimenBron { "testwaarde-van-minstens-32-tekens-voor-${it.naam}" }
 
-    fun geheimen(vararg waarden: Pair<String, String>): GeheimenBron {
-        val perNaam = waarden.toMap()
+    /** De verwijzing naar het geheim [naam] van tenant [oin]: elk geheim valt onder de naamruimte van de OIN (`<oin>.<naam>`, ADR 0021 besluit 4). */
+    fun geheim(
+        naam: String,
+        oin: Oin = BOSRAND,
+    ) = GeheimVerwijzing("${oin.value}.$naam")
+
+    /** Een secret store met precies deze geheimen, op verwijzing (zie [geheim]). */
+    fun geheimen(vararg waarden: Pair<GeheimVerwijzing, String>): GeheimenBron {
+        val perNaam = waarden.associate { (verwijzing, waarde) -> verwijzing.naam to waarde }
         return GeheimenBron { perNaam[it.naam] }
     }
 
@@ -77,32 +83,32 @@ object TestTenants {
         modules = modules,
     )
 
-    /** Een koppeling naar [url] met een API-sleutel uit het geheim [geheim]; geef [auth] mee voor een ander type. */
+    /** Een koppeling naar [url] met een API-sleutel uit het geheim `<oin>.test-sleutel`; geef [auth] mee voor een ander type. */
     fun koppeling(
         url: String,
-        auth: TenantKoppelingAuth =
-            TenantKoppelingAuth(
-                type = TenantKoppelingAuthType.API_KEY,
-                headerNaam = "X-Api-Key",
-                waarde = GeheimVerwijzing("test-sleutel"),
-            ),
+        auth: TenantKoppelingAuth? = null,
         leverancier: String? = null,
         versie: String? = null,
-    ) = TenantKoppeling(url, auth, leverancier, versie)
+        oin: Oin = BOSRAND,
+    ) = TenantKoppeling(
+        url,
+        auth ?: TenantKoppelingAuth(type = TenantKoppelingAuthType.API_KEY, headerNaam = "X-Api-Key", waarde = geheim("test-sleutel", oin)),
+        leverancier,
+        versie,
+    )
 
     fun directory(vararg tenants: TenantDefinition) = TenantDirectory(tenants.toList())
 
-    /** Het register van [tenants], gebouwd zoals de runtime het doet, met de geheimen van [geheimen]. */
+    /**
+     * Het register van [tenants], gebouwd langs dezelfde route als de runtime ([KoppelingRegister.bouwUitTenants]): ook de regels voor
+     * koppelingen, de naamruimte en de aanwezigheid van elk geheim (ook in `modules`) gelden, zodat een moduletest geen tenant kan
+     * bouwen die het opstarten zou weigeren. De geheimen komen uit [geheimen].
+     */
     fun register(
         vararg tenants: TenantDefinition,
         geheimen: GeheimenBron = ALLE_GEHEIMEN,
         webClientBuilder: WebClient.Builder = WebClient.builder(),
-    ): KoppelingRegister =
-        KoppelingRegister.bouw(
-            emptyMap(),
-            webClientBuilder,
-            gemigreerd = tenants.associate { tenant -> tenant.oin to tenant.koppelingen.mapValues { (naam, koppeling) -> koppeling.naarKoppeling(tenant.oin, naam, geheimen) } },
-        )
+    ): KoppelingRegister = KoppelingRegister.bouwUitTenants(tenants.toList(), geheimen, webClientBuilder = webClientBuilder)
 
     /** Draait [blok] met [oin] als tenant in de coroutinecontext, zoals de tenantresolutie dat voor een request doet. */
     fun <T> metTenant(
