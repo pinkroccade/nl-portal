@@ -70,6 +70,9 @@ sealed interface Vertegenwoordigde {
  *
  * Alleen de authenticatiemodule bouwt een identiteit (ArchUnit-regel); alle andere modules lezen hem via
  * [PortalAuthentication.identiteit].
+ *
+ * Bewust nog niet aanwezig: de tenant (komt met het tenantmodel, #504) en het inlogmiddel en betrouwbaarheidsniveau
+ * van de gebruiker (komen met het realm-template, #505, want de claims bestaan nog niet).
  */
 data class Identiteit(
     val gebruiker: Gebruiker,

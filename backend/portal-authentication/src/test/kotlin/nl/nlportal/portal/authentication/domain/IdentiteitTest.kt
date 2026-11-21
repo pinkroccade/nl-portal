@@ -16,10 +16,12 @@
 package nl.nlportal.portal.authentication.domain
 
 import org.junit.jupiter.api.Assertions.assertEquals
+import org.junit.jupiter.api.Assertions.assertFalse
+import org.junit.jupiter.api.Assertions.assertNull
+import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertDoesNotThrow
 import org.springframework.security.authentication.AbstractAuthenticationToken
-import kotlin.test.assertFalse
 
 internal class IdentiteitTest {
     private val burger = Vertegenwoordigde.Burger("123456782")
@@ -59,7 +61,7 @@ internal class IdentiteitTest {
 
     @Test
     fun `the string form of an identity still names the gebruiker`() {
-        assertEquals(true, Identiteit(gebruiker, burger).toString().contains("subject-1"))
+        assertTrue(Identiteit(gebruiker, burger).toString().contains("subject-1"))
     }
 
     @Test
@@ -69,5 +71,13 @@ internal class IdentiteitTest {
         assertDoesNotThrow { authentication.toString() }
         assertFalse(authentication.toString().contains("geheim.token.waarde"))
         assertFalse(authentication.toString().contains("123456782"))
+    }
+
+    @Test
+    fun `the raw token is only reachable through bearerToken, not through credentials`() {
+        val authentication = PortalAuthentication(Identiteit(gebruiker, burger), "geheim.token.waarde", emptyList())
+
+        assertEquals("geheim.token.waarde", authentication.bearerToken)
+        assertNull(authentication.credentials)
     }
 }

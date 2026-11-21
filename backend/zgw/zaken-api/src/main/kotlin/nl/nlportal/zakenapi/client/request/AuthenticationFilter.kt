@@ -32,15 +32,15 @@ interface AuthenticationFilter<T : AuthenticationFilter<T>> {
     fun withAuthentication(authentication: PortalAuthentication): T {
         when (val vertegenwoordigde = authentication.identiteit.vertegenwoordigde) {
             is Vertegenwoordigde.Burger -> {
-                this.withBsn(vertegenwoordigde.identificatie)
+                this.withBsn(vertegenwoordigde.bsn)
             }
 
             is Vertegenwoordigde.Bedrijf -> {
                 val vestigingsNummer = vertegenwoordigde.vestigingsnummer
                 if (vestigingsNummer != null) {
-                    this.withKvkAndVestigingsNummer(vertegenwoordigde.identificatie, vestigingsNummer)
+                    this.withKvkAndVestigingsNummer(vertegenwoordigde.kvkNummer, vestigingsNummer)
                 } else {
-                    this.withKvk(vertegenwoordigde.identificatie)
+                    this.withKvk(vertegenwoordigde.kvkNummer)
                 }
                 //
             }

@@ -13,11 +13,19 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package nl.nlportal.architecture.fixtures.identity.clean
+package nl.nlportal.architecture.fixtures.identityvio.auth
 
-import nl.nlportal.architecture.fixtures.identity.auth.Identity
+import org.springframework.security.oauth2.jwt.Jwt
 
-/** Leest alleen de identiteit: geen overtreding. */
-class ReadsIdentity {
-    fun subjectOf(identity: Identity): String = identity.subject
+data class Identity(
+    val subject: String,
+)
+
+/** Houdt het ruwe token vast, zoals PortalAuthentication. */
+class Session(
+    val bearerToken: String,
+)
+
+class Builder {
+    fun build(jwt: Jwt) = Identity(jwt.subject.orEmpty())
 }

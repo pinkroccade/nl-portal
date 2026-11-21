@@ -17,10 +17,9 @@ package nl.nlportal.architecture
 
 import com.tngtech.archunit.core.importer.ClassFileImporter
 import com.tngtech.archunit.core.importer.ImportOption
-import org.assertj.core.api.Assertions.assertThatThrownBy
 import org.junit.jupiter.api.Test
 
-/** De identiteitsregels op de echte code, en het bewijs dat ze een overtreding vangen. */
+/** De identiteitsregels op de echte code. Het bewijs dat ze een overtreding vangen staat in [IdentityRulesProofTest]. */
 class IdentityRulesTest {
     private val classes =
         ClassFileImporter()
@@ -33,47 +32,17 @@ class IdentityRulesTest {
     }
 
     @Test
-    fun `no module outside authentication reads claims`() {
-        IdentityRules.production.noClaimReadsOutsideAuthentication().check(classes)
-    }
-
-    private val base = "nl.nlportal.architecture.fixtures.identity"
-    private val fixtureRules =
-        IdentityRules(
-            authenticationPackages = arrayOf("$base.auth.."),
-            identityTypes = setOf("$base.auth.Identity"),
-        )
-
-    private fun fixtures(pkg: String) = ClassFileImporter().importPackages("$base.auth", "$base.$pkg")
-
-    @Test
-    fun `the build rule fails when a module constructs an identity itself`() {
-        assertThatThrownBy { fixtureRules.onlyAuthenticationBuildsAnIdentity().check(fixtures("feature")) }
-            .isInstanceOf(AssertionError::class.java)
-            .hasMessageContaining("N-IDENTITEIT-BOUW")
-            .hasMessageContaining("BuildsIdentity")
+    fun `no module outside authentication handles tokens or claims`() {
+        IdentityRules.production.noTokenHandlingOutsideAuthentication().check(classes)
     }
 
     @Test
-    fun `the build rule fails when a module copies an identity`() {
-        assertThatThrownBy { fixtureRules.onlyAuthenticationBuildsAnIdentity().check(fixtures("feature")) }
-            .isInstanceOf(AssertionError::class.java)
-            .hasMessageContaining("CopiesIdentity")
+    fun `only the named readers use the raw bearer token`() {
+        IdentityRules.production.onlyNamedReadersUseTheBearerToken().check(classes)
     }
 
     @Test
-    fun `the read rule fails when a module reads claims from a token`() {
-        assertThatThrownBy { fixtureRules.noClaimReadsOutsideAuthentication().check(fixtures("feature")) }
-            .isInstanceOf(AssertionError::class.java)
-            .hasMessageContaining("N-IDENTITEIT-LEZEN")
-            .hasMessageContaining("ReadsClaims")
-    }
-
-    @Test
-    fun `a module that only reads the identity passes both rules, also with the authentication module reading claims`() {
-        val clean = fixtures("clean")
-
-        fixtureRules.onlyAuthenticationBuildsAnIdentity().check(clean)
-        fixtureRules.noClaimReadsOutsideAuthentication().check(clean)
+    fun `the authentication packages only exist in the authentication modules`() {
+        IdentityRules.production.authenticationPackagesStayInTheirModules().check(classes)
     }
 }

@@ -1082,7 +1082,7 @@ class OpenProductService(
                 listOf(
                     Pair(
                         OpenProductProductenFilters.EIGENAREN_BSN,
-                        vertegenwoordigde.identificatie,
+                        vertegenwoordigde.bsn,
                     ),
                 )
             }
@@ -1100,7 +1100,7 @@ class OpenProductService(
                     listOf(
                         Pair(
                             OpenProductProductenFilters.EIGENAREN_KVKNUMMER,
-                            vertegenwoordigde.identificatie,
+                            vertegenwoordigde.kvkNummer,
                         ),
                     )
                 }
@@ -1119,18 +1119,18 @@ class OpenProductService(
     ): Boolean =
         when (val vertegenwoordigde = authentication.identiteit.vertegenwoordigde) {
             is Vertegenwoordigde.Burger -> {
-                product.eigenaren.firstOrNull { it.bsn == vertegenwoordigde.identificatie } != null
+                product.eigenaren.firstOrNull { it.bsn == vertegenwoordigde.bsn } != null
             }
 
             is Vertegenwoordigde.Bedrijf -> {
                 val vestigingsNummer = vertegenwoordigde.vestigingsnummer
                 if (vestigingsNummer != null) {
                     product.eigenaren.firstOrNull {
-                        it.kvkNummer == vertegenwoordigde.identificatie &&
+                        it.kvkNummer == vertegenwoordigde.kvkNummer &&
                             it.vestigingsnummer == vestigingsNummer
                     } != null
                 } else {
-                    product.eigenaren.firstOrNull { it.kvkNummer == vertegenwoordigde.identificatie } != null
+                    product.eigenaren.firstOrNull { it.kvkNummer == vertegenwoordigde.kvkNummer } != null
                 }
             }
         }

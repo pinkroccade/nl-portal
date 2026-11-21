@@ -13,22 +13,42 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package nl.nlportal.architecture.fixtures.identity.feature
+package nl.nlportal.architecture.fixtures.identityvio.feature
 
-import nl.nlportal.architecture.fixtures.identity.auth.Identity
+import com.nimbusds.jwt.SignedJWT
+import nl.nlportal.architecture.fixtures.identityvio.auth.Identity
+import nl.nlportal.architecture.fixtures.identityvio.auth.Session
 import org.springframework.security.oauth2.jwt.Jwt
+import org.springframework.security.oauth2.server.resource.authentication.JwtAuthenticationToken
 
-/** Overtreding: bouwt zelf een identiteit. */
 class BuildsIdentity {
     fun forge() = Identity("forged")
 }
 
-/** Overtreding: past een identiteit aan. */
+class BuildsIdentityByReference {
+    fun factory(): (String) -> Identity = ::Identity
+}
+
 class CopiesIdentity {
     fun other(identity: Identity) = identity.copy(subject = "other")
 }
 
-/** Overtreding: leest zelf claims uit het token. */
 class ReadsClaims {
     fun subjectOf(jwt: Jwt): String? = jwt.subject
+}
+
+class ReadsTokenAttributes {
+    fun bsnOf(authentication: JwtAuthenticationToken): Any? = authentication.tokenAttributes["bsn"]
+}
+
+class ParsesBearerToken {
+    fun claimsOf(session: Session) = SignedJWT.parse(session.bearerToken).jwtClaimsSet
+}
+
+class ReadsClaimsByReference {
+    fun reader(): (Jwt) -> Map<String, Any> = Jwt::getClaims
+}
+
+class ReadsBearerToken {
+    fun tokenOf(session: Session): String = session.bearerToken
 }

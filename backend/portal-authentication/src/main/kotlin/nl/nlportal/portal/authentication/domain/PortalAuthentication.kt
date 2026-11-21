@@ -20,8 +20,9 @@ import org.springframework.security.core.GrantedAuthority
 import org.springframework.security.authentication.AbstractAuthenticationToken
 
 /**
- * De authenticatie van een ingelogde gebruiker. De enige leesroute naar de identiteit is [identiteit]; het
- * onderliggende token is niet toegankelijk, op de ruwe waarde voor doorgifte aan een bron na.
+ * De authenticatie van een ingelogde gebruiker. De enige leesroute naar de identiteit is [identiteit]. Het ruwe
+ * token is alleen via [bearerToken] bereikbaar, voor doorgifte aan een bron (ArchUnit: alleen haalcentraal-brp);
+ * [getCredentials] geeft het niet prijs.
  */
 class PortalAuthentication(
     val identiteit: Identiteit,
@@ -37,7 +38,7 @@ class PortalAuthentication(
 
     override val subject: String get() = identiteit.gebruiker.subject
 
-    override fun getCredentials(): Any = bearerToken
+    override fun getCredentials(): Any? = null
 
     override fun getPrincipal(): Any = identiteit.gebruiker.subject
 }

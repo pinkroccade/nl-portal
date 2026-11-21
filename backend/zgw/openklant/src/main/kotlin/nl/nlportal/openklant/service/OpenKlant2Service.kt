@@ -175,29 +175,19 @@ class OpenKlant2Service(
                         OpenKlant2PartijIdentificatorenFilters.PARTIJ_IDENTIFICATOR_CODEREGISTER to PartijIdentificatorCodeRegister.BRP.register,
                         OpenKlant2PartijIdentificatorenFilters.PARTIJ_IDENTIFICATOR_CODEOBJECTTYPE to PartijIdentificatorCodeType.NATUURLIJKPERSOON.type,
                         OpenKlant2PartijIdentificatorenFilters.PARTIJ_IDENTIFICATOR_CODESOORTOBJECTID to PartijIdentificatorCodeSoort.BSN.soort,
-                        OpenKlant2PartijIdentificatorenFilters.PARTIJ_IDENTIFICATOR_OBJECTID to vertegenwoordigde.identificatie,
+                        OpenKlant2PartijIdentificatorenFilters.PARTIJ_IDENTIFICATOR_OBJECTID to vertegenwoordigde.bsn,
                     )
                 }
 
                 is Vertegenwoordigde.Bedrijf -> {
-                    val vestigingsNummer = vertegenwoordigde.vestigingsnummer
-                    if (vestigingsNummer != null) {
-                        listOf(
-                            OpenKlant2PartijIdentificatorenFilters.PAGE to 1,
-                            OpenKlant2PartijIdentificatorenFilters.PARTIJ_IDENTIFICATOR_CODEREGISTER to PartijIdentificatorCodeRegister.HR.register,
-                            OpenKlant2PartijIdentificatorenFilters.PARTIJ_IDENTIFICATOR_CODEOBJECTTYPE to PartijIdentificatorCodeType.VESTIGING.type,
-                            OpenKlant2PartijIdentificatorenFilters.PARTIJ_IDENTIFICATOR_CODESOORTOBJECTID to PartijIdentificatorCodeSoort.VESTIGINGSNUMMER.soort,
-                            OpenKlant2PartijIdentificatorenFilters.PARTIJ_IDENTIFICATOR_OBJECTID to vestigingsNummer,
-                        )
-                    } else {
-                        listOf(
-                            OpenKlant2PartijIdentificatorenFilters.PAGE to 1,
-                            OpenKlant2PartijIdentificatorenFilters.PARTIJ_IDENTIFICATOR_CODEREGISTER to PartijIdentificatorCodeRegister.HR.register,
-                            OpenKlant2PartijIdentificatorenFilters.PARTIJ_IDENTIFICATOR_CODEOBJECTTYPE to PartijIdentificatorCodeType.NIETNATUURLIJKPERSOON.type,
-                            OpenKlant2PartijIdentificatorenFilters.PARTIJ_IDENTIFICATOR_CODESOORTOBJECTID to PartijIdentificatorCodeSoort.KVKNUMMER.soort,
-                            OpenKlant2PartijIdentificatorenFilters.PARTIJ_IDENTIFICATOR_OBJECTID to vertegenwoordigde.identificatie,
-                        )
-                    }
+                    val identificator = vertegenwoordigde.identificator()
+                    listOf(
+                        OpenKlant2PartijIdentificatorenFilters.PAGE to 1,
+                        OpenKlant2PartijIdentificatorenFilters.PARTIJ_IDENTIFICATOR_CODEREGISTER to PartijIdentificatorCodeRegister.HR.register,
+                        OpenKlant2PartijIdentificatorenFilters.PARTIJ_IDENTIFICATOR_CODEOBJECTTYPE to identificator.codeType.type,
+                        OpenKlant2PartijIdentificatorenFilters.PARTIJ_IDENTIFICATOR_CODESOORTOBJECTID to identificator.codeSoort.soort,
+                        OpenKlant2PartijIdentificatorenFilters.PARTIJ_IDENTIFICATOR_OBJECTID to identificator.objectId,
+                    )
                 }
             }
 
@@ -389,7 +379,7 @@ class OpenKlant2Service(
         when (val vertegenwoordigde = authentication.identiteit.vertegenwoordigde) {
             is Vertegenwoordigde.Burger -> {
                 OpenKlant2Identificator(
-                    objectId = vertegenwoordigde.identificatie,
+                    objectId = vertegenwoordigde.bsn,
                     codeSoortObjectId = PartijIdentificatorCodeSoort.BSN.soort,
                     codeObjecttype = PartijIdentificatorCodeType.NATUURLIJKPERSOON.type,
                     codeRegister = PartijIdentificatorCodeRegister.BRP.register,
@@ -397,22 +387,13 @@ class OpenKlant2Service(
             }
 
             is Vertegenwoordigde.Bedrijf -> {
-                val vestigingsNummer = vertegenwoordigde.vestigingsnummer
-                if (vestigingsNummer != null) {
-                    OpenKlant2Identificator(
-                        objectId = vestigingsNummer,
-                        codeSoortObjectId = PartijIdentificatorCodeSoort.VESTIGINGSNUMMER.soort,
-                        codeObjecttype = PartijIdentificatorCodeType.VESTIGING.type,
-                        codeRegister = PartijIdentificatorCodeRegister.HR.register,
-                    )
-                } else {
-                    OpenKlant2Identificator(
-                        objectId = vertegenwoordigde.identificatie,
-                        codeSoortObjectId = PartijIdentificatorCodeSoort.KVKNUMMER.soort,
-                        codeObjecttype = PartijIdentificatorCodeType.NIETNATUURLIJKPERSOON.type,
-                        codeRegister = PartijIdentificatorCodeRegister.HR.register,
-                    )
-                }
+                val identificator = vertegenwoordigde.identificator()
+                OpenKlant2Identificator(
+                    objectId = identificator.objectId,
+                    codeSoortObjectId = identificator.codeSoort.soort,
+                    codeObjecttype = identificator.codeType.type,
+                    codeRegister = PartijIdentificatorCodeRegister.HR.register,
+                )
             }
         }
 
@@ -421,23 +402,16 @@ class OpenKlant2Service(
             is Vertegenwoordigde.Burger -> {
                 listOf(
                     OpenKlant2PartijenFilters.SOORT_PARTIJ to authentication.asSoortPartij(),
-                    OpenKlant2PartijenFilters.PARTIJ_IDENTIFICATOR_OBJECT_ID to vertegenwoordigde.identificatie,
+                    OpenKlant2PartijenFilters.PARTIJ_IDENTIFICATOR_OBJECT_ID to vertegenwoordigde.bsn,
                 )
             }
 
             is Vertegenwoordigde.Bedrijf -> {
-                val vestigingsNummer = vertegenwoordigde.vestigingsnummer
-                if (vestigingsNummer != null) {
-                    listOf(
-                        OpenKlant2PartijenFilters.SOORT_PARTIJ to authentication.asSoortPartij(),
-                        OpenKlant2PartijenFilters.PARTIJ_IDENTIFICATOR_OBJECT_ID to vestigingsNummer,
-                    )
-                } else {
-                    listOf(
-                        OpenKlant2PartijenFilters.SOORT_PARTIJ to authentication.asSoortPartij(),
-                        OpenKlant2PartijenFilters.PARTIJ_IDENTIFICATOR_OBJECT_ID to vertegenwoordigde.identificatie,
-                    )
-                }
+                val identificator = vertegenwoordigde.identificator()
+                listOf(
+                    OpenKlant2PartijenFilters.SOORT_PARTIJ to authentication.asSoortPartij(),
+                    OpenKlant2PartijenFilters.PARTIJ_IDENTIFICATOR_OBJECT_ID to identificator.objectId,
+                )
             }
         }
 
@@ -451,29 +425,19 @@ class OpenKlant2Service(
                     OpenKlant2DigitaleAdressenFilters.VERSTREKTDOORPARTIJ_PARTIJ_IDENTIFICATOR_CODEREGISTER to PartijIdentificatorCodeRegister.BRP.register,
                     OpenKlant2DigitaleAdressenFilters.VERSTREKTDOORPARTIJ_PARTIJ_IDENTIFICATOR_CODEOBJECTTYPE to PartijIdentificatorCodeType.NATUURLIJKPERSOON.type,
                     OpenKlant2DigitaleAdressenFilters.VERSTREKTDOORPARTIJ_PARTIJ_IDENTIFICATOR_CODESOORTOBJECTID to PartijIdentificatorCodeSoort.BSN.soort,
-                    OpenKlant2DigitaleAdressenFilters.VERSTREKTDOORPARTIJ_PARTIJ_IDENTIFICATOR_OBJECTID to vertegenwoordigde.identificatie,
+                    OpenKlant2DigitaleAdressenFilters.VERSTREKTDOORPARTIJ_PARTIJ_IDENTIFICATOR_OBJECTID to vertegenwoordigde.bsn,
                 )
             }
 
             is Vertegenwoordigde.Bedrijf -> {
-                val vestigingsNummer = vertegenwoordigde.vestigingsnummer
-                if (vestigingsNummer != null) {
-                    listOf(
-                        OpenKlant2DigitaleAdressenFilters.PAGE to 1,
-                        OpenKlant2DigitaleAdressenFilters.VERSTREKTDOORPARTIJ_PARTIJ_IDENTIFICATOR_CODEREGISTER to PartijIdentificatorCodeRegister.HR.register,
-                        OpenKlant2DigitaleAdressenFilters.VERSTREKTDOORPARTIJ_PARTIJ_IDENTIFICATOR_CODEOBJECTTYPE to PartijIdentificatorCodeType.VESTIGING.type,
-                        OpenKlant2DigitaleAdressenFilters.VERSTREKTDOORPARTIJ_PARTIJ_IDENTIFICATOR_CODESOORTOBJECTID to PartijIdentificatorCodeSoort.VESTIGINGSNUMMER.soort,
-                        OpenKlant2DigitaleAdressenFilters.VERSTREKTDOORPARTIJ_PARTIJ_IDENTIFICATOR_OBJECTID to vestigingsNummer,
-                    )
-                } else {
-                    listOf(
-                        OpenKlant2DigitaleAdressenFilters.PAGE to 1,
-                        OpenKlant2DigitaleAdressenFilters.VERSTREKTDOORPARTIJ_PARTIJ_IDENTIFICATOR_CODEREGISTER to PartijIdentificatorCodeRegister.HR.register,
-                        OpenKlant2DigitaleAdressenFilters.VERSTREKTDOORPARTIJ_PARTIJ_IDENTIFICATOR_CODEOBJECTTYPE to PartijIdentificatorCodeType.NIETNATUURLIJKPERSOON.type,
-                        OpenKlant2DigitaleAdressenFilters.VERSTREKTDOORPARTIJ_PARTIJ_IDENTIFICATOR_CODESOORTOBJECTID to PartijIdentificatorCodeSoort.KVKNUMMER.soort,
-                        OpenKlant2DigitaleAdressenFilters.VERSTREKTDOORPARTIJ_PARTIJ_IDENTIFICATOR_OBJECTID to vertegenwoordigde.identificatie,
-                    )
-                }
+                val identificator = vertegenwoordigde.identificator()
+                listOf(
+                    OpenKlant2DigitaleAdressenFilters.PAGE to 1,
+                    OpenKlant2DigitaleAdressenFilters.VERSTREKTDOORPARTIJ_PARTIJ_IDENTIFICATOR_CODEREGISTER to PartijIdentificatorCodeRegister.HR.register,
+                    OpenKlant2DigitaleAdressenFilters.VERSTREKTDOORPARTIJ_PARTIJ_IDENTIFICATOR_CODEOBJECTTYPE to identificator.codeType.type,
+                    OpenKlant2DigitaleAdressenFilters.VERSTREKTDOORPARTIJ_PARTIJ_IDENTIFICATOR_CODESOORTOBJECTID to identificator.codeSoort.soort,
+                    OpenKlant2DigitaleAdressenFilters.VERSTREKTDOORPARTIJ_PARTIJ_IDENTIFICATOR_OBJECTID to identificator.objectId,
+                )
             }
         }
 
@@ -487,29 +451,19 @@ class OpenKlant2Service(
                     OpenKlant2KlantcontactenFilters.HADBETROKKENE_PARTIJ_IDENTIFICATOR_CODEREGISTER to PartijIdentificatorCodeRegister.BRP.register,
                     OpenKlant2KlantcontactenFilters.HADBETROKKENE_PARTIJ_IDENTIFICATOR_CODEOBJECTTYPE to PartijIdentificatorCodeType.NATUURLIJKPERSOON.type,
                     OpenKlant2KlantcontactenFilters.HADBETROKKENE_PARTIJ_IDENTIFICATOR_CODESOORTOBJECTID to PartijIdentificatorCodeSoort.BSN.soort,
-                    OpenKlant2KlantcontactenFilters.HADBETROKKENE_PARTIJ_IDENTIFICATOR_OBJECTID to vertegenwoordigde.identificatie,
+                    OpenKlant2KlantcontactenFilters.HADBETROKKENE_PARTIJ_IDENTIFICATOR_OBJECTID to vertegenwoordigde.bsn,
                 )
             }
 
             is Vertegenwoordigde.Bedrijf -> {
-                val vestigingsNummer = vertegenwoordigde.vestigingsnummer
-                if (vestigingsNummer != null) {
-                    listOf(
-                        OpenKlant2KlantcontactenFilters.PAGE to 1,
-                        OpenKlant2KlantcontactenFilters.HADBETROKKENE_PARTIJ_IDENTIFICATOR_CODEREGISTER to PartijIdentificatorCodeRegister.HR.register,
-                        OpenKlant2KlantcontactenFilters.HADBETROKKENE_PARTIJ_IDENTIFICATOR_CODEOBJECTTYPE to PartijIdentificatorCodeType.VESTIGING.type,
-                        OpenKlant2KlantcontactenFilters.HADBETROKKENE_PARTIJ_IDENTIFICATOR_CODESOORTOBJECTID to PartijIdentificatorCodeSoort.VESTIGINGSNUMMER.soort,
-                        OpenKlant2KlantcontactenFilters.HADBETROKKENE_PARTIJ_IDENTIFICATOR_OBJECTID to vestigingsNummer,
-                    )
-                } else {
-                    listOf(
-                        OpenKlant2KlantcontactenFilters.PAGE to 1,
-                        OpenKlant2KlantcontactenFilters.HADBETROKKENE_PARTIJ_IDENTIFICATOR_CODEREGISTER to PartijIdentificatorCodeRegister.HR.register,
-                        OpenKlant2KlantcontactenFilters.HADBETROKKENE_PARTIJ_IDENTIFICATOR_CODEOBJECTTYPE to PartijIdentificatorCodeType.NIETNATUURLIJKPERSOON.type,
-                        OpenKlant2KlantcontactenFilters.HADBETROKKENE_PARTIJ_IDENTIFICATOR_CODESOORTOBJECTID to PartijIdentificatorCodeSoort.KVKNUMMER.soort,
-                        OpenKlant2KlantcontactenFilters.HADBETROKKENE_PARTIJ_IDENTIFICATOR_OBJECTID to vertegenwoordigde.identificatie,
-                    )
-                }
+                val identificator = vertegenwoordigde.identificator()
+                listOf(
+                    OpenKlant2KlantcontactenFilters.PAGE to 1,
+                    OpenKlant2KlantcontactenFilters.HADBETROKKENE_PARTIJ_IDENTIFICATOR_CODEREGISTER to PartijIdentificatorCodeRegister.HR.register,
+                    OpenKlant2KlantcontactenFilters.HADBETROKKENE_PARTIJ_IDENTIFICATOR_CODEOBJECTTYPE to identificator.codeType.type,
+                    OpenKlant2KlantcontactenFilters.HADBETROKKENE_PARTIJ_IDENTIFICATOR_CODESOORTOBJECTID to identificator.codeSoort.soort,
+                    OpenKlant2KlantcontactenFilters.HADBETROKKENE_PARTIJ_IDENTIFICATOR_OBJECTID to identificator.objectId,
+                )
             }
         }
 
@@ -523,7 +477,7 @@ class OpenKlant2Service(
 
             is Vertegenwoordigde.Bedrijf -> {
                 OrganisatieIdentificatie(
-                    naam = vertegenwoordigde.identificatie,
+                    naam = vertegenwoordigde.kvkNummer,
                 )
             }
         }
@@ -536,6 +490,18 @@ class OpenKlant2Service(
             OnderwerpObjectIndentificatorType.ZAAK -> openKlantConfigurationProperties.klantContactCodeRegister?.zaak
             else -> null
         }
+
+    /** Hoe OpenKlant een bedrijf kent: de vestiging als het token er een heeft, anders het KvK-nummer. */
+    private data class BedrijfIdentificator(
+        val objectId: String,
+        val codeSoort: PartijIdentificatorCodeSoort,
+        val codeType: PartijIdentificatorCodeType,
+    )
+
+    private fun Vertegenwoordigde.Bedrijf.identificator() =
+        vestigingsnummer?.let {
+            BedrijfIdentificator(it, PartijIdentificatorCodeSoort.VESTIGINGSNUMMER, PartijIdentificatorCodeType.VESTIGING)
+        } ?: BedrijfIdentificator(kvkNummer, PartijIdentificatorCodeSoort.KVKNUMMER, PartijIdentificatorCodeType.NIETNATUURLIJKPERSOON)
 
     companion object {
         private val logger = KotlinLogging.logger {}

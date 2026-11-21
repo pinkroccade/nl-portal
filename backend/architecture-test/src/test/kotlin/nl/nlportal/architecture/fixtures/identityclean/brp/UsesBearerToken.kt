@@ -13,15 +13,11 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package nl.nlportal.architecture.fixtures.identity.auth
+package nl.nlportal.architecture.fixtures.identityclean.brp
 
-import org.springframework.security.oauth2.jwt.Jwt
+import nl.nlportal.architecture.fixtures.identityvio.auth.Session
 
-data class Identity(
-    val subject: String,
-)
-
-/** De authenticatiemodule mag een identiteit bouwen en claims lezen. */
-class Builder {
-    fun build(jwt: Jwt) = Identity(jwt.subject.orEmpty())
+/** Een benoemde lezer van het ruwe token (zoals haalcentraal-brp): geen overtreding. */
+class UsesBearerToken {
+    fun headerOf(session: Session): String = "Bearer ${session.bearerToken}"
 }

@@ -132,14 +132,14 @@ class OpenProductPrefillService(
             is Vertegenwoordigde.Burger -> {
                 OpenProductPrefillObjectIdentificatie(
                     type = OpenProductPrefillObjectIdentificatieType.BSN,
-                    value = vertegenwoordigde.identificatie,
+                    value = vertegenwoordigde.bsn,
                 )
             }
 
             is Vertegenwoordigde.Bedrijf -> {
                 OpenProductPrefillObjectIdentificatie(
                     type = OpenProductPrefillObjectIdentificatieType.KVK,
-                    value = vertegenwoordigde.identificatie,
+                    value = vertegenwoordigde.kvkNummer,
                 )
             }
         }
