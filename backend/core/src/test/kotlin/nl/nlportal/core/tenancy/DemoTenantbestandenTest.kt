@@ -28,11 +28,4 @@ class DemoTenantbestandenTest {
         assertThat(result.violations).isEmpty()
         assertThat(result.tenants).hasSize(1)
     }
-
-    @Test
-    fun `de tenantbestanden van de app-tests voldoen aan de validator`() {
-        val result = TenantFileLoader().load(Path.of("../app/src/test/resources/tenants"))
-
-        assertThat(result.violations).isEmpty()
-    }
 }

@@ -41,6 +41,8 @@ import java.util.concurrent.TimeoutException
  *
  * Een [WebClient] komt niet buiten deze klasse. Een pad of een URL die de bron teruggaf ([ResultPage.next]) wordt
  * alleen gevolgd onder de basis-URL van de koppeling (zie [HostBinding]); er worden geen headers of bodies gelogd.
+ * Een body is JSON (`Content-Type: application/json`), tenzij de aanroeper per aanroep zelf een content-type meegeeft (bijvoorbeeld
+ * `application/merge-patch+json`); bytes en streaming bouwt T14 als eigen pad.
  * Verkrijg een client via [KoppelingRegister.current].
  */
 class KoppelingClient internal constructor(
@@ -133,9 +135,12 @@ class KoppelingClient internal constructor(
             webClient
                 .method(methode)
                 .uri(doel)
-                .headers { koppen -> headers.forEach { (naam, waarde) -> koppen.set(naam, waarde) } }
-                // Json, en vooraf gezet: een koppeling die verzoeken ondertekent (gcs-v1-hmac) tekent het content-type mee.
-                .let { if (body != null) it.contentType(MediaType.APPLICATION_JSON).bodyValue(body) else it }
+                .headers { koppen ->
+                    headers.forEach { (naam, waarde) -> koppen.set(naam, waarde) }
+                    // Een body is json, tenzij de aanroeper zelf een content-type geeft. Vooraf gezet: een koppeling die verzoeken
+                    // ondertekent (gcs-v1-hmac) tekent het content-type mee, en dat staat anders pas na het filter op het verzoek.
+                    if (body != null && koppen.contentType == null) koppen.contentType = MediaType.APPLICATION_JSON
+                }.let { if (body != null) it.bodyValue(body) else it }
                 .exchangeToMono { antwoord -> if (antwoord.statusCode().is2xxSuccessful) succes(antwoord) else foutAntwoord(antwoord) }
                 .timeout(bewaker.timeout)
                 .onErrorMap { zetOm(it) }

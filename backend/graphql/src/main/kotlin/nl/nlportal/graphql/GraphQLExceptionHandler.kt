@@ -25,41 +25,69 @@ import nl.nlportal.core.tenancy.TenantContextMissingException
 import nl.nlportal.core.util.ModuleNotConfiguredException
 import org.springframework.graphql.execution.DataFetcherExceptionResolverAdapter
 
+/**
+ * Zet een fout van een data fetcher om in een GraphQL-fout. Wat de browser te zien krijgt staat op één plek, in [afhandeling]:
+ *
+ * | Fout | \`extensions.code\` | Melding naar de browser |
+ * |---|---|---|
+ * | [ModuleNotAvailableException] (module-flag uit) | \`MODULE_NIET_BESCHIKBAAR\` (met \`module\`) | de melding van de fout |
+ * | [ModuleNotConfiguredException] (geen moduleconfiguratie bij de tenant) | \`MODULE_NIET_GECONFIGUREERD\` | vaste tekst |
+ * | [TenantContextMissingException] (geen tenant bij het verzoek) | \`TENANT_ONTBREEKT\` | vaste tekst |
+ * | [KoppelingException] (de bron faalt) | \`KOPPELING_FOUT\` (met \`correlatieId\`) | de generieke melding van de fout |
+ * | overige | geen | de melding van de fout |
+ *
+ * De meldingen van [ModuleNotConfiguredException] en [TenantContextMissingException] bevatten de OIN of de naam van een instelling:
+ * die gaan alleen naar de log, nooit naar de browser. Codes zijn Nederlands en in hoofdletters; een nieuw type komt hier bij, op één plek.
+ */
 class GraphQLExceptionHandler : DataFetcherExceptionResolverAdapter() {
     override fun resolveToSingleError(
         ex: Throwable,
         env: DataFetchingEnvironment,
-    ): GraphQLError? =
-        GraphqlErrorBuilder
+    ): GraphQLError? {
+        val afhandeling = afhandeling(ex)
+        if (afhandeling?.detailsNaarLog == true) {
+            log.warn { "GraphQL-fout met configuratiedetails (alleen in de log): ${ex.message}" }
+        }
+        return GraphqlErrorBuilder
             .newError()
-            .message(melding(ex))
-            .also { error ->
-                when (ex) {
-                    is ModuleNotAvailableException -> error.extensions(mapOf("code" to "MODULE_NOT_AVAILABLE", "module" to ex.module))
-
-                    // Foutdetails van een bron gaan niet naar de browser: alleen een generieke code en de referentie voor de log.
-                    // De melding van een tenant- of moduleconfiguratiefout bevat de OIN of de naam van een instelling: die gaat alleen naar de log.
-                    is ModuleNotConfiguredException -> error.extensions(mapOf("code" to "MODULE_NIET_GECONFIGUREERD"))
-
-                    is TenantContextMissingException -> error.extensions(mapOf("code" to "TENANT_ONTBREEKT"))
-
-                    is KoppelingException -> error.extensions(mapOf("code" to "KOPPELING_FOUT", "correlatieId" to ex.correlatieId))
-                }
-            }.path(env.executionStepInfo.path)
+            .message(afhandeling?.melding ?: ex.message)
+            .also { error -> afhandeling?.let { error.extensions(it.extensions) } }
+            .path(env.executionStepInfo.path)
             .location(env.field.sourceLocation)
             .build()
+    }
 
-    private fun melding(ex: Throwable): String? =
+    /** Wat de browser van deze fout krijgt, of `null` voor een fout zonder eigen afhandeling. */
+    private fun afhandeling(ex: Throwable): Afhandeling? =
         when (ex) {
-            is ModuleNotConfiguredException, is TenantContextMissingException -> {
-                log.warn { "GraphQL-fout met configuratiedetails (alleen in de log): ${ex.message}" }
-                if (ex is ModuleNotConfiguredException) "De module is niet beschikbaar" else "De aanvraag kan niet worden verwerkt"
+            is ModuleNotAvailableException -> {
+                Afhandeling(extensions = mapOf("code" to "MODULE_NIET_BESCHIKBAAR", "module" to ex.module))
+            }
+
+            is ModuleNotConfiguredException -> {
+                Afhandeling("De module is niet beschikbaar", mapOf("code" to "MODULE_NIET_GECONFIGUREERD"), detailsNaarLog = true)
+            }
+
+            is TenantContextMissingException -> {
+                Afhandeling("De aanvraag kan niet worden verwerkt", mapOf("code" to "TENANT_ONTBREEKT"), detailsNaarLog = true)
+            }
+
+            // Foutdetails van een bron gaan niet naar de browser: alleen een generieke code en de referentie voor de log.
+            is KoppelingException -> {
+                Afhandeling(extensions = mapOf("code" to "KOPPELING_FOUT", "correlatieId" to ex.correlatieId))
             }
 
             else -> {
-                ex.message
+                null
             }
         }
+
+    /** [melding] is `null` als de melding van de fout zelf naar de browser mag; [detailsNaarLog]: de melding van de fout gaat alleen naar de log. */
+    private class Afhandeling(
+        val melding: String? = null,
+        val extensions: Map<String, Any>,
+        val detailsNaarLog: Boolean = false,
+    )
 
     private companion object {
         val log = KotlinLogging.logger {}

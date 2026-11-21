@@ -15,19 +15,27 @@
  */
 package nl.nlportal.graphql
 
+import ch.qos.logback.classic.Level
+import ch.qos.logback.classic.Logger
+import ch.qos.logback.classic.spi.ILoggingEvent
+import ch.qos.logback.core.read.ListAppender
 import graphql.language.SourceLocation
 import graphql.schema.DataFetchingEnvironment
 import nl.nlportal.core.koppeling.KoppelingException
 import nl.nlportal.core.koppeling.KoppelingFoutsoort
 import nl.nlportal.core.koppeling.KoppelingProblem
+import nl.nlportal.core.modulegate.ModuleNotAvailableException
 import nl.nlportal.core.tenancy.TenantContextMissingException
 import nl.nlportal.core.util.ModuleNotConfiguredException
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertFalse
+import org.junit.jupiter.api.Assertions.assertNull
+import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
 import org.mockito.Mockito.RETURNS_DEEP_STUBS
 import org.mockito.Mockito.mock
 import org.mockito.Mockito.`when`
+import org.slf4j.LoggerFactory
 
 class GraphQLExceptionHandlerTest {
     @Test
@@ -43,6 +51,41 @@ class GraphQLExceptionHandlerTest {
         assertEquals("De aanvraag kan niet worden verwerkt", tenantFout.message)
         assertEquals(mapOf("code" to "TENANT_ONTBREEKT"), tenantFout.extensions)
         assertFalse(moduleFout.toSpecification().toString().contains("00000099000000000001"))
+    }
+
+    @Test
+    fun `een module die uit staat geeft de code MODULE_NIET_BESCHIKBAAR met de modulenaam en de eigen melding`() {
+        val fout = GraphQLExceptionHandler().resolveException(ModuleNotAvailableException("berichten"), env).block()!!.single()
+
+        assertEquals("Module 'berichten' is niet beschikbaar", fout.message)
+        assertEquals(mapOf("code" to "MODULE_NIET_BESCHIKBAAR", "module" to "berichten"), fout.extensions)
+    }
+
+    @Test
+    fun `een fout zonder eigen afhandeling houdt de eigen melding en krijgt geen code`() {
+        val fout = GraphQLExceptionHandler().resolveException(IllegalArgumentException("ongeldige invoer"), env).block()!!.single()
+
+        assertEquals("ongeldige invoer", fout.message)
+        assertNull(fout.extensions)
+    }
+
+    @Test
+    fun `de details van een configuratiefout gaan alleen naar de log`() {
+        val appender = ListAppender<ILoggingEvent>().apply { start() }
+        val logger = LoggerFactory.getLogger(GraphQLExceptionHandler::class.java) as Logger
+        logger.addAppender(appender)
+        try {
+            GraphQLExceptionHandler().resolveException(ModuleNotConfiguredException("payment-direct", "Tenant 00000099000000000001: modulegegevens"), env).block()
+
+            assertTrue(
+                appender.list
+                    .single { it.level == Level.WARN }
+                    .formattedMessage
+                    .contains("00000099000000000001"),
+            )
+        } finally {
+            logger.detachAppender(appender)
+        }
     }
 
     private val env: DataFetchingEnvironment =

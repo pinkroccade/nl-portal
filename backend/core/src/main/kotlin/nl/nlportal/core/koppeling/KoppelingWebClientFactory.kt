@@ -35,6 +35,7 @@ import java.time.ZoneOffset
 import java.time.ZonedDateTime
 import java.time.format.DateTimeFormatter
 import java.util.Base64
+import java.util.Locale
 import javax.crypto.Mac
 import javax.crypto.spec.SecretKeySpec
 
@@ -58,7 +59,8 @@ internal class KoppelingWebClientFactory(
         modulenaam: String,
         koppeling: Koppeling,
     ): WebClient {
-        val builder = basisBuilder().baseUrl(koppeling.url.requireConfigured(modulenaam, "url"))
+        val url = koppeling.url.requireConfigured(modulenaam, "url")
+        val builder = basisBuilder().baseUrl(url)
         if (koppeling.isOnbeveiligd()) {
             logger.warn { "Koppeling van module '$modulenaam' gebruikt http naar een publiek adres; gebruik https." }
         }
@@ -116,38 +118,50 @@ internal class KoppelingWebClientFactory(
             KoppelingAuthType.GCS_V1_HMAC -> {
                 val sleutelId = auth.clientId.requireConfigured(modulenaam, "auth.client-id")
                 val secret = auth.secret.requireConfigured(modulenaam, "auth.secret")
-                builder.filter(gcsHmac(sleutelId, secret, URI(koppeling.url!!).rawPath.orEmpty().trimEnd('/')))
+                builder.filter(gcsHmac(sleutelId, secret, URI(url).rawPath.orEmpty().trimEnd('/')))
             }
         }
         return builder.build()
     }
 
     /**
-     * Ondertekent elk verzoek volgens Worldline Direct (`GCS v1HMAC`): HMAC-SHA256 over methode, content-type, datum en pad (met query)
-     * relatief aan de basis-URL, gezet in `Authorization` naast een `Date`-header. Het content-type is dat van het verzoek, leeg als het ontbreekt.
+     * Ondertekent elk verzoek volgens Worldline Direct (`GCS v1HMAC`), op dezelfde manier als de Worldline-SDK
+     * (`V1HmacAuthenticator`): HMAC-SHA256 over methode, content-type (leeg als het ontbreekt), datum, de `X-GCS-*`-headers van het
+     * verzoek (naam in kleine letters, waarde met regeleinden vervangen door een spatie en getrimd, gesorteerd op naam) en het pad
+     * relatief aan de basis-URL. Het pad blijft gecodeerd, de query is gedecodeerd (zoals `URI.getQuery()` in de SDK).
+     * `Date` en `Authorization` worden gezet (vervangen, niet toegevoegd): een `Date` van de aanroeper telt niet.
      */
     private fun gcsHmac(
         sleutelId: String,
         secret: String,
         basisPad: String,
     ) = ExchangeFilterFunction.ofRequestProcessor { verzoek ->
-        val datum = DateTimeFormatter.RFC_1123_DATE_TIME.format(ZonedDateTime.now(klok).withZoneSameInstant(ZoneOffset.UTC))
-        val pad = verzoek.url().rawPath.removePrefix(basisPad) + (verzoek.url().rawQuery?.let { "?$it" } ?: "")
+        val datum = GCS_DATUM.format(ZonedDateTime.now(klok).withZoneSameInstant(ZoneOffset.UTC))
+        val pad = verzoek.url().rawPath.removePrefix(basisPad) + (verzoek.url().query?.let { "?$it" } ?: "")
         val contentType =
             verzoek
                 .headers()
                 .contentType
                 ?.toString()
                 .orEmpty()
-        val teOndertekenen = listOf(verzoek.method().name(), contentType, datum, pad).joinToString("\n", postfix = "\n")
+        val gcsHeaders =
+            verzoek
+                .headers()
+                .headerNames()
+                .flatMap { naam -> verzoek.headers()[naam].orEmpty().map { naam.lowercase(Locale.ENGLISH) to it.replace(HEADER_REGELEINDE, " ").trim() } }
+                .filter { (naam, _) -> naam.startsWith("x-gcs") }
+                .sortedBy { (naam, _) -> naam }
+                .map { (naam, waarde) -> "$naam:$waarde" }
+        val teOndertekenen = (listOf(verzoek.method().name(), contentType, datum) + gcsHeaders + pad).joinToString("\n", postfix = "\n")
         val mac = Mac.getInstance("HmacSHA256").apply { init(SecretKeySpec(secret.toByteArray(), "HmacSHA256")) }
         val handtekening = Base64.getEncoder().encodeToString(mac.doFinal(teOndertekenen.toByteArray()))
         Mono.just(
             ClientRequest
                 .from(verzoek)
-                .header(HttpHeaders.DATE, datum)
-                .header(HttpHeaders.AUTHORIZATION, "GCS v1HMAC:$sleutelId:$handtekening")
-                .build(),
+                .headers {
+                    it.set(HttpHeaders.DATE, datum)
+                    it.set(HttpHeaders.AUTHORIZATION, "GCS v1HMAC:$sleutelId:$handtekening")
+                }.build(),
         )
     }
 
@@ -201,6 +215,10 @@ internal class KoppelingWebClientFactory(
 
     private companion object {
         val logger = KotlinLogging.logger {}
+
+        /** IMF-fixdate (RFC 9110): tweecijferige dag, altijd Engelse namen en `GMT`. */
+        val GCS_DATUM: DateTimeFormatter = DateTimeFormatter.ofPattern("EEE, dd MMM yyyy HH:mm:ss 'GMT'", Locale.US)
+        val HEADER_REGELEINDE = Regex("\r?\n[\\s&&[^\r\n]]*")
         const val DEFAULT_GELDIGHEID_SECONDEN = 60L
         val MARGE: Duration = Duration.ofSeconds(30)
     }

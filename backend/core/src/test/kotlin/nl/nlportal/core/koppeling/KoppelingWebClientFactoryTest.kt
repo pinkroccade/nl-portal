@@ -169,6 +169,90 @@ class KoppelingWebClientFactoryTest {
         assertEquals("GCS v1HMAC:sleutel-id:uTl0tLOaD2j468udkpHhcvZxeGIe/NYIFZUMRcW4qIk=", verzoeken.last().headers().getFirst("Authorization"))
     }
 
+    private fun gcsKoppeling() =
+        koppeling {
+            auth.type = KoppelingAuthType.GCS_V1_HMAC
+            auth.clientId = "sleutel-id"
+            auth.secret = "geheime-sleutel"
+        }
+
+    // De literals hieronder zijn met Node-crypto uitgerekend over de tekst die de Worldline-SDK (V1HmacAuthenticator) ondertekent.
+    @Test
+    fun `gcs-v1-hmac ondertekent de query gedecodeerd zoals de Worldline-SDK`() {
+        factory
+            .webClient("testmodule", gcsKoppeling())
+            .get()
+            .uri {
+                it
+                    .path("/ping")
+                    .queryParam("a", "b c")
+                    .queryParam("d", "é")
+                    .build()
+            }.retrieve()
+            .bodyToMono(String::class.java)
+            .block()
+
+        assertEquals("/ping?a=b%20c&d=%C3%A9", verzoeken.last().url().rawPath + "?" + verzoeken.last().url().rawQuery)
+        assertEquals("GCS v1HMAC:sleutel-id:Fc+JFzTG+RmRKHOdjNv8QW6d1QshQwSbChIRcmFGLeg=", verzoeken.last().headers().getFirst("Authorization"))
+    }
+
+    @Test
+    fun `gcs-v1-hmac ondertekent X-GCS-headers in kleine letters, getrimd en gesorteerd op naam`() {
+        factory
+            .webClient("testmodule", gcsKoppeling())
+            .get()
+            .uri("/ping")
+            .header("X-GCS-Idempotence-Key", "  abc  ")
+            .header("X-GCS-ClientMetaInfo", "meta")
+            .header("Accept", "application/json")
+            .retrieve()
+            .bodyToMono(String::class.java)
+            .block()
+
+        assertEquals("GCS v1HMAC:sleutel-id:wraaQe08JenIxOH0n7jZtxnIwKJ9TYvt9VyyT7rS9Wc=", verzoeken.last().headers().getFirst("Authorization"))
+    }
+
+    @Test
+    fun `gcs-v1-hmac vervangt een Date van de aanroeper in plaats van er een toe te voegen`() {
+        factory
+            .webClient("testmodule", gcsKoppeling())
+            .get()
+            .uri("/ping")
+            .header("Date", "Mon, 01 Jan 2001 00:00:00 GMT")
+            .retrieve()
+            .bodyToMono(String::class.java)
+            .block()
+
+        val koppen = verzoeken.last().headers()
+        assertEquals(listOf("Tue, 17 Nov 2026 10:00:00 GMT"), koppen["Date"])
+        assertEquals("GCS v1HMAC:sleutel-id:uTl0tLOaD2j468udkpHhcvZxeGIe/NYIFZUMRcW4qIk=", koppen.getFirst("Authorization"))
+    }
+
+    @Test
+    fun `gcs-v1-hmac schrijft de dag in de datum met twee cijfers (RFC 9110)`() {
+        val factoryOp3November =
+            KoppelingWebClientFactory(
+                WebClient.builder().exchangeFunction(netwerk),
+                klok = Clock.fixed(Instant.parse("2026-11-03T10:00:00Z"), ZoneOffset.UTC),
+            )
+
+        roep(gcsKoppeling(), factoryOp3November.webClient("testmodule", gcsKoppeling()))
+
+        assertEquals("Tue, 03 Nov 2026 10:00:00 GMT", verzoeken.last().headers().getFirst("Date"))
+        assertEquals("GCS v1HMAC:sleutel-id:J2/jT9j0gUJJt6BL2EkTjX128LZebd9/pSjPeOJd6oE=", verzoeken.last().headers().getFirst("Authorization"))
+    }
+
+    @Test
+    fun `gcs-v1-hmac zonder url weigert met een melding over de url`() {
+        val zonderUrl = gcsKoppeling().apply { url = null }
+
+        val fout =
+            org.junit.jupiter.api
+                .assertThrows<nl.nlportal.core.util.ModuleNotConfiguredException> { factory.webClient("testmodule", zonderUrl) }
+
+        assertTrue(fout.message!!.contains("url"), fout.message)
+    }
+
     @Test
     fun `een vast bearer-token wordt als Authorization-header meegestuurd`() {
         val verzoek =

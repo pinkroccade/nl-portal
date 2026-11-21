@@ -620,6 +620,19 @@ class KoppelingClientTest {
         assertThat(verzoek.getHeader("Authorization")).isEqualTo("GCS v1HMAC:sleutel-id:$handtekening")
     }
 
+    @Test
+    fun `een content-type dat de aanroeper zelf meegeeft blijft staan, ook bij een koppeling zonder handtekening`() {
+        bron.enqueue(json("""{"id":"ok"}"""))
+        val register = register()
+
+        alsTenant(bosrand) {
+            register.current("zaken").patch("/zaken/1", Zaak("deel"), typeReferentie<Zaak>(), mapOf("content-type" to "application/merge-patch+json"))
+        }
+
+        val verzoek = bron.takeRequest()
+        assertThat(verzoek.headers.values("Content-Type")).containsExactly("application/merge-patch+json")
+    }
+
     // Overige bewerkingen
 
     @Test
