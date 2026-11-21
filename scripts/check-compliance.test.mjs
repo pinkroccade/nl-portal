@@ -125,3 +125,98 @@ test("negeert woorden die op een ID lijken maar er geen zijn, zoals N-SNAPSHOT",
 test("faalt als het register ontbreekt", () => {
   assert.throws(() => withRepo({ "site/x.md": "x" }, checkCompliance), /normatieve-bronnen\.md/);
 });
+
+const PRINCIPLES = "site/architectuur/principes.md";
+
+function principle({ id = "P-01", bron = "`N-ASVS-5.0`", toetsing = "CI-controle: `mise run compliance:check`" } = {}) {
+  return [
+    `### ${id} Security by design`,
+    "",
+    "**Statement:** Beveiliging is een ontwerpeis.",
+    "",
+    "**Rationale:** De portal verwerkt BSN.",
+    "",
+    "**Implications:** Elke wijziging wordt getoetst.",
+    "",
+    ...(bron === null ? [] : [`**Bron:** ${bron}`, ""]),
+    ...(toetsing === null ? [] : [`**Toetsing:** ${toetsing}`, ""]),
+  ].join("\n");
+}
+
+const principles = (...sections) => ["# Principes", "", "## Register", "", ...sections].join("\n");
+
+test("faalt op een principe zonder bron", () => {
+  const files = { ...ok, [PRINCIPLES]: principles(principle({ bron: null })) };
+  const result = withRepo(files, checkCompliance);
+  assert.equal(result.problems.length, 1);
+  assert.match(result.problems[0], /principes\.md: principe P-01 heeft geen bron/);
+});
+
+test("faalt op een principe zonder toetsing", () => {
+  const files = { ...ok, [PRINCIPLES]: principles(principle({ toetsing: null })) };
+  const result = withRepo(files, checkCompliance);
+  assert.equal(result.problems.length, 1);
+  assert.match(result.problems[0], /principe P-01 heeft geen toetsing/);
+});
+
+test("accepteert een principe met bron en toetsing", () => {
+  const files = { ...ok, [PRINCIPLES]: principles(principle()) };
+  assert.deepEqual(withRepo(files, checkCompliance).problems, []);
+});
+
+test("faalt op een principe waarvan de bron geen register-ID noemt", () => {
+  const files = { ...ok, [PRINCIPLES]: principles(principle({ bron: "AVG art. 25" })) };
+  const result = withRepo(files, checkCompliance);
+  assert.equal(result.problems.length, 1);
+  assert.match(result.problems[0], /principe P-01 noemt geen bron-ID uit .*normatieve-bronnen\.md/);
+});
+
+test("faalt op een toetsing die geen bekende soort noemt", () => {
+  const files = { ...ok, [PRINCIPLES]: principles(principle({ toetsing: "we letten erop" })) };
+  const result = withRepo(files, checkCompliance);
+  assert.equal(result.problems.length, 1);
+  assert.match(result.problems[0], /principe P-01 heeft een toetsing zonder soort \(ArchUnit-regel, .*Reviewpunt\)/);
+});
+
+test("faalt op een reviewpunt dat niet naar CODING_STANDARDS.md verwijst", () => {
+  const files = { ...ok, [PRINCIPLES]: principles(principle({ toetsing: "Reviewpunt: let op privacy" })) };
+  const result = withRepo(files, checkCompliance);
+  assert.equal(result.problems.length, 1);
+  assert.match(result.problems[0], /principe P-01 heeft een reviewpunt zonder verwijzing naar CODING_STANDARDS\.md/);
+});
+
+test("accepteert meerdere toetsingen, waaronder een reviewpunt met verwijzing", () => {
+  const toetsing = "ArchUnit-regel: `ArchitectureRules.cycleFree`; Reviewpunt: [privacy](../../CODING_STANDARDS.md#privacy)";
+  const files = { ...ok, [PRINCIPLES]: principles(principle({ toetsing })) };
+  assert.deepEqual(withRepo(files, checkCompliance).problems, []);
+});
+
+test("een bron zonder matrixrij is gedekt als een principe met geldige toetsing ernaar verwijst", () => {
+  const sourceB = "| `N-WCAG-2.2` | WCAG | 2.2 | 2026-11-21 | zelf gelezen |";
+  const files = {
+    [REGISTER_PATH]: register({ sources: [SOURCE_A, sourceB], matrix: [ROW_A] }),
+    [PRINCIPLES]: principles(principle({ bron: "`N-WCAG-2.2`" })),
+  };
+  assert.deepEqual(withRepo(files, checkCompliance).problems, []);
+});
+
+test("een principe zonder geldige toetsing dekt zijn bron niet", () => {
+  const sourceB = "| `N-WCAG-2.2` | WCAG | 2.2 | 2026-11-21 | zelf gelezen |";
+  const files = {
+    [REGISTER_PATH]: register({ sources: [SOURCE_A, sourceB], matrix: [ROW_A] }),
+    [PRINCIPLES]: principles(principle({ bron: "`N-WCAG-2.2`", toetsing: "Reviewpunt: zonder link" })),
+  };
+  const problems = withRepo(files, checkCompliance).problems.join("\n");
+  assert.match(problems, /bron N-WCAG-2\.2 heeft geen check of afwijkingsbesluit/);
+});
+
+test("faalt op een principe-ID dat in een ADR wordt genoemd maar niet in het register staat", () => {
+  const files = {
+    ...ok,
+    [PRINCIPLES]: principles(principle()),
+    "site/development/adr/0023-x.md": "Volgt P-01 en P-42.",
+  };
+  const result = withRepo(files, checkCompliance);
+  assert.equal(result.problems.length, 1);
+  assert.match(result.problems[0], /adr\/0023-x\.md: noemt principe P-42, dat niet in .*principes\.md staat/);
+});

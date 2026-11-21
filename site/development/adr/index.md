@@ -18,6 +18,11 @@ Geen ADR nodig voor: een bugfix, een naamgevingskeuze binnen één module, iets 
 [`site/architectuur/arc42`](../../architectuur/arc42/index.md) hoofdstuk 4 (oplossingsstrategie) staat beschreven zonder dat er een
 alternatief serieus is overwogen.
 
+## Voorgesteld
+
+- [ADR 0023: architectuurprincipes en toetsing](./0023-architectuurprincipes-en-toetsing.md): principeregister
+  in TOGAF-vorm, elk principe met een bron en een toetsing; wacht op beoordeling door de architect.
+
 ## Recent geaccepteerd (2026-11-21)
 
 - [ADR 0022: backend-for-frontend als authenticatiepatroon](./0022-backend-for-frontend-als-authenticatiepatroon.md):
