@@ -21,7 +21,7 @@ function commit(cwd, file, content, message) {
   git(cwd, ["commit", "-m", message]);
 }
 
-function initRepo() {
+function initRepo({ tag = true } = {}) {
   const dir = mkdtempSync(join(tmpdir(), "release-cut-rc-"));
   git(dir, ["init", "--quiet", "-b", "main"]);
   git(dir, ["config", "user.email", "test@example.com"]);
@@ -31,12 +31,12 @@ function initRepo() {
   git(dir, ["config", "commit.gpgsign", "false"]);
   git(dir, ["config", "tag.gpgsign", "false"]);
   commit(dir, "version.txt", "1.0.0\n", "chore: init");
-  git(dir, ["tag", "1.0.0"]);
+  if (tag) git(dir, ["tag", "1.0.0"]);
   return dir;
 }
 
-function runScript(cwd) {
-  return execFileSync(process.execPath, [SCRIPT], { cwd, encoding: "utf8" });
+function runScript(cwd, args = []) {
+  return execFileSync(process.execPath, [SCRIPT, ...args], { cwd, encoding: "utf8", stdio: "pipe" });
 }
 
 test("release:cut-rc cuts an rc branch with the right version and changelog", () => {
@@ -141,6 +141,50 @@ test("release:cut-rc on a release/<major>.x line bumps from that line's own last
     assert.match(changelog, /## \[1\.0\.1\]/);
     assert.match(changelog, /patch the thing/);
     assert.doesNotMatch(changelog, /rework thing/);
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
+});
+
+test("release:cut-rc --version forceert de versie, ook zonder eerdere tag", () => {
+  const dir = initRepo({ tag: false });
+  try {
+    commit(dir, "a.txt", "a", "feat(x): add thing");
+
+    const output = runScript(dir, ["--version", "0.1.0"]);
+    assert.match(output, /Cut rc\/0\.1\.0/);
+
+    assert.equal(git(dir, ["rev-parse", "--abbrev-ref", "HEAD"]), "rc/0.1.0");
+    assert.equal(readFileSync(join(dir, "version.txt"), "utf8"), "0.1.0\n");
+    const changelog = readFileSync(join(dir, "CHANGELOG.md"), "utf8");
+    assert.match(changelog, /## \[0\.1\.0\]/);
+    assert.match(changelog, /add thing/);
+    assert.equal(git(dir, ["status", "--porcelain"]), "");
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
+});
+
+test("release:cut-rc --version maakt ook een release zonder user-facing commits", () => {
+  const dir = initRepo();
+  try {
+    commit(dir, "a.txt", "a", "docs: write doc");
+    runScript(dir, ["--version", "1.0.1"]);
+    assert.equal(git(dir, ["rev-parse", "--abbrev-ref", "HEAD"]), "rc/1.0.1");
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
+});
+
+test("release:cut-rc --version weigert een ongeldige versie of een bestaande rc-branch", () => {
+  const dir = initRepo();
+  try {
+    commit(dir, "a.txt", "a", "feat(x): add thing");
+    assert.throws(() => runScript(dir, ["--version", "v1.1"]), /geen geldige SemVer-versie/);
+    assert.throws(() => runScript(dir, ["--version"]), /geen geldige SemVer-versie/);
+    git(dir, ["branch", "rc/1.1.0"]);
+    assert.throws(() => runScript(dir, ["--version", "1.1.0"]), /bestaat al/);
+    assert.equal(git(dir, ["rev-parse", "--abbrev-ref", "HEAD"]), "main");
   } finally {
     rmSync(dir, { recursive: true, force: true });
   }

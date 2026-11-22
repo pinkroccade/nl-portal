@@ -12,6 +12,7 @@ zit) en `site/likec4` (het diagrammodel).
 | [Threat-model werkblad](./threat-model-template.md) | STRIDE per nieuwe externe integratie |
 | [Spec-driven development](./spec-driven-development.md) | Hoe je nieuwe functionaliteit toevoegt, van issue tot PR |
 | [Epic-werkwijze](./epic-werkwijze.md) | Een epic met agents bouwen: integratiebranch, CI-poort per ticket, route per risicoklasse |
+| [Een release maken](./release.md) | RC snijden vanaf main en de release publiceren (release-cut, RC, release) |
 | [Module-flag](./module-gate-patroon.md) | Een backendmodule per request aan of uit zetten met een feature flag |
 | [Performancetesten](./performance-testing.md) | Lokaal meten met k6, baseline bijwerken en de nachtelijke resultaten lezen |
 | [Feature-spec sjabloon](./feature-spec-template.md) | Kopieer dit in een issue van deze repository |
