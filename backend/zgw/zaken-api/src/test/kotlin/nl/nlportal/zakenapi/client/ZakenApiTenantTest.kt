@@ -16,6 +16,7 @@
 package nl.nlportal.zakenapi.client
 
 import kotlinx.coroutines.test.runTest
+import nl.nlportal.catalogiapi.client.CatalogiApiClient
 import nl.nlportal.commonground.authentication.AuthenticationMachtigingsDienstService
 import nl.nlportal.commonground.authentication.JwtBuilder
 import nl.nlportal.core.koppeling.KoppelingException
@@ -28,7 +29,6 @@ import nl.nlportal.core.testing.TestTenants.BOSRAND
 import nl.nlportal.core.testing.TestTenants.WIJDE_VELD
 import nl.nlportal.documentenapi.service.DocumentenApiService
 import nl.nlportal.zakenapi.service.ZakenApiService
-import nl.nlportal.zgw.objectenapi.autoconfiguration.ObjectsApiClientConfig.ObjectsApiClientConfigProperties
 import nl.nlportal.zgw.objectenapi.client.ObjectsApiClient
 import nl.nlportal.zgw.objectenapi.service.ObjectenApiService
 import okhttp3.mockwebserver.Dispatcher
@@ -40,6 +40,7 @@ import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertThrows
+import org.springframework.web.server.ResponseStatusException
 import org.mockito.kotlin.any
 import org.mockito.kotlin.doReturn
 import org.mockito.kotlin.mock
@@ -92,14 +93,24 @@ class ZakenApiTenantTest {
     ): TenantDefinition =
         TestTenants.tenant(
             oin,
-            koppelingen = mapOf("zakenapi" to TestTenants.zgwKoppeling(url(bron), clientId, "zaken-secret", oin = oin)),
+            koppelingen =
+                mapOf(
+                    "zakenapi" to TestTenants.zgwKoppeling(url(bron), clientId, "zaken-secret", oin = oin),
+                    "catalogiapi" to TestTenants.zgwKoppeling(catalogiUrl(oin), clientId, "catalogi-secret", oin = oin),
+                ),
             modules = mapOf("zakenapi" to configuratie),
         )
 
     private fun client(
         vararg tenants: TenantDefinition,
         status: ModuleStatusRegistry = ModuleStatusRegistry(),
-    ) = ZakenApiClient(TestTenants.register(*tenants), TestTenants.directory(*tenants), { "https://catalogi.example.nl/catalogi/api/v1/zaaktypen/$it" }, status)
+    ): ZakenApiClient {
+        val register = TestTenants.register(*tenants)
+        return ZakenApiClient(register, TestTenants.directory(*tenants), CatalogiApiClient(register), status)
+    }
+
+    /** Elke tenant heeft een eigen Catalogi API; de URL is alleen een filterwaarde, de tests roepen hem niet aan. */
+    private fun catalogiUrl(oin: nl.nlportal.core.tenancy.Oin) = "https://catalogi-${oin.value}.example.nl"
 
     private fun clientClaim(authorization: String?): String? {
         val payload = authorization!!.removePrefix("Bearer ").split(".")[1]
@@ -230,7 +241,7 @@ class ZakenApiTenantTest {
             TestTenants.alsTenant(WIJDE_VELD) { service.getZaken(1, authentication = burger) }
 
             assertThat(bosrandBron.takeRequest().body.readUtf8())
-                .isEqualTo("""{"$BSN_PARAMETER":["$bsn"],"rol__omschrijvingGeneriek":["initiator"],"zaaktype__not_in":["https://catalogi.example.nl/catalogi/api/v1/zaaktypen/$uitgesloten"]}""")
+                .isEqualTo("""{"$BSN_PARAMETER":["$bsn"],"rol__omschrijvingGeneriek":["initiator"],"zaaktype__not_in":["${catalogiUrl(BOSRAND)}/catalogi/api/v1/zaaktypen/$uitgesloten"]}""")
             assertThat(wijdeVeldBron.takeRequest().body.readUtf8()).doesNotContain("zaaktype__not_in")
         }
 
@@ -255,6 +266,59 @@ class ZakenApiTenantTest {
 
             assertThat(resultaat.content.map { it.identificatie }).containsExactly("Z2")
             assertThat(resultaat.totalElements).isEqualTo(1)
+        }
+
+    @Test
+    fun `het filter op uitgesloten zaaktypen gebruikt de Catalogi-koppeling van elke tenant`() =
+        runTest {
+            val uitgesloten = "c2d3e114-bbe4-478d-80de-e8a8c8f8a948"
+            val configuratie = ZakenApiConfiguratie(uitgeslotenZaaktypen = listOf(uitgesloten))
+            val client = client(tenant(BOSRAND, bosrandBron, "bosrand", configuratie), tenant(WIJDE_VELD, wijdeVeldBron, "wijdeveld", configuratie))
+            val machtigingen = mock<AuthenticationMachtigingsDienstService> { on { zaakTypes(any()) } doReturn null }
+            val service = ZakenApiService(client, mock<DocumentenApiService>(), mock<ObjectenApiService>(), machtigingen)
+            bosrandBron.enqueue(leeg())
+            wijdeVeldBron.enqueue(leeg())
+            val burger = JwtBuilder().vertegenwoordigdeBsn(bsn).buildAuthentication()
+
+            TestTenants.alsTenant(BOSRAND) { service.getZaken(1, authentication = burger) }
+            TestTenants.alsTenant(WIJDE_VELD) { service.getZaken(1, authentication = burger) }
+
+            assertThat(bosrandBron.takeRequest().body.readUtf8()).contains("\"${catalogiUrl(BOSRAND)}/catalogi/api/v1/zaaktypen/$uitgesloten\"").doesNotContain(catalogiUrl(WIJDE_VELD))
+            assertThat(wijdeVeldBron.takeRequest().body.readUtf8()).contains("\"${catalogiUrl(WIJDE_VELD)}/catalogi/api/v1/zaaktypen/$uitgesloten\"").doesNotContain(catalogiUrl(BOSRAND))
+        }
+
+    @Test
+    fun `een zaak van een uitgesloten zaaktype geeft niet gevonden, ook als de bron de zaak teruggeeft`() =
+        runTest {
+            val uitgesloten = "c2d3e114-bbe4-478d-80de-e8a8c8f8a948"
+            val toegestaan = "5f1c9a3e-2b7d-4c58-9d6a-0e8f4b1a7c33"
+            val client = client(tenant(BOSRAND, bosrandBron, "bosrand", ZakenApiConfiguratie(uitgeslotenZaaktypen = listOf(uitgesloten))))
+            val machtigingen = mock<AuthenticationMachtigingsDienstService> { on { isAllowedZaakType(any(), any()) } doReturn true }
+            val service = ZakenApiService(client, mock<DocumentenApiService>(), mock<ObjectenApiService>(), machtigingen)
+            val zaakId = UUID.randomUUID()
+            val burger = JwtBuilder().vertegenwoordigdeBsn(bsn).buildAuthentication()
+
+            fun antwoorden(zaaktype: String) =
+                object : Dispatcher() {
+                    override fun dispatch(request: RecordedRequest) =
+                        if (request.requestUrl!!.encodedPath.endsWith("/rollen")) {
+                            pagina("""{"uuid":"a1b2c3d4-0000-4000-8000-000000000001","zaak":"x"}""", count = 1)
+                        } else {
+                            MockResponse()
+                                .setHeader("Content-Type", "application/json")
+                                .setBody(
+                                    """{"uuid":"$zaakId","url":"https://eigen.example.nl/zaken/$zaakId","identificatie":"Z1","omschrijving":"o",""" +
+                                        """"zaaktype":"https://eigen-catalogi.example.nl/catalogi/api/v1/zaaktypen/$zaaktype","startdatum":"2026-01-01","einddatum":null,"status":null}""",
+                                )
+                        }
+                }
+
+            bosrandBron.dispatcher = antwoorden(uitgesloten.uppercase())
+            val fout = TestTenants.alsTenant(BOSRAND) { assertThrows<ResponseStatusException> { service.getZaak(zaakId, burger) } }
+            assertThat(fout.statusCode.value()).isEqualTo(404)
+
+            bosrandBron.dispatcher = antwoorden(toegestaan)
+            assertThat(TestTenants.alsTenant(BOSRAND) { service.getZaak(zaakId, burger) }.identificatie).isEqualTo("Z1")
         }
 
     @Test
@@ -329,19 +393,16 @@ class ZakenApiTenantTest {
     fun `een object-URL uit een antwoord van de Zaken API op een andere host wordt niet gevolgd, ook niet met het token van de Objecten API`() =
         runTest {
             val client = client(tenant(BOSRAND, bosrandBron, "bosrand"))
-            val objectsApiClient = mock<ObjectsApiClient>()
-            val objecten = ObjectenApiService(objectsApiClient, ObjectsApiClientConfigProperties(URI.create("https://objecten.example.nl"), "token"))
+            val objecten = ObjectenApiService(ObjectsApiClient(TestTenants.register(tenant(BOSRAND, bosrandBron, "bosrand").let { it.copy(koppelingen = it.koppelingen + ("objectenapi" to TestTenants.koppeling("https://objecten.example.nl"))) })))
             val service = ZakenApiService(client, mock<DocumentenApiService>(), objecten, mock<AuthenticationMachtigingsDienstService>())
             val zaakObject =
                 """{"url":"http://z/1","uuid":"1","zaak":"http://z/zaak","object":"https://evil.example/api/v2/objects/1","objectType":"overige","objectTypeOverige":"portaalzaakdetails"}"""
             bosrandBron.enqueue(pagina(zaakObject))
 
             val zaakUrl = "https://zaken.example.nl/zaken/api/v1/zaken/2941048a-7290-4a78-8c4e-14feaec137dc"
-            val fout = TestTenants.alsTenant(BOSRAND) { assertThrows<IllegalArgumentException> { service.getZaakDetails(zaakUrl) } }
+            val fout = TestTenants.alsTenant(BOSRAND) { assertThrows<KoppelingException> { service.getZaakDetails(zaakUrl) } }
 
-            assertThat(fout.message).contains("andere host")
-
-            verify(objectsApiClient, never()).webClientWithoutBaseUrl()
+            assertThat(fout.soort).isEqualTo(nl.nlportal.core.koppeling.KoppelingFoutsoort.HOST_BINDING)
         }
 
     @Test
@@ -373,4 +434,108 @@ class ZakenApiTenantTest {
 
             assertThat(status.snapshot().single().status).isEqualTo(ModuleState.DEGRADED)
         }
+
+    private fun zaakBron(
+        zaakId: UUID,
+        zaaktypeUrl: String,
+    ) = object : Dispatcher() {
+        override fun dispatch(request: RecordedRequest): MockResponse {
+            val pad = request.requestUrl!!.encodedPath
+            return when {
+                pad.endsWith("/rollen") -> {
+                    pagina("""{"uuid":"a1b2c3d4-0000-4000-8000-000000000001","zaak":"x"}""", count = 1)
+                }
+
+                pad.contains("/zaakinformatieobjecten/") -> {
+                    MockResponse()
+                        .setHeader("Content-Type", "application/json")
+                        .setBody("""{"uuid":"$ZAAKDOCUMENT_ID","informatieobject":"https://eigen.example.nl/documenten/api/v1/enkelvoudiginformatieobjecten/$ZAAKDOCUMENT_ID","zaak":"https://eigen.example.nl/zaken/api/v1/zaken/$zaakId"}""")
+                }
+
+                else -> {
+                    MockResponse()
+                        .setHeader("Content-Type", "application/json")
+                        .setBody(
+                            """{"uuid":"$zaakId","url":"https://eigen.example.nl/zaken/$zaakId","identificatie":"Z1","omschrijving":"o",""" +
+                                """"zaaktype":"$zaaktypeUrl","startdatum":"2026-01-01","einddatum":null,"status":null}""",
+                        )
+                }
+            }
+        }
+    }
+
+    @Test
+    fun `een zaaktype-URL zonder UUID telt bij een directe aanvraag als uitgesloten`() =
+        runTest {
+            val client = client(tenant(BOSRAND, bosrandBron, "bosrand", ZakenApiConfiguratie(uitgeslotenZaaktypen = listOf("c2d3e114-bbe4-478d-80de-e8a8c8f8a948"))))
+            val machtigingen = mock<AuthenticationMachtigingsDienstService> { on { isAllowedZaakType(any(), any()) } doReturn true }
+            val service = ZakenApiService(client, mock<DocumentenApiService>(), mock<ObjectenApiService>(), machtigingen)
+            val zaakId = UUID.randomUUID()
+            bosrandBron.dispatcher = zaakBron(zaakId, "https://eigen-catalogi.example.nl/catalogi/api/v1/zaaktypen/geen-uuid")
+
+            val fout =
+                TestTenants.alsTenant(BOSRAND) {
+                    assertThrows<ResponseStatusException> { service.getZaak(zaakId, JwtBuilder().vertegenwoordigdeBsn(bsn).buildAuthentication()) }
+                }
+
+            assertThat(fout.statusCode.value()).isEqualTo(404)
+        }
+
+    @Test
+    fun `een zaaktype-URL zonder UUID komt niet in de lijst als er zaaktypen zijn uitgesloten`() =
+        runTest {
+            val client = client(tenant(BOSRAND, bosrandBron, "bosrand", ZakenApiConfiguratie(uitgeslotenZaaktypen = listOf("c2d3e114-bbe4-478d-80de-e8a8c8f8a948"))))
+            val service = ZakenApiService(client, mock<DocumentenApiService>(), mock<ObjectenApiService>(), mock<AuthenticationMachtigingsDienstService>())
+            val zaak =
+                """{"uuid":"a1b2c3d4-0000-4000-8000-000000000001","url":"https://eigen.example.nl/zaken/api/v1/zaken/a1b2c3d4-0000-4000-8000-000000000001",""" +
+                    """"identificatie":"Z1","omschrijving":"o","zaaktype":"https://eigen-catalogi.example.nl/catalogi/api/v1/zaaktypen/geen-uuid",""" +
+                    """"startdatum":"2026-01-01","einddatum":null,"status":null}"""
+            bosrandBron.enqueue(pagina(zaak, count = 1))
+
+            val resultaat = TestTenants.alsTenant(BOSRAND) { service.getZaken(1, authentication = JwtBuilder().vertegenwoordigdeBsn(bsn).buildAuthentication()) }
+
+            assertThat(resultaat.content).isEmpty()
+        }
+
+    @Test
+    fun `de inhoud van een document bij een zaak van een uitgesloten zaaktype is niet te downloaden`() =
+        runTest {
+            val uitgesloten = "c2d3e114-bbe4-478d-80de-e8a8c8f8a948"
+            val client = client(tenant(BOSRAND, bosrandBron, "bosrand", ZakenApiConfiguratie(uitgeslotenZaaktypen = listOf(uitgesloten))))
+            val machtigingen = mock<AuthenticationMachtigingsDienstService> { on { isAllowedZaakType(any(), any()) } doReturn true }
+            val documenten = mock<DocumentenApiService>()
+            val service = ZakenApiService(client, documenten, mock<ObjectenApiService>(), machtigingen)
+            bosrandBron.dispatcher = zaakBron(UUID.randomUUID(), "https://eigen-catalogi.example.nl/catalogi/api/v1/zaaktypen/$uitgesloten")
+
+            val fout =
+                TestTenants.alsTenant(BOSRAND) {
+                    assertThrows<ResponseStatusException> { service.getZaakDocumentContent(ZAAKDOCUMENT_ID, JwtBuilder().vertegenwoordigdeBsn(bsn).buildAuthentication()) }
+                }
+
+            assertThat(fout.statusCode.value()).isEqualTo(404)
+            verify(documenten, never()).getDocument(any())
+            verify(documenten, never()).getDocumentContentStreaming(any())
+        }
+
+    @Test
+    fun `de inhoud van een document bij een zaaktype waarvoor de gebruiker niet is gemachtigd is niet te downloaden`() =
+        runTest {
+            val client = client(tenant(BOSRAND, bosrandBron, "bosrand"))
+            val machtigingen = mock<AuthenticationMachtigingsDienstService> { on { isAllowedZaakType(any(), any()) } doReturn false }
+            val documenten = mock<DocumentenApiService>()
+            val service = ZakenApiService(client, documenten, mock<ObjectenApiService>(), machtigingen)
+            bosrandBron.dispatcher = zaakBron(UUID.randomUUID(), "https://eigen-catalogi.example.nl/catalogi/api/v1/zaaktypen/5f1c9a3e-2b7d-4c58-9d6a-0e8f4b1a7c33")
+
+            val fout =
+                TestTenants.alsTenant(BOSRAND) {
+                    assertThrows<ResponseStatusException> { service.getZaakDocumentContent(ZAAKDOCUMENT_ID, JwtBuilder().vertegenwoordigdeBsn(bsn).buildAuthentication()) }
+                }
+
+            assertThat(fout.statusCode.value()).isEqualTo(401)
+            verify(documenten, never()).getDocumentContentStreaming(any())
+        }
+
+    private companion object {
+        const val ZAAKDOCUMENT_ID = "9d3c2f64-6a1b-4e7a-8c55-1f0b7a2d4e90"
+    }
 }

@@ -19,9 +19,15 @@ import nl.nlportal.core.tenancy.GeheimenBron
 import nl.nlportal.core.tenancy.TenantDirectory
 import nl.nlportal.core.testing.TestTenants
 import nl.nlportal.core.testing.VasteTenantWebFilter
+import okhttp3.mockwebserver.MockWebServer
 import org.springframework.boot.test.context.TestConfiguration
 import org.springframework.context.annotation.Bean
 import org.springframework.core.env.Environment
+
+/** De nepserver die de Objecten API van de testtenant is; één per JVM, de ITs zetten er per test hun eigen dispatcher op. */
+object ObjectenTestServer {
+    val server: MockWebServer by lazy { MockWebServer().also { it.start() } }
+}
 
 /**
  * Voor de Spring-ITs van de module, zonder tenantresolutie: een tenant met payment-direct, waarvan de koppeling naar de nep-provider
@@ -30,7 +36,24 @@ import org.springframework.core.env.Environment
 @TestConfiguration
 class PaymentTestConfiguration {
     @Bean
-    fun tenantDirectory(environment: Environment): TenantDirectory = TestTenants.directory(PaymentTestTenants.tenant(TestTenants.BOSRAND, environment.getProperty("test.payment.url", "http://localhost:1").trimEnd('/')))
+    fun tenantDirectory(environment: Environment): TenantDirectory {
+        val tenant = PaymentTestTenants.tenant(TestTenants.BOSRAND, environment.getProperty("test.payment.url", "http://localhost:1").trimEnd('/'))
+        // De Objecten API van de tenant: de nepserver van [ObjectenTestServer], één per JVM.
+        return TestTenants.directory(
+            tenant.copy(
+                koppelingen =
+                    tenant.koppelingen + (
+                        "objectenapi" to
+                            TestTenants.koppeling(
+                                ObjectenTestServer.server
+                                    .url("/")
+                                    .toString()
+                                    .trimEnd('/'),
+                            )
+                    ),
+            ),
+        )
+    }
 
     @Bean
     fun geheimenBron(): GeheimenBron = PaymentTestTenants.geheimen(TestTenants.BOSRAND to PaymentTestTenants.WEBHOOK_GEHEIM)

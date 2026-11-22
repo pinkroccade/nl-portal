@@ -153,16 +153,7 @@ open class TaakService(
         return TaakV2.fromObjectsApi(updatedObjectsApiTask)
     }
 
-    private suspend inline fun <reified T> getObjectsApiTaak(taskId: UUID): ObjectsApiObject<T> {
-        val objectsApiTask = objectsApiClient.getObjectById<T>(taskId.toString())
-        if (objectsApiTask == null) {
-            throw ResponseStatusException(
-                HttpStatus.BAD_REQUEST,
-                String.format("Taak [%s] kan niet gevonden worden", taskId),
-            )
-        }
-        return objectsApiTask
-    }
+    private suspend inline fun <reified T> getObjectsApiTaak(taskId: UUID): ObjectsApiObject<T> = objectsApiClient.getObjectById<T>(taskId.toString())
 
     private suspend inline fun <reified T> getTakenResultPageV2(
         pageNumber: Int,

@@ -54,9 +54,16 @@ logging:
         org.springframework.security.oauth2: INFO
 
 nl-portal:
-    # De secret store van deze dev-app: het geheim van de koppeling `zakenapi` in het tenantbestand.
+    # De demo-tenant van de compose-stack (koppelingen en modulegegevens, zoals de Documenten API); de geheimen komen uit .env.properties.
+    tenancy:
+        directory: ${NL_PORTAL_TENANTS_DIRECTORY:../../docker-compose/imports/tenants}
+    # De secret store van deze dev-app: de geheimen van de koppelingen in het tenantbestand (zakenapi, catalogiapi, objectenapi en documenten).
     geheimen:
         "00000099000000000001.zaken-secret": ${OPENZAAK_NLPORTAL_SECRET}
+        "00000099000000000001.catalogiapi-secret": ${OPENZAAK_NLPORTAL_SECRET}
+        "00000099000000000001.documenten-api-secret": ${OPENZAAK_NLPORTAL_SECRET}
+        "00000099000000000001.objectenapi-token": Token ${OBJECTS_API_TOKEN}
+        "00000099000000000001.documenten-dummydoc-secret": ${OPENZAAK_NLPORTAL_SECRET}
     support:
         ping-endpoint:
             enabled: false
@@ -87,35 +94,8 @@ nl-portal:
                 secret: ${OPENZAAK_NLPORTAL_SECRET}
         catalogiapi:
             enabled: true
-            properties:
-                url: http://localhost:8001
-                clientId: nl-portal
-                secret: ${OPENZAAK_NLPORTAL_SECRET}
         documentenapis:
             enabled: true
-            properties:
-                default-document-api: openzaak
-                vertrouwelijkheidsaanduiding-whitelist:
-                    - openbaar
-                    - beperkt_openbaar
-                    - intern
-                    - zaakvertrouwelijk
-                    - vertrouwelijk
-                    - confidentieel
-                    - geheim
-                    - zeer_geheim
-                status-whitelist:
-                    - ter_vaststelling
-                    - in_bewerking
-                    - definitief
-                    - gearchiveerd
-                configurations:
-                    openzaak:
-                        url: http://localhost:8001/documenten/api/v1
-                        clientId: nl-portal
-                        secret: ${OPENZAAK_NLPORTAL_SECRET}
-                        rsin: "051845623"
-                        documentTypeUrl: http://localhost:8001/catalogi/api/v1/informatieobjecttypen/36e40d95-e411-4884-b08f-e5864ec8167f
         virusscan:
             clamav:
                 enabled: true
@@ -126,9 +106,6 @@ nl-portal:
             enabled: true
         objectenapi:
             enabled: true
-            properties:
-                url: http://localhost:8010
-                token: ${OBJECTS_API_TOKEN}
         openklant2:
             enabled: true
             properties:
@@ -138,7 +115,9 @@ nl-portal:
         haalcentraal-brp:
             enabled: true
         kvk:
-            enabled: true
+            # Uit zolang het demo-tenantbestand (docker-compose/imports/tenants) het blok `koppelingen.kvk` in commentaar heeft: aan zonder
+            # die koppeling weigert het opstarten. Zet hem aan zodra de koppeling in het tenantbestand staat.
+            enabled: false
         taak:
             enabled: true
             properties:

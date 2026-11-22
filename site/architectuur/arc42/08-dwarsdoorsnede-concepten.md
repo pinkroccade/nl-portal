@@ -176,7 +176,7 @@ via een rolling update wordt uitgerold, niet via hot reload; een andere OpenFeat
   dezelfde koppeling: schema, host, poort en padprefix; anders een fout zonder aanroep en dus zonder credentials;
   redirects worden nooit gevolgd: de connector van elke koppeling staat in code op niet-volgen, onafhankelijk van `spring.http.clients.redirects`; padtekens `;` en gecodeerde `/`, `\`, NUL en `%` worden geweigerd), en een limiet op gelijktijdige aanroepen plus een circuit breaker per tenant en
   koppeling (Resilience4j; standaardwaarden onder `nl-portal.koppeling-resilience`; alleen storingen van de bron
-  tellen, een 4xx of eigen weigering niet). Een client hoort bij één tenant en weigert een aanroep in de context van een andere tenant. Er worden geen headers of bodies gelogd en foutdetails van een bron gaan niet naar de
+  tellen, een 4xx of eigen weigering niet). Een grote download (`getStream`) heeft een eigen limiet (`maxGelijktijdigeStromen`), zodat lopende downloads de metadata-aanroepen niet verdringen; de circuit breaker en de timeout beoordelen alleen tot de eerste respons, daarna geldt een stiltetimeout tussen twee brokken die niet als storing van de bron telt. Een client hoort bij één tenant en weigert een aanroep in de context van een andere tenant. Er worden geen headers of bodies gelogd en foutdetails van een bron gaan niet naar de
   browser: het bericht van een `KoppelingException` is generiek met een correlatie-ID, en de GraphQL-foutafhandelaar
   toont alleen dat. Koppelingen staan per tenant in het tenantbestand (`koppelingen.<naam>`, zie de volgende bullet); het register bouwt `perTenant` uit `TenantDefinition.koppelingen`.
   Tussenfase (tot de laatste module is gemigreerd): een nog niet gemigreerde module leest nog `nl-portal.koppelingen` (bij meer dan één tenant weigert het opstarten); dezelfde naam in het tenantbestand en in `nl-portal.koppelingen` weigert het opstarten. De migratie van elke module (T9 tot en met T21) haalt ook zijn
@@ -201,6 +201,11 @@ via een rolling update wordt uitgerold, niet via hot reload; een andere OpenFeat
   `ModuleContext` geeft een module naast de koppelingnamen ook de auth-headernamen per koppeling, zodat een moduleregel een botsing bij het opstarten weigert.
   Een gemigreerde module registreert een `VervallenProperties`-bean met haar oude prefix: staat daar nog iets gezet (ook als omgevingsvariabele), dan weigert het opstarten met een verwijzing naar `modules.<naam>`.
   `GraphQLExceptionHandler` toont een module- of tenantfout (`ModuleNotConfiguredException`, `TenantContextMissingException`, `KoppelingConfiguratieException`) met een generieke code en melding; de details staan alleen in de log.
+- **Catalogi API per tenant en zaaktype-uitsluiting.** De Catalogi API is een gewone koppeling per tenant (`koppelingen.catalogiapi`, geen `modules.catalogiapi`);
+  `CatalogiApiClient` haalt per aanroep `register.current("catalogiapi")` op en bewaart niets. De uitgesloten zaaktypen (`modules.zakenapi.uitgeslotenZaaktypen`) werken op drie plekken:
+  het bronfilter `zaaktype__not_in` met zaaktype-URL's uit de Catalogi-koppeling van de tenant, een nafilter op zaaktype-UUID in de lijst, en een controle in `getZaak` en in de
+  documentdownload (404, ook als de bron de zaak teruggeeft). Een zaaktype-URL zonder herkenbare UUID geldt als uitgesloten (gesloten falen). De koppeling-URL moet gelijk zijn aan de
+  canonieke zaaktype-URL's in de Zaken API; anders filtert de bron niets en corrigeert alleen het nafilter, waardoor het totaal en de paginering afwijken.
 - **Drie lagen configuratie.** Het *tenantbestand* (Git: domeinen, URL's, thema, verwijzingen naar secrets;
   rolling restart), de *flag* (alleen aan/uit per module en tenant; `ops.<module>.enabled`, ook via een rolling restart) en de *secret store* (de secrets
   zelf, via ESO). Een module is bruikbaar als configuratie aanwezig is én de flag aanstaat. Zie

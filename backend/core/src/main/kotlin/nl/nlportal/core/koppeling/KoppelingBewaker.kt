@@ -24,13 +24,17 @@ import io.github.resilience4j.circuitbreaker.CircuitBreakerConfig
 import io.github.resilience4j.reactor.bulkhead.operator.BulkheadOperator
 import io.github.resilience4j.reactor.circuitbreaker.operator.CircuitBreakerOperator
 import org.springframework.boot.context.properties.ConfigurationProperties
+import reactor.core.publisher.Flux
 import reactor.core.publisher.Mono
 import java.time.Duration
+import java.util.concurrent.TimeUnit
+import java.util.concurrent.atomic.AtomicBoolean
 
 /** De standaardwaarden onder `nl-portal.koppeling-resilience` voor de limiet, de circuit breaker en de timeout van elke tenant en koppeling. */
 @ConfigurationProperties(prefix = "nl-portal.koppeling-resilience")
 data class KoppelingResilienceInstellingen(
     val maxGelijktijdig: Int = 25,
+    val maxGelijktijdigeStromen: Int = 10,
     val maxWachttijd: Duration = Duration.ZERO,
     val timeout: Duration = Duration.ofSeconds(30),
     val foutPercentage: Float = 50f,
@@ -61,6 +65,16 @@ internal class KoppelingBewaker(
                 .build(),
         )
 
+    private val stroomBulkhead =
+        Bulkhead.of(
+            "$instantieNaam:stroom",
+            BulkheadConfig
+                .custom()
+                .maxConcurrentCalls(instellingen.maxGelijktijdigeStromen)
+                .maxWaitDuration(Duration.ZERO)
+                .build(),
+        )
+
     private val circuitBreaker =
         CircuitBreaker.of(
             instantieNaam,
@@ -83,4 +97,40 @@ internal class KoppelingBewaker(
             .onErrorMap(BulkheadFullException::class.java) { KoppelingException.gesynthetiseerd(koppeling, KoppelingFoutsoort.LIMIET, cause = it) }
             .transformDeferred(CircuitBreakerOperator.of(circuitBreaker))
             .onErrorMap(CallNotPermittedException::class.java) { KoppelingException.gesynthetiseerd(koppeling, KoppelingFoutsoort.CIRCUIT_OPEN, cause = it) }
+
+    /**
+     * Als [beschermd], voor een stroom, met twee verschillen. Een stroom heeft een eigen limiet (`maxGelijktijdigeStromen`), zodat
+     * lopende downloads de metadata-aanroepen niet verdringen. En de circuit breaker beoordeelt alleen de fase tot de eerste respons
+     * (status en headers): wat daarna gebeurt, zoals een trage of afgebroken afnemer, zegt niets over de gezondheid van de bron.
+     * Bouw de stroom met [StroomFase.koptekstOntvangen] aangeroepen zodra een succesvolle respons binnen is. De plek in de limiet
+     * komt vrij bij klaar, fout en annuleren.
+     */
+    fun <T : Any> beschermdStroom(bouw: (StroomFase) -> Flux<T>): Flux<T> =
+        Flux.defer {
+            if (!stroomBulkhead.tryAcquirePermission()) {
+                return@defer Flux.error(KoppelingException.gesynthetiseerd(koppeling, KoppelingFoutsoort.LIMIET))
+            }
+            if (!circuitBreaker.tryAcquirePermission()) {
+                stroomBulkhead.onComplete()
+                return@defer Flux.error(KoppelingException.gesynthetiseerd(koppeling, KoppelingFoutsoort.CIRCUIT_OPEN))
+            }
+            val start = System.nanoTime()
+            val oordeel = AtomicBoolean(false)
+            val fase =
+                StroomFase {
+                    if (oordeel.compareAndSet(false, true)) circuitBreaker.onSuccess(System.nanoTime() - start, TimeUnit.NANOSECONDS)
+                }
+            bouw(fase)
+                .doOnError { fout -> if (oordeel.compareAndSet(false, true)) circuitBreaker.onError(System.nanoTime() - start, TimeUnit.NANOSECONDS, fout) }
+                .doFinally {
+                    stroomBulkhead.onComplete()
+                    // Annuleren vóór de eerste respons: geen oordeel, de plek (ook in halfopen) gaat terug.
+                    if (oordeel.compareAndSet(false, true)) circuitBreaker.releasePermission()
+                }
+        }
+}
+
+/** Het moment waarop een stroom zijn eerste respons kreeg; daarna oordeelt de circuit breaker niet meer. */
+internal fun interface StroomFase {
+    fun koptekstOntvangen()
 }

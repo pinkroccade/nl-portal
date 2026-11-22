@@ -62,16 +62,13 @@ modules:
     omvang: S
     risico: laag
     toelichting: Client per tenant.
-    signalen:
-      config: CatalogiApiConfig is een singleton.
-      webclient: Client bouwt zelf een WebClient; hoort in de gedeelde zgw-client (ADR 0002).
+    signalen: {}
   ":zgw:documenten-api":
     omvang: M
-    risico: hoog
-    toelichting: Configuratiemap per tenant; de contains-match op document-URL kan de verkeerde tenantconfiguratie kiezen.
+    risico: middel
+    toelichting: Gegevens en koppelingen per tenant via het tenantbestand en KoppelingClient; een document-URL kiest de document-API met een exacte match van de basis-URL van de tenant.
     signalen:
-      config: DocumentApisConfig is een singleton.
-      webclient: Client bouwt zelf een WebClient per aanroep.
+      config: ClamAVVirusScanConfig (de virusscanner) is een singleton; de scanner is gedeelde infrastructuur van de cel, geen tenantgegeven.
   ":zgw:openklant":
     omvang: M
     risico: middel
@@ -103,10 +100,8 @@ modules:
   ":zgw:objectenapi":
     omvang: M
     risico: hoog
-    toelichting: Client per tenant; getObjectByUrl stuurt de token naar elke binnenkomende URL (tokenlek naar andere host).
-    signalen:
-      config: ObjectsApiClientConfig is een singleton.
-      webclient: Client bouwt zelf een WebClient per aanroep.
+    toelichting: Client per tenant via het register; getObjectByUrl loopt via HostBinding, dus geen token naar een andere host.
+    signalen: {}
   ":zgw:taak":
     omvang: S
     risico: middel
@@ -132,11 +127,9 @@ modules:
     signalen: {}
   ":kvk":
     omvang: S
-    risico: middel
-    toelichting: Client per tenant.
-    signalen:
-      config: KvkConfig is een singleton.
-      webclient: Client bouwt zelf een WebClient.
+    risico: laag
+    toelichting: Gemigreerd (T10 #509); de bron is de koppeling kvk van de tenant (url en sleutel in het tenantbestand), er is geen eigen moduleconfiguratie.
+    signalen: {}
   ":app":
     omvang: M
     risico: middel

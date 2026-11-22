@@ -16,10 +16,10 @@
 package nl.nlportal.payment.direct.api
 
 import nl.nlportal.payment.direct.TestHelper
+import nl.nlportal.payment.direct.ObjectenTestServer
 import nl.nlportal.payment.direct.PaymentTestConfiguration
 import nl.nlportal.payment.direct.PaymentTestTenants
 import nl.nlportal.payment.direct.service.DirectPaymentService
-import nl.nlportal.zgw.objectenapi.autoconfiguration.ObjectsApiClientConfig
 import okhttp3.mockwebserver.Dispatcher
 import okhttp3.mockwebserver.MockResponse
 import okhttp3.mockwebserver.MockWebServer
@@ -47,21 +47,17 @@ import nl.nlportal.payment.direct.service.WebhookHandtekeningen
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 internal class DirectPaymentControllerIT(
     @Autowired private val webTestClient: WebTestClient,
-    @Autowired private val objectsApiClientConfig: ObjectsApiClientConfig,
 ) {
     lateinit var server: MockWebServer
 
     @BeforeEach
     internal fun setUp() {
-        server = MockWebServer()
+        server = ObjectenTestServer.server
         setupMockObjectsApiServer()
-        server.start()
-        objectsApiClientConfig.properties.url = server.url("/").toUri()
     }
 
     @AfterEach
     internal fun tearDown() {
-        server.shutdown()
     }
 
     @Test

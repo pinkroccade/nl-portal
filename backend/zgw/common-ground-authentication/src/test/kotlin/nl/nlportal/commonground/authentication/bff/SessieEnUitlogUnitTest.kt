@@ -40,7 +40,7 @@ import java.net.URLDecoder
 import java.nio.file.Path
 import java.time.Duration
 
-/** Het demo-tenantbestand heeft `modules.brp` en `modules.zakenapi`; de modules zelf zitten niet in deze module, dus minimale bijdragen voor de loader. */
+/** Het demo-tenantbestand heeft `modules.brp`, `modules.zakenapi` en `modules.documenten-api`; de modules zelf zitten niet in deze module, dus minimale bijdragen voor de loader. */
 data class BrpConfiguratieVoorTest(
     val toegestaneWoonplaatsenBewoning: List<String> = emptyList(),
 )
@@ -48,6 +48,23 @@ data class BrpConfiguratieVoorTest(
 data class ZakenApiConfiguratieVoorTest(
     val nnpKvkQueryIdentificatoren: Boolean = false,
 )
+
+data class DocumentenApiConfiguratieVoorTest(
+    val standaardDocumentApi: String,
+    val documentApis: Map<String, DocumentApiConfiguratieVoorTest>,
+    val vertrouwelijkheidsaanduidingWitlijst: List<String> = emptyList(),
+    val statusWitlijst: List<String> = emptyList(),
+)
+
+data class DocumentApiConfiguratieVoorTest(
+    val rsin: String? = null,
+    val documentTypeUrl: String? = null,
+)
+
+private object DocumentenApiVoorTest : TenantModuleConfiguratie<DocumentenApiConfiguratieVoorTest> {
+    override val naam = "documenten-api"
+    override val klasse = DocumentenApiConfiguratieVoorTest::class
+}
 
 private object ZakenApiVoorTest : TenantModuleConfiguratie<ZakenApiConfiguratieVoorTest> {
     override val naam = "zakenapi"
@@ -70,7 +87,7 @@ class SessieEnUitlogUnitTest {
     private val store = InMemoryWebSessionStore().also { it.setClock(klok) }
     private val idResolver = CookieWebSessionIdResolver().also { it.cookieName = BffNamen.SESSIE_COOKIE }
     private val demo: TenantDefinition =
-        TenantFileLoader(modules = TenantModules.van(listOf(BrpVoorTest, ZakenApiVoorTest)))
+        TenantFileLoader(modules = TenantModules.van(listOf(BrpVoorTest, ZakenApiVoorTest, DocumentenApiVoorTest)))
             .load(Path.of("../../../docker-compose/imports/tenants"))
             .also { assertThat(it.violations).isEmpty() }
             .tenants

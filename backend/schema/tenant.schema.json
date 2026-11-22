@@ -190,6 +190,55 @@
           },
           "additionalProperties" : false
         },
+        "documenten-api" : {
+          "type" : "object",
+          "properties" : {
+            "standaardDocumentApi" : {
+              "type" : "string",
+              "minLength" : 1
+            },
+            "documentApis" : {
+              "type" : "object",
+              "additionalProperties" : {
+                "type" : "object",
+                "properties" : {
+                  "rsin" : {
+                    "type" : "string",
+                    "minLength" : 1
+                  },
+                  "documentTypeUrl" : {
+                    "type" : "string",
+                    "minLength" : 1
+                  }
+                },
+                "additionalProperties" : false
+              }
+            },
+            "toegestaneMimeTypes" : {
+              "type" : "array",
+              "items" : {
+                "type" : "string",
+                "minLength" : 1
+              }
+            },
+            "vertrouwelijkheidsaanduidingWitlijst" : {
+              "type" : "array",
+              "items" : {
+                "type" : "string",
+                "enum" : [ "openbaar", "beperkt_openbaar", "intern", "zaakvertrouwelijk", "vertrouwelijk", "confidentieel", "geheim", "zeer_geheim", "" ]
+              }
+            },
+            "statusWitlijst" : {
+              "type" : "array",
+              "items" : {
+                "type" : "string",
+                "enum" : [ "in_bewerking", "ter_vaststelling", "definitief", "gearchiveerd", "" ]
+              }
+            }
+          },
+          "required" : [ "standaardDocumentApi", "documentApis" ],
+          "additionalProperties" : false
+        },
         "payment-direct" : {
           "type" : "object",
           "properties" : {

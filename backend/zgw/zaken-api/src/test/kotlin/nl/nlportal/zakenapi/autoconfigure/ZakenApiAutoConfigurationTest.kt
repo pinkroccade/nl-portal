@@ -15,7 +15,7 @@
  */
 package nl.nlportal.zakenapi.autoconfigure
 
-import nl.nlportal.catalogiapi.client.CatalogiApiConfig
+import nl.nlportal.catalogiapi.client.CatalogiApiClient
 import nl.nlportal.commonground.authentication.AuthenticationMachtigingsDienstService
 import nl.nlportal.core.koppeling.KoppelingAutoConfiguration
 import nl.nlportal.core.modulestatus.ModuleStatusRegistry
@@ -51,7 +51,7 @@ class ZakenApiAutoConfigurationTest {
         .withBean(TenantDirectory::class.java, { directory })
         .withBean(GeheimenBron::class.java, { TestTenants.ALLE_GEHEIMEN })
         .withBean(ModuleStatusRegistry::class.java, { ModuleStatusRegistry() })
-        .withBean(CatalogiApiConfig::class.java, { CatalogiApiConfig() })
+        .withBean(CatalogiApiClient::class.java, { mock() })
         .withBean(DocumentenApiService::class.java, { mock() })
         .withBean(ObjectenApiService::class.java, { mock() })
         .withBean(AuthenticationMachtigingsDienstService::class.java, { mock() })

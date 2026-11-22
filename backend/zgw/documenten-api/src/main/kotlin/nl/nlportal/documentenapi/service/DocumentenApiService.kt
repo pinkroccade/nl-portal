@@ -15,14 +15,14 @@
  */
 package nl.nlportal.documentenapi.service
 
-import java.time.LocalDate
-import java.time.format.DateTimeFormatter
-import java.util.UUID
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.reactor.awaitSingleOrNull
+import nl.nlportal.core.tenancy.TenantDirectory
 import nl.nlportal.core.util.ZgwUrls.extractId
-import nl.nlportal.documentenapi.client.DocumentApisConfig.DocumentenApisConfigProperties
+import nl.nlportal.core.util.requireConfigured
 import nl.nlportal.documentenapi.client.DocumentenApiClient
+import nl.nlportal.documentenapi.configuratie.DocumentenApiConfiguratie
+import nl.nlportal.documentenapi.configuratie.DocumentenApiTenantConfiguratie
 import nl.nlportal.documentenapi.domain.Document
 import nl.nlportal.documentenapi.domain.DocumentStatus
 import nl.nlportal.documentenapi.domain.PostEnkelvoudiginformatieobjectRequest
@@ -31,33 +31,34 @@ import nl.nlportal.portal.authentication.domain.PortalAuthentication
 import org.apache.tika.Tika
 import org.springframework.core.io.buffer.DataBuffer
 import org.springframework.security.core.context.ReactiveSecurityContextHolder
+import java.time.LocalDate
+import java.time.format.DateTimeFormatter
+import java.util.UUID
 
+/**
+ * Documenten ophalen en uploaden voor de huidige tenant. De gegevens komen uit de moduleconfiguratie van die tenant
+ * (`modules.documenten-api`), de verbinding uit de koppeling met de naam van de document-API.
+ */
 class DocumentenApiService(
-    val documentenApiClient: DocumentenApiClient,
-    val documentenApisConfigProperties: DocumentenApisConfigProperties,
+    private val documentenApiClient: DocumentenApiClient,
+    private val directory: TenantDirectory,
 ) {
     suspend fun getDocument(
         documentId: UUID,
         documentApi: String,
-    ): Document = documentenApiClient.getDocument(documentId, documentApi)
+    ): Document = documentenApiClient.getDocument(documentId, toetsDocumentApi(documentApi))
 
-    suspend fun getDocument(documentUrl: String): Document =
-        documentenApiClient.getDocument(
-            extractId(documentUrl),
-            documentenApisConfigProperties.getConfigForDocumentUrl(documentUrl),
-        )
+    suspend fun getDocument(documentUrl: String): Document = documentenApiClient.getDocument(extractId(documentUrl), documentApiVoorUrl(documentUrl))
 
-    fun getDocumentContentStreaming(
+    suspend fun getDocumentContentStreaming(
         documentId: UUID,
         documentApi: String,
-    ): Flow<DataBuffer> = documentenApiClient.getDocumentContentStream(documentId, documentApi)
+    ): Flow<DataBuffer> = documentenApiClient.getDocumentContentStream(documentId, toetsDocumentApi(documentApi))
 
-    fun getDocumentContentStreaming(informatieobejctUrl: String): Flow<DataBuffer> {
-        val informatieObjectId = extractId(informatieobejctUrl)
-        val documentenApi = documentenApisConfigProperties.getConfigForDocumentUrl(informatieobejctUrl)
+    suspend fun getDocumentContentStreaming(informatieobjectUrl: String): Flow<DataBuffer> = documentenApiClient.getDocumentContentStream(extractId(informatieobjectUrl), documentApiVoorUrl(informatieobjectUrl))
 
-        return documentenApiClient.getDocumentContentStream(informatieObjectId, documentenApi)
-    }
+    /** De koppeling waar een upload naartoe gaat als de aanroeper er geen kiest. */
+    suspend fun standaardDocumentApi(): String = directory.module<DocumentenApiConfiguratie>().standaardDocumentApi
 
     suspend fun uploadDocument(
         content: ByteArray,
@@ -70,18 +71,20 @@ class DocumentenApiService(
                 .getContext()
                 .map { (it.authentication as PortalAuthentication).identiteit.vertegenwoordigde.identificatie }
                 .awaitSingleOrNull() ?: "valtimo"
-        val documentenApiConfig = documentenApisConfigProperties.getConfig(documentApi)
+        val configuratie = directory.module<DocumentenApiConfiguratie>()
+        val documentApiConfiguratie =
+            configuratie.documentApis[documentApi].requireConfigured(DocumentenApiTenantConfiguratie.NAAM, "documentApis.$documentApi")
 
-        if (documentenApisConfigProperties.allowedMimeTypes.isNotEmpty()) {
+        if (configuratie.toegestaneMimeTypes.isNotEmpty()) {
             val mediaType = Tika().detect(content).split(";")[0].trim()
-            if (mediaType !in documentenApisConfigProperties.allowedMimeTypes) {
+            if (mediaType !in configuratie.toegestaneMimeTypes) {
                 throw MimeTypeDeniedException("$mediaType is not allowed for uploads.")
             }
         }
 
         return documentenApiClient.postDocument(
             PostEnkelvoudiginformatieobjectRequest(
-                bronorganisatie = documentenApiConfig.rsin!!,
+                bronorganisatie = documentApiConfiguratie.rsin.requireConfigured(DocumentenApiTenantConfiguratie.NAAM, "documentApis.$documentApi.rsin"),
                 creatiedatum = LocalDate.now().format(DateTimeFormatter.ISO_LOCAL_DATE),
                 titel = filename,
                 auteur = auteur,
@@ -94,18 +97,25 @@ class DocumentenApiService(
                         .takeUnless {
                             it.isNullOrEmpty()
                         }
-                        ?: documentenApiConfig.documentTypeUrl!!,
+                        ?: documentApiConfiguratie.documentTypeUrl.requireConfigured(DocumentenApiTenantConfiguratie.NAAM, "documentApis.$documentApi.documentTypeUrl"),
             ),
             content,
             documentApi,
         )
     }
 
-    fun filterDocuments(
+    suspend fun filterDocuments(
         documents: List<Document>,
-    ): List<Document> =
-        documents.filter { document ->
-            document.status in documentenApisConfigProperties.statusWhitelist &&
-                document.vertrouwelijkheidaanduiding in documentenApisConfigProperties.vertrouwelijkheidsaanduidingWhitelist
+    ): List<Document> {
+        val configuratie = directory.module<DocumentenApiConfiguratie>()
+        return documents.filter { document ->
+            document.status in configuratie.statusWitlijst &&
+                document.vertrouwelijkheidaanduiding in configuratie.vertrouwelijkheidsaanduidingWitlijst
         }
+    }
+
+    /** Alleen een koppeling die als document-API van de tenant is aangewezen; een andere koppeling van de tenant krijgt nooit een documentverzoek. */
+    private suspend fun toetsDocumentApi(documentApi: String): String = documentApi.also { directory.module<DocumentenApiConfiguratie>().documentApis[it].requireConfigured(DocumentenApiTenantConfiguratie.NAAM, "documentApis.$it") }
+
+    private suspend fun documentApiVoorUrl(documentUrl: String): String = documentenApiClient.documentApiVoorUrl(documentUrl, directory.module<DocumentenApiConfiguratie>().documentApis.keys)
 }

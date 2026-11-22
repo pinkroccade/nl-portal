@@ -176,21 +176,10 @@ class HttpClientRules(
          */
         val NOT_YET_MIGRATED =
             arrayOf(
-                "nl.nlportal.berichten..",
                 "nl.nlportal.besluiten..",
-                "nl.nlportal.catalogiapi..",
-                "nl.nlportal.documentenapi..",
-                "nl.nlportal.form..",
-                "nl.nlportal.kvk..",
                 "nl.nlportal.openklant..",
                 "nl.nlportal.openproduct..",
-                // Alleen nog door de webhook: ObjectsApiClient (T12, #511) is inline en zet zijn WebClient in de bytecode van de aanroeper. Weg zodra T12 klaar is.
-                "nl.nlportal.payment.direct..",
                 "nl.nlportal.verificatie..",
-                // Zaken API is gemigreerd (#510), maar ZakenApiService roept de inline functie ObjectenApiService.getObjectByUrl aan, die de WebClient
-                // van de Objecten API in dit pakket uitschrijft. Weg met de migratie van de Objecten API (T12, #511).
-                "nl.nlportal.zakenapi..",
-                "nl.nlportal.zgw.objectenapi..",
                 "nl.nlportal.zgw.taak..",
             )
 

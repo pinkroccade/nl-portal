@@ -15,6 +15,7 @@
  */
 package nl.nlportal.zakenapi.client
 
+import nl.nlportal.catalogiapi.client.CatalogiApiClient
 import nl.nlportal.core.koppeling.KoppelingClient
 import nl.nlportal.core.koppeling.KoppelingException
 import nl.nlportal.core.koppeling.KoppelingFoutsoort
@@ -55,7 +56,7 @@ import java.util.UUID
 class ZakenApiClient(
     private val register: KoppelingRegister,
     private val directory: TenantDirectory,
-    private val zaaktypeUrl: (UUID) -> String,
+    private val catalogi: CatalogiApiClient,
     private val moduleStatus: ModuleStatusRegistry = ModuleStatusRegistry(),
 ) {
     /** De modulegegevens van de huidige tenant. */
@@ -64,8 +65,8 @@ class ZakenApiClient(
     /** De URL van een zaak in de Zaken API van de huidige tenant, voor een filter in een volgende aanroep. */
     suspend fun getZaakUrl(zaakId: UUID): String = koppeling().url("$ZAKEN_PAD/zaken/$zaakId")
 
-    /** De URL van een zaaktype in de Catalogi API, voor een filterwaarde; de Zaken API kent de configuratie van de Catalogi API niet. */
-    fun getZaakTypeUrl(zaakTypeId: UUID): String = zaaktypeUrl(zaakTypeId)
+    /** De URL van een zaaktype in de Catalogi API van de huidige tenant, voor een filterwaarde (`zaaktype__in`, `zaaktype__not_in`). */
+    suspend fun getZaakTypeUrl(zaakTypeId: UUID): String = catalogi.zaaktypeUrl(zaakTypeId)
 
     suspend inline fun <reified T : Any> haal(
         pad: String,

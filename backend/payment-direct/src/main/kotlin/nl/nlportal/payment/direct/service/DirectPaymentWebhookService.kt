@@ -81,16 +81,7 @@ class DirectPaymentWebhookService(
         return "Request successful processed for order $orderId"
     }
 
-    private suspend fun getObjectsApiTaak(taskId: UUID): ObjectsApiObject<TaakObjectV2> {
-        val objectsApiTask = objectsApiClient.getObjectById<TaakObjectV2>(taskId.toString())
-        if (objectsApiTask == null) {
-            throw ResponseStatusException(
-                HttpStatus.OK,
-                String.format("Taak kan niet gevonden worden", taskId),
-            )
-        }
-        return objectsApiTask
-    }
+    private suspend fun getObjectsApiTaak(taskId: UUID): ObjectsApiObject<TaakObjectV2> = objectsApiClient.getObjectById<TaakObjectV2>(taskId.toString())
 
     companion object {
         private val logger = KotlinLogging.logger {}
