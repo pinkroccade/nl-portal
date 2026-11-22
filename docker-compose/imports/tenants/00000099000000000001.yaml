@@ -34,6 +34,14 @@ koppelingen:
         auth:
             # Geen sleutel: de mocks vragen er geen; in productie authenticeert de cloud gateway.
             type: geen
+    # Handelsregister (KvK, optioneel): haal de commentaartekens weg, zet het geheim in backend.env en zet NLPORTAL_CONFIG_KVK_ENABLED=true.
+    # kvk:
+    #     url: https://api.kvk.nl/api/v1
+    #     leverancier: KvK
+    #     auth:
+    #         type: api-key
+    #         headerNaam: X-API-KEY
+    #         waarde: 00000099000000000001.kvk-sleutel
     zakenapi:
         url: http://localhost:8001
         auth:

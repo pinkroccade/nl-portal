@@ -24,8 +24,9 @@ nl-portal:
     tenancy:
         # Zelfde tenantbestanden als :app (zelfde mockpoort 56789): een tenantbestand minder om bij elke migratie bij te werken.
         directory: ../app/src/test/resources/tenants
-    # De secret store van de test: de geheimen van de koppelingen `zakenapi` en `payment-direct` en de Documenten API in het tenantbestand (zaken: minstens 32 tekens voor een ZGW-JWT).
+    # De secret store van de test: de geheimen van de koppelingen `kvk`, `zakenapi` en `payment-direct` en de Documenten API in het tenantbestand (zaken: minstens 32 tekens voor een ZGW-JWT).
     geheimen:
+        "00000099000000000001.kvk-sleutel": test-kvk-sleutel
         "00000099000000000001.zaken-secret": testwaarde-zaken-geheim-voor-de-app-test-0123456789
         "00000099000000000001.payment-direct-api-geheim": test-api-geheim
         "00000099000000000001.payment-direct-webhook-geheim": test-webhook-geheim
@@ -79,11 +80,6 @@ nl-portal:
             enabled: true
         kvk:
             enabled: true
-            properties:
-                url: http://localhost:56789
-                apiKey: test-api-key
-                ssl:
-                    enabled: false
         taak:
             enabled: true
             properties:

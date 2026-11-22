@@ -109,7 +109,9 @@ nl-portal:
         haalcentraal-brp:
             enabled: true
         kvk:
-            enabled: true
+            # Uit zolang het demo-tenantbestand (docker-compose/imports/tenants) het blok `koppelingen.kvk` in commentaar heeft: aan zonder
+            # die koppeling weigert het opstarten. Zet hem aan zodra de koppeling in het tenantbestand staat.
+            enabled: false
         taak:
             enabled: true
             properties:

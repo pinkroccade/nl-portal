@@ -181,7 +181,6 @@ class HttpClientRules(
                 "nl.nlportal.catalogiapi..",
                 "nl.nlportal.commonground.authentication..",
                 "nl.nlportal.form..",
-                "nl.nlportal.kvk..",
                 "nl.nlportal.openklant..",
                 "nl.nlportal.openproduct..",
                 // Alleen nog door de webhook: ObjectsApiClient (T12, #511) is inline en zet zijn WebClient in de bytecode van de aanroeper. Weg zodra T12 klaar is.
