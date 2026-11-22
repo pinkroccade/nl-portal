@@ -16,6 +16,7 @@
 package nl.nlportal.berichten.autoconfigure
 
 import nl.nlportal.berichten.BERICHTEN_MODULE
+import nl.nlportal.berichten.configuratie.controleerBerichtenHebbenObjectenKoppeling
 import nl.nlportal.berichten.graphql.BerichtenQuery
 import nl.nlportal.berichten.security.config.BerichtDocumentResourceHttpSecurityConfigurer
 import nl.nlportal.berichten.service.BerichtenService
@@ -23,31 +24,40 @@ import nl.nlportal.berichten.web.rest.BerichtDocumentResource
 import nl.nlportal.core.modulegate.ModuleFlag
 import nl.nlportal.core.modulegate.ModuleGate
 import nl.nlportal.core.security.config.HttpSecurityConfigurer
+import nl.nlportal.core.tenancy.TenantDirectory
+import nl.nlportal.core.tenancy.VervallenProperties
 import nl.nlportal.documentenapi.service.DocumentenApiService
 import nl.nlportal.zgw.objectenapi.service.ObjectenApiService
+import org.springframework.beans.factory.InitializingBean
 import org.springframework.boot.autoconfigure.AutoConfiguration
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty
-import org.springframework.boot.context.properties.EnableConfigurationProperties
 import org.springframework.context.annotation.Bean
 
 @AutoConfiguration
-@EnableConfigurationProperties(BerichtenConfiguration::class)
 @ConditionalOnProperty(prefix = "nl-portal.config", name = ["documentenapis.enabled"], havingValue = "true")
 class BerichtenAutoConfiguration {
     /** Lets the frontend module list and the module status know the module flag. */
     @Bean
     fun berichtenModuleFlag(): ModuleFlag = BERICHTEN_MODULE
 
+    /** De oude `...berichten.properties.*` (objecttype-URL) is vervallen: staat die nog gezet, dan weigert core het opstarten. */
+    @Bean
+    fun berichtenVervallenProperties() = VervallenProperties("berichten", "nl-portal.config.berichten.properties", vervanging = "modules.berichten")
+
+    /** Een tenant met `modules.berichten` zonder `koppelingen.objectenapi` weigert het opstarten, in plaats van pas bij de eerste inwoner te falen. */
+    @Bean
+    fun berichtenKoppelingControle(directory: TenantDirectory) = InitializingBean { controleerBerichtenHebbenObjectenKoppeling(directory) }
+
     @Bean
     fun berichtenService(
         objectenApiService: ObjectenApiService,
         documentenApiService: DocumentenApiService,
-        berichtenConfigurationProperties: BerichtenConfiguration,
+        directory: TenantDirectory,
     ): BerichtenService =
         BerichtenService(
             objectenApiService = objectenApiService,
-            berichtenConfigurationProperties = berichtenConfigurationProperties.properties,
+            directory = directory,
             documentenApiService = documentenApiService,
         )
 

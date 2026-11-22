@@ -163,6 +163,17 @@
     "modules" : {
       "type" : "object",
       "properties" : {
+        "berichten" : {
+          "type" : "object",
+          "properties" : {
+            "berichtObjectTypeUrl" : {
+              "type" : "string",
+              "minLength" : 1
+            }
+          },
+          "required" : [ "berichtObjectTypeUrl" ],
+          "additionalProperties" : false
+        },
         "brp" : {
           "type" : "object",
           "properties" : {

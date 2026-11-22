@@ -120,9 +120,6 @@ nl-portal:
             enabled: false
         taak:
             enabled: true
-        berichten:
-            properties:
-                bericht-object-type-url: http://localhost:8010/api/v2/objecttypes/78731088-430f-49fd-9a4c-80ddd42ded28
         form:
             properties:
                 form-definition-object-type-url: http://localhost:8010/api/v2/objecttypes/4b5f4fba-0746-11ed-b939-0242ac120002

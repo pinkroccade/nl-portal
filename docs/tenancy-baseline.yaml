@@ -49,9 +49,8 @@ modules:
   ":zgw:berichten":
     omvang: S
     risico: middel
-    toelichting: Objecttype-URL per tenant; volgt het objectenapi-register.
-    signalen:
-      config: BerichtenConfiguration is een singleton.
+    toelichting: Objecttype-URL per tenant in modules.berichten; volgt het objectenapi-register.
+    signalen: {}
   ":zgw:besluiten":
     omvang: S
     risico: middel
