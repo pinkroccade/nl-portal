@@ -61,9 +61,7 @@ modules:
     omvang: S
     risico: laag
     toelichting: Client per tenant.
-    signalen:
-      config: CatalogiApiConfig is een singleton.
-      webclient: Client bouwt zelf een WebClient; hoort in de gedeelde zgw-client (ADR 0002).
+    signalen: {}
   ":zgw:documenten-api":
     omvang: M
     risico: middel

@@ -142,6 +142,11 @@ via een rolling update wordt uitgerold, niet via hot reload; een andere OpenFeat
   `ModuleContext` geeft een module naast de koppelingnamen ook de auth-headernamen per koppeling, zodat een moduleregel een botsing bij het opstarten weigert.
   Een gemigreerde module registreert een `VervallenProperties`-bean met haar oude prefix: staat daar nog iets gezet (ook als omgevingsvariabele), dan weigert het opstarten met een verwijzing naar `modules.<naam>`.
   `GraphQLExceptionHandler` toont een module- of tenantfout (`ModuleNotConfiguredException`, `TenantContextMissingException`, `KoppelingConfiguratieException`) met een generieke code en melding; de details staan alleen in de log.
+- **Catalogi API per tenant en zaaktype-uitsluiting.** De Catalogi API is een gewone koppeling per tenant (`koppelingen.catalogiapi`, geen `modules.catalogiapi`);
+  `CatalogiApiClient` haalt per aanroep `register.current("catalogiapi")` op en bewaart niets. De uitgesloten zaaktypen (`modules.zakenapi.uitgeslotenZaaktypen`) werken op drie plekken:
+  het bronfilter `zaaktype__not_in` met zaaktype-URL's uit de Catalogi-koppeling van de tenant, een nafilter op zaaktype-UUID in de lijst, en een controle in `getZaak` en in de
+  documentdownload (404, ook als de bron de zaak teruggeeft). Een zaaktype-URL zonder herkenbare UUID geldt als uitgesloten (gesloten falen). De koppeling-URL moet gelijk zijn aan de
+  canonieke zaaktype-URL's in de Zaken API; anders filtert de bron niets en corrigeert alleen het nafilter, waardoor het totaal en de paginering afwijken.
 - **Drie lagen configuratie.** Het *tenantbestand* (Git: domeinen, URL's, thema, verwijzingen naar secrets;
   rolling restart), de *flag* (alleen aan/uit per module en tenant; `ops.<module>.enabled`, ook via een rolling restart) en de *secret store* (de secrets
   zelf, via ESO). Een module is bruikbaar als configuratie aanwezig is én de flag aanstaat. Zie
