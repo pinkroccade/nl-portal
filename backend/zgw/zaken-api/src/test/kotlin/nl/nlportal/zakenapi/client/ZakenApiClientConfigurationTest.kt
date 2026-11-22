@@ -17,6 +17,7 @@ package nl.nlportal.zakenapi.client
 
 import kotlinx.coroutines.test.runTest
 import nl.nlportal.core.modulestatus.ModuleState
+import nl.nlportal.catalogiapi.client.CatalogiApiClient
 import nl.nlportal.core.modulestatus.ModuleStatusRegistry
 import nl.nlportal.core.tenancy.TenantContextMissingException
 import nl.nlportal.core.testing.TestTenants
@@ -32,7 +33,8 @@ class ZakenApiClientConfigurationTest {
     /** Een tenant zonder koppeling `zakenapi` en zonder `modules.zakenapi`. */
     private fun client(): ZakenApiClient {
         val tenant = TestTenants.tenant()
-        return ZakenApiClient(TestTenants.register(tenant), TestTenants.directory(tenant), { throw ModuleNotConfiguredException("catalogiapi", "url") }, registry)
+        val register = TestTenants.register(tenant)
+        return ZakenApiClient(register, TestTenants.directory(tenant), CatalogiApiClient(register), registry)
     }
 
     @Test

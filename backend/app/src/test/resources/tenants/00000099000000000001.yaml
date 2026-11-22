@@ -39,6 +39,12 @@ koppelingen:
             type: zgw-jwt
             clientId: test-client
             secret: 00000099000000000001.zaken-secret
+    catalogiapi:
+        url: http://localhost:56789
+        auth:
+            type: zgw-jwt
+            clientId: test-client
+            secret: 00000099000000000001.catalogiapi-secret
     # De Objecten API (Open Object) kent alleen "Authorization: Token <token>": een api-key-header, waarvan het geheim "Token <token>" is.
     objectenapi:
         url: http://localhost:56789
