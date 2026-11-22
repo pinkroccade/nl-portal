@@ -13,8 +13,8 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-import { OidcContext } from "@nl-portal/nl-portal-authentication";
-import { createContext, useContext, useEffect, useMemo } from "react";
+import { useSession } from "@nl-portal/nl-portal-authentication";
+import { createContext, useEffect, useMemo } from "react";
 import { getFullName } from "../utils/person-data";
 import {
   BrpPersoon,
@@ -42,19 +42,8 @@ const UserContext = createContext<UserContextInterface>(
 );
 
 export const UserProvider = ({ children }: { children: React.ReactNode }) => {
-  const { decodedToken, authenticationMethods } = useContext(OidcContext);
-
-  const authenticationMethod = decodedToken?.middel || "";
-
-  const isCompany = useMemo(() => {
-    if (!authenticationMethod) return false;
-    return !!authenticationMethods?.company?.includes(authenticationMethod);
-  }, [authenticationMethod, authenticationMethods]);
-
-  const isProxy = useMemo(() => {
-    if (!authenticationMethod) return false;
-    return !!authenticationMethods?.proxy?.includes(authenticationMethod);
-  }, [authenticationMethod, authenticationMethods]);
+  // Het type vertegenwoordigde en het namens-veld komen uit het sessie-endpoint, niet uit een token.
+  const { isCompany, isProxy } = useSession();
 
   const isPersoon = !isCompany;
   const isVolmacht = isProxy;

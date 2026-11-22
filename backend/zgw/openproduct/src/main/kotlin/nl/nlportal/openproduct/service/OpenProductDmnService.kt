@@ -17,7 +17,7 @@ package nl.nlportal.openproduct.service
 
 import com.jayway.jsonpath.JsonPath
 import io.github.oshai.kotlinlogging.KotlinLogging
-import nl.nlportal.commonground.authentication.CommonGroundAuthentication
+import nl.nlportal.portal.authentication.domain.PortalAuthentication
 import nl.nlportal.core.util.Mapper
 import nl.nlportal.openproduct.client.OpenProductDmnClient
 import nl.nlportal.openproduct.client.domain.OpenProductActie
@@ -67,7 +67,7 @@ class OpenProductDmnService(
      * @return: List of decisions
      */
     suspend fun getActieDecision(
-        authentication: CommonGroundAuthentication,
+        authentication: PortalAuthentication,
         naam: String,
         productId: UUID,
     ): List<Map<String, OpenProductDmnResponse>> {

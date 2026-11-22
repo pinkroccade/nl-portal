@@ -16,7 +16,6 @@
 package nl.nlportal.zgw.taak.graphql
 
 import nl.nlportal.commonground.authentication.WithBurgerUser
-import nl.nlportal.zgw.objectenapi.autoconfiguration.ObjectsApiClientConfig
 import nl.nlportal.zgw.taak.TestHelper
 import nl.nlportal.zgw.taak.domain.TaakStatus
 import okhttp3.mockwebserver.Dispatcher
@@ -44,7 +43,6 @@ import tools.jackson.databind.JsonNode
 @Tag("integration")
 internal class TaakMutationV2IT(
     @Autowired private val httpGraphQlTester: HttpGraphQlTester,
-    @Autowired private val objectsApiClientConfig: ObjectsApiClientConfig,
 ) {
     lateinit var server: MockWebServer
 
@@ -53,15 +51,12 @@ internal class TaakMutationV2IT(
 
     @BeforeEach
     internal fun setUp() {
-        server = MockWebServer()
+        server = nl.nlportal.zgw.taak.ObjectenTestServer.server
         setupMockObjectsApiServer()
-        server.start()
-        objectsApiClientConfig.properties.url = server.url("/").toUri()
     }
 
     @AfterEach
     internal fun tearDown() {
-        server.shutdown()
     }
 
     @Test

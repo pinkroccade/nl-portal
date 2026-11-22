@@ -1,0 +1,317 @@
+{
+  "realm": "idp-sim",
+  "enabled": true,
+  "sslRequired": "none",
+  "attributes": {
+    "frontendUrl": "http://localhost:18080"
+  },
+  "users": [
+    {
+      "username": "jan",
+      "enabled": true,
+      "email": "jan@example.invalid",
+      "emailVerified": true,
+      "firstName": "Jan",
+      "lastName": "Jansen",
+      "attributes": {
+        "acting_subject_id": [
+          "999990008"
+        ]
+      },
+      "credentials": [
+        {
+          "type": "password",
+          "value": "jan"
+        }
+      ]
+    },
+    {
+      "username": "maria",
+      "enabled": true,
+      "email": "maria@example.invalid",
+      "emailVerified": true,
+      "firstName": "Maria",
+      "lastName": "Jansen",
+      "attributes": {
+        "acting_subject_id": [
+          "999990020"
+        ],
+        "legal_subject_id": [
+          "999990008"
+        ]
+      },
+      "credentials": [
+        {
+          "type": "password",
+          "value": "maria"
+        }
+      ]
+    }
+  ],
+  "clients": [
+    {
+      "clientId": "http://localhost:18080/realms/portal",
+      "protocol": "saml",
+      "enabled": true,
+      "redirectUris": [
+        "http://localhost:18080/realms/portal/broker/digid/endpoint"
+      ],
+      "attributes": {
+        "saml.authnstatement": "true",
+        "saml.server.signature": "true",
+        "saml.assertion.signature": "true",
+        "saml.client.signature": "false",
+        "saml.signature.algorithm": "RSA_SHA256",
+        "saml_name_id_format": "persistent",
+        "saml_force_name_id_format": "true",
+        "saml_assertion_consumer_url_post": "http://localhost:18080/realms/portal/broker/digid/endpoint",
+        "acr.loa.map": "{\"urn:oasis:names:tc:SAML:2.0:ac:classes:PasswordProtectedTransport\":1,\"urn:oasis:names:tc:SAML:2.0:ac:classes:MobileTwoFactorContract\":2,\"urn:oasis:names:tc:SAML:2.0:ac:classes:Smartcard\":3,\"urn:oasis:names:tc:SAML:2.0:ac:classes:SmartcardPKI\":4}"
+      },
+      "protocolMappers": [
+        {
+          "name": "acting-subject-id",
+          "protocol": "saml",
+          "protocolMapper": "saml-user-attribute-mapper",
+          "config": {
+            "user.attribute": "acting_subject_id",
+            "attribute.name": "urn:nl-eid-gdi:1.0:ActingSubjectID",
+            "attribute.nameformat": "URI Reference"
+          }
+        },
+        {
+          "name": "legal-subject-id",
+          "protocol": "saml",
+          "protocolMapper": "saml-user-attribute-mapper",
+          "config": {
+            "user.attribute": "legal_subject_id",
+            "attribute.name": "urn:nl-eid-gdi:1.0:LegalSubjectID",
+            "attribute.nameformat": "URI Reference"
+          }
+        }
+      ]
+    },
+    {
+      "clientId": "portal-wallet-broker",
+      "protocol": "openid-connect",
+      "enabled": true,
+      "publicClient": false,
+      "secret": "wallet-sim-secret",
+      "standardFlowEnabled": true,
+      "redirectUris": [
+        "http://localhost:18080/realms/portal/broker/wallet/endpoint"
+      ],
+      "defaultClientScopes": [
+        "web-origins",
+        "profile",
+        "email",
+        "roles"
+      ],
+      "protocolMappers": [
+        {
+          "name": "acr-eidas",
+          "protocol": "openid-connect",
+          "protocolMapper": "oidc-hardcoded-claim-mapper",
+          "config": {
+            "claim.name": "acr",
+            "claim.value": "http://eidas.europa.eu/LoA/high",
+            "jsonType.label": "String",
+            "id.token.claim": "true",
+            "access.token.claim": "false",
+            "userinfo.token.claim": "false"
+          }
+        },
+        {
+          "name": "acting-subject-id",
+          "protocol": "openid-connect",
+          "protocolMapper": "oidc-usermodel-attribute-mapper",
+          "config": {
+            "user.attribute": "acting_subject_id",
+            "claim.name": "acting_subject_id",
+            "jsonType.label": "String",
+            "id.token.claim": "true",
+            "access.token.claim": "false",
+            "userinfo.token.claim": "false"
+          }
+        }
+      ]
+    }
+  ],
+  "browserFlow": "sim-browser",
+  "authenticationFlows": [
+    {
+      "alias": "sim-browser",
+      "description": "Simuleert inloggen op niveau 1, 2 of 3 met stapsgewijs opschalen",
+      "providerId": "basic-flow",
+      "topLevel": true,
+      "builtIn": false,
+      "authenticationExecutions": [
+        {
+          "flowAlias": "sim-loa-1",
+          "requirement": "CONDITIONAL",
+          "priority": 10,
+          "userSetupAllowed": false,
+          "autheticatorFlow": true
+        },
+        {
+          "flowAlias": "sim-loa-2",
+          "requirement": "CONDITIONAL",
+          "priority": 20,
+          "userSetupAllowed": false,
+          "autheticatorFlow": true
+        },
+        {
+          "flowAlias": "sim-loa-3",
+          "requirement": "CONDITIONAL",
+          "priority": 30,
+          "userSetupAllowed": false,
+          "autheticatorFlow": true
+        },
+        {
+          "flowAlias": "sim-loa-4",
+          "requirement": "CONDITIONAL",
+          "priority": 40,
+          "userSetupAllowed": false,
+          "autheticatorFlow": true
+        }
+      ]
+    },
+    {
+      "alias": "sim-loa-1",
+      "description": "",
+      "providerId": "basic-flow",
+      "topLevel": false,
+      "builtIn": false,
+      "authenticationExecutions": [
+        {
+          "authenticatorConfig": "loa-1",
+          "authenticator": "conditional-level-of-authentication",
+          "requirement": "REQUIRED",
+          "priority": 10,
+          "userSetupAllowed": false,
+          "autheticatorFlow": false
+        },
+        {
+          "authenticator": "auth-username-password-form",
+          "requirement": "REQUIRED",
+          "priority": 20,
+          "userSetupAllowed": false,
+          "autheticatorFlow": false
+        }
+      ]
+    },
+    {
+      "alias": "sim-loa-2",
+      "description": "",
+      "providerId": "basic-flow",
+      "topLevel": false,
+      "builtIn": false,
+      "authenticationExecutions": [
+        {
+          "authenticatorConfig": "loa-2",
+          "authenticator": "conditional-level-of-authentication",
+          "requirement": "REQUIRED",
+          "priority": 10,
+          "userSetupAllowed": false,
+          "autheticatorFlow": false
+        },
+        {
+          "authenticator": "auth-username-password-form",
+          "requirement": "REQUIRED",
+          "priority": 20,
+          "userSetupAllowed": false,
+          "autheticatorFlow": false
+        }
+      ]
+    },
+    {
+      "alias": "sim-loa-3",
+      "description": "",
+      "providerId": "basic-flow",
+      "topLevel": false,
+      "builtIn": false,
+      "authenticationExecutions": [
+        {
+          "authenticatorConfig": "loa-3",
+          "authenticator": "conditional-level-of-authentication",
+          "requirement": "REQUIRED",
+          "priority": 10,
+          "userSetupAllowed": false,
+          "autheticatorFlow": false
+        },
+        {
+          "authenticator": "auth-username-password-form",
+          "requirement": "REQUIRED",
+          "priority": 20,
+          "userSetupAllowed": false,
+          "autheticatorFlow": false
+        }
+      ]
+    },
+    {
+      "alias": "sim-loa-4",
+      "description": "",
+      "providerId": "basic-flow",
+      "topLevel": false,
+      "builtIn": false,
+      "authenticationExecutions": [
+        {
+          "authenticatorConfig": "loa-4",
+          "authenticator": "conditional-level-of-authentication",
+          "requirement": "REQUIRED",
+          "priority": 10,
+          "userSetupAllowed": false,
+          "autheticatorFlow": false
+        },
+        {
+          "authenticator": "auth-username-password-form",
+          "requirement": "REQUIRED",
+          "priority": 20,
+          "userSetupAllowed": false,
+          "autheticatorFlow": false
+        }
+      ]
+    }
+  ],
+  "authenticatorConfig": [
+    {
+      "alias": "loa-1",
+      "config": {
+        "loa-condition-level": "1",
+        "loa-max-age": "0"
+      }
+    },
+    {
+      "alias": "loa-2",
+      "config": {
+        "loa-condition-level": "2",
+        "loa-max-age": "0"
+      }
+    },
+    {
+      "alias": "loa-3",
+      "config": {
+        "loa-condition-level": "3",
+        "loa-max-age": "0"
+      }
+    },
+    {
+      "alias": "loa-4",
+      "config": {
+        "loa-condition-level": "4",
+        "loa-max-age": "0"
+      }
+    }
+  ],
+  "components": {
+    "org.keycloak.userprofile.UserProfileProvider": [
+      {
+        "providerId": "declarative-user-profile",
+        "config": {
+          "kc.user.profile.config": [
+            "{\"attributes\":[{\"name\":\"username\",\"displayName\":\"${username}\",\"validations\":{\"length\":{\"min\":3,\"max\":255}},\"permissions\":{\"view\":[\"admin\",\"user\"],\"edit\":[\"admin\",\"user\"]}},{\"name\":\"email\",\"displayName\":\"${email}\",\"validations\":{\"email\":{},\"length\":{\"max\":255}},\"permissions\":{\"view\":[\"admin\",\"user\"],\"edit\":[\"admin\",\"user\"]}},{\"name\":\"firstName\",\"displayName\":\"${firstName}\",\"permissions\":{\"view\":[\"admin\",\"user\"],\"edit\":[\"admin\",\"user\"]}},{\"name\":\"lastName\",\"displayName\":\"${lastName}\",\"permissions\":{\"view\":[\"admin\",\"user\"],\"edit\":[\"admin\",\"user\"]}}],\"unmanagedAttributePolicy\":\"ENABLED\"}"
+          ]
+        }
+      }
+    ]
+  }
+}

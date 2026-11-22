@@ -55,7 +55,10 @@ wanneer het is gewijzigd.
   vervangt `eslint-plugin-notice`. Lint-staged schuift bij een commit het jaar op in de gecommitte
   bestanden via `eslint.copyright-year.config.mjs`; `pnpm lint` in CI accepteert elk jaartal, zodat
   een build niet op 1 januari faalt.
-- Wie een Ritense-header handmatig verwijdert, krijgt de PinkRoccade-header. Dat is zichtbaar in de
-  diff en moet in de review worden opgemerkt.
+- Wie een Ritense-header handmatig verwijdert, krijgt de PinkRoccade-header. `mise run copyright:check`
+  (`scripts/check-copyright-headers.mjs`, onderdeel van `mise run lint` en een eigen CI-job) vangt dat op de
+  diff t.o.v. de doelbranch: een nieuw bronbestand zonder PinkRoccade-kop faalt, en in een gewijzigd,
+  verplaatst of gekopieerd bestand moet de bestaande kop gelijk blijven (bij Ritense ook het jaartal; bij
+  PinkRoccade mag alleen het jaartal verschuiven). De reviewer hoeft dit niet meer na te lopen.
 - Of "NL-Portal" in de productnaam mag blijven staan valt buiten deze beslissing (EUPL geeft geen
   merkrechten); dat ligt bij PinkRoccade legal.

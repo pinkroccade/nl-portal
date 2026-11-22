@@ -19,7 +19,7 @@ import nl.nlportal.besluiten.client.BesluitenApiClient
 import nl.nlportal.besluiten.domain.Besluit
 import nl.nlportal.besluiten.domain.BesluitAuditTrail
 import java.util.UUID
-import nl.nlportal.commonground.authentication.CommonGroundAuthentication
+import nl.nlportal.portal.authentication.domain.PortalAuthentication
 import nl.nlportal.documentenapi.domain.Document
 import nl.nlportal.documentenapi.service.DocumentenApiService
 
@@ -49,7 +49,7 @@ class BesluitenService(
     suspend fun getBesluitAuditTrails(besluitId: UUID): List<BesluitAuditTrail> = besluitenApiClient.getBesluitAuditTrails(besluitId).sortedBy { it.aanmaakdatum }
 
     suspend fun getBesluitDocumenten(
-        authentication: CommonGroundAuthentication,
+        authentication: PortalAuthentication,
         besluit: String,
         informatieobject: String? = null,
     ): List<Document> {
@@ -62,7 +62,7 @@ class BesluitenService(
             besluitDocuments.map {
                 documentenApiService
                     .getDocument(it.informatieobject)
-                    .copy(identificatie = authentication.userId)
+                    .copy(identificatie = authentication.identiteit.vertegenwoordigde.identificatie)
             },
         )
     }

@@ -28,7 +28,6 @@ import nl.nlportal.openproduct.service.OpenProductService
 import nl.nlportal.zakenapi.client.ZakenApiClient
 import nl.nlportal.zakenapi.service.ZakenApiService
 import nl.nlportal.zgw.objectenapi.client.ObjectsApiClient
-import nl.nlportal.zgw.taak.autoconfigure.TaakConfig
 import nl.nlportal.zgw.taak.service.TaakService
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.autoconfigure.AutoConfiguration
@@ -41,7 +40,6 @@ import org.springframework.web.reactive.function.client.WebClient
 @AutoConfiguration
 @EnableConfigurationProperties(
     OpenProductModuleConfiguration::class,
-    TaakConfig::class,
 )
 @ConditionalOnProperty(prefix = "nl-portal.config", name = ["openproduct.enabled", "objectenapi.enabled", "taak.enabled", "zakenapi.enabled", "documentenapis.enabled"], havingValue = "true")
 class OpenProductAutoConfiguration {
@@ -66,14 +64,12 @@ class OpenProductAutoConfiguration {
         openProductTypeClient: OpenProductTypeClient,
         zakenApiService: ZakenApiService,
         taakService: TaakService,
-        taakObjectConfig: TaakConfig,
         authenticationMachtigingsDienstService: AuthenticationMachtigingsDienstService,
         documentenApiService: DocumentenApiService,
     ): OpenProductService =
         OpenProductService(
             openProductClient = openProductClient,
             openProductTypeClient = openProductTypeClient,
-            objectsApiTaskConfigProperties = taakObjectConfig.properties,
             zakenApiService = zakenApiService,
             taakService = taakService,
             authenticationMachtigingsDienstService = authenticationMachtigingsDienstService,

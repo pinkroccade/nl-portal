@@ -15,125 +15,73 @@
  */
 package nl.nlportal.commonground.authentication
 
+import nl.nlportal.core.tenancy.Betrouwbaarheidsniveau
+import nl.nlportal.core.tenancy.Inlogmiddel
+import nl.nlportal.portal.authentication.domain.Gebruiker
+import nl.nlportal.portal.authentication.domain.Vertegenwoordigde
 import org.junit.jupiter.api.Assertions.assertEquals
-import org.junit.jupiter.api.Assertions.assertNull
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertThrows
+import java.util.UUID
 
 internal class JwtBuilderTest {
     @Test
-    fun getBurgerAuthentication() {
-        val authentication = JwtBuilder().aanvragerBsn("1234").buildBurgerAuthentication()
-        assertEquals("1234", authentication.getBsn())
+    fun `a burger authentication carries the BSN as vertegenwoordigde`() {
+        val authentication = JwtBuilder().vertegenwoordigdeBsn("1234").buildAuthentication()
+
+        assertEquals(Vertegenwoordigde.Burger("1234"), authentication.identiteit.vertegenwoordigde)
     }
 
     @Test
-    fun getBurgerGemachtigdeAuthentication() {
+    fun `a bedrijf authentication carries the KvK number as vertegenwoordigde`() {
+        val authentication = JwtBuilder().vertegenwoordigdeKvk("1234").buildAuthentication()
+
+        assertEquals(Vertegenwoordigde.Bedrijf("1234"), authentication.identiteit.vertegenwoordigde)
+    }
+
+    @Test
+    fun `building throws when no bsn or kvk has been set`() {
+        assertThrows<IllegalStateException> { JwtBuilder().buildAuthentication() }
+    }
+
+    @Test
+    fun `vertegenwoordigdeKvk throws when bsn has already been set`() {
+        assertThrows<AssertionError> { JwtBuilder().vertegenwoordigdeBsn("123").vertegenwoordigdeKvk("456") }
+    }
+
+    @Test
+    fun `vertegenwoordigdeBsn throws when kvk has already been set`() {
+        assertThrows<AssertionError> { JwtBuilder().vertegenwoordigdeKvk("456").vertegenwoordigdeBsn("123") }
+    }
+
+    @Test
+    fun `issuer and subject end up in the identiteit as gebruiker with the test login method`() {
         val authentication =
             JwtBuilder()
-                .aanvragerBsn("1234")
-                .gemachtigdeBsn("5678")
-                .buildBurgerAuthentication()
-        assertEquals("1234", authentication.getBsn())
-        assertEquals("5678", authentication.getGemachtigde()?.bsn)
-        assertNull(authentication.getGemachtigde()?.kvk)
+                .issuer("https://andere.example.nl/realms/x")
+                .subject("sub-42")
+                .vertegenwoordigdeBsn("1234")
+                .buildAuthentication()
+
+        assertEquals(
+            Gebruiker("https://andere.example.nl/realms/x", "sub-42", Inlogmiddel.TEST, Betrouwbaarheidsniveau.BASIS),
+            authentication.identiteit.gebruiker,
+        )
     }
 
     @Test
-    fun getBurgerJwt() {
-        val jwt = JwtBuilder().aanvragerBsn("1234").buildJwt()
-        val aanvrager = jwt.getClaim<Map<String, Any>>(AANVRAGER_KEY)
-        assertEquals("1234", aanvrager?.get(BSN_KEY))
+    fun `a vestigingsnummer is carried along with the KvK number`() {
+        val authentication = JwtBuilder().vestigingsNummerKvk("1234", "000012345678").buildAuthentication()
+
+        assertEquals(Vertegenwoordigde.Bedrijf("1234", "000012345678"), authentication.identiteit.vertegenwoordigde)
     }
 
     @Test
-    fun `getBurgerGemachtigdeJwt with gemachtigde bsn`() {
-        val jwt =
-            JwtBuilder()
-                .aanvragerBsn("1234")
-                .gemachtigdeBsn("5678")
-                .buildJwt()
+    fun `a machtigingsdienst is carried along as uuid`() {
+        val uuid = UUID.randomUUID()
 
-        val aanvrager = jwt.getClaim<Map<String, Any>>(AANVRAGER_KEY)
-        val gemachtigde = jwt.getClaim<Map<String, Any>>(GEMACHTIGDE_KEY)
-        assertEquals("1234", aanvrager?.get(BSN_KEY))
-        assertEquals("5678", gemachtigde?.get(BSN_KEY))
-    }
+        val authentication = JwtBuilder().vertegenwoordigdeKvk("1234").machtingDienstKvk(uuid.toString()).buildAuthentication()
 
-    @Test
-    fun getBedrijfAuthentication() {
-        val authentication = JwtBuilder().aanvragerKvk("1234").buildBedrijfAuthentication()
-        assertEquals("1234", authentication.getKvkNummer())
-    }
-
-    @Test
-    fun getBedrijfJwt() {
-        val jwt = JwtBuilder().aanvragerKvk("1234").buildJwt()
-        val aanvrager = jwt.getClaim<Map<String, Any>>(AANVRAGER_KEY)
-        assertEquals("1234", aanvrager?.get(KVK_NUMMER_KEY))
-    }
-
-    @Test
-    fun `buildJwt throws exception when no bsn or kvk has been set`() {
-        assertThrows<IllegalStateException> { JwtBuilder().buildJwt() }
-    }
-
-    @Test
-    fun `buildBedrijfAuthentication throws exception when no bsn or kvk has been set`() {
-        assertThrows<IllegalStateException> { JwtBuilder().buildBedrijfAuthentication() }
-    }
-
-    @Test
-    fun `buildBurgerAuthentication throws exception when no bsn or kvk has been set`() {
-        assertThrows<IllegalStateException> { JwtBuilder().buildBurgerAuthentication() }
-    }
-
-    @Test
-    fun `aanvragerKvk throws exception when bsn has already been set`() {
-        assertThrows<AssertionError> {
-            JwtBuilder()
-                .aanvragerBsn("123")
-                .aanvragerKvk("456")
-        }
-    }
-
-    @Test
-    fun `aanvragerBsn throws exception when kvk has already been set`() {
-        assertThrows<AssertionError> {
-            JwtBuilder()
-                .aanvragerKvk("456")
-                .aanvragerBsn("123")
-        }
-    }
-
-    @Test
-    fun `buildJwt return jwt with only latest gemachtigde entry`() {
-        val jwt =
-            JwtBuilder()
-                .aanvragerBsn("123")
-                .gemachtigdeBsn("123")
-                .gemachtigdeKvk("123")
-                .buildJwt()
-
-        val gemachtigde = jwt.getClaim<Map<String, Any>>(GEMACHTIGDE_KEY)
-        assertEquals("123", gemachtigde?.get(KVK_NUMMER_KEY))
-    }
-
-    @Test
-    fun `buildBedrijfAuthentication throws exception when aanvrager kvk has not been set`() {
-        assertThrows<IllegalStateException> {
-            JwtBuilder()
-                .aanvragerBsn("123")
-                .buildBedrijfAuthentication()
-        }
-    }
-
-    @Test
-    fun `buildBurgerAuthentication throws exception when aanvrager bsn has not been set`() {
-        assertThrows<IllegalStateException> {
-            JwtBuilder()
-                .aanvragerKvk("123")
-                .buildBurgerAuthentication()
-        }
+        assertEquals(listOf(uuid), authentication.identiteit.machtigingsdienstUuids)
     }
 }

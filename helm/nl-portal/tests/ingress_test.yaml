@@ -1,0 +1,80 @@
+suite: ingress
+templates:
+  - configmap-backend.yaml
+  - configmap-frontend.yaml
+  - configmap-tenants.yaml
+  - service-backend.yaml
+  - service-frontend.yaml
+  - deployment-backend.yaml
+  - deployment-frontend.yaml
+  - serviceaccount.yaml
+  - ingress.yaml
+values:
+  - ../ci/minimal-values.yaml
+tests:
+  - it: is standaard uit
+    template: ingress.yaml
+    asserts:
+      - hasDocuments:
+          count: 0
+  - it: faalt zonder hosts
+    template: deployment-backend.yaml
+    set:
+      ingress.enabled: true
+    asserts:
+      - failedTemplate:
+          errorPattern: "ingress.hosts"
+  - it: de paden en backends kloppen
+    template: ingress.yaml
+    release:
+      name: rel
+    set:
+      ingress.enabled: true
+      ingress.hosts: [debosrand.example.nl]
+    asserts:
+      - equal:
+          path: spec.rules[0].host
+          value: debosrand.example.nl
+      - equal:
+          path: spec.rules[0].http.paths[0]
+          value:
+            path: /graphql
+            pathType: Prefix
+            backend:
+              service:
+                name: rel-nl-portal-backend
+                port:
+                  name: http
+      - equal:
+          path: spec.rules[0].http.paths[1].path
+          value: /api
+      - equal:
+          path: spec.rules[0].http.paths[2].path
+          value: /oauth2
+      - equal:
+          path: spec.rules[0].http.paths[3].path
+          value: /login
+      - equal:
+          path: spec.rules[0].http.paths[4].path
+          value: /logout
+      - equal:
+          path: spec.rules[0].http.paths[5]
+          value:
+            path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: rel-nl-portal-frontend
+                port:
+                  name: http
+  - it: geeft de Host ongewijzigd door (geen annotaties van de chart) en ondersteunt meer hosts
+    template: ingress.yaml
+    set:
+      ingress.enabled: true
+      ingress.hosts: [a.example.nl, b.example.nl]
+    asserts:
+      - lengthEqual:
+          path: spec.rules
+          count: 2
+      - notExists:
+          path: metadata.annotations

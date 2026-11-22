@@ -15,14 +15,20 @@
  */
 package nl.nlportal.zakenapi.client
 
+import nl.nlportal.catalogiapi.client.CatalogiApiClient
+import nl.nlportal.core.koppeling.KoppelingClient
+import nl.nlportal.core.koppeling.KoppelingException
+import nl.nlportal.core.koppeling.KoppelingFoutsoort
+import nl.nlportal.core.koppeling.KoppelingRegister
+import nl.nlportal.core.koppeling.ResultPage
+import nl.nlportal.core.koppeling.get
+import nl.nlportal.core.koppeling.getAllPages
+import nl.nlportal.core.koppeling.getPage
+import nl.nlportal.core.koppeling.post
 import nl.nlportal.core.modulestatus.ModuleStatusRegistry
-import nl.nlportal.core.modulestatus.bewaakConfiguratie
-import nl.nlportal.core.modulestatus.webClientFilter
-import nl.nlportal.core.util.requireConfigured
-import io.netty.handler.logging.LogLevel
-import nl.nlportal.catalogiapi.client.CatalogiApiConfig.CatalogiApiConfigProperties
-import nl.nlportal.core.koppeling.ZgwJwtGenerator
-import nl.nlportal.zakenapi.client.ZakenApiConfig.ZakenApiConfigProperties
+import nl.nlportal.core.modulestatus.Oorzaak
+import nl.nlportal.core.tenancy.TenantDirectory
+import nl.nlportal.core.util.ModuleNotConfiguredException
 import nl.nlportal.zakenapi.client.request.ZaakInformatieobjecten
 import nl.nlportal.zakenapi.client.request.ZaakObjecten
 import nl.nlportal.zakenapi.client.request.ZaakObjectenImpl
@@ -39,57 +45,85 @@ import nl.nlportal.zakenapi.client.request.ZakenImpl
 import nl.nlportal.zakenapi.client.request.ZakenInformatieobjectenImpl
 import nl.nlportal.zakenapi.client.request.ZoekenImpl
 import org.springframework.http.HttpStatus
-import org.springframework.http.client.reactive.ReactorClientHttpConnector
-import org.springframework.web.reactive.function.client.ClientRequest
-import org.springframework.web.reactive.function.client.ExchangeFilterFunction
-import org.springframework.web.reactive.function.client.WebClient
 import org.springframework.web.server.ResponseStatusException
-import reactor.core.publisher.Mono
-import reactor.netty.http.client.HttpClient
-import reactor.netty.transport.logging.AdvancedByteBufFormat
 import java.util.UUID
 
+/**
+ * De Zaken API van de huidige tenant. De bron (URL en authenticatie) komt per aanroep uit het [KoppelingRegister] en de
+ * modulegegevens uit het tenantbestand ([ZakenApiConfiguratie]); beide volgen de tenant uit de context, dus een aanroep
+ * gaat nooit naar de bron van een andere tenant. Er wordt niets per tenant bewaard.
+ */
 class ZakenApiClient(
-    private val zakenApiConfig: ZakenApiConfigProperties,
-    private val catalogiApiConfig: CatalogiApiConfigProperties,
-    webClientBuilder: WebClient.Builder,
+    private val register: KoppelingRegister,
+    private val directory: TenantDirectory,
+    private val catalogi: CatalogiApiClient,
     private val moduleStatus: ModuleStatusRegistry = ModuleStatusRegistry(),
 ) {
-    val webClient: WebClient by lazy {
-        moduleStatus.bewaakConfiguratie(MODULE, API) {
-            webClientBuilder
-                .clone()
-                .baseUrl(zakenApiConfig.url.requireConfigured("zakenapi", "url"))
-                .clientConnector(
-                    ReactorClientHttpConnector(
-                        HttpClient.create().wiretap(
-                            "reactor.netty.http.client.HttpClient",
-                            LogLevel.TRACE,
-                            AdvancedByteBufFormat.TEXTUAL,
-                        ),
-                    ),
-                ).filter(moduleStatus.webClientFilter(MODULE, API))
-                .filter(
-                    ExchangeFilterFunction.ofRequestProcessor {
-                        Mono.just(
-                            ClientRequest.from(it).header("Authorization", "Bearer ${getToken()}").build(),
-                        )
-                    },
-                ).defaultHeader("Accept-Crs", "EPSG:4326")
-                .defaultHeader("Content-Crs", "EPSG:4326")
-                .build()
+    /** De modulegegevens van de huidige tenant. */
+    suspend fun configuratie(): ZakenApiConfiguratie = directory.module()
+
+    /** De URL van een zaak in de Zaken API van de huidige tenant, voor een filter in een volgende aanroep. */
+    suspend fun getZaakUrl(zaakId: UUID): String = koppeling().url("$ZAKEN_PAD/zaken/$zaakId")
+
+    /** De URL van een zaaktype in de Catalogi API van de huidige tenant, voor een filterwaarde (`zaaktype__in`, `zaaktype__not_in`). */
+    suspend fun getZaakTypeUrl(zaakTypeId: UUID): String = catalogi.zaaktypeUrl(zaakTypeId)
+
+    suspend inline fun <reified T : Any> haal(
+        pad: String,
+        query: Map<String, List<String>> = emptyMap(),
+    ): T = uitvoeren { it.get<T>(pad, query, CRS_HEADERS) }
+
+    suspend inline fun <reified T : Any> haalPagina(
+        pad: String,
+        query: Map<String, List<String>> = emptyMap(),
+    ): ResultPage<T> = uitvoeren { it.getPage<T>(pad, query, CRS_HEADERS) }
+
+    /** Alle pagina's; de volgende pagina wordt alleen gevolgd onder de basis-URL van de koppeling. */
+    suspend inline fun <reified T : Any> haalAlles(
+        pad: String,
+        query: Map<String, List<String>> = emptyMap(),
+    ): List<T> = uitvoeren { it.getAllPages<T>(pad, query, CRS_HEADERS) }
+
+    suspend inline fun <reified T : Any> zoek(
+        pad: String,
+        body: Any,
+        query: Map<String, List<String>> = emptyMap(),
+    ): ResultPage<T> = uitvoeren { it.post<Any, ResultPage<T>>(pad, body, CRS_HEADERS + JSON_HEADERS, query) }
+
+    /**
+     * Voert [aanroep] uit op de koppeling van de huidige tenant en legt de uitkomst vast als passieve modulestatus. Een 404 en
+     * een 401 van de bron komen als [ResponseStatusException] bij de aanroeper, zoals voor de migratie.
+     */
+    @PublishedApi
+    internal suspend fun <T> uitvoeren(aanroep: suspend (KoppelingClient) -> T): T {
+        val koppeling = koppeling()
+        return try {
+            aanroep(koppeling).also { moduleStatus.recordSuccess(MODULE, API) }
+        } catch (e: KoppelingException) {
+            if (bronBereikbaar(e)) moduleStatus.recordSuccess(MODULE, API) else moduleStatus.recordFailure(MODULE, API, Oorzaak.UNREACHABLE)
+            throw naarResponseStatus(e) ?: e
         }
     }
 
-    private fun getToken(): String =
-        ZgwJwtGenerator().generateToken(
-            zakenApiConfig.secret.requireConfigured("zakenapi", "secret"),
-            zakenApiConfig.clientId.requireConfigured("zakenapi", "clientId"),
-        )
+    // De client wordt per aanroep opgehaald en nooit bewaard: hij hoort bij één tenant.
+    private suspend fun koppeling(): KoppelingClient =
+        try {
+            register.current(MODULE)
+        } catch (e: ModuleNotConfiguredException) {
+            moduleStatus.recordFailure(MODULE, API, Oorzaak.NOT_CONFIGURED)
+            throw e
+        }
 
-    fun getZaakUrl(zaakId: Any): String = "${zakenApiConfig.url.requireConfigured("zakenapi", "url")}/zaken/api/v1/zaken/$zaakId"
+    /** Een 4xx van de bron betekent dat de bron antwoordt; alles anders (netwerk, timeout, 5xx, limiet, open breaker) is een storing. */
+    private fun bronBereikbaar(e: KoppelingException) = e.soort in BRON_ANTWOORDT && e.status in 400..499
 
-    fun getZaakTypeUrl(zaakTypeId: UUID): String = "${catalogiApiConfig.url.requireConfigured("catalogiapi", "url")}/catalogi/api/v1/zaaktypen/$zaakTypeId"
+    private fun naarResponseStatus(e: KoppelingException): ResponseStatusException? =
+        when {
+            e.soort !in BRON_ANTWOORDT -> null
+            e.status == HttpStatus.NOT_FOUND.value() -> ResponseStatusException(HttpStatus.NOT_FOUND)
+            e.status == HttpStatus.UNAUTHORIZED.value() -> ResponseStatusException(HttpStatus.UNAUTHORIZED)
+            else -> null
+        }
 
     fun zaken(): Zaken = ZakenImpl(this)
 
@@ -107,26 +141,22 @@ class ZakenApiClient(
 
     fun zaakSubStatussen(): ZaakSubStatussen = ZaakSubStatussenImpl(this)
 
-    fun useNnpKvkQueryIdentificators(): Boolean = zakenApiConfig.useNnpKvkQueryIdentificators
+    suspend fun useNnpKvkQueryIdentificators(): Boolean = configuratie().nnpKvkQueryIdentificatoren
 
-    private companion object {
-        /** Modulenaam = sleutel in `nl-portal.config`, zoals de beheerstatus die toont. */
+    companion object {
+        /** Modulenaam = sleutel in `nl-portal.config` en naam van de koppeling in het tenantbestand. */
         const val MODULE = "zakenapi"
-        const val API = "zakenapi"
+        private const val API = "zakenapi"
+        private val BRON_ANTWOORDT = setOf(KoppelingFoutsoort.BRON_PROBLEEM, KoppelingFoutsoort.BRON_NIET_CONFORM)
+
+        /** Wat de Zaken API vraagt voor de coördinaten van geometrie; stond voorheen als standaardheader op de client. */
+        @PublishedApi
+        internal val CRS_HEADERS = mapOf("Accept-Crs" to "EPSG:4326", "Content-Crs" to "EPSG:4326")
+
+        /** Een zoekvraag is JSON; zonder deze header stuurt een formuliermap een formulier. */
+        @PublishedApi
+        internal val JSON_HEADERS = mapOf("Content-Type" to "application/json", "Accept" to "application/json")
+
+        const val ZAKEN_PAD = "/zaken/api/v1"
     }
 }
-
-fun WebClient.ResponseSpec.handleStatus() =
-    this
-        .onStatus(
-            { httpStatus -> HttpStatus.NOT_FOUND == httpStatus },
-            { throw ResponseStatusException(HttpStatus.NOT_FOUND) },
-        ).onStatus(
-            { httpStatus -> HttpStatus.UNAUTHORIZED == httpStatus },
-            { throw ResponseStatusException(HttpStatus.UNAUTHORIZED) },
-        ).onStatus(
-            { httpStatus -> HttpStatus.INTERNAL_SERVER_ERROR == httpStatus },
-            {
-                throw ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR)
-            },
-        )

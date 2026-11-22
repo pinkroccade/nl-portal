@@ -19,7 +19,7 @@ import java.util.UUID
 import nl.nlportal.berichten.BERICHTEN_MODULE
 import nl.nlportal.berichten.domain.Bericht
 import nl.nlportal.berichten.service.BerichtenService
-import nl.nlportal.commonground.authentication.CommonGroundAuthentication
+import nl.nlportal.portal.authentication.domain.PortalAuthentication
 import nl.nlportal.core.modulegate.ModuleGate
 import nl.nlportal.documentenapi.domain.Document
 import org.springframework.graphql.data.method.annotation.Argument
@@ -34,7 +34,7 @@ class BerichtenQuery(
 ) {
     @QueryMapping
     suspend fun getBericht(
-        authentication: CommonGroundAuthentication,
+        authentication: PortalAuthentication,
         @Argument id: UUID,
     ): Bericht? {
         moduleGate.require(BERICHTEN_MODULE, authentication)
@@ -46,7 +46,7 @@ class BerichtenQuery(
 
     @QueryMapping
     suspend fun getBerichten(
-        authentication: CommonGroundAuthentication,
+        authentication: PortalAuthentication,
         @Argument pageNumber: Int? = 1,
         @Argument pageSize: Int? = 20,
         @Argument onderwerp: String? = null,
@@ -61,7 +61,7 @@ class BerichtenQuery(
     }
 
     @QueryMapping
-    suspend fun getUnopenedBerichtenCount(authentication: CommonGroundAuthentication): Int {
+    suspend fun getUnopenedBerichtenCount(authentication: PortalAuthentication): Int {
         moduleGate.require(BERICHTEN_MODULE, authentication)
         return berichtenService.getUnopenedBerichtenCount(authentication = authentication)
     }

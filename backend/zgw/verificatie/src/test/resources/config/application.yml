@@ -12,9 +12,6 @@ nl-portal:
               #digital-adressen-referentie: portaal
         verificatie:
             enabled: true
-            properties:
-                url: http://localhost:9009
-                types-need-verification: email, telefoonnummer
 
 logging:
     level:
@@ -50,5 +47,3 @@ nl-portal:
     config:
         verificatie:
             enabled: true
-            properties:
-                url: http://localhost:8001

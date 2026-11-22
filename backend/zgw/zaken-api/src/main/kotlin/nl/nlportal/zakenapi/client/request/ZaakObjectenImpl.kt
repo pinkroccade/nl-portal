@@ -15,13 +15,10 @@
  */
 package nl.nlportal.zakenapi.client.request
 
+import nl.nlportal.core.koppeling.ResultPage
 import nl.nlportal.zakenapi.client.ZakenApiClient
-import nl.nlportal.zakenapi.client.handleStatus
-import nl.nlportal.zakenapi.domain.ResultPage
+import nl.nlportal.zakenapi.client.ZakenApiClient.Companion.ZAKEN_PAD
 import nl.nlportal.zakenapi.domain.ZaakObject
-import org.springframework.util.LinkedMultiValueMap
-import org.springframework.util.MultiValueMap
-import org.springframework.web.reactive.function.client.awaitBody
 import java.util.UUID
 
 class ZaakObjectenImpl(
@@ -35,56 +32,46 @@ class ZaakObjectenImpl(
 class SearchZaakObjectenImpl(
     val zakenApiClient: ZakenApiClient,
 ) : SearchZaakObjecten {
-    val queryParams: MultiValueMap<String, String> = LinkedMultiValueMap()
+    private val criteria = Criteria<String>()
 
     override fun forZaak(zaakUri: String): SearchZaakObjecten {
-        queryParams.add("zaak", zaakUri)
+        criteria.add("zaak", zaakUri)
         return this
     }
 
     override fun forZaak(id: UUID): SearchZaakObjecten {
-        queryParams.add("zaak", zakenApiClient.getZaakUrl(id))
+        criteria.later { it.add("zaak", zakenApiClient.getZaakUrl(id)) }
         return this
     }
 
     override fun ofObject(objectUri: String): SearchZaakObjecten {
-        queryParams.add("object", objectUri)
+        criteria.add("object", objectUri)
         return this
     }
 
     override fun ofObjectType(objectType: ObjectType): SearchZaakObjecten {
-        queryParams.add("objectType", objectType.value)
+        criteria.add("objectType", objectType.value)
         return this
     }
 
     override fun page(page: Int): SearchZaakObjecten {
-        queryParams.add("page", page.toString())
+        criteria.add("page", page.toString())
         return this
     }
 
     override fun pageSize(pageSize: Int): SearchZaakObjecten {
-        queryParams.add("pageSize", pageSize.toString())
+        criteria.add("pageSize", pageSize.toString())
         return this
     }
 
-    override suspend fun retrieve(): ResultPage<ZaakObject> =
-        this.zakenApiClient.webClient
-            .get()
-            .uri { it.path("/zaken/api/v1/zaakobjecten").queryParams(queryParams).build() }
-            .retrieve()
-            .handleStatus()
-            .awaitBody()
+    override suspend fun retrieve(): ResultPage<ZaakObject> = zakenApiClient.haalPagina("$ZAKEN_PAD/zaakobjecten", criteria.bouw())
+
+    override suspend fun retrieveAll(): List<ZaakObject> = zakenApiClient.haalAlles("$ZAKEN_PAD/zaakobjecten", criteria.bouw())
 }
 
 class GetZaakObjectImpl(
     val zakenApiClient: ZakenApiClient,
     val id: UUID,
 ) : GetZaakOject {
-    override suspend fun retrieve(): ZaakObject =
-        this.zakenApiClient.webClient
-            .get()
-            .uri { it.path("/zaken/api/v1/zaakobjecten/$id").build() }
-            .retrieve()
-            .handleStatus()
-            .awaitBody()
+    override suspend fun retrieve(): ZaakObject = zakenApiClient.haal("$ZAKEN_PAD/zaakobjecten/$id")
 }

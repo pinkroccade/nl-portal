@@ -18,9 +18,8 @@ package nl.nlportal.openproduct.service
 import io.github.oshai.kotlinlogging.KotlinLogging
 import java.util.UUID
 import nl.nlportal.commonground.authentication.AuthenticationMachtigingsDienstService
-import nl.nlportal.commonground.authentication.BedrijfAuthentication
-import nl.nlportal.commonground.authentication.BurgerAuthentication
-import nl.nlportal.commonground.authentication.CommonGroundAuthentication
+import nl.nlportal.portal.authentication.domain.PortalAuthentication
+import nl.nlportal.portal.authentication.domain.Vertegenwoordigde
 import nl.nlportal.core.util.ZgwUrls
 import nl.nlportal.core.util.ZgwUrls.extractId
 import nl.nlportal.documentenapi.domain.Document
@@ -72,7 +71,6 @@ import nl.nlportal.zgw.objectenapi.client.ObjectsApiClient
 import nl.nlportal.zgw.objectenapi.domain.Comparator
 import nl.nlportal.zgw.objectenapi.domain.ObjectSearchParameter
 import nl.nlportal.zgw.objectenapi.domain.ObjectsApiObject
-import nl.nlportal.zgw.taak.autoconfigure.TaakConfig.TaakConfigProperties
 import nl.nlportal.zgw.taak.domain.TaakObjectV2
 import nl.nlportal.zgw.taak.domain.TaakV2
 import nl.nlportal.zgw.taak.graphql.TaakPageV2
@@ -84,7 +82,6 @@ import org.springframework.web.server.ResponseStatusException
 class OpenProductService(
     private val openProductClient: OpenProductClient,
     private val openProductTypeClient: OpenProductTypeClient,
-    private val objectsApiTaskConfigProperties: TaakConfigProperties,
     private val zakenApiService: ZakenApiService,
     private val authenticationMachtigingsDienstService: AuthenticationMachtigingsDienstService,
     private val documentenApiService: DocumentenApiService,
@@ -98,7 +95,7 @@ class OpenProductService(
      * @return: Result of themas
      */
     suspend fun getThemas(
-        authentication: CommonGroundAuthentication,
+        authentication: PortalAuthentication,
         pageNumber: Int,
         pageSize: Int,
         extraSearchVariables: List<Pair<OpenProductThemasFilters, Any>> = emptyList(),
@@ -126,7 +123,7 @@ class OpenProductService(
      * @return: List of hoofd themas
      */
     suspend fun getHoofdThemas(
-        authentication: CommonGroundAuthentication,
+        authentication: PortalAuthentication,
     ): List<OpenProductThema> =
         getThemas(
             authentication = authentication,
@@ -140,7 +137,7 @@ class OpenProductService(
      * @return: List of themas
      */
     suspend fun getHoofdThemasByProducten(
-        authentication: CommonGroundAuthentication,
+        authentication: PortalAuthentication,
     ): List<OpenProductThema> {
         val producten =
             getProducten(
@@ -187,7 +184,7 @@ class OpenProductService(
      * @return: List of thema hierarchy
      */
     suspend fun getThemasHierarchy(
-        authentication: CommonGroundAuthentication,
+        authentication: PortalAuthentication,
     ): List<OpenProductThemaHierarchy> {
         val themasHierarchy = mutableListOf<OpenProductThemaHierarchy>()
         val themas =
@@ -216,7 +213,7 @@ class OpenProductService(
      * @return: thema of null (an upstream not-found becomes null; every other failure propagates)
      */
     suspend fun getThema(
-        authentication: CommonGroundAuthentication,
+        authentication: PortalAuthentication,
         id: UUID,
     ): OpenProductThema? {
         val thema =
@@ -241,7 +238,7 @@ class OpenProductService(
      * @return: List of thema hierarchy
      */
     suspend fun getThemaHierarchy(
-        authentication: CommonGroundAuthentication,
+        authentication: PortalAuthentication,
         id: UUID,
     ): List<OpenProductThemaHierarchy> {
         val thema =
@@ -614,7 +611,7 @@ class OpenProductService(
      * @return: Result of producten
      */
     suspend fun getProducten(
-        authentication: CommonGroundAuthentication,
+        authentication: PortalAuthentication,
         pageNumber: Int,
         pageSize: Int,
         extraSearchVariables: List<Pair<OpenProductProductenFilters, String>> = emptyList(),
@@ -675,7 +672,7 @@ class OpenProductService(
      *   the authorization checks below, propagates)
      */
     suspend fun getProduct(
-        authentication: CommonGroundAuthentication,
+        authentication: PortalAuthentication,
         id: UUID,
     ): OpenProductProduct? {
         val product =
@@ -705,7 +702,7 @@ class OpenProductService(
      * @return: producten list of thema
      */
     suspend fun getProductenByThema(
-        authentication: CommonGroundAuthentication,
+        authentication: PortalAuthentication,
         themaId: UUID,
     ): List<OpenProductProduct> {
         val thema =
@@ -727,7 +724,7 @@ class OpenProductService(
      * @return: producten list of thema
      */
     suspend fun getThemaProducten(
-        authentication: CommonGroundAuthentication,
+        authentication: PortalAuthentication,
         thema: OpenProductThema,
     ): List<OpenProductProduct> {
         val searchVariables =
@@ -771,7 +768,7 @@ class OpenProductService(
      * @return: updated product
      */
     suspend fun updateProduct(
-        authentication: CommonGroundAuthentication,
+        authentication: PortalAuthentication,
         productUpdate: OpenProductProductUpdate,
     ): OpenProductProduct? {
         // get product, only to check if user authorized to perform this update
@@ -794,7 +791,7 @@ class OpenProductService(
      * @return: list of zaken
      */
     suspend fun getThemaZaken(
-        authentication: CommonGroundAuthentication,
+        authentication: PortalAuthentication,
         isOpen: Boolean? = null,
         id: UUID,
         language: String? = null,
@@ -864,7 +861,7 @@ class OpenProductService(
      * @return: list of taken
      */
     suspend fun getThemaTaken(
-        authentication: CommonGroundAuthentication,
+        authentication: PortalAuthentication,
         id: UUID,
         language: String? = null,
         pageSize: Int? = null,
@@ -930,7 +927,7 @@ class OpenProductService(
      *   resilience - see ADR 0003) rather than failing the whole list.
      */
     suspend fun getProductZaken(
-        authentication: CommonGroundAuthentication,
+        authentication: PortalAuthentication,
         zaken: List<OpenProductUrl>,
     ): List<Zaak> =
         mapSkippingFailures(
@@ -951,7 +948,7 @@ class OpenProductService(
      *   resilience - see ADR 0003) rather than failing the whole list.
      */
     suspend fun getProductTaken(
-        authentication: CommonGroundAuthentication,
+        authentication: PortalAuthentication,
         taken: List<OpenProductUrl>,
     ): List<TaakV2> =
         mapSkippingFailures(
@@ -1077,19 +1074,19 @@ class OpenProductService(
      * @param: themas, all published themas
      * @return: list of filters
      */
-    private fun getEigenaarFilter(authentication: CommonGroundAuthentication): List<Pair<OpenProductProductenFilters, String>> =
-        when (authentication) {
-            is BurgerAuthentication -> {
+    private fun getEigenaarFilter(authentication: PortalAuthentication): List<Pair<OpenProductProductenFilters, String>> =
+        when (val vertegenwoordigde = authentication.identiteit.vertegenwoordigde) {
+            is Vertegenwoordigde.Burger -> {
                 listOf(
                     Pair(
                         OpenProductProductenFilters.EIGENAREN_BSN,
-                        authentication.userId,
+                        vertegenwoordigde.bsn,
                     ),
                 )
             }
 
-            is BedrijfAuthentication -> {
-                val vestigingsNummer = authentication.getVestigingsNummer()
+            is Vertegenwoordigde.Bedrijf -> {
+                val vestigingsNummer = vertegenwoordigde.vestigingsnummer
                 if (vestigingsNummer != null) {
                     listOf(
                         Pair(
@@ -1101,14 +1098,10 @@ class OpenProductService(
                     listOf(
                         Pair(
                             OpenProductProductenFilters.EIGENAREN_KVKNUMMER,
-                            authentication.userId,
+                            vertegenwoordigde.kvkNummer,
                         ),
                     )
                 }
-            }
-
-            else -> {
-                throw IllegalArgumentException("Authentication not supported")
             }
         }
 
@@ -1119,28 +1112,24 @@ class OpenProductService(
      * @return: true or fale
      */
     private fun isAuthorizedForProduct(
-        authentication: CommonGroundAuthentication,
+        authentication: PortalAuthentication,
         product: OpenProductProduct,
     ): Boolean =
-        when (authentication) {
-            is BurgerAuthentication -> {
-                product.eigenaren.firstOrNull { it.bsn == authentication.userId } != null
+        when (val vertegenwoordigde = authentication.identiteit.vertegenwoordigde) {
+            is Vertegenwoordigde.Burger -> {
+                product.eigenaren.firstOrNull { it.bsn == vertegenwoordigde.bsn } != null
             }
 
-            is BedrijfAuthentication -> {
-                val vestigingsNummer = authentication.getVestigingsNummer()
+            is Vertegenwoordigde.Bedrijf -> {
+                val vestigingsNummer = vertegenwoordigde.vestigingsnummer
                 if (vestigingsNummer != null) {
                     product.eigenaren.firstOrNull {
-                        it.kvkNummer == authentication.userId &&
+                        it.kvkNummer == vertegenwoordigde.kvkNummer &&
                             it.vestigingsnummer == vestigingsNummer
                     } != null
                 } else {
-                    product.eigenaren.firstOrNull { it.kvkNummer == authentication.userId } != null
+                    product.eigenaren.firstOrNull { it.kvkNummer == vertegenwoordigde.kvkNummer } != null
                 }
-            }
-
-            else -> {
-                false
             }
         }
 
@@ -1150,7 +1139,7 @@ class OpenProductService(
      * @return: list of thema hierarchy
      */
     private suspend fun buildThemaHierachy(
-        authentication: CommonGroundAuthentication,
+        authentication: PortalAuthentication,
         thema: OpenProductThema,
     ): List<OpenProductThemaHierarchy> {
         val themasHierarchy = mutableListOf<OpenProductThemaHierarchy>()

@@ -1,5 +1,13 @@
 server:
     port: 0
+    forward-headers-strategy: none
+
+management:
+    server:
+        port: 0
+    health:
+        redis:
+            enabled: false
 
 spring:
     profiles:
@@ -9,22 +17,32 @@ spring:
             enabled: true
         schema:
             locations: classpath*:graphql/**/
-    security:
-        oauth2:
-            resourceserver:
-                jwt:
-                    issuer-uri: http://localhost:9999/auth/realms/test
+    data:
+        redis:
+            repositories:
+                enabled: false
 
 nl-portal:
+    sleutelmap: build/test-sleutels
+    tenancy:
+        directory: src/test/resources/tenants
+    geheimen:
+        # Geheimen van de testtenant (zie tenants/00000099000000000001.yaml): <oin>.<naam>
+        "00000099000000000001":
+            documenten-api-secret: 12345678123456781234567812345678
+            kvk-sleutel: test-kvk-sleutel
+            zaken-secret: testwaarde-zaken-geheim-voor-de-app-test-0123456789
+            catalogiapi-secret: testwaarde-catalogi-geheim-voor-de-app-test-0123456789
+            objectenapi-token: Token 0000000000000000000000000000000000000000
+            payment-direct-api-geheim: test-api-geheim
+            payment-direct-webhook-geheim: test-webhook-geheim
+            verificatie-secret: testwaarde-verificatie-geheim-voor-de-app-test-0123456789
+            verificatie-apikey: test-verificatie-sleutel
     security:
         endpoints:
             unsecured: /api/public/**
     authentication:
-        keycloak:
-            resource: test-client
-            audience: test-audience
-            credentials:
-                secret: test-secret
+        broker-url: http://localhost:9999
     config:
         besluitenapi:
             enabled: true
@@ -34,49 +52,15 @@ nl-portal:
                 secret: 12345678123456781234567812345678
         catalogiapi:
             enabled: true
-            properties:
-                url: http://localhost:56789
-                clientId: test-client
-                secret: 12345678123456781234567812345678
         documentenapis:
             enabled: true
-            properties:
-                default-document-api: openzaak
-                vertrouwelijkheidsaanduiding-whitelist:
-                    - openbaar
-                    - beperkt_openbaar
-                    - intern
-                    - zaakvertrouwelijk
-                    - vertrouwelijk
-                    - confidentieel
-                    - geheim
-                    - zeer_geheim
-                status-whitelist:
-                    - ter_vaststelling
-                    - in_bewerking
-                    - definitief
-                    - gearchiveerd
-                configurations:
-                    openzaak:
-                        url: http://localhost:56789/documenten/api/v1
-                        clientId: test-client
-                        secret: test-secret
-                        rsin: "051845623"
-                        documentTypeUrl: http://localhost:56789/catalogi/api/v1/informatieobjecttypen/00000000-0000-0000-0000-000000000000
         virusscan:
             clamav:
                 enabled: false
         zakenapi:
             enabled: true
-            properties:
-                url: http://localhost:56789
-                clientId: test-client
-                secret: test-secret
         objectenapi:
             enabled: true
-            properties:
-                url: http://localhost:56789
-                token: 0000000000000000000000000000000000000000
         openklant2:
             enabled: true
             properties:
@@ -84,23 +68,10 @@ nl-portal:
                 token: 0000000000000000000000000000000000000000
         haalcentraal-brp:
             enabled: true
-            properties:
-                brp-api-url: http://localhost:56789/haalcentraal/api/brp/
-                bewoning-api-url: http://localhost:56789/haalcentraal/api/bewoning/
         kvk:
             enabled: true
-            properties:
-                url: http://localhost:56789
-                apiKey: test-api-key
-                ssl:
-                    enabled: false
         taak:
             enabled: true
-            properties:
-                object-type-url: http://localhost:56789/api/v2/objecttypes/00000000-0000-0000-0000-000000000001
-        berichten:
-            properties:
-                bericht-object-type-url: http://localhost:56789/api/v2/objecttypes/00000000-0000-0000-0000-000000000002
         openproduct:
             enabled: true
             properties:
@@ -122,21 +93,6 @@ nl-portal:
             enabled: true
             properties:
                 type-url: http://localhost:56789/api/v1/objecttypes/00000000-0000-0000-0000-000000000007
-        payment:
-            direct:
-                enabled: true
-                properties:
-                    url: https://payment.preprod.direct.worldline-solutions.com
-                    sha-out-parameters: AAVADDRESS,AAVCHECK,AAVMAIL,AAVNAME,AAVPHONE,AAVZIP,ACCEPTANCE,ALIAS,AMOUNT,BIC,BIN,BRAND,CARDNO,CCCTY,CN,COLLECTOR_BIC,COLLECTOR_IBAN,COMPLUS,CREATION_STATUS,CREDITDEBIT,CURRENCY,CVCCHECK,DCC_COMMPERCENTAGE,DCC_CONVAMOUNT,DCC_CONVCCY,DCC_EXCHRATE,DCC_EXCHRATESOURCE,DCC_EXCHRATETS,DCC_INDICATOR,DCC_MARGINPERCENTAGE,DCC_VALIDHOURS,DIGESTCARDNO,ECI,ED,EMAIL,ENCCARDNO,FXAMOUNT,FXCURRENCY,IP,IPCTY,MANDATEID,MOBILEMODE,NBREMAILUSAGE,NBRIPUSAGE,NBRIPUSAGE_ALLTX,NBRUSAGE,NCERROR,ORDERID,PAYID,PAYIDSUB,PAYMENT_REFERENCE,PM,SCO_CATEGORY,SCORING,SEQUENCETYPE,SIGNDATE,STATUS,SUBBRAND,SUBSCRIPTION_ID,TRXDATE,VC
-                    configurations:
-                        belastingzaken:
-                            pspId: TAX
-                            language: "nl_NL"
-                            returnUrl: http://localhost:3000
-                            apiKey: test-api-key
-                            apiSecret: test-api-secret
-                            webhookApiKey: test-webhook-api-key
-                            webhookApiSecret: test-webhook-api-secret
         verificatie:
             enabled: true
         theme:

@@ -16,7 +16,7 @@
 package nl.nlportal.openproduct.graphql
 
 import java.util.UUID
-import nl.nlportal.commonground.authentication.CommonGroundAuthentication
+import nl.nlportal.portal.authentication.domain.PortalAuthentication
 import nl.nlportal.openproduct.client.domain.OpenProductContact
 import nl.nlportal.openproduct.service.OpenProductService
 import org.springframework.graphql.data.method.annotation.Argument
@@ -29,7 +29,7 @@ class OpenProductContactQuery(
 ) {
     @QueryMapping
     suspend fun getOpenProductContacten(
-        authentication: CommonGroundAuthentication,
+        authentication: PortalAuthentication,
         @Argument pageNumber: Int? = null,
         @Argument pageSize: Int? = null,
         @Argument naam: String? = null,
@@ -47,7 +47,7 @@ class OpenProductContactQuery(
 
     @QueryMapping
     suspend fun getOpenProductContact(
-        authentication: CommonGroundAuthentication,
+        authentication: PortalAuthentication,
         @Argument id: UUID,
     ): OpenProductContact? =
         openProductService.getContact(

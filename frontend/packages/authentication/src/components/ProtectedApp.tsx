@@ -13,13 +13,12 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-import { PropsWithChildren, useContext, useEffect, useState } from "react";
-import { useAuth } from "react-oidc-context";
+import { PropsWithChildren, useContext, useState } from "react";
 import IdleTimer from "./IdleTimer";
 import { Paragraph } from "@utrecht/component-library-react";
 import { FormattedMessage, useIntl } from "react-intl";
-import OidcContext from "../context/OidcContext";
 import { Modal } from "@gemeente-denhaag/modal";
+import SessionContext from "../session/SessionContext";
 
 export type ProtectedAppProps = {
   autoIdleSessionLogout?: boolean;
@@ -27,46 +26,32 @@ export type ProtectedAppProps = {
   showAutomaticLogoutWarning?: boolean;
 };
 
+/**
+ * Wat alleen een ingelogde burger ziet: de kinderen, met de inactiviteitstimer. Na de inactiviteitstijd van de tenant
+ * (hoogstens 15 minuten, DigiD-eis) logt de portal de burger uit; de backend handhaaft dezelfde tijd, dit is de waarschuwing.
+ */
 export const ProtectedApp = ({
   autoIdleSessionLogout = true,
   idleTimeoutMinutes = 15,
   showAutomaticLogoutWarning = true,
   children,
 }: PropsWithChildren<ProtectedAppProps>) => {
-  const auth = useAuth();
-  const { oidcToken, setOidcToken } = useContext(OidcContext);
+  const { logout } = useContext(SessionContext);
   const [showLogoutWarning, setShowLogoutWarning] = useState(false);
   const intl = useIntl();
+  const waarschuwingNa = idleTimeoutMinutes - 5;
 
-  useEffect(() => {
-    // Redirect to oidc provider when not loading and user isn't authenticated or if there is no oidc token in the state (after hard refresh for example)
-    if (!auth.isLoading && (!auth.isAuthenticated || !oidcToken)) {
-      // fire-and-forget: this triggers a full-page redirect to the OIDC provider.
-      void auth.signinRedirect();
-    }
-  }, [oidcToken, auth.isLoading, auth.isAuthenticated]);
-
-  useEffect(() => {
-    return auth.events.addUserLoaded((user) => setOidcToken(user.access_token));
-  }, [auth.events]);
-
-  // Placeholder for a spinner or something
-  if (auth.isLoading || !auth.isAuthenticated) {
-    return null;
-  }
-
-  // If authenticated, render the children
   return (
     <>
       {autoIdleSessionLogout && (
         <>
           <IdleTimer
             idleTimeoutMinutes={idleTimeoutMinutes}
-            onTimeOut={auth.signoutRedirect}
+            onTimeOut={logout}
           />
-          {showAutomaticLogoutWarning && (
+          {showAutomaticLogoutWarning && waarschuwingNa >= 0 && (
             <IdleTimer
-              idleTimeoutMinutes={idleTimeoutMinutes - 5}
+              idleTimeoutMinutes={waarschuwingNa}
               onTimeOut={() => setShowLogoutWarning(true)}
             />
           )}
@@ -82,10 +67,7 @@ export const ProtectedApp = ({
                     id: "auth.inactive.logout",
                   }),
                   variant: "secondary-action",
-                  onClick: () => {
-                    // fire-and-forget: this triggers a full-page redirect to the OIDC provider.
-                    void auth.signoutRedirect();
-                  },
+                  onClick: () => logout(),
                 },
                 {
                   children: intl.formatMessage({

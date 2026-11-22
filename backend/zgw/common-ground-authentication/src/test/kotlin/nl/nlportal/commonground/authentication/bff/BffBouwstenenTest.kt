@@ -1,0 +1,406 @@
+/*
+ * Copyright 2026 PinkRoccade Local Government B.V.
+ *
+ * Licensed under EUPL, Version 1.2 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ * https://joinup.ec.europa.eu/collection/eupl/eupl-text-eupl-12
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" basis,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+package nl.nlportal.commonground.authentication.bff
+
+import ch.qos.logback.classic.Logger
+import ch.qos.logback.classic.spi.ILoggingEvent
+import ch.qos.logback.core.read.ListAppender
+import com.nimbusds.jose.JWSAlgorithm
+import com.nimbusds.jose.jwk.RSAKey
+import com.nimbusds.jose.jwk.gen.RSAKeyGenerator
+import nl.nlportal.core.tenancy.Authenticatie
+import nl.nlportal.core.tenancy.Betrouwbaarheidsniveau
+import nl.nlportal.core.tenancy.Inlogmiddel
+import nl.nlportal.core.tenancy.Oin
+import nl.nlportal.core.tenancy.Omgevingstype
+import nl.nlportal.core.tenancy.Sessie
+import nl.nlportal.core.tenancy.TenantDefinition
+import nl.nlportal.core.tenancy.Thema
+import org.assertj.core.api.Assertions.assertThat
+import org.assertj.core.api.Assertions.entry
+import org.assertj.core.api.Assertions.assertThatThrownBy
+import org.junit.jupiter.api.Test
+import org.junit.jupiter.api.io.TempDir
+import org.junit.jupiter.params.ParameterizedTest
+import org.junit.jupiter.params.provider.Arguments
+import org.junit.jupiter.params.provider.CsvSource
+import org.junit.jupiter.params.provider.MethodSource
+import org.slf4j.LoggerFactory
+import org.springframework.security.oauth2.core.oidc.OidcIdToken
+import java.net.URI
+import java.nio.file.Files
+import java.nio.file.Path
+import java.time.Duration
+import java.time.Instant
+import java.util.stream.Stream
+
+class InlogbeslisserTest {
+    private val nu = Instant.parse("2026-11-21T12:00:00Z")
+    private val beslisser = Inlogbeslisser()
+
+    private fun tenant(
+        middelen: Set<Inlogmiddel> = setOf(Inlogmiddel.DIGID, Inlogmiddel.WALLET, Inlogmiddel.EHERKENNING, Inlogmiddel.TEST),
+        minimum: Betrouwbaarheidsniveau = Betrouwbaarheidsniveau.BASIS,
+    ) = TenantDefinition(
+        Oin("00000099000000000001"),
+        "T",
+        Omgevingstype.ONTWIKKELING,
+        listOf("t.test"),
+        Thema(titel = "t"),
+        middelen,
+        Authenticatie("https://login.example/realms/t", "/k.jwk"),
+        minimum,
+        Sessie(),
+    )
+
+    private fun token(
+        wijzig: MutableMap<String, Any>.() -> Unit = {},
+    ): OidcIdToken {
+        val claims =
+            mutableMapOf<String, Any>(
+                "iss" to "https://login.example/realms/t",
+                "sub" to "s",
+                "aud" to listOf("nl-portal-backend"),
+                "iat" to nu,
+                "exp" to nu.plusSeconds(60),
+                "auth_time" to nu,
+                "inlogmiddel" to "digid",
+                "acr" to TokenSpec.DIGID_SUBSTANTIEEL,
+            )
+        claims.wijzig()
+        return OidcIdToken("t", nu, nu.plusSeconds(60), claims)
+    }
+
+    private fun userInfo(bsn: String? = "s00000000:999993653"): Map<String, Any> = if (bsn == null) emptyMap() else mapOf("acting_subject_id" to bsn)
+
+    private fun reden(
+        t: OidcIdToken,
+        tenant: TenantDefinition = tenant(),
+        start: Instant? = nu,
+        userInfo: Map<String, Any> = userInfo(),
+    ) = (beslisser.beslis(tenant, t, userInfo, start) as? Inlogbeslissing.Geweigerd)?.reden
+
+    @Test
+    fun `een geldig DigiD-token geeft een burger met inlogmiddel en niveau`() {
+        val beslissing = beslisser.beslis(tenant(), token(), userInfo(), nu) as Inlogbeslissing.Toegestaan
+
+        assertThat(beslissing.identiteit.vertegenwoordigde.identificatie).isEqualTo("999993653")
+        assertThat(beslissing.identiteit.gebruiker.inlogmiddel).isEqualTo(Inlogmiddel.DIGID)
+        assertThat(beslissing.identiteit.gebruiker.niveau).isEqualTo(Betrouwbaarheidsniveau.SUBSTANTIEEL)
+    }
+
+    @Test
+    fun `het BSN komt uit de userinfo en een BSN in het ID-token weigert de login`() {
+        val metBsnInIdToken = token { put("acting_subject_id", "s00000000:999993653") }
+
+        assertThat(reden(metBsnInIdToken, userInfo = userInfo(null))).isEqualTo(Reden.BSN_IN_ID_TOKEN)
+        assertThat(reden(metBsnInIdToken, userInfo = userInfo())).isEqualTo(Reden.BSN_IN_ID_TOKEN)
+        assertThat(reden(token(), userInfo = userInfo(null))).isEqualTo(Reden.BSN_ONGELDIG)
+    }
+
+    @Test
+    fun `wallet en eHerkenning worden geweigerd ook als de tenant ze aan heeft staan`() {
+        assertThat(
+            reden(
+                token {
+                    put("inlogmiddel", "wallet")
+                    put("acr", "http://eidas.europa.eu/LoA/substantial")
+                },
+            ),
+        ).isEqualTo(Reden.INLOGMIDDEL_NIET_ONDERSTEUND)
+        assertThat(reden(token { put("inlogmiddel", "eherkenning") })).isEqualTo(Reden.INLOGMIDDEL_NIET_ONDERSTEUND)
+    }
+
+    @Test
+    fun `de volgordetabel van DigiD en de eIDAS-URI's`() {
+        val digid = Inlogbeslisser.NIVEAUS.getValue(Inlogmiddel.DIGID)
+        assertThat(digid.values).containsExactly(Betrouwbaarheidsniveau.BASIS, Betrouwbaarheidsniveau.MIDDEN, Betrouwbaarheidsniveau.SUBSTANTIEEL, Betrouwbaarheidsniveau.HOOG)
+        assertThat(Inlogbeslisser.NIVEAUS.getValue(Inlogmiddel.WALLET).keys).containsExactly("http://eidas.europa.eu/LoA/low", "http://eidas.europa.eu/LoA/substantial", "http://eidas.europa.eu/LoA/high")
+        assertThat(Inlogbeslisser.NIVEAUS.getValue(Inlogmiddel.TEST)).containsExactly(
+            org.assertj.core.api.Assertions
+                .entry("Basis", Betrouwbaarheidsniveau.BASIS),
+        )
+        assertThat(Inlogbeslisser.NIVEAUS.getValue(Inlogmiddel.EHERKENNING)).isEmpty()
+    }
+
+    @Test
+    fun `de DigiD-tabel koppelt elke URN aan precies een niveau, in de volgorde Basis, Midden, Substantieel, Hoog`() {
+        assertThat(Inlogbeslisser.NIVEAUS.getValue(Inlogmiddel.DIGID)).containsExactly(
+            entry("urn:oasis:names:tc:SAML:2.0:ac:classes:PasswordProtectedTransport", Betrouwbaarheidsniveau.BASIS),
+            entry("urn:oasis:names:tc:SAML:2.0:ac:classes:MobileTwoFactorContract", Betrouwbaarheidsniveau.MIDDEN),
+            entry("urn:oasis:names:tc:SAML:2.0:ac:classes:Smartcard", Betrouwbaarheidsniveau.SUBSTANTIEEL),
+            entry("urn:oasis:names:tc:SAML:2.0:ac:classes:SmartcardPKI", Betrouwbaarheidsniveau.HOOG),
+        )
+    }
+
+    /** Rang van de URN (1 = Basis ... 4 = Hoog) tegen het minimum van de tenant (1 ... 4): toegestaan als de rang het minimum haalt. */
+    @ParameterizedTest(name = "{0} bij minimum {1}")
+    @MethodSource("niveauMatrix")
+    fun `een DigiD-niveau wordt toegelaten als het minstens het minimum van de tenant is`(
+        rang: Int,
+        minimum: Int,
+    ) {
+        val urns =
+            Inlogbeslisser.NIVEAUS
+                .getValue(Inlogmiddel.DIGID)
+                .keys
+                .toList()
+        val niveaus = listOf(Betrouwbaarheidsniveau.BASIS, Betrouwbaarheidsniveau.MIDDEN, Betrouwbaarheidsniveau.SUBSTANTIEEL, Betrouwbaarheidsniveau.HOOG)
+
+        val uitslag = reden(token { put("acr", urns[rang - 1]) }, tenant(minimum = niveaus[minimum - 1]))
+
+        assertThat(uitslag).isEqualTo(if (rang >= minimum) null else Reden.NIVEAU_TE_LAAG)
+    }
+
+    @Test
+    fun `auth_time mag hooguit de marge voor het begin van de login liggen`() {
+        assertThat(reden(token { put("auth_time", nu.minus(Inlogbeslisser.AUTH_TIME_MARGE)) })).isNull()
+        assertThat(reden(token { put("auth_time", nu.minus(Inlogbeslisser.AUTH_TIME_MARGE).minusSeconds(1)) })).isEqualTo(Reden.AUTH_TIME)
+        assertThat(reden(token(), start = null)).isEqualTo(Reden.AUTH_TIME)
+    }
+
+    @Test
+    fun `een andere issuer of client wordt geweigerd`() {
+        assertThat(reden(token { put("iss", "https://login.example/realms/andere") })).isEqualTo(Reden.ISSUER)
+        assertThat(reden(token { put("aud", listOf("andere-client")) })).isEqualTo(Reden.CLIENT)
+        assertThat(reden(token { put("azp", "andere-client") })).isEqualTo(Reden.CLIENT)
+        assertThat(reden(token { put("sub", " ") })).isEqualTo(Reden.SUBJECT)
+    }
+
+    @ParameterizedTest
+    @CsvSource("999993653,true", "999993847,true", "123456782,true", "123456789,false", "000000000,false", "99999365,false", "9999936534,false", "99999365a,false", "'',false")
+    fun `een BSN heeft negen cijfers met een geldige elfproef`(
+        nummer: String,
+        geldig: Boolean,
+    ) {
+        assertThat(Inlogbeslisser.geldigBsn(nummer)).isEqualTo(geldig)
+    }
+
+    @Test
+    fun `de Betrouwbaarheidsniveaus zijn geordend zoals de tabel`() {
+        assertThat(Betrouwbaarheidsniveau.entries).containsExactly(
+            Betrouwbaarheidsniveau.BASIS,
+            Betrouwbaarheidsniveau.MIDDEN,
+            Betrouwbaarheidsniveau.SUBSTANTIEEL,
+            Betrouwbaarheidsniveau.HOOG,
+        )
+        assertThat(Betrouwbaarheidsniveau.BASIS < Betrouwbaarheidsniveau.MIDDEN).isTrue()
+        assertThat(Betrouwbaarheidsniveau.SUBSTANTIEEL < Betrouwbaarheidsniveau.HOOG).isTrue()
+    }
+
+    companion object {
+        @JvmStatic
+        fun niveauMatrix(): Stream<Arguments> = (1..4).flatMap { rang -> (1..4).map { minimum -> Arguments.of(rang, minimum) } }.stream()
+    }
+}
+
+class ClientSleutelsTest {
+    @TempDir
+    lateinit var dir: Path
+
+    private fun sleutel(
+        kid: String? = "k1",
+        alg: JWSAlgorithm? = JWSAlgorithm.PS256,
+        bits: Int = 3072,
+    ): RSAKey =
+        RSAKeyGenerator(bits)
+            .also { g ->
+                kid?.let { g.keyID(it) }
+                alg?.let { g.algorithm(it) }
+            }.generate()
+
+    private fun tenant(
+        oin: String,
+        bestand: String,
+    ) = TenantDefinition(
+        Oin(oin),
+        "T",
+        Omgevingstype.ONTWIKKELING,
+        listOf("$oin.test"),
+        Thema(titel = "t"),
+        setOf(Inlogmiddel.TEST),
+        Authenticatie("https://login.example/realms/$oin", bestand),
+        Betrouwbaarheidsniveau.BASIS,
+        Sessie(),
+    )
+
+    private fun schrijf(
+        naam: String,
+        inhoud: String,
+    ): String =
+        dir
+            .resolve(naam)
+            .also {
+                Files.createDirectories(it.parent)
+                Files.writeString(it, inhoud)
+            }.toString()
+
+    private val a = "00000099000000000001"
+    private val b = "00000099000000000002"
+
+    @Test
+    fun `een geldige sleutel per tenant laadt, een relatief pad is relatief aan de sleutelmap`() {
+        schrijf("$a/a.jwk", sleutel("ka").toJSONString())
+        schrijf("$b/b.jwk", sleutel("kb").toJSONString())
+
+        val sleutels = TenantClientSleutels.laad(listOf(tenant(a, "$a/a.jwk"), tenant(b, dir.resolve(b).resolve("b.jwk").toString())), dir)
+
+        assertThat(sleutels.voor(Oin(a)).keyID).isEqualTo("ka")
+        assertThat(sleutels.voor(Oin(b)).keyID).isEqualTo("kb")
+        assertThatThrownBy { sleutels.voor(Oin("00000099000000000009")) }.hasMessageContaining("Geen clientsleutel")
+    }
+
+    private fun weigert(
+        inhoud: String?,
+        bevat: String,
+    ) {
+        val bestand = if (inhoud == null) "$a/bestaat-niet.jwk" else schrijf("$a/x.jwk", inhoud).let { "$a/x.jwk" }
+        assertThatThrownBy { TenantClientSleutels.laad(listOf(tenant(a, bestand)), dir) }
+            .hasMessageContaining(bevat)
+            .hasMessageContaining("Tenant $a")
+            .hasMessageNotContaining(dir.toString())
+            .hasMessageNotContaining("x.jwk")
+    }
+
+    @Test
+    fun `een onbruikbare sleutel laat de runtime niet starten en toont geen sleuteldelen`() {
+        weigert(null, "ontbreekt")
+        weigert("geen json", "geen geldige JWK")
+        weigert(sleutel().toPublicJWK().toJSONString(), "niet privé")
+        weigert(sleutel(kid = null).toJSONString(), "kid")
+        weigert(sleutel(alg = null).toJSONString(), "PS256")
+        weigert(sleutel(alg = JWSAlgorithm.RS256).toJSONString(), "PS256")
+        weigert(sleutel(bits = 2048).toJSONString(), "3072")
+        weigert(
+            com.nimbusds.jose.jwk.gen
+                .ECKeyGenerator(com.nimbusds.jose.jwk.Curve.P_256)
+                .keyID("e")
+                .generate()
+                .toJSONString(),
+            "geen RSA",
+        )
+    }
+
+    @Test
+    fun `twee tenants met dezelfde keyId of dezelfde sleutel laten de runtime niet starten`() {
+        val gedeeld = sleutel("zelfde")
+        schrijf("$a/a.jwk", sleutel("zelfde").toJSONString())
+        schrijf("$b/b.jwk", sleutel("zelfde").toJSONString())
+        schrijf("$a/c.jwk", gedeeld.toJSONString())
+        schrijf(
+            "$b/d.jwk",
+            RSAKey
+                .Builder(gedeeld.toRSAPublicKey())
+                .privateKey(gedeeld.toRSAPrivateKey())
+                .keyID("andere-kid")
+                .algorithm(JWSAlgorithm.PS256)
+                .build()
+                .toJSONString(),
+        )
+
+        assertThatThrownBy { TenantClientSleutels.laad(listOf(tenant(a, "$a/a.jwk"), tenant(b, "$b/b.jwk")), dir) }.hasMessageContaining("keyId")
+        assertThatThrownBy { TenantClientSleutels.laad(listOf(tenant(a, "$a/c.jwk"), tenant(b, "$b/d.jwk")), dir) }.hasMessageContaining("dezelfde clientsleutel")
+    }
+
+    @Test
+    fun `een sleutelbestand buiten de map van de eigen tenant laat de runtime niet starten, ook niet via een omweg of een symlink`() {
+        schrijf("$b/b.jwk", sleutel("kb").toJSONString())
+        schrijf("$a/a.jwk", sleutel("ka").toJSONString())
+
+        // een pad dat via .. naar de map van een andere tenant ontsnapt, en een absoluut pad naar die map
+        listOf("$a/../$b/b.jwk", "../${dir.fileName}/$b/b.jwk", dir.resolve(b).resolve("b.jwk").toString()).forEach { pad ->
+            assertThatThrownBy { TenantClientSleutels.laad(listOf(tenant(a, pad)), dir) }
+                .hasMessageContaining("niet in de map van deze tenant")
+                .hasMessageContaining("Tenant $a")
+                .hasMessageNotContaining(b.plus("/b.jwk"))
+        }
+        // een symlink in de eigen map naar de sleutel van een andere tenant (alleen waar het OS symlinks toestaat)
+        val link = dir.resolve(a).resolve("link.jwk")
+        val kanLinken = runCatching { Files.createSymbolicLink(link, dir.resolve(b).resolve("b.jwk")) }.isSuccess
+        if (kanLinken) {
+            assertThatThrownBy { TenantClientSleutels.laad(listOf(tenant(a, "$a/link.jwk")), dir) }.hasMessageContaining("niet in de map van deze tenant")
+        }
+    }
+
+    @Test
+    fun `een ontbrekende map van de tenant of een map in plaats van een bestand laat de runtime niet starten`() {
+        schrijf("$a/a.jwk", sleutel("ka").toJSONString())
+        Files.createDirectories(dir.resolve(a).resolve("map.jwk"))
+
+        assertThatThrownBy { TenantClientSleutels.laad(listOf(tenant(b, "$b/b.jwk")), dir) }.hasMessageContaining("ontbreekt").hasMessageContaining("Tenant $b")
+        assertThatThrownBy { TenantClientSleutels.laad(listOf(tenant(a, "$a/map.jwk")), dir) }.hasMessageContaining("geen bestand")
+    }
+}
+
+class BrokerBasisTest {
+    private fun valtOnder(
+        issuer: String,
+        broker: String,
+    ) = BrokerBasis.valtOnder(URI.create(issuer), URI.create(broker))
+
+    @Test
+    fun `de issuer valt onder de basis-URL op schema, host, poort en padsegmenten`() {
+        assertThat(valtOnder("https://login.example/realms/x", "https://login.example")).isTrue()
+        assertThat(valtOnder("https://login.example/auth/realms/x", "https://login.example/auth/")).isTrue()
+        assertThat(valtOnder("https://LOGIN.example/realms/x", "https://login.example")).isTrue()
+        assertThat(valtOnder("https://login.example:443/realms/x", "https://login.example")).isTrue()
+        assertThat(valtOnder("http://login.example/realms/x", "https://login.example")).isFalse()
+        assertThat(valtOnder("https://login.example.evil.nl/realms/x", "https://login.example")).isFalse()
+        assertThat(valtOnder("https://login.example:8443/realms/x", "https://login.example")).isFalse()
+        assertThat(valtOnder("https://login.example/authx/realms/x", "https://login.example/auth")).isFalse()
+        assertThat(valtOnder("https://login.example/realms/x", "https://login.example/auth")).isFalse()
+    }
+}
+
+class GeheugenEenmaligeOpslagTest {
+    private val klok = MutableClock()
+    private val opslag = GeheugenEenmaligeOpslag(klok)
+
+    @Test
+    fun `een waarde is hooguit een keer te nemen en verloopt na de ttl`() {
+        opslag.zet("k", "v", Duration.ofSeconds(10)).block()
+
+        assertThat(opslag.lees("k").block()).isEqualTo("v")
+        assertThat(opslag.neem("k").block()).isEqualTo("v")
+        assertThat(opslag.neem("k").block()).isNull()
+
+        opslag.zet("k", "v", Duration.ofSeconds(10)).block()
+        klok.advance(Duration.ofSeconds(10))
+        assertThat(opslag.lees("k").block()).isNull()
+        opslag.zet("k2", "v", Duration.ofSeconds(10)).block()
+        opslag.verwijder("k2").block()
+        assertThat(opslag.lees("k2").block()).isNull()
+    }
+}
+
+class LogBeveiligingsgebeurtenissenTest {
+    @Test
+    fun `een event is een logregel met vaste velden en zonder stuurtekens uit een iss`() {
+        val logger = LoggerFactory.getLogger("nl.nlportal.beveiliging") as Logger
+        val appender = ListAppender<ILoggingEvent>().also { it.start() }
+        logger.addAppender(appender)
+        try {
+            LogBeveiligingsgebeurtenissen().registreer(
+                Beveiligingsgebeurtenis(GebeurtenisType.LOGIN_GEWEIGERD, "00000099000000000001", Actor("https://x.example\nvals=1", "sub 1"), "geweigerd", Reden.NIVEAU_TE_LAAG, "c-1"),
+            )
+        } finally {
+            logger.detachAppender(appender)
+        }
+
+        val regel = appender.list.single().formattedMessage
+        assertThat(regel).isEqualTo("beveiligingsevent type=login_geweigerd oin=00000099000000000001 actor=https://x.example_vals_1|sub_1 uitkomst=geweigerd reden=niveau_te_laag correlatie=c-1")
+    }
+}

@@ -15,44 +15,40 @@
  */
 package nl.nlportal.kvk.autoconfiguration
 
-import nl.nlportal.core.ssl.ClientSslContextResolver
-import nl.nlportal.core.ssl.ResourceClientSslContextResolver
-import nl.nlportal.kvk.client.KvkConfig
-import nl.nlportal.kvk.client.KvkClient
+import nl.nlportal.core.koppeling.KoppelingAutoConfiguration
+import nl.nlportal.core.koppeling.KoppelingRegister
+import nl.nlportal.core.tenancy.TenantDirectory
+import nl.nlportal.core.tenancy.VervallenProperties
 import nl.nlportal.kvk.graphql.KvkQuery
 import nl.nlportal.kvk.service.KvkService
-import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.autoconfigure.AutoConfiguration
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty
-import org.springframework.boot.context.properties.EnableConfigurationProperties
 import org.springframework.context.annotation.Bean
-import org.springframework.core.io.ResourceLoader
 
-@AutoConfiguration
-@EnableConfigurationProperties(KvkConfig::class)
+/**
+ * De KvK-module staat aan met `nl-portal.config.kvk.enabled=true`. De bron per tenant is de koppeling `kvk` in het tenantbestand
+ * (url en sleutel); deze schakelaar is alleen de keuze of de runtime de module aanbiedt.
+ */
+@AutoConfiguration(after = [KoppelingAutoConfiguration::class])
 @ConditionalOnProperty(prefix = "nl-portal.config", name = ["kvk.enabled"], havingValue = "true")
 class KvkAutoConfiguration {
     @Bean
-    @ConditionalOnMissingBean(ClientSslContextResolver::class)
-    fun clientSslContextResolver(resourceLoader: ResourceLoader): ClientSslContextResolver = ResourceClientSslContextResolver(resourceLoader)
-
-    @Bean
-    @ConditionalOnMissingBean(KvkClient::class)
-    fun kvkClient(
-        kvkClientConfig: KvkConfig,
-        @Autowired(required = false) clientSslContextResolver: ClientSslContextResolver? = null,
-    ): KvkClient =
-        KvkClient(
-            kvkClientConfig.properties,
-            clientSslContextResolver,
-        )
-
-    @Bean
     @ConditionalOnMissingBean(KvkService::class)
-    fun kvkService(kvkClient: KvkClient): KvkService = KvkService(kvkClient)
+    fun kvkService(koppelingRegister: KoppelingRegister): KvkService = KvkService(koppelingRegister)
 
     @Bean
     @ConditionalOnMissingBean(KvkQuery::class)
     fun kvkQuery(kvkService: KvkService): KvkQuery = KvkQuery(kvkService)
+
+    /**
+     * KvK heeft per gemeente alleen een koppeling, geen `modules.kvk`; daarom kan `ModuleContext` niet toetsen of de module een
+     * koppeling heeft. Deze controle doet dat: aan zonder een tenant met `koppelingen.kvk` weigert het opstarten.
+     */
+    @Bean
+    fun kvkKoppelingControle(directory: TenantDirectory) = KvkKoppelingControle(directory)
+
+    /** De oude `...properties.*` (url, apiKey, ssl) zijn vervallen: staan ze nog gezet, dan weigert core het opstarten. */
+    @Bean
+    fun kvkVervallenProperties() = VervallenProperties(KvkService.MODULE, "nl-portal.config.kvk.properties", vervanging = "koppelingen.${KvkService.KOPPELING}")
 }

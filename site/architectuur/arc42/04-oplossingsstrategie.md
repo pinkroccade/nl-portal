@@ -9,8 +9,8 @@ NL Portal is bewust **laag 5 (interactielaag)**: het bevat geen eigen "bron"-dat
 op bij de datalaag (primair ZGW-bronnen). Dit volgt direct uit twee Common Ground-uitgangspunten
 (zie [`site/architectuur/applicatiearchitectuur.md`](../applicatiearchitectuur.md)):
 componenten in plaats van monolieten, en data gescheiden van business-logica. Consequentie: NL
-Portal is **stateless**: het heeft geen eigen database en bewaart geen kopie van brondata die
-elders leidend is. Vluchtige state zoals sessies of een cache mag ([ADR 0017](../../development/adr/0017-vluchtige-state-toegestaan.md)).
+Portal is **stateless in persistente zin**: het heeft geen eigen database en bewaart geen kopie van brondata die
+elders leidend is. Vluchtige state mag, en de BFF-sessies staan in Redis, dus Redis is een vereiste voor elke cel (zie ook ADR 0022) ([ADR 0017](../../development/adr/0017-vluchtige-state-toegestaan.md)).
 
 ## 4.2 Eén backend als enige ZGW-cliënt
 

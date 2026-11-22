@@ -19,7 +19,6 @@ import nl.nlportal.openklant.graphql.domain.DigitaleAdresType.OVERIG
 import java.time.LocalDate
 import java.util.UUID
 import nl.nlportal.openklant.client.domain.OpenKlant2DigitaleAdres
-import nl.nlportal.verificatie.autoconfigure.VerificatieModuleConfiguration
 import nl.nlportal.verificatie.service.VerificatieService
 
 data class DigitaleAdresResponse(
@@ -34,9 +33,8 @@ data class DigitaleAdresResponse(
     val isStandaardAdres: Boolean? = false,
 ) {
     companion object {
-        fun fromOpenKlant2DigitaleAdres(
+        suspend fun fromOpenKlant2DigitaleAdres(
             openKlant2DigitaleAdres: OpenKlant2DigitaleAdres,
-            verificatieModuleConfiguration: VerificatieModuleConfiguration,
             verificatieService: VerificatieService?,
         ): DigitaleAdresResponse {
             val type =
@@ -53,7 +51,7 @@ data class DigitaleAdresResponse(
                 verificatieDatum = openKlant2DigitaleAdres.verificatieDatum,
                 verificatieNeeded =
                     verificatieService != null &&
-                        verificatieModuleConfiguration.properties.typesNeedVerification.contains(DigitaleAdresType.toVerificationType(type)) &&
+                        verificatieService.vereistVerificatie(DigitaleAdresType.toVerificationType(type)) &&
                         openKlant2DigitaleAdres.verificatieDatum == null,
                 isStandaardAdres = openKlant2DigitaleAdres.isStandaardAdres,
             )

@@ -20,12 +20,14 @@ import java.util.Locale
 import java.util.UUID
 import kotlinx.coroutines.flow.Flow
 import nl.nlportal.commonground.authentication.AuthenticationMachtigingsDienstService
-import nl.nlportal.commonground.authentication.CommonGroundAuthentication
+import nl.nlportal.portal.authentication.domain.PortalAuthentication
+import nl.nlportal.core.koppeling.KoppelingException
+import nl.nlportal.core.tenancy.TenantContextMissingException
+import nl.nlportal.core.util.ModuleNotConfiguredException
 import nl.nlportal.core.util.ZgwUrls.extractId
 import nl.nlportal.documentenapi.domain.Document
 import nl.nlportal.documentenapi.service.DocumentenApiService
 import nl.nlportal.zakenapi.client.ZakenApiClient
-import nl.nlportal.zakenapi.client.ZakenApiConfig.ZakenApiConfigProperties
 import nl.nlportal.zakenapi.domain.Zaak
 import nl.nlportal.zakenapi.domain.ZaakDetails
 import nl.nlportal.zakenapi.domain.ZaakDetailsObject
@@ -36,7 +38,7 @@ import nl.nlportal.zakenapi.domain.ZaakRol
 import nl.nlportal.zakenapi.domain.ZaakStatus
 import nl.nlportal.zakenapi.domain.ZaakSubStatus
 import nl.nlportal.zakenapi.domain.ZaakSubStatusDoelgroep
-import nl.nlportal.zgw.objectenapi.client.ObjectsApiClient
+import nl.nlportal.zgw.objectenapi.service.ObjectenApiService
 import nl.nlportal.zgw.objectenapi.domain.ObjectsApiObject
 import org.springframework.core.io.buffer.DataBuffer
 import org.springframework.http.HttpStatus
@@ -44,15 +46,14 @@ import org.springframework.web.server.ResponseStatusException
 
 class ZakenApiService(
     private val zakenApiClient: ZakenApiClient,
-    private val zakenApiConfigProperties: ZakenApiConfigProperties,
     private val documentenApiService: DocumentenApiService,
-    private val objectsApiClient: ObjectsApiClient,
+    private val objectenApiService: ObjectenApiService,
     private val authenticationMachtigingsDienstService: AuthenticationMachtigingsDienstService,
 ) {
     suspend fun getZaken(
         page: Int,
         pageSize: Int? = null,
-        authentication: CommonGroundAuthentication,
+        authentication: PortalAuthentication,
         zaakTypeUrl: String? = null,
         isOpen: Boolean? = null,
         identificatie: String? = null,
@@ -90,22 +91,33 @@ class ZakenApiService(
             request.ofZaakTypes(it)
         }
 
-        if (zakenApiConfigProperties.zaakTypesIdsExcluded.isNotEmpty()) {
-            request.notInZaakTypes(zakenApiConfigProperties.zaakTypesIdsExcluded)
+        val uitgesloten = zakenApiClient.configuratie().uitgeslotenZaaktypeIds()
+        if (uitgesloten.isNotEmpty()) {
+            request.notInZaakTypes(uitgesloten)
         }
 
         if (zaakTypeUUIDs.isNotEmpty()) {
             request.ofZaakTypes(zaakTypeUUIDs.toList())
         }
 
-        return request.retrieve().let {
-            ZaakPage.fromResultPage(page, pageSize ?: 20, it)
+        // De bron past zaaktype__not_in toe met zaaktype-URL's uit de Catalogi API; heeft de tenant een eigen Catalogi, dan
+        // komen die URL's niet overeen. Daarom filteren we ook op zaaktype-UUID, onafhankelijk van de URL-basis.
+        return request.retrieve().let { resultaat ->
+            val toegestaan = resultaat.results.filterNot { uitgesloten.isNotEmpty() && isUitgesloten(it.zaaktype, uitgesloten) }
+            val verwijderd = resultaat.results.size - toegestaan.size
+            ZaakPage.fromResultPage(page, pageSize ?: 20, resultaat.copy(count = (resultaat.count - verwijderd).coerceAtLeast(0), results = toegestaan))
         }
     }
 
+    /** Een zaaktype-URL zonder herkenbare UUID geldt als uitgesloten: bij twijfel niet tonen. */
+    private fun isUitgesloten(
+        zaaktypeUrl: String,
+        uitgesloten: List<UUID>,
+    ): Boolean = runCatching { extractId(zaaktypeUrl) }.map { it in uitgesloten }.getOrDefault(true)
+
     suspend fun getZaak(
         id: UUID,
-        authentication: CommonGroundAuthentication,
+        authentication: PortalAuthentication,
     ): Zaak {
         // Get rollen of zaak to check if user has access
         val zaakRollenRequest =
@@ -127,14 +139,29 @@ class ZakenApiService(
 
         val zaak = zakenApiClient.zaken().get(id).retrieve()
 
-        if (!authenticationMachtigingsDienstService.isAllowedZaakType(authentication, extractId(zaak.zaaktype))) {
-            throw ResponseStatusException(HttpStatus.UNAUTHORIZED, "Access denied to this zaak")
-        }
+        weigerUitgeslotenOfNietToegestaan(zaak, authentication)
 
         return zaak
     }
 
-    suspend fun getZaakFromZaakApi(id: UUID): Zaak = zakenApiClient.zaken().get(id).retrieve()
+    /**
+     * Een uitgesloten zaaktype komt niet in de lijst; ook een directe aanvraag of een documentdownload geeft dan 404, net als de
+     * Zaken API zelf voor een onbekende resource (zie `ZakenApiClient`). Voor een gebruiker zonder rol bij de zaak blijft het 401:
+     * die controle gaat hieraan vooraf en verraadt niets over de zaak. Daarna volgt de machtiging voor het zaaktype.
+     */
+    private suspend fun weigerUitgeslotenOfNietToegestaan(
+        zaak: Zaak,
+        authentication: PortalAuthentication,
+    ) {
+        val uitgesloten = zakenApiClient.configuratie().uitgeslotenZaaktypeIds()
+        if (uitgesloten.isNotEmpty() && isUitgesloten(zaak.zaaktype, uitgesloten)) {
+            throw ResponseStatusException(HttpStatus.NOT_FOUND)
+        }
+
+        if (!authenticationMachtigingsDienstService.isAllowedZaakType(authentication, extractId(zaak.zaaktype))) {
+            throw ResponseStatusException(HttpStatus.UNAUTHORIZED, "Access denied to this zaak")
+        }
+    }
 
     suspend fun getZaakStatus(statusUrl: String): ZaakStatus = zakenApiClient.zaakStatussen().get(extractId(statusUrl)).retrieve()
 
@@ -153,8 +180,15 @@ class ZakenApiService(
                 .results
                 .filterNot { it.doelgroep == ZaakSubStatusDoelgroep.INTERN }
                 .sortedBy { it.tijdstip }
+        } catch (ex: ModuleNotConfiguredException) {
+            // Ontbrekende configuratie of tenant faalt gesloten, net als de andere operaties: geen stille lege lijst.
+            throw ex
+        } catch (ex: TenantContextMissingException) {
+            throw ex
         } catch (ex: Exception) {
-            logger.warn { "Could not get zak sub statussen for $zaakUrl and $statusUrl: $ex" }
+            // Geen zaak- of status-URL in de log: een zaak-URL geldt als gevoelig. Bij een koppelingsfout volstaat de referentie.
+            val referentie = (ex as? KoppelingException)?.correlatieId
+            logger.warn { "Could not get zaak sub statussen: ${ex::class.simpleName}, referentie $referentie" }
         }
         return emptyList()
     }
@@ -201,14 +235,16 @@ class ZakenApiService(
         return ZaakDetails(zaakUrl, zaakDetailsObjects)
     }
 
+    // De URL komt uit een antwoord van de Zaken API en wordt dus niet vertrouwd: de Objecten-koppeling volgt alleen URL's onder haar
+    // basis-URL (HostBinding) en stuurt haar token nooit naar een andere host.
     private suspend fun getObjectApiZaakDetails(objectUrl: String): ObjectsApiObject<ZaakDetailsObject>? =
-        objectsApiClient.getObjectByUrl<ZaakDetailsObject>(
+        objectenApiService.getObjectByUrl<ZaakDetailsObject>(
             url = objectUrl,
         )
 
     suspend fun getZaakDocumentContent(
         zaakDocumentId: String,
-        commonGroundAuthentication: CommonGroundAuthentication,
+        commonGroundAuthentication: PortalAuthentication,
     ): Pair<Document?, Flow<DataBuffer>?> {
         val zaakDocument =
             zakenApiClient
@@ -226,6 +262,8 @@ class ZakenApiService(
 
         return when (zaakRollen.isNotEmpty()) {
             true -> {
+                // Dezelfde toegangscontrole als bij de zaak zelf: een uitgesloten of niet-toegestaan zaaktype geeft geen document.
+                weigerUitgeslotenOfNietToegestaan(zakenApiClient.zaken().get(extractId(zaakDocument.zaak)).retrieve(), commonGroundAuthentication)
                 documentenApiService
                     .getDocument(zaakDocument.informatieobject) to
                     documentenApiService

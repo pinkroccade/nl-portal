@@ -18,6 +18,8 @@ package nl.nlportal.commonground.authentication
 import io.github.oshai.kotlinlogging.KLogger
 import io.github.oshai.kotlinlogging.KotlinLogging
 import java.util.UUID
+import nl.nlportal.portal.authentication.domain.PortalAuthentication
+import nl.nlportal.portal.authentication.domain.Vertegenwoordigde
 import nl.nlportal.core.util.Mapper
 import org.springframework.core.io.ResourceLoader
 import tools.jackson.core.type.TypeReference
@@ -49,14 +51,14 @@ class AuthenticationMachtigingsDienstService(
         return authenticationMachtingsDiensten.find { it.uuid == uuid }
     }
 
-    fun hasMachtingsDienst(authentication: CommonGroundAuthentication): Boolean = authentication.machtigingsDienstUUIDs(authenticationMachtingsDienstConfig.allMachtigingUuid) != null
+    fun hasMachtingsDienst(authentication: PortalAuthentication): Boolean = machtigingsDienstUuids(authentication) != null
 
-    fun zaakTypes(authentication: CommonGroundAuthentication): List<UUID>? {
-        if (authentication !is BedrijfAuthentication) {
+    fun zaakTypes(authentication: PortalAuthentication): List<UUID>? {
+        if (!authentication.isBedrijf()) {
             return null
         }
         val zaakTypeList = mutableListOf<UUID>()
-        authentication.machtigingsDienstUUIDs(authenticationMachtingsDienstConfig.allMachtigingUuid)?.forEach {
+        machtigingsDienstUuids(authentication)?.forEach {
             getAuthenticationMachtingsDienst(it)?.let {
                 zaakTypeList.addAll(it.zaakTypes)
             }
@@ -73,12 +75,12 @@ class AuthenticationMachtigingsDienstService(
         }
     }
 
-    fun taakTypes(authentication: CommonGroundAuthentication): List<String>? {
-        if (authentication !is BedrijfAuthentication) {
+    fun taakTypes(authentication: PortalAuthentication): List<String>? {
+        if (!authentication.isBedrijf()) {
             return null
         }
         val taakTypeList = mutableListOf<String>()
-        authentication.machtigingsDienstUUIDs(authenticationMachtingsDienstConfig.allMachtigingUuid)?.forEach {
+        machtigingsDienstUuids(authentication)?.forEach {
             getAuthenticationMachtingsDienst(it)?.let {
                 taakTypeList.addAll(it.taakTypes)
             }
@@ -94,12 +96,12 @@ class AuthenticationMachtigingsDienstService(
         }
     }
 
-    fun productTypes(authentication: CommonGroundAuthentication): List<UUID>? {
-        if (authentication !is BedrijfAuthentication) {
+    fun productTypes(authentication: PortalAuthentication): List<UUID>? {
+        if (!authentication.isBedrijf()) {
             return null
         }
         val productTypeList = mutableListOf<UUID>()
-        authentication.machtigingsDienstUUIDs(authenticationMachtingsDienstConfig.allMachtigingUuid)?.forEach {
+        machtigingsDienstUuids(authentication)?.forEach {
             getAuthenticationMachtingsDienst(it)?.let {
                 productTypeList.addAll(it.productTypes)
             }
@@ -116,21 +118,21 @@ class AuthenticationMachtigingsDienstService(
     }
 
     fun isAllowedZaakType(
-        authentication: CommonGroundAuthentication,
+        authentication: PortalAuthentication,
         zaakTypeUUID: UUID,
     ): Boolean {
         val zaaktypes = zaakTypes(authentication)
-        if (authentication !is BedrijfAuthentication || zaaktypes.isNullOrEmpty()) {
+        if (!authentication.isBedrijf() || zaaktypes.isNullOrEmpty()) {
             return true
         }
         return zaaktypes.contains(zaakTypeUUID)
     }
 
     fun isAllowedZaakTypes(
-        authentication: CommonGroundAuthentication,
+        authentication: PortalAuthentication,
         zaakTypeUUIDs: List<UUID>,
     ): Boolean {
-        if (authentication !is BedrijfAuthentication) {
+        if (!authentication.isBedrijf()) {
             return true
         }
         val zaaktypes = zaakTypes(authentication)
@@ -151,11 +153,11 @@ class AuthenticationMachtigingsDienstService(
     }
 
     fun isAllowedTaakType(
-        authentication: CommonGroundAuthentication,
+        authentication: PortalAuthentication,
         taakType: String,
     ): Boolean {
         val taaktypes = taakTypes(authentication)
-        if (authentication !is BedrijfAuthentication || taaktypes.isNullOrEmpty()) {
+        if (!authentication.isBedrijf() || taaktypes.isNullOrEmpty()) {
             return true
         }
 
@@ -163,11 +165,11 @@ class AuthenticationMachtigingsDienstService(
     }
 
     fun isAllowedProductType(
-        authentication: CommonGroundAuthentication,
+        authentication: PortalAuthentication,
         productTypeUUID: UUID,
     ): Boolean {
         val productTypes = productTypes(authentication)
-        if (authentication !is BedrijfAuthentication || productTypes.isNullOrEmpty()) {
+        if (!authentication.isBedrijf() || productTypes.isNullOrEmpty()) {
             return true
         }
 
@@ -175,7 +177,7 @@ class AuthenticationMachtigingsDienstService(
     }
 
     fun isAllowedProductTypes(
-        authentication: CommonGroundAuthentication,
+        authentication: PortalAuthentication,
         productTypeUUIDs: List<UUID>? = emptyList(),
     ): Boolean =
         filterAllowedProductTypes(
@@ -184,11 +186,11 @@ class AuthenticationMachtigingsDienstService(
         ).isNotEmpty()
 
     fun filterAllowedProductTypes(
-        authentication: CommonGroundAuthentication,
+        authentication: PortalAuthentication,
         productTypeUUIDs: List<UUID>?,
     ): List<UUID> {
         val productTypes = productTypes(authentication)
-        if (authentication !is BedrijfAuthentication || productTypes.isNullOrEmpty()) {
+        if (!authentication.isBedrijf() || productTypes.isNullOrEmpty()) {
             return productTypeUUIDs ?: emptyList()
         }
 
@@ -198,6 +200,13 @@ class AuthenticationMachtigingsDienstService(
 
         return productTypeUUIDs.filter { it in productTypes }
     }
+
+    /** De machtigingsdienst-UUID's van de gebruiker; `null` zonder claim of bij de UUID die alle machtigingen geeft. */
+    private fun machtigingsDienstUuids(authentication: PortalAuthentication): List<UUID>? =
+        authentication.identiteit.machtigingsdienstUuids
+            ?.takeUnless { authenticationMachtingsDienstConfig.allMachtigingUuid in it }
+
+    private fun PortalAuthentication.isBedrijf() = identiteit.vertegenwoordigde is Vertegenwoordigde.Bedrijf
 
     companion object {
         private val logger: KLogger = KotlinLogging.logger {}

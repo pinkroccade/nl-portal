@@ -19,12 +19,9 @@ import java.net.URI
 import kotlinx.coroutines.test.runTest
 import nl.nlportal.commonground.authentication.WithBedrijfUser
 import nl.nlportal.commonground.authentication.WithBurgerUser
-import nl.nlportal.documentenapi.client.DocumentApisConfig
 import nl.nlportal.openproduct.TestHelper
 import nl.nlportal.openproduct.TestHelper.readFileAsString
 import nl.nlportal.openproduct.autoconfigure.OpenProductModuleConfiguration
-import nl.nlportal.zakenapi.client.ZakenApiConfig
-import nl.nlportal.zgw.objectenapi.autoconfiguration.ObjectsApiClientConfig
 import okhttp3.mockwebserver.Dispatcher
 import okhttp3.mockwebserver.MockResponse
 import okhttp3.mockwebserver.MockWebServer
@@ -51,9 +48,6 @@ import tools.jackson.databind.JsonNode
 class OpenProductQueryIT(
     @Autowired private val httpGraphQlTester: HttpGraphQlTester,
     @Autowired private val openProductModuleConfiguration: OpenProductModuleConfiguration,
-    @Autowired private val objectsApiClientConfig: ObjectsApiClientConfig,
-    @Autowired private val zakenApiConfig: ZakenApiConfig,
-    @Autowired private val documentApisConfig: DocumentApisConfig,
 ) {
     companion object {
         private const val KNOWN_DOC_ID = "095be615-a8ad-4c33-8e9c-c7612fbf6c9f"
@@ -69,8 +63,6 @@ class OpenProductQueryIT(
         fun properties(propsRegistry: DynamicPropertyRegistry) {
             propsRegistry.add("nl-portal.config.openproduct.properties.product-api-url") { url }
             propsRegistry.add("nl-portal.config.openproduct.properties.product-type-api-url") { url }
-            propsRegistry.add("nl-portal.config.zakenapi.properties.url") { url }
-            propsRegistry.add("nl-portal.config.objectenapi.properties.url") { url }
         }
 
         @JvmStatic
@@ -94,9 +86,6 @@ class OpenProductQueryIT(
         url = server?.url("/").toString()
         openProductModuleConfiguration.properties.productApiUrl = URI(url)
         openProductModuleConfiguration.properties.productTypeApiUrl = URI(url)
-        objectsApiClientConfig.properties.url = URI(url)
-        zakenApiConfig.properties.url = url
-        documentApisConfig.properties.getConfig("openzaak").url = server?.url("/").toString()
     }
 
     @Test
@@ -122,7 +111,7 @@ class OpenProductQueryIT(
 
     @Test
     @WithBedrijfUser(
-        kvkNummer = "569312863",
+        kvkNummer = "56931286",
         machtigingsDienst = "0781d1a1-0644-44fd-802e-96f6b588b471",
     )
     fun `get producten for bedrijf met machtigingsdienst`() =
@@ -168,7 +157,7 @@ class OpenProductQueryIT(
 
     @Test
     @WithBedrijfUser(
-        kvkNummer = "569312863",
+        kvkNummer = "56931286",
     )
     fun `get product voor bedrijf`() =
         runTest {
@@ -191,7 +180,7 @@ class OpenProductQueryIT(
 
     @Test
     @WithBedrijfUser(
-        kvkNummer = "569312863",
+        kvkNummer = "56931286",
         machtigingsDienst = "0781d1a1-0644-44fd-802e-96f6b588b472",
     )
     fun `get product voor bedrijf met machtigingsdienst`() =
@@ -215,7 +204,7 @@ class OpenProductQueryIT(
 
     @Test
     @WithBedrijfUser(
-        kvkNummer = "569312863",
+        kvkNummer = "56931286",
         vestigingsNummer = "990000262129",
     )
     fun `get product voor bedrijf met vestiging`() =

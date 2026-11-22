@@ -25,6 +25,9 @@ staat; voeg een nieuwe term toe zodra een module ernaar vernoemd wordt (zie de
 - **Betrouwbaarheidsniveau** — de mate van zekerheid over de identiteit van de gebruiker die een
   inlogmiddel biedt (bijvoorbeeld DigiD Substantieel of Hoog). Een tenant legt een minimum vast.
   _Vermijd_: LoA (alleen als afkorting naast de term).
+- **Portaalsessie** — de sessie die de backend na een geslaagde login voor één gebruiker bij één tenant bijhoudt; de
+  browser heeft alleen een verwijzend cookie, de identiteit blijft bij de backend. Eindigt door uitloggen,
+  inactiviteit of een absoluut maximum. _Vermijd_: token, sessietoken.
 - **Ketenpartner** — een organisatie die bijdraagt aan de afhandeling van een verzoek (niet de klant,
   niet NL Portal zelf).
 - **Zaak** — de ZGW-eenheid die de afhandeling van één verzoek representeert (status, resultaat,

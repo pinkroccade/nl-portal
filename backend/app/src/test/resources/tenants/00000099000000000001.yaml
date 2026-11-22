@@ -1,0 +1,104 @@
+# Fictieve demo-tenant Gemeente De Bosrand. Het OIN is fictief en moet tussen aanhalingstekens staan.
+oin: "00000099000000000001"
+naam: Gemeente De Bosrand
+domeinen:
+    - localhost
+    - bosrand.example
+thema:
+    titel: Mijn De Bosrand
+authenticatie:
+    issuer: http://localhost:9999/realms/test
+    # Relatief aan de sleutelmap (build/test-sleutels, nl-portal.sleutelmap); de testrun maakt het bestand (zie TestSleutelInitializer).
+    sleutelBestand: 00000099000000000001/clientsleutel.jwk.json
+koppelingen:
+    documenten-api:
+        url: http://localhost:56789/documenten/api/v1
+        auth:
+            type: zgw-jwt
+            clientId: test-client
+            secret: 00000099000000000001.documenten-api-secret
+    brp:
+        url: http://localhost:56789/haalcentraal/api/brp
+        leverancier: Haal Centraal BRP-mock
+        auth:
+            # Geen sleutel: de mocks vragen er geen; in productie authenticeert de cloud gateway.
+            type: geen
+    brp-bewoning:
+        url: http://localhost:56789/haalcentraal/api/bewoning
+        leverancier: Haal Centraal Bewoning-mock
+        auth:
+            # Geen sleutel: de mocks vragen er geen; in productie authenticeert de cloud gateway.
+            type: geen
+    # Handelsregister (KvK): de mockserver van de tests; de sleutel staat in application.yml van de tests.
+    kvk:
+        url: http://localhost:56789
+        leverancier: KvK-mock
+        auth:
+            type: api-key
+            headerNaam: X-API-KEY
+            waarde: 00000099000000000001.kvk-sleutel
+    zakenapi:
+        url: http://localhost:56789
+        auth:
+            type: zgw-jwt
+            clientId: test-client
+            secret: 00000099000000000001.zaken-secret
+    catalogiapi:
+        url: http://localhost:56789
+        auth:
+            type: zgw-jwt
+            clientId: test-client
+            secret: 00000099000000000001.catalogiapi-secret
+    # De Objecten API (Open Object) kent alleen "Authorization: Token <token>": een api-key-header, waarvan het geheim "Token <token>" is.
+    objectenapi:
+        url: http://localhost:56789
+        auth:
+            type: api-key
+            headerNaam: Authorization
+            waarde: 00000099000000000001.objectenapi-token
+    # Betalen via Worldline Direct, zodat de :app-tests de module met echte waarden laden. De geheimen staan in application.yml van de tests.
+    payment-direct:
+        url: http://localhost:56789/payment
+        auth:
+            type: gcs-v1-hmac
+            clientId: test-api-sleutel
+            secret: 00000099000000000001.payment-direct-api-geheim
+    # Verificatie van digitale adressen (e-mail, telefoon): de mockserver van de tests; de geheimen staan in application.yml van de tests.
+    verificatie:
+        url: http://localhost:56789/verificatie
+        leverancier: Verificatiedienst-mock
+        auth:
+            type: zgw-jwt
+            clientId: test-client
+            secret: 00000099000000000001.verificatie-secret
+modules:
+    documenten-api:
+        standaardDocumentApi: documenten-api
+        documentApis:
+            documenten-api:
+                rsin: "051845623"
+                documentTypeUrl: http://localhost:56789/catalogi/api/v1/informatieobjecttypen/00000000-0000-0000-0000-000000000000
+        vertrouwelijkheidsaanduidingWitlijst: [openbaar, beperkt_openbaar, intern, zaakvertrouwelijk, vertrouwelijk, confidentieel, geheim, zeer_geheim]
+        statusWitlijst: [ter_vaststelling, in_bewerking, definitief, gearchiveerd]
+    brp:
+        # Doelbinding BRP per gemeente; leeg of weglaten geeft de standaardvelden en alle woonplaatsen.
+        toegestaneWoonplaatsenBewoning: []
+    zakenapi:
+        nnpKvkQueryIdentificatoren: false
+    taak:
+        objectTypeUrl: http://localhost:56789/api/v2/objecttypes/00000000-0000-0000-0000-000000000001
+    berichten:
+        berichtObjectTypeUrl: http://localhost:56789/api/v2/objecttypes/00000000-0000-0000-0000-000000000002
+    payment-direct:
+        webhookUrl: http://bosrand.example/api/public/payment/direct/postsale
+        profielen:
+            belastingzaken:
+                pspId: TAX
+                returnUrl: http://bosrand.example
+                webhookSleutelId: test-webhook-sleutel
+                webhookGeheim: 00000099000000000001.payment-direct-webhook-geheim
+    verificatie:
+        apiKey: 00000099000000000001.verificatie-apikey
+        templateIdTelefoonnummer: test-template-sms
+        templateIdEmail: test-template-mail
+        typenMetVerificatie: [EMAIL, TELEFOONNUMMER]

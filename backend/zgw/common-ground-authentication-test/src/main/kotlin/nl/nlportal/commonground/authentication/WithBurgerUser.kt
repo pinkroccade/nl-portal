@@ -23,7 +23,5 @@ import java.lang.annotation.Inherited
 @Inherited
 @WithSecurityContext(factory = WithBurgerUserSecurityContextFactory::class)
 annotation class WithBurgerUser(
-    val aanvragerBsn: String,
-    val gemachtigdeBsn: String = "",
-    val gemachtigdeKvk: String = "",
+    val vertegenwoordigdeBsn: String,
 )

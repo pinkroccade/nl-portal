@@ -15,41 +15,37 @@
  */
 package nl.nlportal.haalcentraalbrp.service
 
-import kotlinx.coroutines.runBlocking
 import nl.nlportal.commonground.authentication.JwtBuilder
-import nl.nlportal.haalcentraalbrp.autoconfiguration.HaalCentraalBrpModuleConfiguration.HaalCentraalBrpConfigurationProperties
-import nl.nlportal.haalcentraalbrp.client.HaalCentraalBrpBewoningClient
-import nl.nlportal.haalcentraalbrp.client.HaalCentraalBrpClient
+import nl.nlportal.core.testing.TestTenants
+import nl.nlportal.haalcentraalbrp.tenant.BrpConfiguratie
 import okhttp3.mockwebserver.MockResponse
 import okhttp3.mockwebserver.MockWebServer
 import org.assertj.core.api.Assertions.assertThat
 import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
-import org.springframework.web.reactive.function.client.WebClient
 
 internal class HaalCentraalBrpServiceTest {
     private lateinit var server: MockWebServer
-    private lateinit var properties: HaalCentraalBrpConfigurationProperties
     private lateinit var service: HaalCentraalBrpService
-    private val burger = JwtBuilder().aanvragerBsn("999993653").buildBurgerAuthentication()
-    private val bedrijf = JwtBuilder().aanvragerKvk("90012768").buildBedrijfAuthentication()
+    private val burger = JwtBuilder().vertegenwoordigdeBsn("999993653").buildAuthentication()
+    private val bedrijf = JwtBuilder().vertegenwoordigdeKvk("90012768").buildAuthentication()
 
     @BeforeEach
     fun setUp() {
         server = MockWebServer()
         server.start()
-        properties =
-            HaalCentraalBrpConfigurationProperties().apply {
-                brpApiUrl = server.url("/").toString()
-                bewoningApiUrl = server.url("/").toString()
-            }
-        service =
-            HaalCentraalBrpService(
-                properties,
-                HaalCentraalBrpClient(properties, null, WebClient.builder()),
-                HaalCentraalBrpBewoningClient(properties, null, WebClient.builder()),
+        service = service(BrpConfiguratie())
+    }
+
+    private fun service(configuratie: BrpConfiguratie): HaalCentraalBrpService {
+        val url = server.url("/").toString().trimEnd('/')
+        val tenant =
+            TestTenants.tenant(
+                koppelingen = mapOf("brp" to TestTenants.koppeling(url), "brp-bewoning" to TestTenants.koppeling(url)),
+                modules = mapOf("brp" to configuratie),
             )
+        return HaalCentraalBrpService(TestTenants.register(tenant), TestTenants.directory(tenant))
     }
 
     @AfterEach
@@ -59,14 +55,14 @@ internal class HaalCentraalBrpServiceTest {
 
     @Test
     fun `getPersoon geeft null voor een niet-burger zonder de API aan te roepen`() =
-        runBlocking {
+        TestTenants.metTenant<Unit> {
             assertThat(service.getPersoon(bedrijf)).isNull()
             assertThat(server.requestCount).isZero()
         }
 
     @Test
     fun `getPersoon zonder naamgebruik gebruikt de eigen geslachtsnaam`() =
-        runBlocking {
+        TestTenants.metTenant<Unit> {
             server.enqueue(personenResponse(naam = """{"voorvoegsel": "van", "geslachtsnaam": "Dijk"}"""))
 
             val persoon = service.getPersoon(burger)
@@ -76,7 +72,7 @@ internal class HaalCentraalBrpServiceTest {
 
     @Test
     fun `getPersoon zonder naam geeft een persoon zonder naam`() =
-        runBlocking {
+        TestTenants.metTenant<Unit> {
             server.enqueue(personenResponse(naam = null))
 
             val persoon = service.getPersoon(burger)
@@ -87,7 +83,7 @@ internal class HaalCentraalBrpServiceTest {
 
     @Test
     fun `getPersoon met naamgebruik partner gebruikt de naam van de partner`() =
-        runBlocking {
+        TestTenants.metTenant<Unit> {
             server.enqueue(personenResponse(naam = naam("P", "Jansen"), partnerNaam = """{"geslachtsnaam": "Bakker"}"""))
 
             assertThat(service.getPersoon(burger)?.naam?.officialLastName).isEqualTo("Bakker")
@@ -95,7 +91,7 @@ internal class HaalCentraalBrpServiceTest {
 
     @Test
     fun `getPersoon met naamgebruik partner en eigen combineert beide namen`() =
-        runBlocking {
+        TestTenants.metTenant<Unit> {
             server.enqueue(personenResponse(naam = naam("V", "Jansen"), partnerNaam = """{"geslachtsnaam": "Bakker"}"""))
 
             assertThat(service.getPersoon(burger)?.naam?.officialLastName).isEqualTo("Bakker - Jansen")
@@ -103,7 +99,7 @@ internal class HaalCentraalBrpServiceTest {
 
     @Test
     fun `getPersoon met naamgebruik eigen en partner combineert beide namen`() =
-        runBlocking {
+        TestTenants.metTenant<Unit> {
             server.enqueue(personenResponse(naam = naam("N", "Jansen"), partnerNaam = """{"geslachtsnaam": "Bakker"}"""))
 
             assertThat(service.getPersoon(burger)?.naam?.officialLastName).isEqualTo("Jansen - Bakker")
@@ -111,7 +107,7 @@ internal class HaalCentraalBrpServiceTest {
 
     @Test
     fun `getPersoon met naamgebruik eigen gebruikt de eigen geslachtsnaam`() =
-        runBlocking {
+        TestTenants.metTenant<Unit> {
             server.enqueue(personenResponse(naam = naam("E", "Jansen"), partnerNaam = """{"geslachtsnaam": "Bakker"}"""))
 
             assertThat(service.getPersoon(burger)?.naam?.officialLastName).isEqualTo("Jansen")
@@ -119,14 +115,14 @@ internal class HaalCentraalBrpServiceTest {
 
     @Test
     fun `getBewoningen geeft null voor een niet-burger`() =
-        runBlocking {
+        TestTenants.metTenant<Unit> {
             assertThat(service.getBewoningen(bedrijf, "0226010000038820")).isNull()
             assertThat(server.requestCount).isZero()
         }
 
     @Test
     fun `getBewoningen geeft null als de API faalt`() =
-        runBlocking {
+        TestTenants.metTenant<Unit> {
             server.enqueue(MockResponse().setResponseCode(500))
 
             assertThat(service.getBewoningen(burger, "0226010000038820")).isNull()
@@ -134,7 +130,7 @@ internal class HaalCentraalBrpServiceTest {
 
     @Test
     fun `getBewonersAantal telt de bewoners van de eerste bewoning`() =
-        runBlocking {
+        TestTenants.metTenant<Unit> {
             server.enqueue(bewoningenResponse())
 
             assertThat(service.getBewonersAantal(burger, "0226010000038820")).isEqualTo(2)
@@ -142,8 +138,8 @@ internal class HaalCentraalBrpServiceTest {
 
     @Test
     fun `getBewonersAantal geeft null als de woonplaats niet is toegestaan`() =
-        runBlocking {
-            properties.allowedCitiesForBewoning = listOf("'s-Gravenhage")
+        TestTenants.metTenant<Unit> {
+            service = service(BrpConfiguratie(toegestaneWoonplaatsenBewoning = listOf("'s-Gravenhage")))
 
             assertThat(service.getBewonersAantal(burger, "0226010000038820", "Utrecht")).isNull()
             assertThat(service.getBewonersAantal(burger, "0226010000038820", null)).isNull()
@@ -152,8 +148,8 @@ internal class HaalCentraalBrpServiceTest {
 
     @Test
     fun `getBewonersAantal vraagt de API aan als de woonplaats is toegestaan`() =
-        runBlocking {
-            properties.allowedCitiesForBewoning = listOf("'s-Gravenhage")
+        TestTenants.metTenant<Unit> {
+            service = service(BrpConfiguratie(toegestaneWoonplaatsenBewoning = listOf("'s-Gravenhage")))
             server.enqueue(bewoningenResponse())
 
             assertThat(service.getBewonersAantal(burger, "0226010000038820", "'s-Gravenhage")).isEqualTo(2)

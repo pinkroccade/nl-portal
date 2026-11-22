@@ -327,6 +327,16 @@ export const NL_NL_MESSAGES: Messages = {
     "auth.inactive.close": "Sluiten",
     "auth.inactive.logout": "Uitloggen",
     "auth.inactive.stayLoggedIn": "Ingelogd blijven",
+    "auth.login.title": "Inloggen",
+    "auth.login.mislukt": "Inloggen is niet gelukt. Probeer het opnieuw.",
+    "auth.login.verlopen":
+      "Uw sessie is verlopen. Log opnieuw in om verder te gaan.",
+    "auth.login.fout":
+      "We kunnen nu niet nagaan of u bent ingelogd. Probeer het later opnieuw.",
+    "auth.login.button.digid": "Inloggen met DigiD",
+    "auth.login.button.wallet": "Inloggen met uw wallet",
+    "auth.login.button.eherkenning": "Inloggen met eHerkenning",
+    "auth.login.button.test": "Inloggen met testgebruiker",
     "form.submit": "Verstuur",
     "form.cancel": "Annuleren",
     "form.success.title": "Gelukt",

@@ -8,7 +8,7 @@ test("gebruikt de lokale compose-stack als er geen URL's zijn opgegeven", () => 
   const config = loadConfig(CREDENTIALS);
 
   assert.equal(config.graphqlUrl, "http://localhost:8080/graphql");
-  assert.equal(config.tokenUrl, "http://localhost:8082/auth/realms/nlportal/protocol/openid-connect/token");
+  assert.equal(config.tokenUrl, "http://localhost:8082/realms/nlportal/protocol/openid-connect/token");
   assert.equal(config.clientId, "nl-portal");
 });
 

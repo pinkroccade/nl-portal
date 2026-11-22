@@ -1,0 +1,84 @@
+{{- include "nl-portal.validate" . -}}
+{{- $b := .Values.backend -}}
+{{- $m := $b.modules -}}
+{{- $env := dict -}}
+{{- $_ := set $env "LOGLEVEL" $b.logLevel -}}
+{{- if $b.javaOpts }}{{ $_ := set $env "JAVA_TOOL_OPTIONS" $b.javaOpts }}{{ end -}}
+{{- $_ = set $env "KEYCLOAK_BROKER_URL" (required "backend.keycloakBrokerUrl is required (public base URL of Keycloak)" $b.keycloakBrokerUrl) -}}
+{{- $_ = set $env "REDIS_HOST" (required "backend.redis.host is required (Redis is a prerequisite)" $b.redis.host) -}}
+{{- $_ = set $env "REDIS_PORT" $b.redis.port -}}
+{{- $_ = set $env "REDIS_SSL" $b.redis.ssl -}}
+{{- if $b.redis.username }}{{ $_ := set $env "REDIS_USERNAME" $b.redis.username }}{{ end -}}
+{{- $_ = set $env "MANAGEMENT_SERVER_PORT" $b.management.port -}}
+{{- $_ = set $env "NL_PORTAL_TENANTS_DIRECTORY" "/etc/nl-portal/tenants" -}}
+{{- $_ = set $env "NL_PORTAL_SLEUTELMAP" "/etc/nl-portal/sleutels" -}}
+{{- if $b.trustedProxies }}{{ $_ := set $env "NL_PORTAL_TRUSTED_PROXIES" (join "," $b.trustedProxies) }}{{ end -}}
+{{- if $b.featureFlags }}{{ $_ := set $env "NLPORTAL_FEATUREFLAGS_FILE" "/etc/nl-portal/flags/nl-portal.flagd.json" }}{{ end -}}
+{{- if $b.beheer.enabled }}{{ $_ := set $env "NLPORTAL_BEHEER_GEBRUIKERSNAAM" $b.beheer.username }}{{ end -}}
+{{- if $b.cors.allowedOrigins -}}
+{{- $_ = set $env "NLPORTAL_SECURITY_CORS_0_PATH" "/**" -}}
+{{- $_ = set $env "NLPORTAL_SECURITY_CORS_0_CONFIG_ALLOWEDORIGINS" (join "," $b.cors.allowedOrigins) -}}
+{{- $_ = set $env "NLPORTAL_SECURITY_CORS_0_CONFIG_ALLOWEDMETHODS" (join "," $b.cors.allowedMethods) -}}
+{{- $_ = set $env "NLPORTAL_SECURITY_CORS_0_CONFIG_ALLOWEDHEADERS" (join "," $b.cors.allowedHeaders) -}}
+{{- end -}}
+{{- range $name, $value := $b.frontendProperties -}}
+{{- $_ = set $env (printf "NLPORTAL_FRONTEND_PROPERTIES_%s" (upper $name)) $value -}}
+{{- end -}}
+{{- /* Module switches: the NLPORTAL_CONFIG_<MODULE>_ENABLED variable of every module that is on. */ -}}
+{{- $switches := dict "zakenapi" "ZAKENAPI" "catalogiapi" "CATALOGIAPI" "documentenapis" "DOCUMENTENAPIS" "objectenapi" "OBJECTENAPI" "besluitenapi" "BESLUITENAPI" "openklant2" "OPENKLANT2" "openproduct" "OPENPRODUCT" "haalcentraalBrp" "HAALCENTRAALBRP" "kvk" "KVK" "verificatie" "VERIFICATIE" "clamav" "VIRUSSCAN_CLAMAV" "taak" "TAAK" "product" "PRODUCT" "prefill" "PREFILL" "dmn" "DMN" -}}
+{{- range $module, $suffix := $switches -}}
+{{- if (index $m $module).enabled }}{{ $_ = set $env (printf "NLPORTAL_CONFIG_%s_ENABLED" $suffix) true }}{{ end -}}
+{{- end -}}
+{{- if $m.besluitenapi.enabled -}}
+{{- $_ = set $env "NLPORTAL_CONFIG_BESLUITENAPI_PROPERTIES_URL" (required "backend.modules.besluitenapi.url is required when the module is enabled" $m.besluitenapi.url) -}}
+{{- $_ = set $env "NLPORTAL_CONFIG_BESLUITENAPI_PROPERTIES_CLIENTID" (required "backend.modules.besluitenapi.clientId is required when the module is enabled" $m.besluitenapi.clientId) -}}
+{{- end -}}
+{{- if $m.openklant2.enabled -}}
+{{- $_ = set $env "NLPORTAL_CONFIG_OPENKLANT2_PROPERTIES_CONTACTGEGEVENSAPIURL" (required "backend.modules.openklant2.contactgegevensApiUrl is required when the module is enabled" $m.openklant2.contactgegevensApiUrl) -}}
+{{- $_ = set $env "NLPORTAL_CONFIG_OPENKLANT2_PROPERTIES_KLANTINTERACTIESAPIURL" (required "backend.modules.openklant2.klantinteractiesApiUrl is required when the module is enabled" $m.openklant2.klantinteractiesApiUrl) -}}
+{{- end -}}
+{{- if $m.openproduct.enabled -}}
+{{- $_ = set $env "NLPORTAL_CONFIG_OPENPRODUCT_PROPERTIES_PRODUCTAPIURL" (required "backend.modules.openproduct.productApiUrl is required when the module is enabled" $m.openproduct.productApiUrl) -}}
+{{- $_ = set $env "NLPORTAL_CONFIG_OPENPRODUCT_PROPERTIES_PRODUCTTYPEAPIURL" (required "backend.modules.openproduct.productTypeApiUrl is required when the module is enabled" $m.openproduct.productTypeApiUrl) -}}
+{{- end -}}
+{{- if $m.clamav.enabled -}}
+{{- $_ = set $env "NLPORTAL_CONFIG_VIRUSSCAN_CLAMAV_PROPERTIES_HOSTNAME" (required "backend.modules.clamav.hostname is required when the module is enabled" $m.clamav.hostname) -}}
+{{- $_ = set $env "NLPORTAL_CONFIG_VIRUSSCAN_CLAMAV_PROPERTIES_PORT" $m.clamav.port -}}
+{{- end -}}
+{{- if and $m.formulieren.enabled $m.formulieren.formDefinitionObjectTypeUrl -}}
+{{- $_ = set $env "NLPORTAL_CONFIG_FORM_PROPERTIES_FORMDEFINITIONOBJECTTYPEURL" $m.formulieren.formDefinitionObjectTypeUrl -}}
+{{- end -}}
+{{- if $m.product.enabled -}}
+{{- $_ = set $env "NLPORTAL_CONFIG_PRODUCT_PROPERTIES_PRODUCTTYPEURL" (required "backend.modules.product.productTypeUrl is required when the module is enabled" $m.product.productTypeUrl) -}}
+{{- $_ = set $env "NLPORTAL_CONFIG_PRODUCT_PROPERTIES_PRODUCTINSTANTIETYPEURL" (required "backend.modules.product.productInstantieTypeUrl is required when the module is enabled" $m.product.productInstantieTypeUrl) -}}
+{{- $_ = set $env "NLPORTAL_CONFIG_PRODUCT_PROPERTIES_PRODUCTVERBRUIKSOBJECTTYPEURL" (required "backend.modules.product.productVerbruiksobjectTypeUrl is required when the module is enabled" $m.product.productVerbruiksobjectTypeUrl) -}}
+{{- $_ = set $env "NLPORTAL_CONFIG_PRODUCT_PROPERTIES_PRODUCTDETAILSTYPEURL" (required "backend.modules.product.productDetailsTypeUrl is required when the module is enabled" $m.product.productDetailsTypeUrl) -}}
+{{- end -}}
+{{- if $m.prefill.enabled -}}
+{{- $_ = set $env "NLPORTAL_CONFIG_PREFILL_PROPERTIES_TYPEURL" (required "backend.modules.prefill.typeUrl is required when the module is enabled" $m.prefill.typeUrl) -}}
+{{- end -}}
+{{- if $m.dmn.enabled -}}
+{{- $_ = set $env "NLPORTAL_CONFIG_DMN_PROPERTIES_URL" (required "backend.modules.dmn.url is required when the module is enabled" $m.dmn.url) -}}
+{{- end -}}
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "nl-portal.componentName" (dict "ctx" . "component" "backend") }}
+  labels:
+    {{- include "nl-portal.labels" (dict "ctx" . "component" "backend") | nindent 4 }}
+data:
+  {{- range $key, $value := $env }}
+  {{ $key }}: {{ toString $value | quote }}
+  {{- end }}
+{{- if $b.featureFlags }}
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "nl-portal.fullname" . }}-flags
+  labels:
+    {{- include "nl-portal.labels" (dict "ctx" . "component" "backend") | nindent 4 }}
+data:
+  nl-portal.flagd.json: |
+    {{- $b.featureFlags | toPrettyJson | nindent 4 }}
+{{- end }}

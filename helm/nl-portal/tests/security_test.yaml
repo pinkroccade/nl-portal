@@ -1,0 +1,102 @@
+suite: pod security restricted
+templates:
+  - configmap-backend.yaml
+  - configmap-frontend.yaml
+  - configmap-tenants.yaml
+  - service-backend.yaml
+  - service-frontend.yaml
+  - deployment-backend.yaml
+  - deployment-frontend.yaml
+  - serviceaccount.yaml
+  - ingress.yaml
+values:
+  - ../ci/minimal-values.yaml
+tests:
+  - it: pod en container voldoen standaard aan restricted (backend)
+    template: deployment-backend.yaml
+    asserts:
+      - equal:
+          path: spec.template.spec.securityContext.runAsNonRoot
+          value: true
+      - equal:
+          path: spec.template.spec.securityContext.seccompProfile.type
+          value: RuntimeDefault
+      - equal:
+          path: spec.template.spec.containers[0].securityContext.allowPrivilegeEscalation
+          value: false
+      - equal:
+          path: spec.template.spec.containers[0].securityContext.readOnlyRootFilesystem
+          value: true
+      - equal:
+          path: spec.template.spec.containers[0].securityContext.capabilities.drop
+          value: [ALL]
+      - equal:
+          path: spec.template.spec.automountServiceAccountToken
+          value: false
+  - it: pod en container voldoen standaard aan restricted (frontend)
+    template: deployment-frontend.yaml
+    asserts:
+      - equal:
+          path: spec.template.spec.securityContext.runAsNonRoot
+          value: true
+      - equal:
+          path: spec.template.spec.securityContext.seccompProfile.type
+          value: RuntimeDefault
+      - equal:
+          path: spec.template.spec.containers[0].securityContext.allowPrivilegeEscalation
+          value: false
+      - equal:
+          path: spec.template.spec.containers[0].securityContext.readOnlyRootFilesystem
+          value: true
+      - equal:
+          path: spec.template.spec.containers[0].securityContext.capabilities.drop
+          value: [ALL]
+      - equal:
+          path: spec.template.spec.automountServiceAccountToken
+          value: false
+  - it: de resources staan standaard gezet (backend)
+    template: deployment-backend.yaml
+    asserts:
+      - isNotEmpty:
+          path: spec.template.spec.containers[0].resources.requests.memory
+      - isNotEmpty:
+          path: spec.template.spec.containers[0].resources.limits.memory
+  - it: de resources staan standaard gezet (frontend)
+    template: deployment-frontend.yaml
+    asserts:
+      - isNotEmpty:
+          path: spec.template.spec.containers[0].resources.requests.memory
+      - isNotEmpty:
+          path: spec.template.spec.containers[0].resources.limits.memory
+  - it: de backend draait als niet-root met een numeriek uid en schrijft alleen naar /tmp
+    template: deployment-backend.yaml
+    asserts:
+      - equal:
+          path: spec.template.spec.securityContext.runAsUser
+          value: 1001
+      - contains:
+          path: spec.template.spec.volumes
+          content:
+            name: tmp
+            emptyDir: {}
+      - contains:
+          path: spec.template.spec.containers[0].volumeMounts
+          content:
+            name: tmp
+            mountPath: /tmp
+  - it: de frontend heeft schrijfbare emptyDirs voor /tmp en de nginx conf.d
+    template: deployment-frontend.yaml
+    asserts:
+      - equal:
+          path: spec.template.spec.securityContext.runAsUser
+          value: 101
+      - contains:
+          path: spec.template.spec.containers[0].volumeMounts
+          content:
+            name: tmp
+            mountPath: /tmp
+      - contains:
+          path: spec.template.spec.containers[0].volumeMounts
+          content:
+            name: nginx-conf
+            mountPath: /etc/nginx/conf.d

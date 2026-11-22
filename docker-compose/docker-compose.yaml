@@ -21,21 +21,74 @@ services:
             - "5011:5011" # Haalcentraal Bewoning
             - "3310:3310" # ClamAV virus scan
 
+    # Sessies van de BFF (ADR 0022): Redis met ACL (de default-gebruiker staat uit, alleen `nlportal`), zonder persistentie en met
+    # noeviction, zodat een volle Redis sessies niet ongemerkt weggooit voor hun TTL. Elke sleutel heeft een TTL (Spring Session en
+    # de pre-auth-sessie). Eén instantie per cel; lokaal alleen op 127.0.0.1 gepubliceerd voor `bootRun`. De ACL staat in
+    # templates/redis/users.acl (een ACL-bestand kent geen commentaar): de default-gebruiker uit, `nlportal` alleen op de
+    # sleutels `nlp:*` en `spring:session:*` en zonder admin-, gevaarlijke en scriptcommando's.
+    nl-portal-sessies:
+        container_name: nl-portal-sessies
+        image: redis:8.2-alpine@sha256:da23c2478319ceb4903857d77a2fd7aa5137d9e9d4c8165dafbacedac6403e95
+        command: ["redis-server", "--aclfile", "/etc/redis/users.acl", "--save", "", "--appendonly", "no", "--maxmemory", "256mb", "--maxmemory-policy", "noeviction"]
+        ports:
+            - "127.0.0.1:6379:6379"
+        environment:
+            REDIS_PASSWORD: ${REDIS_PASSWORD:?draai eerst mise run dev:setup}
+        volumes:
+            - ./.generated/redis/users.acl:/etc/redis/users.acl:ro
+        healthcheck:
+            test: ["CMD-SHELL", "redis-cli --user nlportal --pass \"$$REDIS_PASSWORD\" --no-auth-warning ping | grep -q PONG"]
+            interval: 5s
+            timeout: 3s
+            retries: 10
+
+    # Eigen Keycloak-image met de NL Portal-mappers (keycloak/, #527): bouw het eerst met `mise run keycloak:image`.
+    # Draait geoptimaliseerd (`start --optimized`): de bouwopties (postgres, health) zitten in het image.
     nl-portal-keycloak:
         container_name: nl-portal-keycloak
         depends_on:
             - nl-portal-keycloak-database
-        image: quay.io/keycloak/keycloak:26.3
+        image: nl-portal-keycloak:dev
+        pull_policy: never
         network_mode: "service:localhost"
         environment:
-            KC_DB: postgres
             KC_DB_URL: jdbc:postgresql://nl-portal-keycloak-database/keycloak
             KC_DB_USERNAME: keycloak
             KC_DB_PASSWORD: ${KEYCLOAK_DB_PASSWORD:?draai eerst mise run dev:setup}
-            KC_HTTP_RELATIVE_PATH: /auth
+            KC_BOOTSTRAP_ADMIN_USERNAME: admin
+            KC_BOOTSTRAP_ADMIN_PASSWORD: ${KEYCLOAK_ADMIN_PASSWORD:?draai eerst mise run dev:setup}
+            # Lokaal over http; buiten ontwikkeling zit Keycloak achter TLS (sslRequired: all in het realm).
+            KC_HTTP_ENABLED: "true"
+            KC_HTTP_PORT: "8082"
+            KC_HOSTNAME: http://localhost:8082
+        command: ["start", "--optimized"]
+
+    # Laadt het realm van elke tenant (docker-compose/.generated/keycloak/<oin>.json, gemaakt door `mise run dev:setup` uit
+    # keycloak/realm-template en de tenantbestanden) in Keycloak en stopt. Draai opnieuw (`docker compose run --rm
+    # nl-portal-keycloak-config`) na een wijziging: kcc herstelt ook handmatige afwijkingen (IMPORT_CACHE_ENABLED=false).
+    # keycloak-config-cli 6.5.1-26.5.5 is de nieuwste tag; Keycloak 26.8 staat niet in zijn CI-matrix maar werkt (research-notitie
+    # kcc-keycloak-26-8-private-key-jwt). Pin op digest; bump alleen samen met Keycloak en de integratietest (mise run keycloak:integration-test).
+    nl-portal-keycloak-config:
+        container_name: nl-portal-keycloak-config
+        image: adorsys/keycloak-config-cli@sha256:0955d98c8a341898b7aa177477edf8a1e90569ae50bbe7598141c1270b773274 # 6.5.1-26.5.5
+        depends_on:
+            - nl-portal-keycloak
+        network_mode: "service:localhost"
+        restart: "no"
+        environment:
+            KEYCLOAK_URL: http://localhost:8082
+            KEYCLOAK_USER: admin
+            KEYCLOAK_PASSWORD: ${KEYCLOAK_ADMIN_PASSWORD:?draai eerst mise run dev:setup}
+            KEYCLOAK_AVAILABILITYCHECK_ENABLED: "true"
+            KEYCLOAK_AVAILABILITYCHECK_TIMEOUT: 180s
+            IMPORT_FILES_LOCATIONS: /config/*.json
+            IMPORT_CACHE_ENABLED: "false"
+            IMPORT_VAR_SUBSTITUTION_ENABLED: "true"
+            IMPORT_VAR_SUBSTITUTION_UNDEFINED_THROWS_EXCEPTIONS: "true"
+            # Zodra een tenant het inlogmiddel wallet aanzet (#529) hoort hier ook KEYCLOAK_WALLET_CLIENT_SECRET: kcc breekt anders op de
+            # ontbrekende variabele (UNDEFINED_THROWS_EXCEPTIONS).
         volumes:
-            - ./.generated/keycloak:/opt/keycloak/data/import:ro
-        command: "start-dev --import-realm --http-port=8082"
+            - ./.generated/keycloak:/config:ro
 
     nl-portal-keycloak-database:
         container_name: nl-portal-keycloak-database

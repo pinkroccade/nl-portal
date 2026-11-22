@@ -1,0 +1,17 @@
+spring:
+    profiles:
+        default: test
+    main:
+        web-application-type: reactive
+    data:
+        redis:
+            repositories:
+                enabled: false
+    graphql:
+        schema:
+            locations: classpath*:graphql/**/
+
+nl-portal:
+    security:
+        endpoints:
+            unsecured: /api/public/**

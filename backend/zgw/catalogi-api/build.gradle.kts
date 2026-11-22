@@ -35,6 +35,7 @@ dependencies {
     testImplementation(TestDependencies.kotlinCoroutines)
     testImplementation(TestDependencies.mockitoKotlin)
     testImplementation(TestDependencies.okHttpMockWebserver)
+    testImplementation(testFixtures(project(":core")))
     testImplementation(TestDependencies.okHttp)
 }
 

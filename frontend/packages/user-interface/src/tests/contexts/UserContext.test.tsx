@@ -16,7 +16,7 @@
 import { describe, it, expect, vi, afterEach } from "vitest";
 import { render, waitFor } from "@testing-library/react";
 import { MockedProvider } from "@apollo/client/testing/react";
-import { OidcContext } from "@nl-portal/nl-portal-authentication";
+import { SessionContext } from "@nl-portal/nl-portal-authentication";
 import {
   QUERY_GET_PERSOON_V2,
   GetBedrijfDocument,
@@ -31,23 +31,21 @@ const contactMock = {
 
 const renderUserProvider = (
   mocks: object[],
-  oidc: {
-    decodedToken: { middel: string };
-    authenticationMethods: { company?: string[]; proxy?: string[] };
-  },
+  sessie: { vertegenwoordigde: "burger" | "bedrijf"; namensEenAnder: boolean },
 ) =>
   render(
     <MockedProvider mocks={mocks}>
-      <OidcContext.Provider
+      <SessionContext.Provider
         value={{
-          oidcToken: "token",
-          setOidcToken: () => {},
-          decodedToken: oidc.decodedToken,
-          authenticationMethods: oidc.authenticationMethods,
+          sessie: { ingelogd: true, ...sessie },
+          isCompany: sessie.vertegenwoordigde === "bedrijf",
+          isProxy: sessie.namensEenAnder,
+          markeerVerlopen: () => {},
+          logout: () => {},
         }}
       >
         <UserProvider>child</UserProvider>
-      </OidcContext.Provider>
+      </SessionContext.Provider>
     </MockedProvider>,
   );
 
@@ -69,10 +67,7 @@ describe("UserProvider", () => {
           error: new Error("Network error"),
         },
       ],
-      {
-        decodedToken: { middel: "volmacht" },
-        authenticationMethods: { company: ["bedrijf"], proxy: ["volmacht"] },
-      },
+      { vertegenwoordigde: "burger", namensEenAnder: true },
     );
 
     await waitFor(() => {
@@ -96,10 +91,7 @@ describe("UserProvider", () => {
           error: new Error("Network error"),
         },
       ],
-      {
-        decodedToken: { middel: "bedrijf" },
-        authenticationMethods: { company: ["bedrijf"], proxy: ["volmacht"] },
-      },
+      { vertegenwoordigde: "bedrijf", namensEenAnder: false },
     );
 
     await waitFor(() => {

@@ -18,7 +18,8 @@ package nl.nlportal.payment.direct.graphql
 import tools.jackson.databind.JsonNode
 import nl.nlportal.commonground.authentication.WithBurgerUser
 import nl.nlportal.payment.direct.TestHelper
-import nl.nlportal.payment.direct.autoconfiguration.DirectPaymentModuleConfiguration
+import nl.nlportal.payment.direct.PaymentTestConfiguration
+import nl.nlportal.payment.direct.PaymentTestTenants
 import okhttp3.mockwebserver.Dispatcher
 import okhttp3.mockwebserver.MockResponse
 import okhttp3.mockwebserver.MockWebServer
@@ -29,6 +30,7 @@ import org.junit.jupiter.api.TestInstance
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.webtestclient.autoconfigure.AutoConfigureWebTestClient
 import org.springframework.boot.test.context.SpringBootTest
+import org.springframework.context.annotation.Import
 import org.junit.jupiter.api.AfterAll
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.BeforeAll
@@ -38,12 +40,12 @@ import org.springframework.test.context.DynamicPropertyRegistry
 import org.springframework.test.context.DynamicPropertySource
 
 @SpringBootTest
+@Import(PaymentTestConfiguration::class)
 @AutoConfigureHttpGraphQlTester
 @AutoConfigureWebTestClient(timeout = "36000")
 @TestInstance(TestInstance.Lifecycle.PER_METHOD)
 internal class DirectPaymentMutationIT(
     @Autowired private val httpGraphQlTester: HttpGraphQlTester,
-    @Autowired private val directPaymentModuleConfiguration: DirectPaymentModuleConfiguration,
 ) {
     companion object {
         @JvmStatic
@@ -55,7 +57,7 @@ internal class DirectPaymentMutationIT(
         @JvmStatic
         @DynamicPropertySource
         fun properties(propsRegistry: DynamicPropertyRegistry) {
-            propsRegistry.add("nl-portal.config.payment.direct.properties.url") { url }
+            propsRegistry.add("test.payment.url") { url }
         }
 
         @JvmStatic
@@ -77,7 +79,6 @@ internal class DirectPaymentMutationIT(
     internal fun setUp() {
         setupMockServer()
         url = server?.url("/").toString()
-        directPaymentModuleConfiguration.properties.url = url
     }
 
     @Test

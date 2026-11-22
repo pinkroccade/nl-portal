@@ -18,7 +18,7 @@ package nl.nlportal.openproduct.graphql
 import tools.jackson.core.type.TypeReference
 import tools.jackson.databind.node.ObjectNode
 import java.util.UUID
-import nl.nlportal.commonground.authentication.CommonGroundAuthentication
+import nl.nlportal.portal.authentication.domain.PortalAuthentication
 import nl.nlportal.core.util.Mapper
 import nl.nlportal.documentenapi.domain.Document
 import nl.nlportal.openproduct.client.domain.OpenProductActie
@@ -42,7 +42,7 @@ class OpenProductQuery(
 ) {
     @QueryMapping
     suspend fun getOpenProducten(
-        authentication: CommonGroundAuthentication,
+        authentication: PortalAuthentication,
         @Argument pageNumber: Int? = null,
         @Argument pageSize: Int? = null,
         @Argument status: String? = null,
@@ -69,7 +69,7 @@ class OpenProductQuery(
 
     @QueryMapping
     suspend fun getOpenProduct(
-        authentication: CommonGroundAuthentication,
+        authentication: PortalAuthentication,
         @Argument id: UUID,
     ): OpenProductProduct? =
         openProductService.getProduct(
@@ -79,7 +79,7 @@ class OpenProductQuery(
 
     @QueryMapping
     suspend fun getOpenProductenByThema(
-        authentication: CommonGroundAuthentication,
+        authentication: PortalAuthentication,
         @Argument themaId: UUID,
     ): List<OpenProductProduct> =
         openProductService.getProductenByThema(
@@ -89,7 +89,7 @@ class OpenProductQuery(
 
     @SchemaMapping(typeName = "OpenProductProduct", field = "zaken")
     suspend fun zaken(
-        authentication: CommonGroundAuthentication,
+        authentication: PortalAuthentication,
         openProductProduct: OpenProductProduct,
     ): List<Zaak>? =
         openProductProduct.zaken?.let {
@@ -101,7 +101,7 @@ class OpenProductQuery(
 
     @SchemaMapping(typeName = "OpenProductProduct", field = "taken")
     suspend fun taken(
-        authentication: CommonGroundAuthentication,
+        authentication: PortalAuthentication,
         openProductProduct: OpenProductProduct,
     ): List<TaakV2>? =
         openProductProduct.taken?.let {
@@ -113,13 +113,13 @@ class OpenProductQuery(
 
     @SchemaMapping(typeName = "OpenProductProduct", field = "acties")
     suspend fun acties(
-        authentication: CommonGroundAuthentication,
+        authentication: PortalAuthentication,
         openProductProduct: OpenProductProduct,
     ): List<OpenProductActie> = openProductService.getProductActies(openProductProduct.producttype.uuid)
 
     @SchemaMapping(typeName = "OpenProductProduct", field = "decisions")
     suspend fun decisions(
-        authentication: CommonGroundAuthentication,
+        authentication: PortalAuthentication,
         openProductProduct: OpenProductProduct,
     ): List<ObjectNode> {
         val result =
@@ -132,7 +132,7 @@ class OpenProductQuery(
 
     @SchemaMapping(typeName = "OpenProductProduct", field = "documenten")
     suspend fun documenten(
-        authentication: CommonGroundAuthentication,
+        authentication: PortalAuthentication,
         openProductProduct: OpenProductProduct,
     ): List<Document>? =
         openProductService.getOpenProductDocumenten(
@@ -141,7 +141,7 @@ class OpenProductQuery(
 
     @SchemaMapping(typeName = "OpenProductProduct", field = "content")
     suspend fun content(
-        authentication: CommonGroundAuthentication,
+        authentication: PortalAuthentication,
         openProductProduct: OpenProductProduct,
     ): List<OpenProductContentElement>? = openProductService.getProductTypeContent(productTypeId = openProductProduct.producttype.uuid)
 }

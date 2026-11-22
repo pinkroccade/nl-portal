@@ -31,7 +31,7 @@ Ritense's `nl-portal/helm-charts` werd hier eerder voor gebruikt; pinkroccade's 
 nog niet ingericht, zie [epic #191](https://github.com/pinkroccade/nl-portal/issues/191). Dit
 arc42-document beschrijft die laag niet in detail, maar benoemt wel de aanname die eruit volgt:
 **NL Portal heeft geen eigen
-database**: de backend is stateless en vereist geen persistentielaag. Een BFF vraagt wel Redis voor sessies, zonder back-up ([ADR 0017](../../development/adr/0017-vluchtige-state-toegestaan.md)). Elke overheidsorganisatie
+database**: de backend vereist geen persistentielaag. Een BFF vraagt wel Redis voor sessies, zonder back-up ([ADR 0017](../../development/adr/0017-vluchtige-state-toegestaan.md)). Elke overheidsorganisatie
 draait haar eigen instantie tegen haar eigen ZGW-landschap.
 
 ## 7.4 Voorgesteld doelbeeld: gedeelde runtime met cellen
@@ -66,8 +66,13 @@ instantie per gemeente (7.3) draait één multi-tenant runtime, ingedeeld in **c
 alleen de context waartegen we verifiëren dat de generieke charts niet botsen met Argo-best practices (zie
 ADR 0021, "Vóór livegang").
 
-Het blijft waar dat de backend stateless is en geen database heeft
-([ADR 0013](../../development/adr/0013-stateless-backend-zonder-database.md)).
+De backend heeft geen database en bewaart geen persistente state
+([ADR 0013](../../development/adr/0013-stateless-backend-zonder-database.md)); "stateless" geldt in die zin. Een cel vereist wel
+Redis voor de BFF-sessies ([ADR 0022](../../development/adr/0022-backend-for-frontend-als-authenticatiepatroon.md)).
+
+**Stand van de runtime.** Er draait nu één tenant per cel: een tweede tenant weigert de loader
+(`MEERDERE_TENANTS_TOEGESTAAN = false`) en de modulegate (T22) dwingt nog niet af. Zie de vervolgtickets
+[#521](https://github.com/pinkroccade/nl-portal/issues/521) en [#522](https://github.com/pinkroccade/nl-portal/issues/522).
 
 ## 7.5 Open vraag
 

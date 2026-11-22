@@ -15,27 +15,39 @@
  */
 package nl.nlportal.kvk.autoconfiguration
 
-import nl.nlportal.core.ssl.ClientSslContextResolver
-import nl.nlportal.kvk.client.KvkClient
+import nl.nlportal.core.koppeling.KoppelingRegister
+import nl.nlportal.core.tenancy.TenantDirectory
+import nl.nlportal.core.tenancy.VervallenProperties
+import nl.nlportal.core.testing.TestTenants
 import nl.nlportal.kvk.graphql.KvkQuery
 import nl.nlportal.kvk.service.KvkService
 import org.assertj.core.api.Assertions.assertThat
 import org.junit.jupiter.api.Test
+import org.junit.jupiter.api.assertThrows
 import org.springframework.boot.autoconfigure.AutoConfigurations
 import org.springframework.boot.test.context.runner.ApplicationContextRunner
+import org.springframework.context.annotation.Bean
+import org.springframework.context.annotation.Configuration
+import org.springframework.core.env.MapPropertySource
+import org.springframework.core.env.StandardEnvironment
+import org.springframework.core.env.SystemEnvironmentPropertySource
 
 internal class KvkAutoConfigurationTest {
-    private val contextRunner =
+    private val basis =
         ApplicationContextRunner()
             .withConfiguration(AutoConfigurations.of(KvkAutoConfiguration::class.java))
+            .withUserConfiguration(TenancyConfiguration::class.java)
+
+    // Een tenantmap met een tenant die de koppeling `kvk` heeft, en een zonder.
+    private val contextRunner =
+        basis.withBean(TenantDirectory::class.java, { TestTenants.directory(TestTenants.tenant(koppelingen = mapOf("kvk" to TestTenants.koppeling("http://kvk.example")))) })
+    private val zonderKvkKoppeling = basis.withBean(TenantDirectory::class.java, { TestTenants.directory(TestTenants.tenant()) })
 
     @Test
-    fun `client, service en query zijn beschikbaar als de module aan staat`() {
+    fun `service en query zijn beschikbaar als de module aan staat`() {
         contextRunner
             .withPropertyValues("nl-portal.config.kvk.enabled=true")
             .run { context ->
-                assertThat(context).hasSingleBean(ClientSslContextResolver::class.java)
-                assertThat(context).hasSingleBean(KvkClient::class.java)
                 assertThat(context).hasSingleBean(KvkService::class.java)
                 assertThat(context).hasSingleBean(KvkQuery::class.java)
             }
@@ -44,9 +56,74 @@ internal class KvkAutoConfigurationTest {
     @Test
     fun `er is niets beschikbaar als de module uit staat`() {
         contextRunner.run { context ->
-            assertThat(context).doesNotHaveBean(KvkClient::class.java)
             assertThat(context).doesNotHaveBean(KvkService::class.java)
             assertThat(context).doesNotHaveBean(KvkQuery::class.java)
         }
+    }
+
+    @Test
+    fun `een eigen service gaat voor`() {
+        val eigen = KvkService(TestTenants.register())
+        contextRunner
+            .withPropertyValues("nl-portal.config.kvk.enabled=true")
+            .withBean(KvkService::class.java, { eigen })
+            .run { context -> assertThat(context.getBean(KvkService::class.java)).isSameAs(eigen) }
+    }
+
+    @Test
+    fun `de oude properties zijn vervallen, in yml-schrijfwijze en als omgevingsvariabele, en weigeren het opstarten`() {
+        contextRunner
+            .withPropertyValues("nl-portal.config.kvk.enabled=true")
+            .run { context ->
+                val vervallen = context.getBean(VervallenProperties::class.java)
+                assertThat(vervallen).isEqualTo(VervallenProperties("kvk", "nl-portal.config.kvk.properties", "koppelingen.kvk"))
+                listOf(
+                    mapOf("nl-portal.config.kvk.properties.url" to "http://oud"),
+                    mapOf("nl-portal.config.kvk.properties.apiKey" to "x"),
+                    mapOf("nl-portal.config.kvk.properties.ssl.enabled" to "false"),
+                    mapOf("NL_PORTAL_CONFIG_KVK_PROPERTIES_APIKEY" to "x"),
+                    mapOf("NLPORTAL_CONFIG_KVK_PROPERTIES_SSL_TRUSTEDCERTIFICATE" to "x"),
+                ).forEach { oud ->
+                    val omgeving = StandardEnvironment().apply { propertySources.addFirst(bron(oud)) }
+                    val fout = assertThrows<IllegalStateException>(oud.keys.first()) { vervallen.controleer(omgeving) }
+                    assertThat(fout.message).contains("koppelingen.kvk").doesNotContain("modules.kvk", "http://oud")
+                }
+                // De schakelaar zelf blijft geldig.
+                val schakelaar = StandardEnvironment().apply { propertySources.addFirst(MapPropertySource("nieuw", mapOf("nl-portal.config.kvk.enabled" to "true"))) }
+                vervallen.controleer(schakelaar)
+            }
+    }
+
+    @Test
+    fun `aan zonder een tenant met de koppeling kvk weigert het opstarten, met een melding die naar het tenantbestand wijst`() {
+        zonderKvkKoppeling
+            .withPropertyValues("nl-portal.config.kvk.enabled=true")
+            .run { context ->
+                assertThat(context).hasFailed()
+                val melding = generateSequence(context.startupFailure) { it.cause }.map { it.message }.joinToString()
+                assertThat(melding).contains("koppelingen.kvk", "nl-portal.config.kvk.enabled")
+            }
+    }
+
+    @Test
+    fun `een tenantmap zonder tenants weigert het opstarten ook als de module aan staat`() {
+        basis
+            .withBean(TenantDirectory::class.java, { TestTenants.directory() })
+            .withPropertyValues("nl-portal.config.kvk.enabled=true")
+            .run { context -> assertThat(context).hasFailed() }
+    }
+
+    @Test
+    fun `uit zonder een tenant met de koppeling kvk start gewoon`() {
+        zonderKvkKoppeling.run { context -> assertThat(context).hasNotFailed() }
+    }
+
+    // Een omgevingsvariabele (hoofdletters met underscores) wordt als systeemomgeving gelezen, zoals de runtime dat doet.
+    private fun bron(waarden: Map<String, String>) = if (waarden.keys.all { it == it.uppercase() }) SystemEnvironmentPropertySource(StandardEnvironment.SYSTEM_ENVIRONMENT_PROPERTY_SOURCE_NAME, waarden.toMutableMap<String, Any>()) else MapPropertySource("oud", waarden)
+
+    @Configuration
+    internal class TenancyConfiguration {
+        @Bean
+        fun koppelingRegister(): KoppelingRegister = TestTenants.register()
     }
 }

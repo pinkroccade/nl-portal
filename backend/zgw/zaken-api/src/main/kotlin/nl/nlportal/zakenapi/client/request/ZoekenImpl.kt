@@ -15,14 +15,11 @@
  */
 package nl.nlportal.zakenapi.client.request
 
+import nl.nlportal.core.koppeling.KoppelingClient
+import nl.nlportal.core.koppeling.ResultPage
 import nl.nlportal.zakenapi.client.ZakenApiClient
-import nl.nlportal.zakenapi.client.handleStatus
-import nl.nlportal.zakenapi.domain.ResultPage
+import nl.nlportal.zakenapi.client.ZakenApiClient.Companion.ZAKEN_PAD
 import nl.nlportal.zakenapi.domain.Zaak
-import org.springframework.http.MediaType
-import org.springframework.util.LinkedMultiValueMap
-import org.springframework.util.MultiValueMap
-import org.springframework.web.reactive.function.client.awaitBody
 import java.util.UUID
 
 class ZoekenImpl(
@@ -36,74 +33,58 @@ class ZoekenImpl(
 class SearchZoekenImpl(
     val zakenApiClient: ZakenApiClient,
 ) : SearchZaken {
-    val bodyValue: MultiValueMap<String, Any> = LinkedMultiValueMap()
-    val queryParams: MultiValueMap<String, String> = LinkedMultiValueMap()
+    private val criteria = Criteria<Any>()
+    private var page: Int? = null
+    private var pageSize: Int? = null
 
     override fun withBsn(bsn: String): SearchZaken {
-        bodyValue.add("rol__betrokkeneIdentificatie__natuurlijkPersoon__inpBsn", bsn)
+        criteria.add("rol__betrokkeneIdentificatie__natuurlijkPersoon__inpBsn", bsn)
         return this
     }
 
     override fun withKvk(kvk: String): SearchZaken {
-        when {
-            zakenApiClient.useNnpKvkQueryIdentificators() -> {
-                bodyValue.add("rol__betrokkeneIdentificatie__nietNatuurlijkPersoon__kvkNummer", kvk)
-            }
-
-            else -> {
-                bodyValue.add("rol__betrokkeneIdentificatie__nietNatuurlijkPersoon__annIdentificatie", kvk)
+        criteria.later {
+            if (zakenApiClient.useNnpKvkQueryIdentificators()) {
+                it.add("rol__betrokkeneIdentificatie__nietNatuurlijkPersoon__kvkNummer", kvk)
+            } else {
+                it.add("rol__betrokkeneIdentificatie__nietNatuurlijkPersoon__annIdentificatie", kvk)
             }
         }
         return this
     }
 
-    override fun withUid(uid: String): SearchZaken {
-        bodyValue.add("rol__betrokkeneIdentificatie__natuurlijkPersoon__anpIdentificatie", uid)
-        return this
-    }
-
     override fun isOpen(open: Boolean): SearchZaken {
-        bodyValue.add("einddatum__isnull", open)
+        criteria.add("einddatum__isnull", open)
         return this
     }
 
     override fun ofZaakType(zaakType: String): SearchZaken {
-        bodyValue.add("zaaktype", zaakType)
+        criteria.add("zaaktype", zaakType)
         return this
     }
 
     override fun ofZaakTypes(zaakTypeIds: List<UUID>): SearchZaken {
-        bodyValue.put(
-            "zaaktype__in",
-            zaakTypeIds.map {
-                zakenApiClient.getZaakTypeUrl(it)
-            },
-        )
+        criteria.later { it.put("zaaktype__in", zaakTypeIds.map { id -> zakenApiClient.getZaakTypeUrl(id) }) }
         return this
     }
 
     override fun notInZaakTypes(zaakTypeIds: List<UUID>): SearchZaken {
-        bodyValue.put(
-            "zaaktype__not_in",
-            zaakTypeIds.map {
-                zakenApiClient.getZaakTypeUrl(it)
-            },
-        )
+        criteria.later { it.put("zaaktype__not_in", zaakTypeIds.map { id -> zakenApiClient.getZaakTypeUrl(id) }) }
         return this
     }
 
     override fun ofIdentificatie(identificatie: String): SearchZaken {
-        bodyValue.add("identificatie", identificatie)
+        criteria.add("identificatie", identificatie)
         return this
     }
 
     override fun ofIdenfitifactieContains(identificatie: String): SearchZaken {
-        bodyValue.add("identificatie__icontains", identificatie)
+        criteria.add("identificatie__icontains", identificatie)
         return this
     }
 
     override fun ofOmschrijving(omschrijving: String): SearchZaken {
-        bodyValue.add("omschrijving", omschrijving)
+        criteria.add("omschrijving", omschrijving)
         return this
     }
 
@@ -111,45 +92,57 @@ class SearchZoekenImpl(
         kvkNummer: String,
         vestigingsNummer: String,
     ): SearchZaken {
-        when {
-            zakenApiClient.useNnpKvkQueryIdentificators() -> {
-                bodyValue.add("rol__betrokkeneIdentificatie__nietNatuurlijkPersoon__vestigingsNummer", vestigingsNummer)
-                bodyValue.add("rol__betrokkeneIdentificatie__nietNatuurlijkPersoon__kvkNummer", kvkNummer)
-            }
-
-            else -> {
-                bodyValue.add("rol__betrokkeneIdentificatie__vestiging__vestigingsNummer", vestigingsNummer)
-                bodyValue.add("rol__betrokkeneIdentificatie__vestiging__kvkNummer", kvkNummer)
+        criteria.later {
+            if (zakenApiClient.useNnpKvkQueryIdentificators()) {
+                it.add("rol__betrokkeneIdentificatie__nietNatuurlijkPersoon__vestigingsNummer", vestigingsNummer)
+                it.add("rol__betrokkeneIdentificatie__nietNatuurlijkPersoon__kvkNummer", kvkNummer)
+            } else {
+                it.add("rol__betrokkeneIdentificatie__vestiging__vestigingsNummer", vestigingsNummer)
+                it.add("rol__betrokkeneIdentificatie__vestiging__kvkNummer", kvkNummer)
             }
         }
         return this
     }
 
-    // needs to be added as querystring parameter
+    // Moet als queryparameter, niet in de body.
     override fun page(page: Int): SearchZaken {
-        queryParams.add("page", page.toString())
+        this.page = page
         return this
     }
 
-    // needs to be added as querystring parameter
+    // Moet als queryparameter, niet in de body.
     override fun pageSize(pageSize: Int): SearchZaken {
-        queryParams.add("pageSize", pageSize.toString())
+        this.pageSize = pageSize
         return this
     }
 
     override fun withRolOmschrijvingGeneriek(): SearchZaken {
-        bodyValue.add("rol__omschrijvingGeneriek", "initiator")
+        criteria.add("rol__omschrijvingGeneriek", "initiator")
         return this
     }
 
-    override suspend fun retrieve(): ResultPage<Zaak> =
-        this.zakenApiClient.webClient
-            .post()
-            .uri { it.path("/zaken/api/v1/zaken/_zoek").queryParams(queryParams).build() }
-            .contentType(MediaType.APPLICATION_JSON)
-            .accept(MediaType.APPLICATION_JSON)
-            .bodyValue(bodyValue)
-            .retrieve()
-            .handleStatus()
-            .awaitBody()
+    override suspend fun retrieve(): ResultPage<Zaak> = pagina(page)
+
+    /** Een zoekvraag is een POST: de volgende pagina volgt uit het paginanummer, een URL van de bron wordt niet gevolgd. */
+    override suspend fun retrieveAll(): List<Zaak> {
+        val resultaat = mutableListOf<Zaak>()
+        var nummer = page ?: 1
+        var opgehaald = 0
+        do {
+            // Dezelfde foutvorm als KoppelingClient.getAllPages: correlatie-ID, generieke code en modulestatus.
+            if (++opgehaald > KoppelingClient.MAX_PAGINAS) zakenApiClient.uitvoeren { throw it.paginaLimietBereikt() }
+            val antwoord = pagina(nummer++)
+            resultaat += antwoord.results
+        } while (antwoord.next != null)
+        return resultaat
+    }
+
+    private suspend fun pagina(nummer: Int?): ResultPage<Zaak> {
+        val query =
+            buildMap {
+                nummer?.let { put("page", listOf(it.toString())) }
+                pageSize?.let { put("pageSize", listOf(it.toString())) }
+            }
+        return zakenApiClient.zoek("$ZAKEN_PAD/zaken/_zoek", criteria.bouw(), query)
+    }
 }

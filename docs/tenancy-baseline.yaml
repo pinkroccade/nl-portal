@@ -15,6 +15,8 @@
 # Na een wijziging: `mise run arch:diagram` en de bijgewerkte .puml/.svg committen.
 version: 1
 beoordeeld: {datum: 2026-11-06, bron: "onderzoek #146, commit 9300129ac", status: voorlopig}
+# Opnieuw gemeten bij #504 (T5, tenantmodel en -resolutie): geen nieuwe signalen; de nieuwe TenancyProperties wordt alleen door
+# TenancyAutoConfiguration gelezen, en de actuator/metrics-aanpassing raakt geen van de vier signalen.
 modules:
   ":core":
     omvang: L
@@ -38,8 +40,7 @@ modules:
     omvang: M
     risico: middel
     toelichting: Client per tenant via het register; zaakdata van de verkeerde bron is een datalek.
-    signalen:
-      config: ZakenApiConfig is een singleton.
+    signalen: {}
   ":zgw:zaken":
     omvang: S
     risico: laag
@@ -48,9 +49,8 @@ modules:
   ":zgw:berichten":
     omvang: S
     risico: middel
-    toelichting: Objecttype-URL per tenant; volgt het objectenapi-register.
-    signalen:
-      config: BerichtenConfiguration is een singleton.
+    toelichting: Objecttype-URL per tenant in modules.berichten; volgt het objectenapi-register.
+    signalen: {}
   ":zgw:besluiten":
     omvang: S
     risico: middel
@@ -61,16 +61,13 @@ modules:
     omvang: S
     risico: laag
     toelichting: Client per tenant.
-    signalen:
-      config: CatalogiApiConfig is een singleton.
-      webclient: Client bouwt zelf een WebClient; hoort in de gedeelde zgw-client (ADR 0002).
+    signalen: {}
   ":zgw:documenten-api":
     omvang: M
-    risico: hoog
-    toelichting: Configuratiemap per tenant; de contains-match op document-URL kan de verkeerde tenantconfiguratie kiezen.
+    risico: middel
+    toelichting: Gegevens en koppelingen per tenant via het tenantbestand en KoppelingClient; een document-URL kiest de document-API met een exacte match van de basis-URL van de tenant.
     signalen:
-      config: DocumentApisConfig is een singleton.
-      webclient: Client bouwt zelf een WebClient per aanroep.
+      config: ClamAVVirusScanConfig (de virusscanner) is een singleton; de scanner is gedeelde infrastructuur van de cel, geen tenantgegeven.
   ":zgw:openklant":
     omvang: M
     risico: middel
@@ -86,32 +83,27 @@ modules:
       config: OpenProductModuleConfiguration is een singleton.
       webclient: Clients bouwen zelf een WebClient.
   ":zgw:verificatie":
-    omvang: M
-    risico: middel
-    toelichting: Client per tenant.
-    signalen:
-      config: VerificatieModuleConfiguration is een singleton.
-      webclient: Client bouwt zelf een WebClient.
+    omvang: S
+    risico: laag
+    toelichting: Gemigreerd (T20 #519); de bron is de koppeling verificatie van de tenant, API-sleutel, templates en typen met verificatie zijn tenantconfiguratie (modules.verificatie).
+    signalen: {}
   ":zgw:common-ground-authentication":
     omvang: L
     risico: hoog
-    toelichting: Eén Keycloak-client en jwk-set-uri, issuer en token-endpoint voor de hele runtime (uit configuratie, niet uit het token).
+    toelichting: De BFF (ADR 0022) leest client-registratie, issuer en sleutel per tenant uit het tenantbestand; de machtigingsdienst-configuratie is nog een singleton.
     signalen:
-      config: KeycloakConfig is een singleton.
-      webclient: WebClient.create() in CommonGroundAuthenticationConverter.
+      config: AuthenticationMachtigingsDienstConfig is een singleton.
+      anoniem: Het sessie-endpoint /api/public/sessie is bewust anoniem; het geeft alleen de status van de eigen sessie, met de tenant uit het host-domein.
   ":zgw:objectenapi":
     omvang: M
     risico: hoog
-    toelichting: Client per tenant; getObjectByUrl stuurt de token naar elke binnenkomende URL (tokenlek naar andere host).
-    signalen:
-      config: ObjectsApiClientConfig is een singleton.
-      webclient: Client bouwt zelf een WebClient per aanroep.
+    toelichting: Client per tenant via het register; getObjectByUrl loopt via HostBinding, dus geen token naar een andere host.
+    signalen: {}
   ":zgw:taak":
     omvang: S
     risico: middel
-    toelichting: Objecttype-URL per tenant; volgt het objectenapi-register.
-    signalen:
-      config: TaakConfig is een singleton.
+    toelichting: Gemigreerd (T18 #517); het objecttype is tenantconfiguratie (modules.taak) en de taken lopen via de koppeling objectenapi van de tenant.
+    signalen: {}
   ":form":
     omvang: S
     risico: laag
@@ -119,27 +111,21 @@ modules:
     signalen:
       config: FormConfig is een singleton.
   ":payment-direct":
-    omvang: L
-    risico: hoog
-    toelichting: Postsale-webhook heeft geen tenantrouting; JVM-globale sleutelstore laat keyId's van tenants elkaar overschrijven.
-    signalen:
-      config: DirectPaymentModuleConfiguration is een singleton.
-      webclient: Client bouwt zelf een WebClient.
-      globaal: InMemorySecretKeyStore.INSTANCE is JVM-breed.
-      anoniem: POST /api/public/payment/direct/postsale is anoniem (HMAC); heeft tenantrouting nodig via host van webhookUrl en tenant van de keyId.
-  ":haalcentraal-brp":
     omvang: M
     risico: middel
-    toelichting: Twee clients per tenant; allowedCitiesForBewoning en brpFields per tenant (doelbinding BRP).
+    toelichting: Gemigreerd naar modules.payment-direct en een eigen koppeling per profiel; de webhook haalt de tenant uit het hostdomein en toetst de keyId aan die tenant. De taak bijwerken loopt nog via de Objecten API (T12).
     signalen:
-      config: HaalCentraalBrpModuleConfiguration is een singleton.
+      anoniem: POST /api/public/payment/direct/postsale is anoniem (HMAC); de tenant volgt uit het hostdomein en moet gelijk zijn aan de tenant van de keyId.
+  ":haalcentraal-brp":
+    omvang: S
+    risico: laag
+    toelichting: Gemigreerd (T9 #508); brpFields en allowedCitiesForBewoning zijn tenantconfiguratie (modules.brp), de bron loopt via de koppelingen brp en brp-bewoning.
+    signalen: {}
   ":kvk":
     omvang: S
-    risico: middel
-    toelichting: Client per tenant.
-    signalen:
-      config: KvkConfig is een singleton.
-      webclient: Client bouwt zelf een WebClient.
+    risico: laag
+    toelichting: Gemigreerd (T10 #509); de bron is de koppeling kvk van de tenant (url en sleutel in het tenantbestand), er is geen eigen moduleconfiguratie.
+    signalen: {}
   ":app":
     omvang: M
     risico: middel

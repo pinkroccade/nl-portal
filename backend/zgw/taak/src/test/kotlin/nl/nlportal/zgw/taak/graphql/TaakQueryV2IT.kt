@@ -18,7 +18,6 @@ package nl.nlportal.zgw.taak.graphql
 import tools.jackson.databind.JsonNode
 import nl.nlportal.commonground.authentication.WithBedrijfUser
 import nl.nlportal.commonground.authentication.WithBurgerUser
-import nl.nlportal.zgw.objectenapi.autoconfiguration.ObjectsApiClientConfig
 import nl.nlportal.zgw.taak.TestHelper
 import nl.nlportal.zgw.taak.domain.TaakSoort
 import nl.nlportal.zgw.taak.domain.TaakStatus
@@ -46,7 +45,6 @@ import org.springframework.graphql.test.tester.HttpGraphQlTester
 @Tag("integration")
 internal class TaakQueryV2IT(
     @Autowired private val httpGraphQlTester: HttpGraphQlTester,
-    @Autowired private val objectsApiClientConfig: ObjectsApiClientConfig,
 ) {
     lateinit var server: MockWebServer
 
@@ -61,15 +59,12 @@ internal class TaakQueryV2IT(
 
     @BeforeEach
     internal fun setUp() {
-        server = MockWebServer()
+        server = nl.nlportal.zgw.taak.ObjectenTestServer.server
         setupMockObjectsApiServer()
-        server.start()
-        objectsApiClientConfig.properties.url = server.url("/").toUri()
     }
 
     @AfterEach
     internal fun tearDown() {
-        server.shutdown()
     }
 
     @Test
@@ -235,7 +230,7 @@ internal class TaakQueryV2IT(
                                 if (queryParams.any { it.contains("identificatie__value__exact__569312863") } &&
                                     queryParams.any {
                                         it.contains(
-                                            "type=http://localhost:8010/api/v1/objecttypes/3c24cab6-4346-4c7d-912b-e34a1e9e21bf",
+                                            "type=http://localhost:8010/api/v1/objecttypes/3e852115-277a-4570-873a-9a64be3aeb35",
                                         )
                                     }
                                 ) {

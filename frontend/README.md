@@ -13,7 +13,7 @@ design tokens; the back-end systems it talks to are configured at runtime.
 Reusable workspace libraries, named `@nl-portal/*` (not published to a registry):
 
 - `api` - GraphQL client + generated hooks (Apollo Client).
-- `authentication` - OIDC authentication.
+- `authentication` - session handling against the backend (BFF): session endpoint, CSRF header, login and logout.
 - `localization` - translations and i18n.
 - `user-interface` - the portal UI components and pages.
 
@@ -103,9 +103,10 @@ Runtime configuration comes from two places:
 - **Feature toggles and properties** are served by the backend at `GET /api/public/frontend` (from
   `nl-portal.frontend.*`) and read by the `user-interface` app context. `window.*` no longer
   carries feature config.
-- **OIDC and API URLs** are the only `window.*` globals left, set by `packages/app/public/config.js`
+- **API URLs** (`GRAPHQL_URI`, `REST_URI`) are the only `window.*` globals left, set by `packages/app/public/config.js`
   (local dev defaults) and, in a container, `config.template.js` (populated from environment
-  variables at startup via nginx `envsubst`).
+  variables at startup via nginx `envsubst`). Both are same-origin paths (`/graphql`, `/api`). The browser holds only a
+  session cookie, never a token: the backend is the OIDC client (BFF, ADR 0022), so the frontend has no identity-provider settings.
 
 See the [documentation](../documentation) for the feature and theming configuration.
 

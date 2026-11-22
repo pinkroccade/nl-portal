@@ -22,9 +22,8 @@ import com.fasterxml.jackson.annotation.JsonSubTypes
 import com.fasterxml.jackson.annotation.JsonSubTypes.Type
 import com.fasterxml.jackson.annotation.JsonTypeInfo
 import com.fasterxml.jackson.annotation.JsonValue
-import nl.nlportal.commonground.authentication.BedrijfAuthentication
-import nl.nlportal.commonground.authentication.BurgerAuthentication
-import nl.nlportal.commonground.authentication.CommonGroundAuthentication
+import nl.nlportal.portal.authentication.domain.PortalAuthentication
+import nl.nlportal.portal.authentication.domain.Vertegenwoordigde
 import java.time.LocalDate
 import java.util.Locale
 import java.util.UUID
@@ -179,16 +178,14 @@ enum class SoortPartij(
     override fun toString(): String = this.value
 }
 
-fun CommonGroundAuthentication.asSoortPartij(): String =
-    when (this) {
-        is BurgerAuthentication -> "persoon"
-        is BedrijfAuthentication -> "organisatie"
-        else -> "contactpersoon"
+fun PortalAuthentication.asSoortPartij(): String =
+    when (identiteit.vertegenwoordigde) {
+        is Vertegenwoordigde.Burger -> "persoon"
+        is Vertegenwoordigde.Bedrijf -> "organisatie"
     }
 
-fun CommonGroundAuthentication.asSoortPartijEnum(): SoortPartij =
-    when (this) {
-        is BurgerAuthentication -> SoortPartij.PERSOON
-        is BedrijfAuthentication -> SoortPartij.ORGANISATIE
-        else -> SoortPartij.CONTACTPERSOON
+fun PortalAuthentication.asSoortPartijEnum(): SoortPartij =
+    when (identiteit.vertegenwoordigde) {
+        is Vertegenwoordigde.Burger -> SoortPartij.PERSOON
+        is Vertegenwoordigde.Bedrijf -> SoortPartij.ORGANISATIE
     }

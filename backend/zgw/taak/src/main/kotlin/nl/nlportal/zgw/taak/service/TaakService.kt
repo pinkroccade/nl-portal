@@ -17,35 +17,35 @@ package nl.nlportal.zgw.taak.service
 
 import io.github.oshai.kotlinlogging.KotlinLogging
 import nl.nlportal.commonground.authentication.AuthenticationMachtigingsDienstService
-import nl.nlportal.commonground.authentication.CommonGroundAuthentication
+import nl.nlportal.core.tenancy.TenantDirectory
 import nl.nlportal.core.util.Mapper
+import nl.nlportal.portal.authentication.domain.PortalAuthentication
 import nl.nlportal.zgw.objectenapi.client.ObjectsApiClient
 import nl.nlportal.zgw.objectenapi.domain.Comparator
 import nl.nlportal.zgw.objectenapi.domain.ObjectSearchParameter
 import nl.nlportal.zgw.objectenapi.domain.ObjectsApiObject
 import nl.nlportal.zgw.objectenapi.domain.ResultPage
 import nl.nlportal.zgw.objectenapi.domain.UpdateObjectsApiObjectRequest
-import nl.nlportal.zgw.taak.autoconfigure.TaakConfig.TaakConfigProperties
 import nl.nlportal.zgw.taak.domain.TaakIdentificatie
 import nl.nlportal.zgw.taak.domain.TaakObjectV2
 import nl.nlportal.zgw.taak.domain.TaakStatus
 import nl.nlportal.zgw.taak.domain.TaakV2
+import nl.nlportal.zgw.taak.tenant.TaakConfiguratie
 import nl.nlportal.zgw.taak.graphql.TaakPageV2
 import org.springframework.http.HttpStatus
-import org.springframework.web.reactive.function.client.WebClientResponseException
 import org.springframework.web.server.ResponseStatusException
 import java.util.UUID
 import tools.jackson.core.type.TypeReference
 
 open class TaakService(
     private val objectsApiClient: ObjectsApiClient,
-    private val taakConfigProperties: TaakConfigProperties,
+    private val tenantDirectory: TenantDirectory,
     val authenticationMachtigingsDienstService: AuthenticationMachtigingsDienstService,
 ) {
     suspend fun getTaken(
         pageNumber: Int,
         pageSize: Int,
-        authentication: CommonGroundAuthentication,
+        authentication: PortalAuthentication,
         zaakUUID: UUID? = null,
         status: TaakStatus? = null,
         title: String? = null,
@@ -71,24 +71,26 @@ open class TaakService(
     suspend fun getTakenV2(
         pageNumber: Int,
         pageSize: Int,
-        authentication: CommonGroundAuthentication,
+        authentication: PortalAuthentication,
         zaakUUID: UUID? = null,
         status: TaakStatus? = null,
         title: String? = null,
     ): TaakPageV2 {
+        // Buiten de try: een ontbrekende tenant of taakconfiguratie faalt gesloten en is geen lege pagina.
+        val objectTypeUrl = tenantDirectory.module<TaakConfiguratie>().objectTypeUrl
         try {
             return getTakenResultPageV2<TaakObjectV2>(
                 pageNumber,
                 pageSize,
                 authentication,
                 zaakUUID,
-                taakConfigProperties.objectTypeUrl,
+                objectTypeUrl,
                 status,
                 title,
             ).let { TaakPageV2.fromResultPage(pageNumber, pageSize, it) }
         } catch (ex: Exception) {
-            logger.info { "Something went wrong with getTakenV2: ${ex.message}" }
-            if (ex is WebClientResponseException) logger.debug { "Response from Objects API: ${ex.responseBodyAsString}" }
+            // Bewust: een bronfout geeft een lege pagina (bestaand gedrag). Geen ex.message of antwoordbody loggen: die kunnen een BSN of URL bevatten.
+            logger.info { "Something went wrong with getTakenV2: ${ex::class.simpleName}" }
             return TaakPageV2(
                 number = pageNumber,
                 size = pageSize,
@@ -100,7 +102,7 @@ open class TaakService(
 
     suspend fun getTaakByIdV2(
         id: UUID,
-        authentication: CommonGroundAuthentication,
+        authentication: PortalAuthentication,
     ): TaakV2 {
         val taak =
             TaakV2.fromObjectsApi(
@@ -114,7 +116,7 @@ open class TaakService(
     suspend fun submitTaak(
         id: UUID,
         submission: Any,
-        authentication: CommonGroundAuthentication,
+        authentication: PortalAuthentication,
     ): TaakV2 {
         val submittedTask =
             submitTaakV2(
@@ -129,7 +131,7 @@ open class TaakService(
     suspend fun submitTaakV2(
         id: UUID,
         submission: Any,
-        authentication: CommonGroundAuthentication,
+        authentication: PortalAuthentication,
     ): TaakV2 {
         val objectsApiTask =
             getObjectsApiTaak<TaakObjectV2>(id)
@@ -146,28 +148,30 @@ open class TaakService(
         updateRequest.record.data.portaalformulier
             ?.verzondenData = submissionAsMap
         updateRequest.record.data.status = TaakStatus.AFGEROND
-        updateRequest.record.correctedBy = authentication.getUserRepresentation()
+        updateRequest.record.correctedBy = authentication.identiteit.vertegenwoordigde.representatie
         updateRequest.record.correctionFor = objectsApiTask.record.index.toString()
 
         val updatedObjectsApiTask = objectsApiClient.updateObject(objectsApiTask.uuid, updateRequest)
         return TaakV2.fromObjectsApi(updatedObjectsApiTask)
     }
 
+    /**
+     * Haalt een taak op UUID op. Leest `modules.taak` per aanroep, buiten elke try (gesloten falen), en behandelt een object van een ander
+     * objecttype dan dat van de eigen tenant als niet gevonden, zodat bestaan niet uitlekt en er niets over de tenantgrens wordt geschreven.
+     */
     private suspend inline fun <reified T> getObjectsApiTaak(taskId: UUID): ObjectsApiObject<T> {
-        val objectsApiTask = objectsApiClient.getObjectById<T>(taskId.toString())
-        if (objectsApiTask == null) {
-            throw ResponseStatusException(
-                HttpStatus.BAD_REQUEST,
-                String.format("Taak [%s] kan niet gevonden worden", taskId),
-            )
+        val objectTypeUrl = tenantDirectory.module<TaakConfiguratie>().objectTypeUrl
+        val taak = objectsApiClient.getObjectById<T>(taskId.toString())
+        if (taak.type != objectTypeUrl) {
+            throw ResponseStatusException(HttpStatus.NOT_FOUND, "Failed to GET ${T::class.java.simpleName}")
         }
-        return objectsApiTask
+        return taak
     }
 
     private suspend inline fun <reified T> getTakenResultPageV2(
         pageNumber: Int,
         pageSize: Int,
-        authentication: CommonGroundAuthentication,
+        authentication: PortalAuthentication,
         zaakUUID: UUID? = null,
         objectTypeUrl: String,
         status: TaakStatus?,
@@ -220,19 +224,19 @@ open class TaakService(
         )
     }
 
-    private fun getUserSearchParameters(authentication: CommonGroundAuthentication): List<ObjectSearchParameter> =
+    private fun getUserSearchParameters(authentication: PortalAuthentication): List<ObjectSearchParameter> =
         listOf(
-            ObjectSearchParameter("identificatie__type", Comparator.EQUAL_TO, authentication.userType),
-            ObjectSearchParameter("identificatie__value", Comparator.EQUAL_TO, authentication.userId),
+            ObjectSearchParameter("identificatie__type", Comparator.EQUAL_TO, authentication.identiteit.vertegenwoordigde.soort.code),
+            ObjectSearchParameter("identificatie__value", Comparator.EQUAL_TO, authentication.identiteit.vertegenwoordigde.identificatie),
         )
 
     private fun isAuthorizedForTaak(
-        authentication: CommonGroundAuthentication,
+        authentication: PortalAuthentication,
         taakIdentificatie: TaakIdentificatie,
-    ): Boolean = taakIdentificatie.type.lowercase() == authentication.userType && taakIdentificatie.value == authentication.userId
+    ): Boolean = taakIdentificatie.type.lowercase() == authentication.identiteit.vertegenwoordigde.soort.code && taakIdentificatie.value == authentication.identiteit.vertegenwoordigde.identificatie
 
     private fun isAuthorizedForTaak(
-        authentication: CommonGroundAuthentication,
+        authentication: PortalAuthentication,
         taak: TaakV2,
     ) {
         // do validation if the user is authenticated for this task
@@ -243,7 +247,7 @@ open class TaakService(
     }
 
     private fun isAuthorizedForTaak(
-        authentication: CommonGroundAuthentication,
+        authentication: PortalAuthentication,
         taakObject: ObjectsApiObject<TaakObjectV2>,
     ) {
         // do validation if the user is authenticated for this task

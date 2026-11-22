@@ -27,7 +27,6 @@ import {
   ThemeListPage,
   ThemeMutatePage,
 } from "@nl-portal/nl-portal-user-interface";
-import { OidcCallbackPage } from "@nl-portal/nl-portal-authentication";
 import { paths } from "./paths";
 import { themes } from "./themes";
 import { Navigate, useSearchParams } from "react-router";
@@ -256,11 +255,6 @@ export const routes = [
         element: <EditContactInfoPage />,
       },
     ],
-  },
-  {
-    path: new URL(window.OIDC_REDIRECT_URI).pathname,
-    handle: { label: "breadcrumb.oidc" },
-    element: <OidcCallbackPage />,
   },
   {
     path: paths.noMatch,

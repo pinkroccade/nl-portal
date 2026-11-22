@@ -1,0 +1,54 @@
+{
+  "clients": [
+    {
+      "clientId": "nl-portal-backend",
+      "protocolMappers": [
+        {
+          "name": "test-inlogmiddel",
+          "protocol": "openid-connect",
+          "protocolMapper": "oidc-usermodel-attribute-mapper",
+          "config": {
+            "user.attribute": "inlogmiddel",
+            "claim.name": "inlogmiddel",
+            "jsonType.label": "String",
+            "id.token.claim": "true",
+            "access.token.claim": "false",
+            "userinfo.token.claim": "false",
+            "introspection.token.claim": "false",
+            "lightweight.claim": "false"
+          }
+        },
+        {
+          "name": "test-acr",
+          "protocol": "openid-connect",
+          "protocolMapper": "oidc-usermodel-attribute-mapper",
+          "config": {
+            "user.attribute": "acr",
+            "claim.name": "acr",
+            "jsonType.label": "String",
+            "id.token.claim": "true",
+            "access.token.claim": "false",
+            "userinfo.token.claim": "false",
+            "introspection.token.claim": "false",
+            "lightweight.claim": "false"
+          }
+        },
+        {
+          "name": "test-bsn",
+          "protocol": "openid-connect",
+          "protocolMapper": "oidc-usermodel-attribute-mapper",
+          "config": {
+            "user.attribute": "bsn",
+            "claim.name": "acting_subject_id",
+            "jsonType.label": "String",
+            "id.token.claim": "false",
+            "access.token.claim": "false",
+            "userinfo.token.claim": "true",
+            "introspection.token.claim": "false",
+            "lightweight.claim": "false"
+          }
+        }
+      ]
+    }
+  ]
+}
