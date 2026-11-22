@@ -1,0 +1,127 @@
+suite: labels, namen en images
+templates:
+  - configmap-backend.yaml
+  - configmap-frontend.yaml
+  - configmap-tenants.yaml
+  - service-backend.yaml
+  - service-frontend.yaml
+  - deployment-backend.yaml
+  - deployment-frontend.yaml
+  - serviceaccount.yaml
+  - ingress.yaml
+values:
+  - ../ci/full-values.yaml
+release:
+  name: rel
+tests:
+  - it: elke resource draagt de recommended labels
+    asserts:
+      - equal:
+          path: metadata.labels["app.kubernetes.io/name"]
+          value: portaal
+      - equal:
+          path: metadata.labels["app.kubernetes.io/instance"]
+          value: rel
+      - equal:
+          path: metadata.labels["app.kubernetes.io/part-of"]
+          value: nl-portal
+      - equal:
+          path: metadata.labels["app.kubernetes.io/managed-by"]
+          value: Helm
+      - equal:
+          path: metadata.labels["app.kubernetes.io/version"]
+          value: "0.1.0"
+      - isNotEmpty:
+          path: metadata.labels["app.kubernetes.io/component"]
+      - isNotEmpty:
+          path: metadata.labels["helm.sh/chart"]
+  - it: de component-labels onderscheiden backend en frontend
+    template: service-backend.yaml
+    asserts:
+      - equal:
+          path: metadata.labels["app.kubernetes.io/component"]
+          value: backend
+      - equal:
+          path: spec.selector["app.kubernetes.io/component"]
+          value: backend
+  - it: de Service-namen volgen release-chartnaam-component (nameOverride)
+    template: service-frontend.yaml
+    asserts:
+      - equal:
+          path: metadata.name
+          value: rel-portaal-frontend
+  - it: standaard heet de Service release-nl-portal-backend
+    template: service-backend.yaml
+    set:
+      nameOverride: ""
+      serviceAccount.create: false
+    asserts:
+      - equal:
+          path: metadata.name
+          value: rel-nl-portal-backend
+  - it: fullnameOverride vervangt de hele basisnaam
+    template: service-backend.yaml
+    set:
+      fullnameOverride: portaal-bosrand
+    asserts:
+      - equal:
+          path: metadata.name
+          value: portaal-bosrand-backend
+  - it: een releasenaam die de chartnaam bevat wordt niet verdubbeld
+    template: service-backend.yaml
+    set:
+      nameOverride: ""
+      serviceAccount.create: false
+    release:
+      name: mijn-nl-portal
+    asserts:
+      - equal:
+          path: metadata.name
+          value: mijn-nl-portal-backend
+  - it: global.imageRegistry vervangt het register van beide images
+    template: deployment-backend.yaml
+    asserts:
+      - equal:
+          path: spec.template.spec.containers[0].image
+          value: registry.example.nl/pinkroccade/nl-portal-backend:0.1.0
+  - it: de frontend volgt global.imageRegistry
+    template: deployment-frontend.yaml
+    asserts:
+      - equal:
+          path: spec.template.spec.containers[0].image
+          value: registry.example.nl/pinkroccade/nl-portal-frontend:0.1.0
+  - it: een digest vervangt de tag
+    template: deployment-backend.yaml
+    set:
+      backend.image.digest: sha256:0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef
+    asserts:
+      - equal:
+          path: spec.template.spec.containers[0].image
+          value: registry.example.nl/pinkroccade/nl-portal-backend@sha256:0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef
+  - it: global.imagePullSecrets komt op beide pods
+    template: deployment-frontend.yaml
+    asserts:
+      - equal:
+          path: spec.template.spec.imagePullSecrets
+          value:
+            - name: regcred
+  - it: de ServiceAccount is optioneel
+    template: serviceaccount.yaml
+    set:
+      serviceAccount.create: false
+    asserts:
+      - hasDocuments:
+          count: 0
+  - it: een gemaakte ServiceAccount wordt door de pods gebruikt
+    template: deployment-backend.yaml
+    asserts:
+      - equal:
+          path: spec.template.spec.serviceAccountName
+          value: rel-portaal
+  - it: een andere globale waarde dan imageRegistry en imagePullSecrets wordt geweigerd
+    template: deployment-backend.yaml
+    set:
+      global.storageClass: fast
+    asserts:
+      - failedTemplate:
+          errorPattern: "global"

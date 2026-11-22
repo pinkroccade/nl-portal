@@ -1,0 +1,13 @@
+NL Portal {{ .Chart.AppVersion }} is installed as release "{{ .Release.Name }}".
+
+  backend  Service: {{ include "nl-portal.componentName" (dict "ctx" . "component" "backend") }} (port {{ .Values.backend.service.port }})
+  frontend Service: {{ include "nl-portal.componentName" (dict "ctx" . "component" "frontend") }} (port {{ .Values.frontend.service.port }})
+
+The actuator listens on port {{ .Values.backend.management.port }} of the backend pods and is not in any Service.
+{{- if not .Values.ingress.enabled }}
+
+No Ingress was created (ingress.enabled=false). Route /graphql, /api, /oauth2, /login and /logout to the backend Service and
+everything else to the frontend Service, and pass the Host header on unchanged: the tenant follows from it.
+{{- end }}
+
+Prerequisites outside this chart: Redis (sessions), Keycloak with a realm per tenant, and the sources of the enabled modules.

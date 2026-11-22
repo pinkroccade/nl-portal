@@ -4,7 +4,7 @@
 
 Geaccepteerd op 2026-11-21, in de grilling-sessie van fase 0 voor de multitenancy-epic (zie het
 [besluitenlog fase 0](../research/fase0-besluiten-multitenancy-bff.md), vragen Q14 en Q18 tot en met Q23).
-Gebouwd in T7 (#506), met de correcties onder "Correctie na de bouw". Hoort bij [ADR 0021](./0021-gedeelde-multi-tenant-runtime-met-cellen.md), dat de
+Gebouwd in T7 (#506), met de correcties onder "Correctie na de bouw". NL Portal is daarmee niet langer volledig stateless: de BFF-sessies staan in Redis, dus Redis is een vereiste voor elke cel (zie ADR 0017; de backend blijft zonder database en zonder persistente state). Hoort bij [ADR 0021](./0021-gedeelde-multi-tenant-runtime-met-cellen.md), dat de
 tenantbinding via de issuer hierop laat steunen. Steunt op [ADR 0017](./0017-vluchtige-state-toegestaan.md)
 voor de sessieopslag. Raakt de ASVS-toetsing van de token exchange
 ([`asvs-5-l3-toetsing-token-exchange.md`](../research/asvs-5-l3-toetsing-token-exchange.md)) en de issues

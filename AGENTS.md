@@ -56,6 +56,7 @@ skill first:
 | Designing or deepening a module's interface | `codebase-design` |
 | Scanning the codebase for deepening/architecture-improvement candidates | `improve-codebase-architecture` |
 | Building a feature or fixing a bug | `tdd` |
+| Implementing an epic (a spec split into tickets) | `implement-spec`, following [epic-werkwijze.md](site/development/workflows/epic-werkwijze.md) |
 | Investigating a hard bug or a performance regression | `diagnosing-bugs` |
 | Reviewing changes before opening a PR | `code-review` (toetst aan [CODING_STANDARDS.md](./CODING_STANDARDS.md); `security-review` for security-sensitive changes) |
 | A quality pass that isn't a bug hunt | `simplify` |

@@ -11,6 +11,9 @@ k6 = "2.3.0"
 actionlint = "1.7.11"
 # actionlint controleert de `run:`-scripts met shellcheck als dat beschikbaar is; vastgepind zodat lokaal en CI hetzelfde zien.
 shellcheck = "0.11.0"
+helm = "3.22.1"
+kubeconform = "0.8.0"
+"github:helm-unittest/helm-unittest" = "1.2.1"
 
 # Taken heten <domein>:<actie>. De aggregaten zonder prefix (build, test, lint, arch-check) roepen via
 # `depends` de domeintaken aan. Taken van meer dan een regel staan als bestand onder mise-tasks/.
@@ -26,12 +29,12 @@ description = "Bouw backend, frontend en de Keycloak-provider"
 depends = ["backend:build", "frontend:build", "keycloak:build"]
 
 [tasks.test]
-description = "Draai de unit-tests van backend, frontend, Keycloak-provider en scripts (integratietests: backend:integration-test, keycloak:integration-test)"
-depends = ["backend:test", "frontend:test", "keycloak:test", "scripts:test", "perf:test"]
+description = "Draai de unit-tests van backend, frontend, Keycloak-provider, scripts en Helm-chart (integratietests: backend:integration-test, keycloak:integration-test)"
+depends = ["backend:test", "frontend:test", "keycloak:test", "scripts:test", "perf:test", "helm:test"]
 
 [tasks.lint]
 description = "Lint, typecheck en formatteringscontrole van backend en frontend, plus de controles van workflows, mise-taken en Keycloak-versie"
-depends = ["backend:lint", "frontend:lint", "frontend:typecheck", "frontend:prettier", "perf:check", "workflows:lint", "mise:check-shell", "keycloak:check-version", "copyright:check"]
+depends = ["backend:lint", "frontend:lint", "frontend:typecheck", "frontend:prettier", "perf:check", "workflows:lint", "mise:check-shell", "keycloak:check-version", "helm:lint", "copyright:check"]
 
 [tasks.arch-check]
 description = "Bewaak de architectuurregels (backend: ArchUnit; frontend: package-boundaries valt onder frontend:lint)"

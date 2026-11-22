@@ -10,11 +10,15 @@ The skills speak in terms of five canonical triage roles. This file maps those r
 | `ready-for-human`            | `ready-for-human`     | Requires human implementation             |
 | `wontfix`                    | `wontfix`             | Will not be actioned                      |
 
-Besides the triage roles this repo uses one extra label:
+Besides the triage roles this repo uses these extra labels:
 
 | Label  | Meaning                                                                                                   |
 | ------ | --------------------------------------------------------------------------------------------------------- |
 | `epic` | Umbrella issue (spec) split into sub-tickets. Not implementable itself; pick a `ready-for-agent` sub-ticket. |
+| `risico:hoog` | Ticket touching authentication, sessions, payments, webhooks, core or tenant isolation: separate code review and security review. |
+| `risico:laag` | Any other ticket: one combined review and security agent. |
+
+`to-tickets` gives every ticket one risk label; the route per label is in `site/development/workflows/epic-werkwijze.md`.
 
 An issue is an `epic` from the moment `to-tickets` splits it: it loses `ready-for-agent` and gets `epic`.
 

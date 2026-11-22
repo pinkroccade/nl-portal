@@ -109,6 +109,7 @@ test("devSetup rendert dezelfde waarden in realm, compose en :app", () => {
     assert.match(read("backend/app/.env.properties"), /^REDIS_SSL=false$/m, "bootRun op de host praat met de TLS-loze Redis van de compose");
     assert.doesNotMatch(read(APP_DEV_OUTPUT), /KEYCLOAK_CLIENT_SECRET/);
     assert.match(read(APP_DEV_OUTPUT), /^REDIS_SSL=false$/m, "app-dev bootRun op de host praat met de TLS-loze Redis");
+    assert.match(read(APP_DEV_OUTPUT), /^REDIS_USERNAME=nlportal$/m, "de default-gebruiker van de Redis-ACL staat uit");
     assert.match(
       read("backend/app/.env.properties"),
       new RegExp(`^NL_PORTAL_GEHEIMEN_00000099000000000001_ZAKEN_SECRET=${secrets.OPENZAAK_NLPORTAL_SECRET}$`, "m"),

@@ -1,0 +1,295 @@
+# Default values for the nl-portal chart. Documentation: README.md. Validated by values.schema.json.
+# Secrets never go in these values: every component with sensitive configuration points at an existing Secret.
+
+# Only these two globals are supported (contract with a parent chart).
+global:
+  # -- Replaces the registry of every image (registry mirror).
+  imageRegistry: ""
+  # -- Pull secrets for every pod; a name or {name: ...}.
+  imagePullSecrets: []
+
+# -- Overrides the chart name in resource names and labels.
+nameOverride: ""
+# -- Overrides the whole resource base name (services become <fullnameOverride>-backend and -frontend).
+fullnameOverride: ""
+
+serviceAccount:
+  # -- Creates a ServiceAccount; otherwise `name` (or "default") is used.
+  create: false
+  name: ""
+  annotations: {}
+  # -- The pods need no Kubernetes API access.
+  automountServiceAccountToken: false
+
+# Tenant files and client keys. NL Portal is multi-tenant: one release can carry one or more tenants, the tenant follows
+# from the Host header (Ingress and frontend proxy pass it on unchanged).
+tenancy:
+  # -- Tenant files by file name (base.yaml and <oin>.yaml), rendered into a ConfigMap. Contains no secrets, only secret names.
+  tenants: {}
+  # -- Name of an existing ConfigMap with the tenant files; replaces `tenants`.
+  existingConfigMap: ""
+  # -- Client key per tenant (private_key_jwt towards Keycloak): a Secret per OIN, mounted as <sleutelmap>/<oin>/<key>.
+  keys: []
+  # keys:
+  #   - oin: "00000099000000000001"
+  #     existingSecret: nl-portal-key-00000099000000000001
+  #     key: clientsleutel.jwk.json
+  # -- File mode of the mounted key files (octal, readable by the pod fsGroup).
+  keysDefaultMode: 288
+
+backend:
+  # -- Number of replicas; the backend keeps no persistent state (sessions live in Redis).
+  replicaCount: 1
+  image:
+    registry: ghcr.io
+    repository: pinkroccade/nl-portal-backend
+    # -- Defaults to the chart appVersion.
+    tag: ""
+    # -- When set, the digest replaces the tag.
+    digest: ""
+    pullPolicy: IfNotPresent
+
+  # -- Name of an existing Secret with the keys of `secretKeys` (and the tenant secrets NL_PORTAL_GEHEIMEN_<OIN>_<NAME>). Required.
+  existingSecret: ""
+  # -- Key names in the existing Secret, by purpose. The defaults are the environment variable names; override a key name
+  # when your secret store uses another one.
+  secretKeys:
+    redisPassword: REDIS_PASSWORD
+    # Optional keys: when present they override backend.redis.username and backend.redis.ssl.
+    redisUsername: REDIS_USERNAME
+    redisSsl: REDIS_SSL
+    # Needed when backend.beheer.enabled.
+    beheerPasswordHash: NLPORTAL_BEHEER_WACHTWOORDHASH
+    # Needed by the module of the same name.
+    besluitenapiSecret: NLPORTAL_CONFIG_BESLUITENAPI_PROPERTIES_SECRET
+    openklant2Token: NLPORTAL_CONFIG_OPENKLANT2_PROPERTIES_TOKEN
+    openproductToken: NLPORTAL_CONFIG_OPENPRODUCT_PROPERTIES_TOKEN
+  # -- Changes the pod template (and so restarts the pods) when you bump it. Use it after rotating a value in the Secret,
+  # or use a secret reloader via podAnnotations.
+  secretVersion: ""
+
+  # -- LOGLEVEL of the root logger.
+  logLevel: INFO
+  # -- JAVA_TOOL_OPTIONS.
+  javaOpts: "-XX:MaxRAMPercentage=75.0"
+  # -- Public base URL of Keycloak (KEYCLOAK_BROKER_URL); the issuer of every tenant must fall under it. Required.
+  keycloakBrokerUrl: ""
+  # -- IP addresses or CIDR blocks of the ingress controller (NL_PORTAL_TRUSTED_PROXIES); only from these addresses are
+  # Forwarded and X-Forwarded-Host honoured. Leave empty when the Host header is enough.
+  trustedProxies: []
+
+  # Sessions of the BFF. Redis is a prerequisite and is not part of this chart (use ACL, no persistence, TLS).
+  redis:
+    # -- Required.
+    host: ""
+    port: 6379
+    # -- TLS to Redis (REDIS_SSL).
+    ssl: true
+    # -- ACL user; empty for the default user.
+    username: ""
+
+  # Actuator on its own port; the port is never in the Service.
+  management:
+    port: 8091
+  # Basic-auth access to /actuator/modulestatus on the management port. Without it the endpoint is closed (401).
+  beheer:
+    enabled: false
+    username: beheer
+
+  cors:
+    # -- Origins allowed cross-origin (NLPORTAL_SECURITY_CORS_0_*). Empty: no cross-origin requests (default, right for the BFF).
+    allowedOrigins: []
+    allowedMethods: [GET, POST, PUT, DELETE, OPTIONS]
+    allowedHeaders: ["*"]
+
+  # -- Feature flags in flagd format; rendered into a ConfigMap and mounted (NLPORTAL_FEATUREFLAGS_FILE).
+  # Empty: the defaults compiled into the image apply (all off).
+  featureFlags: {}
+  # featureFlags:
+  #   flags:
+  #     ops.documentenapis.enabled:
+  #       state: ENABLED
+  #       variants: {on: true, off: false}
+  #       defaultVariant: "on"
+
+  # -- Frontend properties served via GET /api/public/frontend (NLPORTAL_FRONTEND_PROPERTIES_<NAME>), by camelCase name.
+  frontendProperties: {}
+  # frontendProperties:
+  #   messageCountPollingInterval: 30000
+
+  # Modules. Every module is off by default. A module needs its tenant configuration (koppelingen/modules in the tenant files);
+  # the chart only holds the switch and the non-secret settings that are still environment configuration.
+  modules:
+    zakenapi:
+      enabled: false
+    catalogiapi:
+      enabled: false
+    documentenapis:
+      enabled: false
+    objectenapi:
+      enabled: false
+    besluitenapi:
+      enabled: false
+      url: ""
+      clientId: ""
+    openklant2:
+      enabled: false
+      contactgegevensApiUrl: ""
+      klantinteractiesApiUrl: ""
+    openproduct:
+      enabled: false
+      productApiUrl: ""
+      productTypeApiUrl: ""
+    haalcentraalBrp:
+      enabled: false
+    kvk:
+      enabled: false
+    verificatie:
+      enabled: false
+    clamav:
+      enabled: false
+      hostname: ""
+      port: 3310
+    taak:
+      enabled: false
+    # The module is switched on with the flag ops.berichten.enabled (backend.featureFlags) and modules.berichten in the tenant file;
+    # this switch declares the intent, so the dependency check runs.
+    berichten:
+      enabled: false
+    formulieren:
+      enabled: false
+      formDefinitionObjectTypeUrl: ""
+    product:
+      enabled: false
+      productTypeUrl: ""
+      productInstantieTypeUrl: ""
+      productVerbruiksobjectTypeUrl: ""
+      productDetailsTypeUrl: ""
+    prefill:
+      enabled: false
+      typeUrl: ""
+    dmn:
+      enabled: false
+      url: ""
+
+  # -- Extra environment variables for what the chart does not model yet (EnvVar objects).
+  extraEnv: []
+  extraVolumes: []
+  extraVolumeMounts: []
+
+  service:
+    type: ClusterIP
+    port: 8080
+    annotations: {}
+  probes:
+    startup:
+      failureThreshold: 36
+      periodSeconds: 5
+    liveness:
+      periodSeconds: 10
+      timeoutSeconds: 3
+      failureThreshold: 3
+    readiness:
+      periodSeconds: 10
+      timeoutSeconds: 3
+      failureThreshold: 3
+  resources:
+    requests:
+      cpu: 250m
+      memory: 768Mi
+    limits:
+      cpu: "1"
+      memory: 1Gi
+  podSecurityContext:
+    runAsNonRoot: true
+    runAsUser: 1001
+    runAsGroup: 1001
+    fsGroup: 1001
+    seccompProfile:
+      type: RuntimeDefault
+  containerSecurityContext:
+    allowPrivilegeEscalation: false
+    readOnlyRootFilesystem: true
+    capabilities:
+      drop: [ALL]
+  podAnnotations: {}
+  podLabels: {}
+  nodeSelector: {}
+  tolerations: []
+  affinity: {}
+  topologySpreadConstraints: []
+  priorityClassName: ""
+  terminationGracePeriodSeconds: 30
+  revisionHistoryLimit: 3
+
+frontend:
+  replicaCount: 1
+  image:
+    registry: ghcr.io
+    repository: pinkroccade/nl-portal-frontend
+    tag: ""
+    digest: ""
+    pullPolicy: IfNotPresent
+  # -- GRAPHQL_URI and REST_URI of the SPA: same-origin paths, nginx proxies them to the backend.
+  graphqlUri: /graphql
+  restUri: /api
+  # -- AUTO_IDLE_SESSION_LOGOUT.
+  autoIdleSessionLogout: true
+  # -- IDLE_TIMEOUT_MINUTES; empty follows the tenant file.
+  idleTimeoutMinutes: ""
+  extraEnv: []
+  service:
+    type: ClusterIP
+    port: 80
+    annotations: {}
+  probes:
+    liveness:
+      periodSeconds: 10
+      timeoutSeconds: 2
+      failureThreshold: 3
+    readiness:
+      periodSeconds: 10
+      timeoutSeconds: 2
+      failureThreshold: 3
+  resources:
+    requests:
+      cpu: 50m
+      memory: 64Mi
+    limits:
+      cpu: 200m
+      memory: 128Mi
+  podSecurityContext:
+    runAsNonRoot: true
+    runAsUser: 101
+    runAsGroup: 101
+    fsGroup: 101
+    seccompProfile:
+      type: RuntimeDefault
+  containerSecurityContext:
+    allowPrivilegeEscalation: false
+    readOnlyRootFilesystem: true
+    capabilities:
+      drop: [ALL]
+  podAnnotations: {}
+  podLabels: {}
+  nodeSelector: {}
+  tolerations: []
+  affinity: {}
+  topologySpreadConstraints: []
+  priorityClassName: ""
+  terminationGracePeriodSeconds: 30
+  revisionHistoryLimit: 3
+
+# Optional Ingress, off by default (a parent chart usually owns routing).
+# /graphql, /api, /oauth2, /login and /logout go to the backend, everything else to the frontend.
+# The Host header is passed on unchanged: the tenant follows from it.
+ingress:
+  enabled: false
+  className: ""
+  annotations: {}
+  # -- Hosts (the tenant domains). Required when enabled.
+  hosts: []
+  tls: []
+  # tls:
+  #   - secretName: nl-portal-tls
+  #     hosts: [debosrand.example.nl]

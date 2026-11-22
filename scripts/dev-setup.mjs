@@ -168,6 +168,8 @@ export function devSetup(root, secrets = generateSecrets()) {
       ...APP_DEV_SECRETS.map((name) => `${name}=${secrets[name]}`),
       // bootRun op de host praat met de TLS-loze Redis van de compose; buiten lokaal staat REDIS_SSL standaard aan.
       "REDIS_SSL=false",
+      // De ACL van nl-portal-sessies zet de default-gebruiker uit: zonder gebruikersnaam is de login WRONGPASS.
+      "REDIS_USERNAME=nlportal",
       "",
     ].join("\n"),
   );
