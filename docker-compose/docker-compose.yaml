@@ -28,7 +28,7 @@ services:
     # sleutels `nlp:*` en `spring:session:*` en zonder admin-, gevaarlijke en scriptcommando's.
     nl-portal-sessies:
         container_name: nl-portal-sessies
-        image: redis:8.2-alpine@sha256:da23c2478319ceb4903857d77a2fd7aa5137d9e9d4c8165dafbacedac6403e95
+        image: redis:8.10-alpine@sha256:7958cfbb9d152f87dadfbc89f1b0b15938f0b81ff8982feb327476f4911935c3
         command: ["redis-server", "--aclfile", "/etc/redis/users.acl", "--save", "", "--appendonly", "no", "--maxmemory", "256mb", "--maxmemory-policy", "noeviction"]
         ports:
             - "127.0.0.1:6379:6379"
@@ -98,7 +98,7 @@ services:
             POSTGRES_PASSWORD: ${KEYCLOAK_DB_PASSWORD:?draai eerst mise run dev:setup}
 
     nl-portal-openzaak:
-        image: openzaak/open-zaak:1.31.1
+        image: openzaak/open-zaak:1.31.2
         container_name: nl-portal-openzaak
         platform: linux/amd64
         profiles:
@@ -132,7 +132,7 @@ services:
             - ./imports/openzaak/private-media:/app/private-media
 
     nl-portal-openzaak-import:
-        image: openzaak/open-zaak:1.31.1
+        image: openzaak/open-zaak:1.31.2
         container_name: nl-portal-openzaak-import
         platform: linux/amd64
         profiles:

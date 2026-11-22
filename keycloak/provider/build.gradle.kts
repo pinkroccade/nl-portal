@@ -41,9 +41,9 @@ dependencies {
         compileOnly("org.keycloak:$it:$keycloakVersion")
         testImplementation("org.keycloak:$it:$keycloakVersion")
     }
-    testImplementation(platform("org.junit:junit-bom:5.14.0"))
+    testImplementation(platform("org.junit:junit-bom:5.14.4"))
     testImplementation("org.junit.jupiter:junit-jupiter")
-    testImplementation("org.assertj:assertj-core:3.27.6")
+    testImplementation("org.assertj:assertj-core:3.27.7")
     testRuntimeOnly("org.junit.platform:junit-platform-launcher")
 }
 

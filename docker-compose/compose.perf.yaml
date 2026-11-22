@@ -15,7 +15,7 @@ services:
             - otel-agent:/otel
 
     nl-portal-tempo:
-        image: grafana/tempo:2.8.2
+        image: grafana/tempo:2.10.10
         container_name: nl-portal-tempo
         profiles:
             - tracing
