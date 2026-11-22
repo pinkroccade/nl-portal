@@ -71,9 +71,6 @@ nl-portal:
             enabled: false
     # De clientsleutel per tenant staat onder de sleutelmap, in een map met de OIN als naam (mise run dev:setup maakt ze).
     sleutelmap: ${NL_PORTAL_SLEUTELMAP:../../docker-compose/.generated/tenants}
-    # De demo-tenant van de compose-stack; bootRun draait in deze moduleomgeving.
-    tenancy:
-        directory: ${NL_PORTAL_TENANTS_DIRECTORY:../../docker-compose/imports/tenants}
     authentication:
         bff:
             vereist: true
