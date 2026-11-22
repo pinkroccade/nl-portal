@@ -69,7 +69,11 @@ class BerichtenTenantTest {
             service.getBerichtenPage(inwoner, 1, 10, null)
 
             val verzoek = wijdeVeld.takeRequest()
-            assertThat(verzoek.path).contains("/api/v2/objects").contains(BSN).contains("type=").contains("wijde-veld-bericht")
+            assertThat(verzoek.path)
+                .contains("/api/v2/objects")
+                .contains(BSN)
+                .contains("type=")
+                .contains("wijde-veld-bericht")
             assertThat(verzoek.path).doesNotContain("bosrand-bericht")
             assertThat(bosrand.requestCount).isZero()
         }

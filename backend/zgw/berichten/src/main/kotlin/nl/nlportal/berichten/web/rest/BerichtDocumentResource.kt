@@ -71,8 +71,7 @@ class BerichtDocumentResource(
 
     // Geen e.message naar de browser: alleen dezelfde codes en sleutel als GraphQL, zodat de beheerder de log vindt.
     @ExceptionHandler(KoppelingException::class)
-    fun koppelingFout(e: KoppelingException): ResponseEntity<Map<String, String>> =
-        ResponseEntity(mapOf("code" to "KOPPELING_FOUT", "correlatieId" to e.correlatieId), HttpStatus.BAD_GATEWAY)
+    fun koppelingFout(e: KoppelingException): ResponseEntity<Map<String, String>> = ResponseEntity(mapOf("code" to "KOPPELING_FOUT", "correlatieId" to e.correlatieId), HttpStatus.BAD_GATEWAY)
 
     @ExceptionHandler(ModuleNotConfiguredException::class)
     fun moduleNietGeconfigureerd(e: ModuleNotConfiguredException) = intern(e, "MODULE_NIET_GECONFIGUREERD")
@@ -89,7 +88,7 @@ class BerichtDocumentResource(
         code: String,
     ): ResponseEntity<Map<String, String>> {
         val correlatieId = UUID.randomUUID().toString()
-        log.warn { "Interne fout bij een berichtdocument (${code}, ${e::class.simpleName}: ${e.message}), referentie ${correlatieId}" }
+        log.warn { "Interne fout bij een berichtdocument ($code, ${e::class.simpleName}: ${e.message}), referentie $correlatieId" }
         return ResponseEntity(mapOf("code" to code, "correlatieId" to correlatieId), HttpStatus.INTERNAL_SERVER_ERROR)
     }
 
