@@ -179,7 +179,6 @@ class HttpClientRules(
                 "nl.nlportal.besluiten..",
                 "nl.nlportal.catalogiapi..",
                 "nl.nlportal.commonground.authentication..",
-                "nl.nlportal.form..",
                 "nl.nlportal.openklant..",
                 "nl.nlportal.openproduct..",
                 "nl.nlportal.verificatie..",

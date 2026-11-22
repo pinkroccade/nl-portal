@@ -17,8 +17,12 @@ package nl.nlportal.zgw.taak
 
 import nl.nlportal.core.tenancy.GeheimenBron
 import nl.nlportal.core.tenancy.TenantDirectory
+import nl.nlportal.core.tenancy.TenantKoppelingAuth
+import nl.nlportal.core.tenancy.TenantKoppelingAuthType
 import nl.nlportal.core.testing.TestTenants
 import nl.nlportal.core.testing.VasteTenantWebFilter
+import nl.nlportal.documentenapi.configuratie.DocumentApiConfiguratie
+import nl.nlportal.documentenapi.configuratie.DocumentenApiConfiguratie
 import okhttp3.mockwebserver.MockWebServer
 import org.springframework.context.annotation.Bean
 import org.springframework.context.annotation.Configuration
@@ -28,7 +32,7 @@ object ObjectenTestServer {
     val server: MockWebServer by lazy { MockWebServer().also { it.start() } }
 }
 
-/** De ITs van deze module draaien zonder tenantresolutie als tenant Bosrand, met een Objecten-koppeling naar [ObjectenTestServer]. */
+/** De ITs van deze module draaien zonder tenantresolutie als tenant Bosrand, met een Objecten-koppeling naar [ObjectenTestServer] en de Documenten API als koppeling en module. */
 @Configuration
 open class ObjectenTestTenantConfiguratie {
     @Bean
@@ -43,6 +47,19 @@ open class ObjectenTestTenantConfiguratie {
                                     .url("/")
                                     .toString()
                                     .trimEnd('/'),
+                            ),
+                        "documenten-api" to
+                            TestTenants.koppeling(
+                                "http://localhost:8001",
+                                auth = TenantKoppelingAuth(TenantKoppelingAuthType.ZGW_JWT, clientId = "test-client", secret = TestTenants.geheim("documenten-secret")),
+                            ),
+                    ),
+                modules =
+                    mapOf(
+                        "documenten-api" to
+                            DocumentenApiConfiguratie(
+                                standaardDocumentApi = "documenten-api",
+                                documentApis = mapOf("documenten-api" to DocumentApiConfiguratie(rsin = "051845623", documentTypeUrl = "http://localhost/catalogi/api/v1/informatieobjecttypen/1")),
                             ),
                     ),
             ),
