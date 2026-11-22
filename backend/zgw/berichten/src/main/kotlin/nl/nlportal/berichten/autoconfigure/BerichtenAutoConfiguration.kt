@@ -23,16 +23,15 @@ import nl.nlportal.berichten.web.rest.BerichtDocumentResource
 import nl.nlportal.core.modulegate.ModuleFlag
 import nl.nlportal.core.modulegate.ModuleGate
 import nl.nlportal.core.security.config.HttpSecurityConfigurer
+import nl.nlportal.core.tenancy.TenantDirectory
 import nl.nlportal.documentenapi.service.DocumentenApiService
 import nl.nlportal.zgw.objectenapi.service.ObjectenApiService
 import org.springframework.boot.autoconfigure.AutoConfiguration
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty
-import org.springframework.boot.context.properties.EnableConfigurationProperties
 import org.springframework.context.annotation.Bean
 
 @AutoConfiguration
-@EnableConfigurationProperties(BerichtenConfiguration::class)
 @ConditionalOnProperty(prefix = "nl-portal.config", name = ["documentenapis.enabled"], havingValue = "true")
 class BerichtenAutoConfiguration {
     /** Lets the frontend module list and the module status know the module flag. */
@@ -43,11 +42,11 @@ class BerichtenAutoConfiguration {
     fun berichtenService(
         objectenApiService: ObjectenApiService,
         documentenApiService: DocumentenApiService,
-        berichtenConfigurationProperties: BerichtenConfiguration,
+        directory: TenantDirectory,
     ): BerichtenService =
         BerichtenService(
             objectenApiService = objectenApiService,
-            berichtenConfigurationProperties = berichtenConfigurationProperties.properties,
+            directory = directory,
             documentenApiService = documentenApiService,
         )
 

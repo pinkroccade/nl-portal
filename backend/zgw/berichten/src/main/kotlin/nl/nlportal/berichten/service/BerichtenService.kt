@@ -17,7 +17,8 @@ package nl.nlportal.berichten.service
 
 import io.github.oshai.kotlinlogging.KotlinLogging
 import kotlinx.coroutines.flow.Flow
-import nl.nlportal.berichten.autoconfigure.BerichtenConfiguration.BerichtenConfigurationProperties
+import nl.nlportal.berichten.configuratie.BerichtenConfiguratie
+import nl.nlportal.core.tenancy.TenantDirectory
 import nl.nlportal.berichten.domain.Bericht
 import nl.nlportal.berichten.graphql.BerichtenPage
 import nl.nlportal.portal.authentication.domain.PortalAuthentication
@@ -42,7 +43,7 @@ import nl.nlportal.documentenapi.service.DocumentenApiService
 class BerichtenService(
     private val objectenApiService: ObjectenApiService,
     private val documentenApiService: DocumentenApiService,
-    private val berichtenConfigurationProperties: BerichtenConfigurationProperties,
+    private val directory: TenantDirectory,
 ) {
     suspend fun getUnopenedBerichtenCount(authentication: PortalAuthentication): Int {
         val searchParameters =
@@ -167,7 +168,7 @@ class BerichtenService(
     ) = objectenApiService
         .getObjects<Bericht>(
             objectSearchParameters = searchParameters,
-            objectTypeUrl = berichtenConfigurationProperties.berichtObjectTypeUrl,
+            objectTypeUrl = directory.module<BerichtenConfiguratie>().berichtObjectTypeUrl,
             pageNumber = pageNumber,
             pageSize = pageSize,
         )
