@@ -16,10 +16,11 @@
 package nl.nlportal.documentenapi.domain
 
 import com.fasterxml.jackson.annotation.JsonValue
+import nl.nlportal.core.tenancy.TenantbestandWaarde
 
 enum class Vertrouwelijkheid(
     @JsonValue val value: String,
-) {
+) : TenantbestandWaarde {
     OPENBAAR("openbaar"),
     BEPERKT_OPENBAAR("beperkt_openbaar"),
     INTERN("intern"),
@@ -29,4 +30,7 @@ enum class Vertrouwelijkheid(
     GEHEIM("geheim"),
     ZEER_GEHEIM("zeer_geheim"),
     GEEN(""),
+    ;
+
+    override val waarde: String get() = value
 }

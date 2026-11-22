@@ -67,11 +67,10 @@ modules:
       webclient: Client bouwt zelf een WebClient; hoort in de gedeelde zgw-client (ADR 0002).
   ":zgw:documenten-api":
     omvang: M
-    risico: hoog
-    toelichting: Configuratiemap per tenant; de contains-match op document-URL kan de verkeerde tenantconfiguratie kiezen.
+    risico: middel
+    toelichting: Gegevens en koppelingen per tenant via het tenantbestand en KoppelingClient; een document-URL kiest de document-API met een exacte match van de basis-URL van de tenant.
     signalen:
-      config: DocumentApisConfig is een singleton.
-      webclient: Client bouwt zelf een WebClient per aanroep.
+      config: ClamAVVirusScanConfig (de virusscanner) is een singleton; de scanner is gedeelde infrastructuur van de cel, geen tenantgegeven.
   ":zgw:openklant":
     omvang: M
     risico: middel

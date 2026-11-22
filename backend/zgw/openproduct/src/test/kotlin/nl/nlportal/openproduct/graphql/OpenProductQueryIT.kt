@@ -19,7 +19,6 @@ import java.net.URI
 import kotlinx.coroutines.test.runTest
 import nl.nlportal.commonground.authentication.WithBedrijfUser
 import nl.nlportal.commonground.authentication.WithBurgerUser
-import nl.nlportal.documentenapi.client.DocumentApisConfig
 import nl.nlportal.openproduct.TestHelper
 import nl.nlportal.openproduct.TestHelper.readFileAsString
 import nl.nlportal.openproduct.autoconfigure.OpenProductModuleConfiguration
@@ -51,7 +50,6 @@ class OpenProductQueryIT(
     @Autowired private val httpGraphQlTester: HttpGraphQlTester,
     @Autowired private val openProductModuleConfiguration: OpenProductModuleConfiguration,
     @Autowired private val objectsApiClientConfig: ObjectsApiClientConfig,
-    @Autowired private val documentApisConfig: DocumentApisConfig,
 ) {
     companion object {
         private const val KNOWN_DOC_ID = "095be615-a8ad-4c33-8e9c-c7612fbf6c9f"
@@ -92,7 +90,6 @@ class OpenProductQueryIT(
         openProductModuleConfiguration.properties.productApiUrl = URI(url)
         openProductModuleConfiguration.properties.productTypeApiUrl = URI(url)
         objectsApiClientConfig.properties.url = URI(url)
-        documentApisConfig.properties.getConfig("openzaak").url = server?.url("/").toString()
     }
 
     @Test

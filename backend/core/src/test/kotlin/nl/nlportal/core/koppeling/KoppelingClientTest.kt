@@ -222,6 +222,11 @@ class KoppelingClientTest {
             """{"title":"x","status":"404"}""",
             """{"title":"x","status":200}""",
             """{"title":5,"status":404}""",
+            """{"type":5,"title":"x","status":404}""",
+            """{"title":"x","status":404,"detail":5}""",
+            """{"title":"x","status":404,"instance":5}""",
+            """{"title":"x","status":399}""",
+            """{"title":"x","status":600}""",
             """{"title":"x"}""",
             """["niet","een","object"]""",
             """geen json""",
@@ -234,6 +239,17 @@ class KoppelingClientTest {
 
         assertThat(e.soort).isEqualTo(KoppelingFoutsoort.BRON_NIET_CONFORM)
         assertThat(e.problem.detail).isNull()
+    }
+
+    @ParameterizedTest
+    @ValueSource(ints = [400, 599])
+    fun `de grenzen van het statusbereik van een problem json zijn geldig`(status: Int) {
+        bron.enqueue(problem("""{"title":"x","status":$status}""", 404))
+
+        val e = fout { register().current("zaken").get<Zaak>("/zaken/z-1") }
+
+        assertThat(e.soort).isEqualTo(KoppelingFoutsoort.BRON_PROBLEEM)
+        assertThat(e.problem.status).isEqualTo(status)
     }
 
     @Test
