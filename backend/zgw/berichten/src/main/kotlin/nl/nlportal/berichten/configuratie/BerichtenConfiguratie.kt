@@ -17,7 +17,9 @@ package nl.nlportal.berichten.configuratie
 
 import nl.nlportal.core.tenancy.ModuleOvertreding
 import nl.nlportal.core.tenancy.NietErfbaar
+import nl.nlportal.core.tenancy.TenantDirectory
 import nl.nlportal.core.tenancy.TenantModuleConfiguratie
+import nl.nlportal.zgw.objectenapi.client.ObjectsApiClient
 
 /**
  * De gegevens van Berichten voor een tenant, in het tenantbestand onder `modules.berichten`. De Objecten API waar de berichten staan is de
@@ -41,5 +43,16 @@ class BerichtenTenantConfiguratie : TenantModuleConfiguratie<BerichtenConfigurat
     companion object {
         /** De sleutel onder `modules`. */
         const val NAAM = "berichten"
+    }
+}
+
+/**
+ * Een tenant met `modules.berichten` maar zonder `koppelingen.objectenapi` weigert het opstarten, met de OIN in de melding: de
+ * berichten staan in de Objecten API van de tenant, zonder koppeling faalt elke bericht-aanvraag pas bij de eerste inwoner.
+ */
+fun controleerBerichtenHebbenObjectenKoppeling(directory: TenantDirectory) {
+    val zonder = directory.tenants.filter { it.module(BerichtenConfiguratie::class) != null && ObjectsApiClient.MODULE !in it.koppelingen }
+    check(zonder.isEmpty()) {
+        "Tenant " + zonder.joinToString { it.oin.value } + ": modules.berichten vereist koppelingen.${ObjectsApiClient.MODULE}"
     }
 }

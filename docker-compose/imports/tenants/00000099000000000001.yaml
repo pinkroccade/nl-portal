@@ -79,6 +79,8 @@ modules:
         toegestaneWoonplaatsenBewoning: []
     zakenapi:
         nnpKvkQueryIdentificatoren: false
+    berichten:
+        berichtObjectTypeUrl: http://localhost:8010/api/v2/objecttypes/78731088-430f-49fd-9a4c-80ddd42ded28
     # payment-direct:
     #     webhookUrl: https://<domein van de tenant>/api/public/payment/direct/postsale
     #     profielen:

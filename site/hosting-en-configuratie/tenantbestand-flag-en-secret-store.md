@@ -131,6 +131,17 @@ koppelingen:
             waarde: 00000099000000000001.objectenapi-token   # geheim met de waarde "Token <token>"
 ```
 
+### Berichten (`berichten`)
+
+Berichten leest en schrijft in de Objecten API van de eigen tenant (de koppeling `koppelingen.objectenapi`) en haalt bijlagen via `modules.documenten-api`. De enige instelling per gemeente is de URL van het objecttype Bericht: `modules.berichten.berichtObjectTypeUrl`. Een tenant met `modules.berichten` maar zonder `koppelingen.objectenapi` weigert het opstarten (met de OIN in de melding); een tenant zonder `modules.berichten` krijgt bij elke berichtenaanvraag de foutcode `MODULE_NIET_GECONFIGUREERD` (GraphQL en REST, met `correlatieId`).
+De oude property `nl-portal.config.berichten.properties.bericht-object-type-url` is vervallen en weigert het opstarten zolang hij gezet is, ook als omgevingsvariabele (`NLPORTAL_CONFIG_BERICHTEN_PROPERTIES_BERICHTOBJECTTYPEURL`).
+
+```yaml
+modules:
+    berichten:
+        berichtObjectTypeUrl: https://objecten.bosrand.example/api/v2/objecttypes/<uuid>
+```
+
 ### Betalen via Worldline Direct (`payment-direct`)
 
 Een tenant die betaalt via Worldline Direct heeft een koppeling `payment-direct` en een sectie `modules.payment-direct`. De koppeling ondertekent elk

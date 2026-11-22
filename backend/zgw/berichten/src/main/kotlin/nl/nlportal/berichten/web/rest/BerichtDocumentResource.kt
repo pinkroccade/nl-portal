@@ -15,9 +15,14 @@
  */
 package nl.nlportal.berichten.web.rest
 
+import io.github.oshai.kotlinlogging.KotlinLogging
 import kotlinx.coroutines.flow.Flow
 import nl.nlportal.berichten.BERICHTEN_MODULE
 import nl.nlportal.berichten.service.BerichtenService
+import nl.nlportal.core.koppeling.KoppelingConfiguratieException
+import nl.nlportal.core.koppeling.KoppelingException
+import nl.nlportal.core.tenancy.TenantContextMissingException
+import nl.nlportal.core.util.ModuleNotConfiguredException
 import nl.nlportal.portal.authentication.domain.PortalAuthentication
 import nl.nlportal.core.modulegate.ModuleGate
 import nl.nlportal.documentenapi.util.FilenameSanitizer
@@ -26,6 +31,7 @@ import org.springframework.http.HttpHeaders
 import org.springframework.http.HttpStatus
 import org.springframework.http.MediaType
 import org.springframework.http.ResponseEntity
+import org.springframework.web.bind.annotation.ExceptionHandler
 import org.springframework.web.bind.annotation.GetMapping
 import org.springframework.web.bind.annotation.PathVariable
 import org.springframework.web.bind.annotation.RequestMapping
@@ -61,5 +67,33 @@ class BerichtDocumentResource(
                 },
             ).contentType(MediaType.APPLICATION_OCTET_STREAM)
             .body(content)
+    }
+
+    // Geen e.message naar de browser: alleen dezelfde codes en sleutel als GraphQL, zodat de beheerder de log vindt.
+    @ExceptionHandler(KoppelingException::class)
+    fun koppelingFout(e: KoppelingException): ResponseEntity<Map<String, String>> =
+        ResponseEntity(mapOf("code" to "KOPPELING_FOUT", "correlatieId" to e.correlatieId), HttpStatus.BAD_GATEWAY)
+
+    @ExceptionHandler(ModuleNotConfiguredException::class)
+    fun moduleNietGeconfigureerd(e: ModuleNotConfiguredException) = intern(e, "MODULE_NIET_GECONFIGUREERD")
+
+    @ExceptionHandler(TenantContextMissingException::class)
+    fun tenantOntbreekt(e: TenantContextMissingException) = intern(e, "TENANT_ONTBREEKT")
+
+    @ExceptionHandler(KoppelingConfiguratieException::class)
+    fun koppelingConfiguratieFout(e: KoppelingConfiguratieException) = intern(e, "KOPPELING_FOUT")
+
+    /** Als `GraphQLExceptionHandler.intern`: de melding bevat interne gegevens en gaat alleen de log in, de browser krijgt code en correlatieId. */
+    private fun intern(
+        e: Throwable,
+        code: String,
+    ): ResponseEntity<Map<String, String>> {
+        val correlatieId = UUID.randomUUID().toString()
+        log.warn { "Interne fout bij een berichtdocument (${code}, ${e::class.simpleName}: ${e.message}), referentie ${correlatieId}" }
+        return ResponseEntity(mapOf("code" to code, "correlatieId" to correlatieId), HttpStatus.INTERNAL_SERVER_ERROR)
+    }
+
+    private companion object {
+        val log = KotlinLogging.logger {}
     }
 }

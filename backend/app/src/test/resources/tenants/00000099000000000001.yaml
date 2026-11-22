@@ -67,6 +67,8 @@ modules:
         toegestaneWoonplaatsenBewoning: []
     zakenapi:
         nnpKvkQueryIdentificatoren: false
+    berichten:
+        berichtObjectTypeUrl: http://localhost:56789/api/v2/objecttypes/00000000-0000-0000-0000-000000000002
     payment-direct:
         webhookUrl: http://bosrand.example/api/public/payment/direct/postsale
         profielen:
