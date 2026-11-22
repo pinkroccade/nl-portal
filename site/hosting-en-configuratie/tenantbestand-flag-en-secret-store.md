@@ -90,6 +90,8 @@ modules:
         velden: [naam, geboortedatum]
 ```
 
+De KvK-module (`kvk`) heeft geen eigen moduleconfiguratie: de bron staat onder `koppelingen.kvk` (`url` en een `api-key` met `headerNaam: X-API-KEY` en het geheim `<oin>.kvk-sleutel`; een bron achter de cloud gateway zonder sleutel gebruikt `auth.type: geen`). Een tenant zonder `koppelingen.kvk` krijgt op elke KvK-aanroep een fout (`MODULE_NIET_GECONFIGUREERD`), nooit een leeg antwoord; alleen een fout van de bron geeft `null`. De module-schakelaar `nl-portal.config.kvk.enabled` blijft bestaan; staat hij aan en heeft geen enkele tenant `koppelingen.kvk`, dan weigert het opstarten met een melding (er is geen `modules.kvk` waaruit de koppeling kan volgen); de oude properties `...kvk.properties.*` (`url`, `apiKey`, `ssl`) zijn vervallen en weigeren het opstarten zolang ze nog gezet zijn (ook als omgevingsvariabele); de melding verwijst naar `koppelingen.kvk`. Een KvK- of vestigingsnummer dat niet 8 respectievelijk 12 cijfers is gaat niet naar de bron en geeft `null`; uitgaande clientcertificaten (`ssl`) vervallen omdat de cloud gateway ze beheert.
+
 De BRP-module (`haalcentraal-brp`) is zo gemigreerd: de bron staat onder `koppelingen.brp` (personen) en, voor het aantal bewoners, `koppelingen.brp-bewoning`
 (optioneel), met `auth.type: geen`: de bron zit achter de cloud gateway, die per gemeente zelf authenticeert, dus er is geen sleutel en geen geheim. Een leverancier die wel een sleutel vraagt, gebruikt `api-key`. `modules.brp` bevat de doelbinding van de gemeente: `velden` (de velden die bij de BRP
 worden opgevraagd; standaard 24 velden), `toegestaneWoonplaatsenBewoning` (leeg betekent alle woonplaatsen) en `aanvullendeHeaders` (vaste headers zoals `x-doelbinding`,
@@ -108,6 +110,26 @@ meldingen noemen het veld en de OIN, nooit de naam of waarde van een geheim. Voo
 in de secret store staan. `url` en `tokenUrl` zijn in een productieomgeving alleen `https`. Let op: de controle "is dit een naam" is een heuristiek (een
 geheim van alleen kleine letters en cijfers past in het patroon); de OIN-prefix en de Git-review zijn de echte bewaking. De validator-CLI kent de modules die op het
 klassenpad staan: `java -cp nl-portal-tenant-validator.jar:<module-jars> nl.nlportal.core.tenancy.TenantValidatorCli <map>`.
+
+### Objecten API (`objectenapi`)
+
+De Objecten API (Open Object) is gemigreerd naar een tenantkoppeling `koppelingen.objectenapi`; er is geen `modules.objectenapi`, want er zijn geen per-gemeente-instellingen. Taken, berichten, producten en betalingen lezen en schrijven objecten via de koppeling van de eigen tenant. De module-schakelaar `nl-portal.config.objectenapi.enabled` blijft bestaan; staat die aan en heeft geen enkele tenant de koppeling, dan weigert het opstarten.
+De Objecten API kent alleen `Authorization: Token <token>`, dus de koppeling gebruikt `api-key` met `headerNaam: Authorization`; de waarde van het geheim is `Token <token>`. Een URL die de bron teruggeeft (`getObjectByUrl`) wordt alleen gevolgd als hij onder de basis-URL van dezelfde koppeling valt (HostBinding), zodat het token nooit naar een andere host gaat.
+De oude properties `nl-portal.config.objectenapi.properties.*` (`url`, `token`) zijn vervallen en weigeren het opstarten zolang ze gezet zijn, ook als omgevingsvariabele (`NLPORTAL_CONFIG_OBJECTENAPI_PROPERTIES_URL` en `_TOKEN`).
+
+**Isolatie tussen tenants.** Dat het token alleen naar de eigen koppeling gaat, scheidt de objecten van twee tenants niet als ze dezelfde Objecten API gebruiken. Geef daarom elke tenant een eigen Objecten API-instantie, of een token dat alleen de objecttypen van die tenant ziet (Open Object-autorisatie per objecttype). Wijzen twee tenants naar dezelfde instantie met een token dat elkaars objecttypen mag lezen of schrijven, dan zijn taken en berichten van de ene tenant via de andere op te halen op UUID en kan de betaalwebhook van de ene tenant een taak van de andere afronden. Leg dit vast als livegangpunt (T26, naast #537).
+
+**Bufferlimiet.** Elke koppeling leest een antwoord tot 16 MB in het geheugen (zoals de oude clients); een groter antwoord is een fout. `spring.codec.max-in-memory-size` geldt niet voor koppelingen.
+
+```yaml
+koppelingen:
+    objectenapi:
+        url: https://objecten.bosrand.example
+        auth:
+            type: api-key
+            headerNaam: Authorization
+            waarde: 00000099000000000001.objectenapi-token   # geheim met de waarde "Token <token>"
+```
 
 ### Betalen via Worldline Direct (`payment-direct`)
 

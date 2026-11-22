@@ -15,13 +15,14 @@
  */
 package nl.nlportal.openproduct.service
 
+import kotlinx.coroutines.reactor.ReactorContext
 import kotlinx.coroutines.test.runTest
+import nl.nlportal.core.testing.TestTenants
 import nl.nlportal.commonground.authentication.JwtBuilder
 import nl.nlportal.openproduct.autoconfigure.OpenProductModuleConfiguration.OpenProductConfigurationProperties.OpenProductPrefillConfigurationProperties
 import nl.nlportal.openproduct.client.domain.OpenProductActie
 import nl.nlportal.openproduct.client.domain.OpenProductProduct
 import nl.nlportal.portal.authentication.domain.PortalAuthentication
-import nl.nlportal.zgw.objectenapi.autoconfiguration.ObjectsApiClientConfig.ObjectsApiClientConfigProperties
 import nl.nlportal.zgw.objectenapi.client.ObjectsApiClient
 import nl.nlportal.openproduct.client.domain.ResultPage
 import okhttp3.mockwebserver.MockResponse
@@ -51,14 +52,14 @@ class OpenProductPrefillServiceTest {
         val product = mock<OpenProductProduct>(defaultAnswer = Answers.RETURNS_DEEP_STUBS)
         val actie = OpenProductActie(uuid = UUID.randomUUID(), naam = "aanvragen", url = "https://formulier.example.nl/aanvragen")
         val openProductService = mock<OpenProductService>()
-        runTest {
+        runTest(ReactorContext(TestTenants.tenantContext())) {
             whenever(openProductService.getProduct(any(), eq(PRODUCT_ID))).thenReturn(product)
             whenever(openProductService.getActies(any(), any(), any())).thenReturn(ResultPage(count = 1, results = listOf(actie)))
         }
 
         service =
             OpenProductPrefillService(
-                ObjectsApiClient(ObjectsApiClientConfigProperties(url = mockServer.url("/").toUri(), token = "token")),
+                ObjectsApiClient(TestTenants.register(TestTenants.tenant(koppelingen = mapOf("objectenapi" to TestTenants.koppeling(mockServer.url("/").toString().trimEnd('/')))))),
                 openProductService,
                 OpenProductPrefillConfigurationProperties().apply { typeUrl = "https://objecttypes.example.nl/prefill" },
             )
@@ -71,7 +72,7 @@ class OpenProductPrefillServiceTest {
 
     @Test
     fun `a prefill for a bedrijf is stored under the KvK number`() =
-        runTest {
+        runTest(ReactorContext(TestTenants.tenantContext())) {
             val identificatie = prefillIdentificatie(JwtBuilder().vertegenwoordigdeKvk("12345678").buildAuthentication())
 
             assertEquals("kvk", identificatie["type"].asString())
@@ -80,7 +81,7 @@ class OpenProductPrefillServiceTest {
 
     @Test
     fun `a prefill for a burger is stored under the BSN`() =
-        runTest {
+        runTest(ReactorContext(TestTenants.tenantContext())) {
             val identificatie = prefillIdentificatie(JwtBuilder().vertegenwoordigdeBsn("123456782").buildAuthentication())
 
             assertEquals("bsn", identificatie["type"].asString())

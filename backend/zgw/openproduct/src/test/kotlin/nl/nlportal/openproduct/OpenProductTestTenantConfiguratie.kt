@@ -17,8 +17,12 @@ package nl.nlportal.openproduct
 
 import nl.nlportal.core.tenancy.GeheimenBron
 import nl.nlportal.core.tenancy.TenantDirectory
+import nl.nlportal.core.tenancy.TenantKoppelingAuth
+import nl.nlportal.core.tenancy.TenantKoppelingAuthType
 import nl.nlportal.core.testing.TestTenants
 import nl.nlportal.core.testing.VasteTenantWebFilter
+import nl.nlportal.documentenapi.configuratie.DocumentApiConfiguratie
+import nl.nlportal.documentenapi.configuratie.DocumentenApiConfiguratie
 import nl.nlportal.zakenapi.client.ZakenApiConfiguratie
 import org.springframework.context.annotation.Bean
 import org.springframework.context.annotation.Configuration
@@ -40,8 +44,22 @@ open class OpenProductTestTenantConfiguratie {
                         mapOf(
                             "zakenapi" to TestTenants.zgwKoppeling(url, "valtimo_client", "zaken-secret"),
                             "catalogiapi" to TestTenants.zgwKoppeling(url, "valtimo_client", "catalogi-secret"),
+                            "objectenapi" to TestTenants.koppeling(url),
+                            "documenten-api" to
+                                TestTenants.koppeling(
+                                    url,
+                                    auth = TenantKoppelingAuth(TenantKoppelingAuthType.ZGW_JWT, clientId = "test-client", secret = TestTenants.geheim("documenten-secret")),
+                                ),
                         ),
-                    modules = mapOf("zakenapi" to ZakenApiConfiguratie()),
+                    modules =
+                        mapOf(
+                            "zakenapi" to ZakenApiConfiguratie(),
+                            "documenten-api" to
+                                DocumentenApiConfiguratie(
+                                    standaardDocumentApi = "documenten-api",
+                                    documentApis = mapOf("documenten-api" to DocumentApiConfiguratie(rsin = "051845623", documentTypeUrl = "http://localhost/catalogi/api/v1/informatieobjecttypen/1")),
+                                ),
+                        ),
                 ),
             ),
         )

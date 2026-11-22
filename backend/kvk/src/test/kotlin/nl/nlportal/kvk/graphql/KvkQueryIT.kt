@@ -17,12 +17,17 @@ package nl.nlportal.kvk.graphql
 
 import nl.nlportal.commonground.authentication.WithBedrijfUser
 import nl.nlportal.kvk.TestHelper
-import nl.nlportal.kvk.client.KvkConfig
+import nl.nlportal.core.tenancy.GeheimenBron
+import nl.nlportal.core.tenancy.TenantDirectory
+import nl.nlportal.core.tenancy.TenantKoppelingAuth
+import nl.nlportal.core.tenancy.TenantKoppelingAuthType
+import nl.nlportal.core.testing.TestTenants
+import nl.nlportal.core.testing.VasteTenantWebFilter
 import okhttp3.mockwebserver.Dispatcher
 import okhttp3.mockwebserver.MockResponse
 import okhttp3.mockwebserver.MockWebServer
 import okhttp3.mockwebserver.RecordedRequest
-import org.junit.jupiter.api.AfterEach
+import org.junit.jupiter.api.AfterAll
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
@@ -31,6 +36,8 @@ import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.graphql.test.autoconfigure.tester.AutoConfigureHttpGraphQlTester
 import org.springframework.boot.webtestclient.autoconfigure.AutoConfigureWebTestClient
 import org.springframework.boot.test.context.SpringBootTest
+import org.springframework.boot.test.context.TestConfiguration
+import org.springframework.context.annotation.Bean
 import org.springframework.graphql.test.tester.HttpGraphQlTester
 import tools.jackson.databind.JsonNode
 
@@ -40,22 +47,46 @@ import tools.jackson.databind.JsonNode
 @TestInstance(TestInstance.Lifecycle.PER_METHOD)
 internal class KvkQueryIT(
     @Autowired private val httpGraphQlTester: HttpGraphQlTester,
-    @Autowired private val haalCentraalClientConfig: KvkConfig,
 ) {
-    lateinit var server: MockWebServer
+    companion object {
+        @JvmStatic
+        val server: MockWebServer = MockWebServer().also { it.start() }
+
+        @JvmStatic
+        @AfterAll
+        fun afterAll() {
+            server.shutdown()
+        }
+    }
+
+    /** Eén tenant met een KvK-koppeling naar de mockserver; elk request draait als die tenant (zoals de tenantresolutie dat doet). */
+    @TestConfiguration
+    class TenantConfiguration {
+        @Bean
+        fun tenantDirectory(): TenantDirectory =
+            TestTenants.directory(
+                TestTenants.tenant(
+                    koppelingen =
+                        mapOf(
+                            "kvk" to
+                                TestTenants.koppeling(
+                                    server.url("/").toString().trimEnd('/'),
+                                    TenantKoppelingAuth(TenantKoppelingAuthType.API_KEY, headerNaam = "X-API-KEY", waarde = TestTenants.geheim("kvk-sleutel")),
+                                ),
+                        ),
+                ),
+            )
+
+        @Bean
+        fun geheimenBron(): GeheimenBron = TestTenants.ALLE_GEHEIMEN
+
+        @Bean
+        fun vasteTenantWebFilter() = VasteTenantWebFilter()
+    }
 
     @BeforeEach
     internal fun setUp() {
-        server = MockWebServer()
         setupMockServer()
-        server.start()
-
-        haalCentraalClientConfig.properties.url = server.url("/").toString()
-    }
-
-    @AfterEach
-    internal fun tearDown() {
-        server.shutdown()
     }
 
     @Test

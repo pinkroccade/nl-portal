@@ -16,11 +16,10 @@
 package nl.nlportal.berichten.web.rest
 
 import nl.nlportal.berichten.BerichtenFlagFile
+import nl.nlportal.berichten.ObjectenTestServer
 import nl.nlportal.berichten.TestHelper
 import nl.nlportal.commonground.authentication.WithBurgerUser
 import nl.nlportal.core.modulegate.ModuleGate
-import nl.nlportal.documentenapi.client.DocumentApisConfig
-import nl.nlportal.zgw.objectenapi.autoconfiguration.ObjectsApiClientConfig
 import okhttp3.mockwebserver.Dispatcher
 import okhttp3.mockwebserver.MockResponse
 import okhttp3.mockwebserver.MockWebServer
@@ -41,25 +40,19 @@ import org.springframework.test.web.reactive.server.WebTestClient
 @TestInstance(TestInstance.Lifecycle.PER_METHOD)
 class BerichtDocumentResourceIT(
     @Autowired private val webTestClient: WebTestClient,
-    @Autowired private val objectsApiClientConfig: ObjectsApiClientConfig,
-    @Autowired private val documentApisConfig: DocumentApisConfig,
     @Autowired private val moduleGate: ModuleGate,
 ) {
     lateinit var mockServer: MockWebServer
 
     @BeforeEach
     fun setUp() {
-        mockServer = MockWebServer()
+        mockServer = ObjectenTestServer.server
         setupDispatcher()
-        mockServer.start(port = 10001)
-        objectsApiClientConfig.properties.url = mockServer.url("/").toUri()
-        documentApisConfig.properties.getConfig("openzaak").url = mockServer.url("/").toString()
     }
 
     @AfterEach
     internal fun tearDown() {
         BerichtenFlagFile.switchTo(true, moduleGate)
-        mockServer.shutdown()
     }
 
     @Test

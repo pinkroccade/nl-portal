@@ -26,8 +26,11 @@ nl-portal:
     geheimen:
         # Geheimen van de testtenant (zie tenants/00000099000000000001.yaml): <oin>.<naam>
         "00000099000000000001":
+            documenten-api-secret: 12345678123456781234567812345678
+            kvk-sleutel: test-kvk-sleutel
             zaken-secret: testwaarde-zaken-geheim-voor-de-app-test-0123456789
             catalogiapi-secret: testwaarde-catalogi-geheim-voor-de-app-test-0123456789
+            objectenapi-token: Token 0000000000000000000000000000000000000000
             payment-direct-api-geheim: test-api-geheim
             payment-direct-webhook-geheim: test-webhook-geheim
     security:
@@ -50,29 +53,6 @@ nl-portal:
             enabled: true
         documentenapis:
             enabled: true
-            properties:
-                default-document-api: openzaak
-                vertrouwelijkheidsaanduiding-whitelist:
-                    - openbaar
-                    - beperkt_openbaar
-                    - intern
-                    - zaakvertrouwelijk
-                    - vertrouwelijk
-                    - confidentieel
-                    - geheim
-                    - zeer_geheim
-                status-whitelist:
-                    - ter_vaststelling
-                    - in_bewerking
-                    - definitief
-                    - gearchiveerd
-                configurations:
-                    openzaak:
-                        url: http://localhost:56789/documenten/api/v1
-                        clientId: test-client
-                        secret: test-secret
-                        rsin: "051845623"
-                        documentTypeUrl: http://localhost:56789/catalogi/api/v1/informatieobjecttypen/00000000-0000-0000-0000-000000000000
         virusscan:
             clamav:
                 enabled: false
@@ -80,9 +60,6 @@ nl-portal:
             enabled: true
         objectenapi:
             enabled: true
-            properties:
-                url: http://localhost:56789
-                token: 0000000000000000000000000000000000000000
         openklant2:
             enabled: true
             properties:
@@ -92,11 +69,6 @@ nl-portal:
             enabled: true
         kvk:
             enabled: true
-            properties:
-                url: http://localhost:56789
-                apiKey: test-api-key
-                ssl:
-                    enabled: false
         taak:
             enabled: true
             properties:

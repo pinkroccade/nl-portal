@@ -33,6 +33,7 @@ dependencies {
     implementation(Dependencies.kotlinCoroutinesReactor)
     implementation("org.springframework.data:spring-data-commons")
 
+    testImplementation(testFixtures(project(":core")))
     testImplementation(TestDependencies.kotlinTest)
     testImplementation(TestDependencies.junitJupiterTest)
     testImplementation(TestDependencies.springBootTest)

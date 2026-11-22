@@ -21,12 +21,6 @@ import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.test.runTest
 import nl.nlportal.commonground.authentication.AuthenticationMachtigingsDienstService
 import nl.nlportal.portal.authentication.domain.PortalAuthentication
-import nl.nlportal.documentenapi.client.DocumentApisConfig
-import nl.nlportal.documentenapi.client.DocumentApisConfig.DocumentenApisConfigProperties
-import nl.nlportal.documentenapi.client.DocumentApisConfig.DocumentenApisConfigProperties.DocumentApiConfig
-import nl.nlportal.documentenapi.client.DocumentenApiClient
-import nl.nlportal.documentenapi.domain.Vertrouwelijkheid.OPENBAAR
-import nl.nlportal.documentenapi.domain.Vertrouwelijkheid.ZAAKVERTROUWELIJK
 import nl.nlportal.documentenapi.service.DocumentenApiService
 import nl.nlportal.zakenapi.TestHelper.testDocument
 import nl.nlportal.zakenapi.TestHelper.testZaakDocument
@@ -55,12 +49,8 @@ class ZakenApiServiceTest {
     @Mock(answer = Answers.RETURNS_DEEP_STUBS)
     private lateinit var objectenApiService: ObjectenApiService
 
-    @Mock(answer = Answers.RETURNS_DEEP_STUBS)
-    private lateinit var documentenApiClient: DocumentenApiClient
-
     @Mock
     private lateinit var documentenApiService: DocumentenApiService
-    private lateinit var documentApisConfig: DocumentApisConfig
 
     @Mock
     private lateinit var authenticationMachtigingsDienstService: AuthenticationMachtigingsDienstService
@@ -72,38 +62,12 @@ class ZakenApiServiceTest {
     fun setUp() {
         MockitoAnnotations.openMocks(this)
 
-        val documentApiConfig =
-            DocumentApiConfig().apply {
-                url = "http://localhost:8001"
-                clientId = "zaken-api-client-id"
-                secret = "zaken-api-secret"
-            }
-        val documentApiConfigs = mapOf("openzaak" to documentApiConfig)
-        documentApisConfig =
-            DocumentApisConfig().apply {
-                properties =
-                    DocumentenApisConfigProperties().apply {
-                        vertrouwelijkheidsaanduidingWhitelist =
-                            listOf(
-                                OPENBAAR,
-                                ZAAKVERTROUWELIJK,
-                            )
-                        configurations = mapOf("openzaak" to documentApiConfig)
-                    }
-            }
-
         zakenApiService =
             ZakenApiService(
                 zakenApiClient,
                 documentenApiService,
                 objectenApiService,
                 authenticationMachtigingsDienstService,
-            )
-
-        documentenApiService =
-            DocumentenApiService(
-                documentenApiClient = documentenApiClient,
-                documentenApisConfigProperties = documentApisConfig.properties,
             )
     }
 

@@ -18,7 +18,6 @@ package nl.nlportal.zgw.taak.graphql
 import tools.jackson.databind.JsonNode
 import nl.nlportal.commonground.authentication.WithBedrijfUser
 import nl.nlportal.commonground.authentication.WithBurgerUser
-import nl.nlportal.zgw.objectenapi.autoconfiguration.ObjectsApiClientConfig
 import nl.nlportal.zgw.taak.TestHelper
 import nl.nlportal.zgw.taak.domain.TaakSoort
 import nl.nlportal.zgw.taak.domain.TaakStatus
@@ -46,7 +45,6 @@ import org.springframework.graphql.test.tester.HttpGraphQlTester
 @Tag("integration")
 internal class TaakQueryV2IT(
     @Autowired private val httpGraphQlTester: HttpGraphQlTester,
-    @Autowired private val objectsApiClientConfig: ObjectsApiClientConfig,
 ) {
     lateinit var server: MockWebServer
 
@@ -61,15 +59,12 @@ internal class TaakQueryV2IT(
 
     @BeforeEach
     internal fun setUp() {
-        server = MockWebServer()
+        server = nl.nlportal.zgw.taak.ObjectenTestServer.server
         setupMockObjectsApiServer()
-        server.start()
-        objectsApiClientConfig.properties.url = server.url("/").toUri()
     }
 
     @AfterEach
     internal fun tearDown() {
-        server.shutdown()
     }
 
     @Test

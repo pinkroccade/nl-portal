@@ -19,7 +19,6 @@ import tools.jackson.databind.JsonNode
 import nl.nlportal.besluiten.client.BesluitenApiConfig
 import nl.nlportal.commonground.authentication.WithBedrijfUser
 import nl.nlportal.commonground.authentication.WithBurgerUser
-import nl.nlportal.documentenapi.client.DocumentApisConfig
 import nl.nlportal.zaken.ZakenTestTenantConfiguratie
 import org.springframework.boot.test.context.TestConfiguration
 import okhttp3.mockwebserver.Dispatcher
@@ -47,7 +46,6 @@ import org.springframework.test.context.DynamicPropertySource
 @TestInstance(PER_METHOD)
 internal class ZaakQueryIT(
     @Autowired private val httpGraphQlTester: HttpGraphQlTester,
-    @Autowired private val documentApisConfig: DocumentApisConfig,
     @Autowired private val besluitenApiConfig: BesluitenApiConfig,
 ) {
     companion object {
@@ -67,7 +65,7 @@ internal class ZaakQueryIT(
         @BeforeAll
         fun beforeAll() {
             server = MockWebServer()
-            server?.start()
+            server?.start(8001)
             url = server?.url("/").toString()
         }
 
@@ -87,7 +85,6 @@ internal class ZaakQueryIT(
         url = server?.url("/").toString()
 
         besluitenApiConfig.properties.url = url
-        documentApisConfig.properties.getConfig("openzaak").url = url
     }
 
     @Test
