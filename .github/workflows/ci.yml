@@ -38,6 +38,8 @@ jobs:
                             - 'frontend/**'
                         scripts:
                             - 'scripts/**'
+                            # De scripttests lezen de demo-tenantbestanden onder docker-compose/.
+                            - 'docker-compose/**'
                         mise:
                             - 'mise.toml'
                         workflows:
