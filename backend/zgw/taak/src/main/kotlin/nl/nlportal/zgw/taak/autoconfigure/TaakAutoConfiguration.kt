@@ -18,6 +18,7 @@ package nl.nlportal.zgw.taak.autoconfigure
 import nl.nlportal.commonground.authentication.AuthenticationMachtigingsDienstService
 import nl.nlportal.core.security.config.HttpSecurityConfigurer
 import nl.nlportal.core.tenancy.TenantDirectory
+import nl.nlportal.core.tenancy.VervallenProperties
 import nl.nlportal.documentenapi.service.DocumentenApiService
 import nl.nlportal.documentenapi.service.VirusScanService
 import nl.nlportal.form.service.ObjectsApiFormDefinitionService
@@ -27,6 +28,7 @@ import nl.nlportal.zgw.taak.graphql.TaakMutationV2
 import nl.nlportal.zgw.taak.graphql.TaakQueryV2
 import nl.nlportal.zgw.taak.security.config.TaakDocumentResourceHttpSecurityConfigurer
 import nl.nlportal.zgw.taak.service.TaakService
+import nl.nlportal.zgw.taak.tenant.TaakTenantConfiguratie
 import nl.nlportal.zgw.taak.web.rest.TaakDocumentResource
 import org.springframework.boot.autoconfigure.AutoConfiguration
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean
@@ -36,6 +38,14 @@ import org.springframework.context.annotation.Bean
 @AutoConfiguration
 @ConditionalOnProperty(prefix = "nl-portal.config", name = ["objectenapi.enabled", "taak.enabled"], havingValue = "true")
 class TaakAutoConfiguration {
+    /** Aan zonder tenant met `modules.taak` (en de koppeling `objectenapi`) weigert het opstarten. */
+    @Bean
+    fun taakConfiguratieControle(directory: TenantDirectory) = TaakConfiguratieControle(directory)
+
+    /** De oude `...properties.*` (objecttype-URL) zijn vervallen: staan ze nog gezet, dan weigert core het opstarten. */
+    @Bean
+    fun taakVervallenProperties() = VervallenProperties(TaakTenantConfiguratie.NAAM, "nl-portal.config.taak.properties", vervanging = "modules.${TaakTenantConfiguratie.NAAM}")
+
     @Bean
     @ConditionalOnMissingBean(TaakService::class)
     fun taskService(

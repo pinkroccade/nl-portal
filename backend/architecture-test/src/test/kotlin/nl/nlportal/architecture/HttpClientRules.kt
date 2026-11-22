@@ -182,7 +182,6 @@ class HttpClientRules(
                 "nl.nlportal.openklant..",
                 "nl.nlportal.openproduct..",
                 "nl.nlportal.verificatie..",
-                "nl.nlportal.zgw.taak..",
             )
 
         /** De regels voor de echte code. */

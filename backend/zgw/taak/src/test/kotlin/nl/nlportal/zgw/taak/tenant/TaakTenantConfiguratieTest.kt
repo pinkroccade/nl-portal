@@ -15,6 +15,7 @@
  */
 package nl.nlportal.zgw.taak.tenant
 
+import nl.nlportal.core.tenancy.ModuleContext
 import org.assertj.core.api.Assertions.assertThat
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.params.ParameterizedTest
@@ -44,5 +45,15 @@ class TaakTenantConfiguratieTest {
         assertThat(overtredingen).hasSize(1)
         assertThat(overtredingen.single().pad).isEqualTo("objectTypeUrl")
         assertThat(overtredingen.single().bericht).doesNotContain(url.ifEmpty { "\u0000" })
+    }
+
+    @Test
+    fun `modules taak zonder de koppeling objectenapi wordt geweigerd`() {
+        val config = TaakConfiguratie("https://objecttypen.example/api/v1/objecttypes/1")
+
+        assertThat(spi.valideer(config, ModuleContext(koppelingen = setOf("objectenapi")))).isEmpty()
+        val overtredingen = spi.valideer(config, ModuleContext(koppelingen = setOf("zakenapi")))
+        assertThat(overtredingen).hasSize(1)
+        assertThat(overtredingen.single().bericht).contains("objectenapi").doesNotContain("objecttypen.example")
     }
 }

@@ -80,8 +80,6 @@ nl-portal:
             enabled: true
         taak:
             enabled: true
-            properties:
-                object-type-url: http://localhost:56789/api/v2/objecttypes/00000000-0000-0000-0000-000000000001
         berichten:
             enabled: true
             properties:

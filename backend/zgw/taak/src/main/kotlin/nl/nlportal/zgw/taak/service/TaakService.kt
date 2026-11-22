@@ -33,7 +33,6 @@ import nl.nlportal.zgw.taak.domain.TaakV2
 import nl.nlportal.zgw.taak.tenant.TaakConfiguratie
 import nl.nlportal.zgw.taak.graphql.TaakPageV2
 import org.springframework.http.HttpStatus
-import org.springframework.web.reactive.function.client.WebClientResponseException
 import org.springframework.web.server.ResponseStatusException
 import java.util.UUID
 import tools.jackson.core.type.TypeReference
@@ -90,8 +89,8 @@ open class TaakService(
                 title,
             ).let { TaakPageV2.fromResultPage(pageNumber, pageSize, it) }
         } catch (ex: Exception) {
-            logger.info { "Something went wrong with getTakenV2: ${ex.message}" }
-            if (ex is WebClientResponseException) logger.debug { "Response from Objects API: ${ex.responseBodyAsString}" }
+            // Bewust: een bronfout geeft een lege pagina (bestaand gedrag). Geen ex.message of antwoordbody loggen: die kunnen een BSN of URL bevatten.
+            logger.info { "Something went wrong with getTakenV2: ${ex::class.simpleName}" }
             return TaakPageV2(
                 number = pageNumber,
                 size = pageSize,

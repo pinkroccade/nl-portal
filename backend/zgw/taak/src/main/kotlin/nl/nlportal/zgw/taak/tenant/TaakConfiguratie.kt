@@ -15,6 +15,7 @@
  */
 package nl.nlportal.zgw.taak.tenant
 
+import nl.nlportal.core.tenancy.ModuleContext
 import nl.nlportal.core.tenancy.ModuleOvertreding
 import nl.nlportal.core.tenancy.NietErfbaar
 import nl.nlportal.core.tenancy.TenantModuleConfiguratie
@@ -42,7 +43,22 @@ class TaakTenantConfiguratie : TenantModuleConfiguratie<TaakConfiguratie> {
             }
         }
 
+    /** `modules.taak` zonder de koppeling `objectenapi` weigert het laden van het tenantbestand: de taken lopen via die koppeling. */
+    override fun valideer(
+        configuratie: TaakConfiguratie,
+        context: ModuleContext,
+    ): List<ModuleOvertreding> =
+        valideer(configuratie) +
+            if (KOPPELING in context.koppelingen) {
+                emptyList()
+            } else {
+                listOf(ModuleOvertreding("objectTypeUrl", "vereist de koppeling '$KOPPELING' onder koppelingen"))
+            }
+
     companion object {
+        /** De koppeling waarlangs de taken lopen. */
+        const val KOPPELING = "objectenapi"
+
         /** De sleutel onder `modules`. */
         const val NAAM = "taak"
     }

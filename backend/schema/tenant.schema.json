@@ -278,6 +278,17 @@
           "required" : [ "profielen" ],
           "additionalProperties" : false
         },
+        "taak" : {
+          "type" : "object",
+          "properties" : {
+            "objectTypeUrl" : {
+              "type" : "string",
+              "minLength" : 1
+            }
+          },
+          "required" : [ "objectTypeUrl" ],
+          "additionalProperties" : false
+        },
         "zakenapi" : {
           "type" : "object",
           "properties" : {

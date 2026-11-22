@@ -131,6 +131,18 @@ koppelingen:
             waarde: 00000099000000000001.objectenapi-token   # geheim met de waarde "Token <token>"
 ```
 
+### Taken (`taak`)
+
+De taakmodule is gemigreerd naar `modules.taak` (T18 #517). Per gemeente staat daar alleen het objecttype waarin de taken staan; de taken lopen via de koppeling `objectenapi` van dezelfde tenant. Zonder die koppeling weigert het laden van het tenantbestand `modules.taak`. Staat de module aan (`nl-portal.config.taak.enabled`) en heeft geen enkele tenant `modules.taak`, dan weigert het opstarten ook.
+
+```yaml
+modules:
+    taak:
+        objectTypeUrl: https://objecten.bosrand.example/api/v2/objecttypes/b4a617af-6969-45e8-9afd-d51e170716d5
+```
+
+De oude properties `nl-portal.config.taak.properties.*` (`object-type-url`) zijn vervallen en weigeren het opstarten zolang ze gezet zijn, ook als omgevingsvariabele (`NLPORTAL_CONFIG_TAAK_PROPERTIES_OBJECTTYPEURL`, en de oudere voorbeeldsleutels `..._TYPEURL` en `..._TYPEURLV2`). `nl-portal.config.taak.enabled` blijft.
+
 ### Betalen via Worldline Direct (`payment-direct`)
 
 Een tenant die betaalt via Worldline Direct heeft een koppeling `payment-direct` en een sectie `modules.payment-direct`. De koppeling ondertekent elk
