@@ -139,14 +139,29 @@ class ZakenApiService(
 
         val zaak = zakenApiClient.zaken().get(id).retrieve()
 
-        if (!authenticationMachtigingsDienstService.isAllowedZaakType(authentication, extractId(zaak.zaaktype))) {
-            throw ResponseStatusException(HttpStatus.UNAUTHORIZED, "Access denied to this zaak")
-        }
+        weigerUitgeslotenOfNietToegestaan(zaak, authentication)
 
         return zaak
     }
 
-    suspend fun getZaakFromZaakApi(id: UUID): Zaak = zakenApiClient.zaken().get(id).retrieve()
+    /**
+     * Een uitgesloten zaaktype komt niet in de lijst; ook een directe aanvraag of een documentdownload geeft dan 404, net als de
+     * Zaken API zelf voor een onbekende resource (zie `ZakenApiClient`). Voor een gebruiker zonder rol bij de zaak blijft het 401:
+     * die controle gaat hieraan vooraf en verraadt niets over de zaak. Daarna volgt de machtiging voor het zaaktype.
+     */
+    private suspend fun weigerUitgeslotenOfNietToegestaan(
+        zaak: Zaak,
+        authentication: PortalAuthentication,
+    ) {
+        val uitgesloten = zakenApiClient.configuratie().uitgeslotenZaaktypeIds()
+        if (uitgesloten.isNotEmpty() && isUitgesloten(zaak.zaaktype, uitgesloten)) {
+            throw ResponseStatusException(HttpStatus.NOT_FOUND)
+        }
+
+        if (!authenticationMachtigingsDienstService.isAllowedZaakType(authentication, extractId(zaak.zaaktype))) {
+            throw ResponseStatusException(HttpStatus.UNAUTHORIZED, "Access denied to this zaak")
+        }
+    }
 
     suspend fun getZaakStatus(statusUrl: String): ZaakStatus = zakenApiClient.zaakStatussen().get(extractId(statusUrl)).retrieve()
 
@@ -247,6 +262,8 @@ class ZakenApiService(
 
         return when (zaakRollen.isNotEmpty()) {
             true -> {
+                // Dezelfde toegangscontrole als bij de zaak zelf: een uitgesloten of niet-toegestaan zaaktype geeft geen document.
+                weigerUitgeslotenOfNietToegestaan(zakenApiClient.zaken().get(extractId(zaakDocument.zaak)).retrieve(), commonGroundAuthentication)
                 documentenApiService
                     .getDocument(zaakDocument.informatieobject) to
                     documentenApiService

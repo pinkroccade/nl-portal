@@ -43,6 +43,7 @@ open class OpenProductTestTenantConfiguratie {
                     koppelingen =
                         mapOf(
                             "zakenapi" to TestTenants.zgwKoppeling(url, "valtimo_client", "zaken-secret"),
+                            "catalogiapi" to TestTenants.zgwKoppeling(url, "valtimo_client", "catalogi-secret"),
                             "objectenapi" to TestTenants.koppeling(url),
                             "documenten-api" to
                                 TestTenants.koppeling(

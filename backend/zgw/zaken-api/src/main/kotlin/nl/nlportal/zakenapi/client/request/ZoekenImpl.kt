@@ -64,12 +64,12 @@ class SearchZoekenImpl(
     }
 
     override fun ofZaakTypes(zaakTypeIds: List<UUID>): SearchZaken {
-        criteria.put("zaaktype__in", zaakTypeIds.map { zakenApiClient.getZaakTypeUrl(it) })
+        criteria.later { it.put("zaaktype__in", zaakTypeIds.map { id -> zakenApiClient.getZaakTypeUrl(id) }) }
         return this
     }
 
     override fun notInZaakTypes(zaakTypeIds: List<UUID>): SearchZaken {
-        criteria.put("zaaktype__not_in", zaakTypeIds.map { zakenApiClient.getZaakTypeUrl(it) })
+        criteria.later { it.put("zaaktype__not_in", zaakTypeIds.map { id -> zakenApiClient.getZaakTypeUrl(id) }) }
         return this
     }
 
