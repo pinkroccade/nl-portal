@@ -32,11 +32,14 @@ class TestBeansTest {
 
         val gevonden = TestBeans.overtreders(modules)
 
-        assertThat(gevonden - TestBeans.BEKENDE_OVERTREDERS)
+        val meer = gevonden.filter { (bestand, aantal) -> aantal > (TestBeans.BEKENDE_OVERTREDERS[bestand] ?: 0) }
+        val minder = TestBeans.BEKENDE_OVERTREDERS.filter { (bestand, aantal) -> (gevonden[bestand] ?: 0) < aantal }
+
+        assertThat(meer)
             .describedAs("Nieuwe eigen definitie van tenantDirectory/geheimenBron/vasteTenantWebFilter in een moduletest; gebruik TestTenants")
             .isEmpty()
-        assertThat(TestBeans.BEKENDE_OVERTREDERS - gevonden)
-            .describedAs("Opgeruimd: haal deze bestanden uit TestBeans.BEKENDE_OVERTREDERS")
+        assertThat(minder)
+            .describedAs("Opgeruimd: verlaag of verwijder deze bestanden in TestBeans.BEKENDE_OVERTREDERS (bestand -> aantal)")
             .isEmpty()
     }
 }
