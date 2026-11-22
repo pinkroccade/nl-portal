@@ -101,6 +101,7 @@ internal class VerificatieTenantConfiguratieTest {
         Files.writeString(
             dir.resolve("$oin.yaml"),
             "oin: \"$oin\"\nnaam: Gemeente De Bosrand\ndomeinen: [bosrand.example]\nthema:\n  titel: De Bosrand\n" +
+                "authenticatie:\n  issuer: https://idp.example/realms/test\n  sleutelBestand: $oin/clientsleutel.jwk.json\n" +
                 "koppelingen:\n  verificatie:\n    url: https://verificatie.example\n    auth:\n      type: zgw-jwt\n      clientId: nl-portal\n      secret: $oin.verificatie-secret\n$modulesBlok\n",
         )
         return TenantFileLoader(modules = TenantModules.van(listOf(spi))).load(dir)
