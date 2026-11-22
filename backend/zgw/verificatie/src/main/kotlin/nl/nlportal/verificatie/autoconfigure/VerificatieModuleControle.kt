@@ -21,13 +21,21 @@ import nl.nlportal.verificatie.tenant.VerificatieTenantConfiguratie
 import org.springframework.beans.factory.InitializingBean
 
 /**
- * Weigert het opstarten als de verificatiemodule aan staat en geen enkele tenant `modules.verificatie` heeft: elke aanroep zou dan pas bij
- * het eerste verzoek falen. Dat de koppeling `verificatie` bij die tenant bestaat, controleert [VerificatieTenantConfiguratie.valideer].
+ * Weigert het opstarten als de verificatiemodule aan staat en geen enkele tenant `modules.verificatie` heeft, en als een tenant maar de helft
+ * heeft: `koppelingen.verificatie` zonder `modules.verificatie` (of omgekeerd) zou pas bij het eerste verzoek falen.
  */
 class VerificatieModuleControle(
     private val directory: TenantDirectory,
 ) : InitializingBean {
     override fun afterPropertiesSet() {
+        directory.tenants.forEach { tenant ->
+            val metKoppeling = VerificatieTenantConfiguratie.KOPPELING in tenant.koppelingen
+            val metModule = tenant.module(VerificatieConfiguratie::class) != null
+            check(metKoppeling == metModule) {
+                "Tenant ${tenant.oin.value}: koppelingen.${VerificatieTenantConfiguratie.KOPPELING} en modules.${VerificatieTenantConfiguratie.MODULE} " +
+                    "horen samen: er staat alleen ${if (metKoppeling) "de koppeling" else "de module"} in het tenantbestand."
+            }
+        }
         check(directory.tenants.any { it.module(VerificatieConfiguratie::class) != null }) {
             "De verificatiemodule staat aan (nl-portal.config.verificatie.enabled), maar geen enkele tenant heeft " +
                 "modules.${VerificatieTenantConfiguratie.MODULE} in het tenantbestand. Voeg die samen met koppelingen.${VerificatieTenantConfiguratie.KOPPELING} " +

@@ -38,7 +38,11 @@ internal class VerificatieAutoConfigurationTest {
             .withBean(KoppelingRegister::class.java, { TestTenants.register() })
             .withBean(GeheimenBron::class.java, { TestTenants.ALLE_GEHEIMEN })
 
-    private val metModule = TestTenants.tenant(modules = mapOf("verificatie" to VerificatieConfiguratie()))
+    private val metModule =
+        TestTenants.tenant(
+            koppelingen = mapOf("verificatie" to TestTenants.zgwKoppeling("https://verificatie.example", clientId = "nl-portal", geheimnaam = "verificatie-secret")),
+            modules = mapOf("verificatie" to VerificatieConfiguratie()),
+        )
     private val contextRunner = basis.withBean(TenantDirectory::class.java, { TestTenants.directory(metModule) })
 
     @Test
@@ -110,6 +114,29 @@ internal class VerificatieAutoConfigurationTest {
     @Test
     fun `uit zonder een tenant met modules verificatie start gewoon`() {
         basis.withBean(TenantDirectory::class.java, { TestTenants.directory(TestTenants.tenant()) }).run { context -> assertThat(context).hasNotFailed() }
+    }
+
+    @Test
+    fun `een tenant met koppeling verificatie zonder modules verificatie weigert het opstarten, met de OIN in de melding`() {
+        val koppeling = TestTenants.zgwKoppeling("https://verificatie.example", clientId = "nl-portal", geheimnaam = "verificatie-secret", oin = TestTenants.WIJDE_VELD)
+        val zonderModule = TestTenants.tenant(TestTenants.WIJDE_VELD, koppelingen = mapOf("verificatie" to koppeling))
+        basis
+            .withBean(TenantDirectory::class.java, { TestTenants.directory(metModule, zonderModule) })
+            .withPropertyValues("nl-portal.config.verificatie.enabled=true")
+            .run { context ->
+                assertThat(context).hasFailed()
+                val melding = generateSequence(context.startupFailure) { it.cause }.map { it.message }.joinToString()
+                assertThat(melding).contains(TestTenants.WIJDE_VELD.value, "koppelingen.verificatie", "modules.verificatie")
+            }
+    }
+
+    @Test
+    fun `een tenant zonder koppeling en zonder modules verificatie naast een ingerichte tenant start gewoon`() {
+        val zonder = TestTenants.tenant(TestTenants.WIJDE_VELD)
+        basis
+            .withBean(TenantDirectory::class.java, { TestTenants.directory(metModule, zonder) })
+            .withPropertyValues("nl-portal.config.verificatie.enabled=true")
+            .run { context -> assertThat(context).hasNotFailed() }
     }
 
     // Een omgevingsvariabele (hoofdletters met underscores) wordt als systeemomgeving gelezen, zoals de runtime dat doet.

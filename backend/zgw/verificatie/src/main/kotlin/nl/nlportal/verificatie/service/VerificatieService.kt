@@ -27,6 +27,8 @@ import nl.nlportal.verificatie.client.domain.VerificatieCreateApiResponse
 import nl.nlportal.verificatie.client.domain.VerificatieVerifyApiRequest
 import nl.nlportal.verificatie.client.domain.VerificatieVerifyApiResponse
 import nl.nlportal.verificatie.graphql.domain.VerificatieCreateInput
+import nl.nlportal.core.tenancy.TenantContext
+import nl.nlportal.core.tenancy.TenantContextMissingException
 import nl.nlportal.verificatie.graphql.domain.VerificatieCreateResponse
 import nl.nlportal.verificatie.graphql.domain.VerificatieType
 import nl.nlportal.verificatie.graphql.domain.VerificatieVerifyInput
@@ -44,8 +46,15 @@ class VerificatieService(
     private val directory: TenantDirectory,
     private val geheimen: GeheimenBron,
 ) {
-    /** Of een digitaal adres van dit [type] bij de huidige tenant eerst geverifieerd moet worden. */
-    suspend fun vereistVerificatie(type: VerificatieType?): Boolean = configuratie().typenMetVerificatie.contains(type)
+    /**
+     * Of een digitaal adres van dit [type] bij de huidige tenant eerst geverifieerd moet worden. Een tenant zonder `modules.verificatie` heeft
+     * verificatie niet ingericht en vereist het dus niet (anders zou de verificatiemodule voor één gemeente de contactgegevens van alle andere
+     * uitzetten); zonder tenant in de context faalt het gesloten.
+     */
+    suspend fun vereistVerificatie(type: VerificatieType?): Boolean {
+        val tenant = directory.forOin(TenantContext.current()) ?: throw TenantContextMissingException()
+        return tenant.module(VerificatieConfiguratie::class)?.typenMetVerificatie?.contains(type) ?: false
+    }
 
     suspend fun createVerificatie(verificatieCreateInput: VerificatieCreateInput): VerificatieCreateResponse {
         val configuratie = configuratie()

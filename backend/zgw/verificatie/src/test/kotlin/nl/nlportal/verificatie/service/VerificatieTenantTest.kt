@@ -150,8 +150,17 @@ internal class VerificatieTenantTest {
         assertThrows<ModuleNotConfiguredException> {
             TestTenants.metTenant(bosrand) { service.verify(VerificatieVerifyInput(waarde = "a@b.example", type = VerificatieType.EMAIL, code = "1")) }
         }
-        assertThrows<ModuleNotConfiguredException> { TestTenants.metTenant(bosrand) { service.vereistVerificatie(VerificatieType.EMAIL) } }
         assertThat(serverBosrand.requestCount).isZero()
+    }
+
+    @Test
+    fun `een tenant zonder modules verificatie vereist geen verificatie, zonder tenant faalt het gesloten`() {
+        val zonder = TestTenants.tenant(bosrand)
+        val service = VerificatieService(TestTenants.register(zonder), TestTenants.directory(zonder), TestTenants.ALLE_GEHEIMEN)
+
+        assertThat(TestTenants.metTenant(bosrand) { service.vereistVerificatie(VerificatieType.EMAIL) }).isFalse()
+        assertThat(TestTenants.metTenant(bosrand) { service.vereistVerificatie(null) }).isFalse()
+        assertThrows<TenantContextMissingException> { runBlocking { service.vereistVerificatie(VerificatieType.EMAIL) } }
     }
 
     private fun createInput(
