@@ -164,8 +164,10 @@ class TaakServiceTenantTest {
             assertThat(bosrand.requestCount).isEqualTo(1)
         }
 
-    private fun taakJson(status: String, type: String = TYPE_BOSRAND) =
-        """
+    private fun taakJson(
+        status: String,
+        type: String = TYPE_BOSRAND,
+    ) = """
         {"uuid":"$TAAK_ID","type":"$type","record":{"index":9,"typeVersion":1,"startAt":"2022-06-01","data":{
         "titel":"t","status":"$status","soort":"portaalformulier","verloopdatum":"2023-09-20T18:25:43.524Z","eigenaar":"gzac",
         "identificatie":{"type":"bsn","value":"$BSN"},"koppeling":{"registratie":"zaak","value":"5551a7c5-4e92-43e6-8d23-80359b7e22b7"},
