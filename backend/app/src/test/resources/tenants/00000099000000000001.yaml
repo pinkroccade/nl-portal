@@ -63,6 +63,14 @@ koppelingen:
             type: gcs-v1-hmac
             clientId: test-api-sleutel
             secret: 00000099000000000001.payment-direct-api-geheim
+    # Verificatie van digitale adressen (e-mail, telefoon): de mockserver van de tests; de geheimen staan in application.yml van de tests.
+    verificatie:
+        url: http://localhost:56789/verificatie
+        leverancier: Verificatiedienst-mock
+        auth:
+            type: zgw-jwt
+            clientId: test-client
+            secret: 00000099000000000001.verificatie-secret
 modules:
     documenten-api:
         standaardDocumentApi: documenten-api
@@ -77,6 +85,10 @@ modules:
         toegestaneWoonplaatsenBewoning: []
     zakenapi:
         nnpKvkQueryIdentificatoren: false
+    taak:
+        objectTypeUrl: http://localhost:56789/api/v2/objecttypes/00000000-0000-0000-0000-000000000001
+    berichten:
+        berichtObjectTypeUrl: http://localhost:56789/api/v2/objecttypes/00000000-0000-0000-0000-000000000002
     payment-direct:
         webhookUrl: http://bosrand.example/api/public/payment/direct/postsale
         profielen:
@@ -85,3 +97,8 @@ modules:
                 returnUrl: http://bosrand.example
                 webhookSleutelId: test-webhook-sleutel
                 webhookGeheim: 00000099000000000001.payment-direct-webhook-geheim
+    verificatie:
+        apiKey: 00000099000000000001.verificatie-apikey
+        templateIdTelefoonnummer: test-template-sms
+        templateIdEmail: test-template-mail
+        typenMetVerificatie: [EMAIL, TELEFOONNUMMER]

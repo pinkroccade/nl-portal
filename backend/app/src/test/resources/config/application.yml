@@ -36,6 +36,8 @@ nl-portal:
             objectenapi-token: Token 0000000000000000000000000000000000000000
             payment-direct-api-geheim: test-api-geheim
             payment-direct-webhook-geheim: test-webhook-geheim
+            verificatie-secret: testwaarde-verificatie-geheim-voor-de-app-test-0123456789
+            verificatie-apikey: test-verificatie-sleutel
     security:
         endpoints:
             unsecured: /api/public/**
@@ -70,11 +72,6 @@ nl-portal:
             enabled: true
         taak:
             enabled: true
-            properties:
-                object-type-url: http://localhost:56789/api/v2/objecttypes/00000000-0000-0000-0000-000000000001
-        berichten:
-            properties:
-                bericht-object-type-url: http://localhost:56789/api/v2/objecttypes/00000000-0000-0000-0000-000000000002
         openproduct:
             enabled: true
             properties:

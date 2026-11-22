@@ -15,9 +15,6 @@ nl-portal:
                   zaak: open-zaak
       verificatie:
         enabled: false
-        properties:
-            url: http://localhost:9009
-            types-need-verification: email, telefoonnummer
 
 
 logging:

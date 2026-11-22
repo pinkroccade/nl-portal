@@ -230,7 +230,7 @@ internal class TaakQueryV2IT(
                                 if (queryParams.any { it.contains("identificatie__value__exact__569312863") } &&
                                     queryParams.any {
                                         it.contains(
-                                            "type=http://localhost:8010/api/v1/objecttypes/3c24cab6-4346-4c7d-912b-e34a1e9e21bf",
+                                            "type=http://localhost:8010/api/v1/objecttypes/3e852115-277a-4570-873a-9a64be3aeb35",
                                         )
                                     }
                                 ) {

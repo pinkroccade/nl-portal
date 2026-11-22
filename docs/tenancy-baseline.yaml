@@ -49,9 +49,8 @@ modules:
   ":zgw:berichten":
     omvang: S
     risico: middel
-    toelichting: Objecttype-URL per tenant; volgt het objectenapi-register.
-    signalen:
-      config: BerichtenConfiguration is een singleton.
+    toelichting: Objecttype-URL per tenant in modules.berichten; volgt het objectenapi-register.
+    signalen: {}
   ":zgw:besluiten":
     omvang: S
     risico: middel
@@ -84,12 +83,10 @@ modules:
       config: OpenProductModuleConfiguration is een singleton.
       webclient: Clients bouwen zelf een WebClient.
   ":zgw:verificatie":
-    omvang: M
-    risico: middel
-    toelichting: Client per tenant.
-    signalen:
-      config: VerificatieModuleConfiguration is een singleton.
-      webclient: Client bouwt zelf een WebClient.
+    omvang: S
+    risico: laag
+    toelichting: Gemigreerd (T20 #519); de bron is de koppeling verificatie van de tenant, API-sleutel, templates en typen met verificatie zijn tenantconfiguratie (modules.verificatie).
+    signalen: {}
   ":zgw:common-ground-authentication":
     omvang: L
     risico: hoog
@@ -105,9 +102,8 @@ modules:
   ":zgw:taak":
     omvang: S
     risico: middel
-    toelichting: Objecttype-URL per tenant; volgt het objectenapi-register.
-    signalen:
-      config: TaakConfig is een singleton.
+    toelichting: Gemigreerd (T18 #517); het objecttype is tenantconfiguratie (modules.taak) en de taken lopen via de koppeling objectenapi van de tenant.
+    signalen: {}
   ":form":
     omvang: S
     risico: laag

@@ -28,7 +28,7 @@ import nl.nlportal.zgw.taak.TestHelper.assertStatus
 import nl.nlportal.zgw.taak.TestHelper.mockJsonResponse
 import nl.nlportal.zgw.taak.TestHelper.resultPage
 import nl.nlportal.zgw.taak.TestHelper.url
-import nl.nlportal.zgw.taak.autoconfigure.TaakConfig.TaakConfigProperties
+import nl.nlportal.zgw.taak.tenant.TaakConfiguratie
 import nl.nlportal.zgw.taak.domain.TaakStatus
 import okhttp3.HttpUrl
 import okhttp3.mockwebserver.MockResponse
@@ -61,12 +61,12 @@ class TaakServiceTest {
         machtigingsDienstService = mock()
         whenever(machtigingsDienstService.isAllowedTaakType(any(), any())).thenReturn(true)
 
-        val objectsApiClient =
-            ObjectsApiClient(TestTenants.register(TestTenants.tenant(koppelingen = mapOf("objectenapi" to TestTenants.koppeling(mockServer.url("/").toString().trimEnd('/'))))))
+        val tenant = TestTenants.tenant(koppelingen = mapOf("objectenapi" to TestTenants.koppeling(mockServer.url("/").toString().trimEnd('/'))), modules = mapOf("taak" to TaakConfiguratie(OBJECT_TYPE_URL)))
+        val objectsApiClient = ObjectsApiClient(TestTenants.register(tenant))
         service =
             TaakService(
                 objectsApiClient,
-                TaakConfigProperties().apply { objectTypeUrl = OBJECT_TYPE_URL },
+                TestTenants.directory(tenant),
                 machtigingsDienstService,
             )
     }

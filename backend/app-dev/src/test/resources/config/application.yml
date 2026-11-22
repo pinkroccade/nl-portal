@@ -27,7 +27,7 @@ nl-portal:
     tenancy:
         # Zelfde tenantbestanden als :app (zelfde mockpoort 56789): een tenantbestand minder om bij elke migratie bij te werken.
         directory: ../app/src/test/resources/tenants
-    # De secret store van de test: de geheimen van de koppelingen `kvk`, `zakenapi`, `catalogiapi`, `objectenapi` en `payment-direct` en de Documenten API in het tenantbestand (zaken: minstens 32 tekens voor een ZGW-JWT).
+    # De secret store van de test: de geheimen van de koppelingen `kvk`, `zakenapi`, `catalogiapi`, `objectenapi`, `payment-direct` en `verificatie` en de Documenten API in het tenantbestand (zaken: minstens 32 tekens voor een ZGW-JWT).
     geheimen:
         "00000099000000000001.kvk-sleutel": test-kvk-sleutel
         "00000099000000000001.zaken-secret": testwaarde-zaken-geheim-voor-de-app-test-0123456789
@@ -36,6 +36,8 @@ nl-portal:
         "00000099000000000001.payment-direct-api-geheim": test-api-geheim
         "00000099000000000001.payment-direct-webhook-geheim": test-webhook-geheim
         "00000099000000000001.documenten-api-secret": 12345678123456781234567812345678
+        "00000099000000000001.verificatie-secret": testwaarde-verificatie-geheim-voor-de-app-test-0123456789
+        "00000099000000000001.verificatie-apikey": test-verificatie-sleutel
     security:
         cors:
             -   path: "/**"
@@ -76,12 +78,6 @@ nl-portal:
             enabled: true
         taak:
             enabled: true
-            properties:
-                object-type-url: http://localhost:56789/api/v2/objecttypes/00000000-0000-0000-0000-000000000001
-        berichten:
-            enabled: true
-            properties:
-                bericht-object-type-url: http://localhost:56789/api/v2/objecttypes/00000000-0000-0000-0000-000000000002
         openproduct:
             enabled: true
             properties:

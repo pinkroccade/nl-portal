@@ -25,7 +25,6 @@ import nl.nlportal.openproduct.client.OpenProductTypeClient
 import nl.nlportal.openproduct.client.domain.OpenProductUrl
 import nl.nlportal.zakenapi.domain.Zaak
 import nl.nlportal.zakenapi.service.ZakenApiService
-import nl.nlportal.zgw.taak.autoconfigure.TaakConfig.TaakConfigProperties
 import nl.nlportal.zgw.taak.service.TaakService
 import okhttp3.mockwebserver.MockResponse
 import okhttp3.mockwebserver.MockWebServer
@@ -61,9 +60,6 @@ class OpenProductServiceTest {
     private lateinit var taakService: TaakService
 
     @Mock
-    private lateinit var taakConfigProperties: TaakConfigProperties
-
-    @Mock
     private lateinit var zakenApiService: ZakenApiService
 
     private lateinit var mockServer: MockWebServer
@@ -97,7 +93,6 @@ class OpenProductServiceTest {
             OpenProductService(
                 openProductClient = openProductClient,
                 openProductTypeClient = openProductTypeClient,
-                objectsApiTaskConfigProperties = taakConfigProperties,
                 zakenApiService = zakenApiService,
                 authenticationMachtigingsDienstService = authenticationMachtigingsDienstService,
                 documentenApiService = documentenApiService,

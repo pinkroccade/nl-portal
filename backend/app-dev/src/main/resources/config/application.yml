@@ -64,6 +64,8 @@ nl-portal:
         "00000099000000000001.documenten-api-secret": ${OPENZAAK_NLPORTAL_SECRET}
         "00000099000000000001.objectenapi-token": Token ${OBJECTS_API_TOKEN}
         "00000099000000000001.documenten-dummydoc-secret": ${OPENZAAK_NLPORTAL_SECRET}
+        "00000099000000000001.verificatie-secret": ${OPENZAAK_NLPORTAL_SECRET}
+        "00000099000000000001.verificatie-apikey": ${OPENZAAK_NLPORTAL_SECRET}
     support:
         ping-endpoint:
             enabled: false
@@ -120,11 +122,6 @@ nl-portal:
             enabled: false
         taak:
             enabled: true
-            properties:
-                object-type-url: http://localhost:8010/api/v2/objecttypes/b4a617af-6969-45e8-9afd-d51e170716d5
-        berichten:
-            properties:
-                bericht-object-type-url: http://localhost:8010/api/v2/objecttypes/78731088-430f-49fd-9a4c-80ddd42ded28
         form:
             properties:
                 form-definition-object-type-url: http://localhost:8010/api/v2/objecttypes/4b5f4fba-0746-11ed-b939-0242ac120002

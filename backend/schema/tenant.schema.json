@@ -163,6 +163,17 @@
     "modules" : {
       "type" : "object",
       "properties" : {
+        "berichten" : {
+          "type" : "object",
+          "properties" : {
+            "berichtObjectTypeUrl" : {
+              "type" : "string",
+              "minLength" : 1
+            }
+          },
+          "required" : [ "berichtObjectTypeUrl" ],
+          "additionalProperties" : false
+        },
         "brp" : {
           "type" : "object",
           "properties" : {
@@ -299,6 +310,42 @@
             }
           },
           "required" : [ "profielen" ],
+          "additionalProperties" : false
+        },
+        "taak" : {
+          "type" : "object",
+          "properties" : {
+            "objectTypeUrl" : {
+              "type" : "string",
+              "minLength" : 1
+            }
+          },
+          "required" : [ "objectTypeUrl" ],
+          "additionalProperties" : false
+        },
+        "verificatie" : {
+          "type" : "object",
+          "properties" : {
+            "apiKey" : {
+              "type" : "string",
+              "pattern" : "^[a-z0-9]+([._-][a-z0-9]+)*$"
+            },
+            "templateIdTelefoonnummer" : {
+              "type" : "string",
+              "minLength" : 1
+            },
+            "templateIdEmail" : {
+              "type" : "string",
+              "minLength" : 1
+            },
+            "typenMetVerificatie" : {
+              "type" : "array",
+              "items" : {
+                "type" : "string",
+                "enum" : [ "TELEFOONNUMMER", "EMAIL", "OVERIG" ]
+              }
+            }
+          },
           "additionalProperties" : false
         },
         "zakenapi" : {

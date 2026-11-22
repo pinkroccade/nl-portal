@@ -18,7 +18,7 @@ package nl.nlportal.berichten.service
 import kotlinx.coroutines.reactor.ReactorContext
 import kotlinx.coroutines.test.runTest
 import nl.nlportal.core.testing.TestTenants
-import nl.nlportal.berichten.autoconfigure.BerichtenConfiguration.BerichtenConfigurationProperties
+import nl.nlportal.berichten.configuratie.BerichtenConfiguratie
 import nl.nlportal.commonground.authentication.JwtBuilder
 import nl.nlportal.documentenapi.service.DocumentenApiService
 import nl.nlportal.zgw.objectenapi.client.ObjectsApiClient
@@ -48,12 +48,13 @@ class BerichtenServiceTest {
     fun setUp() {
         mockServer = MockWebServer()
         mockServer.start()
-        val register = TestTenants.register(TestTenants.tenant(koppelingen = mapOf("objectenapi" to TestTenants.koppeling(mockServer.url("/").toString().trimEnd('/')))))
+        val tenant = TestTenants.tenant(koppelingen = mapOf("objectenapi" to TestTenants.koppeling(mockServer.url("/").toString().trimEnd('/'))), modules = mapOf("berichten" to BerichtenConfiguratie("https://objecttypes.example.nl/bericht")))
+        val register = TestTenants.register(tenant)
         service =
             BerichtenService(
                 ObjectenApiService(ObjectsApiClient(register)),
                 mock<DocumentenApiService>(),
-                BerichtenConfigurationProperties(),
+                TestTenants.directory(tenant),
             )
     }
 

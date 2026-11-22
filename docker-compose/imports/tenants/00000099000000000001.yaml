@@ -73,6 +73,16 @@ koppelingen:
     #         type: gcs-v1-hmac
     #         clientId: <API-sleutel-ID van de provider>
     #         secret: 00000099000000000001.payment-direct-api-geheim
+    # Verificatie van digitale adressen (e-mail, telefoon). De compose-stack draait geen verificatiedienst: de koppeling wijst naar de
+    # poort waar een eigen dienst of mock kan draaien. De geheimen (NL_PORTAL_GEHEIMEN_<OIN>_VERIFICATIE_SECRET en _VERIFICATIE_APIKEY) staan in
+    # compose.localhost-*.yaml; alleen met NLPORTAL_CONFIG_VERIFICATIE_ENABLED=true gebruikt de backend ze.
+    verificatie:
+        url: http://localhost:9009
+        leverancier: Verificatiedienst
+        auth:
+            type: zgw-jwt
+            clientId: nl-portal
+            secret: 00000099000000000001.verificatie-secret
 modules:
     documenten-api:
         standaardDocumentApi: documenten-api
@@ -90,6 +100,11 @@ modules:
         toegestaneWoonplaatsenBewoning: []
     zakenapi:
         nnpKvkQueryIdentificatoren: false
+    taak:
+        # Het objecttype waarin de taken van deze gemeente staan (Open Object); de taken lopen via de koppeling objectenapi.
+        objectTypeUrl: http://localhost:8010/api/v2/objecttypes/b4a617af-6969-45e8-9afd-d51e170716d5
+    berichten:
+        berichtObjectTypeUrl: http://localhost:8010/api/v2/objecttypes/78731088-430f-49fd-9a4c-80ddd42ded28
     # payment-direct:
     #     webhookUrl: https://<domein van de tenant>/api/public/payment/direct/postsale
     #     profielen:
@@ -98,3 +113,8 @@ modules:
     #             returnUrl: https://<domein van de tenant>
     #             webhookSleutelId: <sleutel-ID van de webhook>
     #             webhookGeheim: 00000099000000000001.payment-direct-webhook-geheim
+    verificatie:
+        apiKey: 00000099000000000001.verificatie-apikey
+        templateIdTelefoonnummer: template-sms
+        templateIdEmail: template-mail
+        typenMetVerificatie: [EMAIL, TELEFOONNUMMER]
