@@ -4,7 +4,7 @@
 
 Geaccepteerd op 2026-11-21, met de aanvullingen hieronder. Voortgekomen uit wayfinder-kaart #197, ticket
 #205; de open punten zijn op 2026-11-21 in een grilling-sessie beslist (zie het
-[besluitenlog fase 0](../research/fase0-besluiten-multitenancy-bff.md)). Nog niets hiervan is gebouwd; er
+[besluitenlog fase 0](../research/fase0-besluiten-multitenancy-bff.md)). De kern is gebouwd in epic #499 (met één tenant per cel, zie "Stand van de runtime" onder Gevolgen); er
 draait nog niets in PRD, dus wijzigingen zijn nu goedkoop. Eerder bijgewerkt op 2026-11-20 na een
 vergelijking met `main` (nummer 0017 was inmiddels bezet; deze ADR is 0021) en een toets aan
 multitenancy-patronen.
@@ -205,8 +205,11 @@ beproefd (open punt).
 2. **Consistentiecheck host en token.** Bij een geauthenticeerd request moet de tenant van de issuer gelijk
    zijn aan de host-tenant, anders 403 plus een securityevent in de log (OIN's, geen tokeninhoud).
 3. **De hostheader is alleen betrouwbaar via de ingress.** De ingress overschrijft `Host` en
-   `X-Forwarded-Host`; de runtime is alleen via de ingress bereikbaar (NetworkPolicy). De bron in de code is
-   `request.uri.host`. De actuator draait op een aparte managementpoort.
+   `X-Forwarded-Host`; de runtime is alleen via de ingress bereikbaar (NetworkPolicy). *Correctie na de bouw:* de
+   bron in de code is de `Host`-header van het request (bij een vertrouwde proxy eerst `Forwarded` of
+   `X-Forwarded-Host`), niet `request.uri.host`: Reactor Netty vult de request-URI zelf aan met bijvoorbeeld
+   `localhost`, en dat mag geen tenant opleveren. Een request zonder of met meer dan één `Host`-header krijgt geen
+   tenant (404). De actuator draait op een aparte managementpoort.
 4. **Eén domein hoort bij precies één tenant per omgeving.** Een tenant mag meerdere domeinen hebben; een
    dubbel domein weigert het opstarten. Aliassen redirecten bij de ingress naar het canonieke domein.
    *(redactie)* Omdat een cel alleen zijn eigen tenants laadt, ziet het opstarten alleen dubbelen binnen de
@@ -501,7 +504,7 @@ Deze regels komen uit het prototype en zijn bindend voor de implementatie-epic:
    houdt bij welke voorgestelde regels al als `ArchRule` bestaan. De baseline staat op "voorlopig" en wordt
    bij acceptatie van deze ADR beoordeeld.
 2. **OIN-sleutels in tenantbestanden zijn gequote**; het JSON-schema dwingt dit af (zie besluit 4.1).
-3. **De hostbron is `request.uri.host`**, niet de Host-header, en alleen achter de ingress.
+3. **De hostbron is de `Host`-header** (bij een vertrouwde proxy eerst `Forwarded`/`X-Forwarded-Host`), niet `request.uri.host`, en alleen achter de ingress. *Dit corrigeert de eerste versie van dit punt, die `request.uri.host` noemde.*
 4. **De issuercheck draait ná Spring Security en controleert elk `JwtAuthenticationToken`, ook bij
    `isAuthenticated=false`** (fail-closed). De eerste prototypeversie liet stil alles door.
 5. **De aparte managementpoort is een harde eis.** Een 404 voor onbekende hosts raakt anders ook probes en
@@ -561,6 +564,24 @@ exacte redirect-URI's per tenant in Keycloak (geen wildcards, ASVS 10.4.1). De f
 `oidc-client-ts`/`react-oidc-context` *(onderzoek)*; met de BFF (ADR 0022) vervalt dat en doet de backend de
 login, dus de redirect-URI's wijzen naar de backend op het gemeentedomein. Branding vóór login (foutpagina,
 landingspagina) komt uit de nginx-bestanden, niet uit `/api/public/frontend` (dat laadt na inloggen).
+
+*Correctie na de bouw:* het thema van de gemeente wordt pas toegepast nadat de tenant is bepaald en de gebruiker is
+ingelogd, want het komt uit `/api/public/frontend`. Voor het inloggen toont de frontend alleen het neutrale
+basisthema; een gemeentelijk thema vóór login volgt pas als de nginx-bestanden het leveren.
+
+### Uitgaand verkeer via de cloud gateway
+
+De app gebruikt geen clientcertificaten (geen mTLS) naar de bronsystemen. Uitgaand verkeer loopt via de cloud
+gateway, die per gemeente de mTLS naar de bron afhandelt. De `KoppelingClient` kent daarom alleen de authenticatie op
+applicatieniveau (`api-key`, `zgw-jwt`, `oauth2`) en de URL van de gateway. Dit vervangt de aanname in de
+risicolijst dat de `HttpClient` per tenant een certificaat moet laden.
+
+### Stand van de runtime: één tenant
+
+De runtime draait voorlopig met één tenant per cel. Een tweede tenant weigert de `TenantFileLoader` bij het opstarten
+(constante `MEERDERE_TENANTS_TOEGESTAAN = false`), en de modulegate (T22, #521) dwingt per tenant nog niet af welke
+modules aan staan. Meerdere tenants in productie volgen zodra T22 en T23 (#522) klaar zijn; tot dan blijft de
+grens van één tenant per cel gelden.
 
 Vrije thema-CSS is een vertrouwensgrens (CSS kan via attribuutselectors data lekken): alleen door Pink
 beheerde en gereviewde thema's, geen self-service zonder review *(onderzoek)*.
