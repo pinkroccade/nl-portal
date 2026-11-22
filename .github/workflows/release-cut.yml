@@ -1,0 +1,92 @@
+name: Release Cut
+
+# Stap 1 van een release (zie site/development/workflows/release.md): maakt de rc/<versie>-branch vanaf main
+# (version.txt + CHANGELOG.md, via scripts/release-cut-rc.mjs) en start de RC-bouw. Publiceert zelf niets
+# buiten die RC; de release (stap 2) blijft een aparte, handmatige dispatch achter de release-environment.
+
+on:
+    workflow_dispatch:
+        inputs:
+            version:
+                description: "Versie X.Y.Z zonder v-prefix. Leeg: afleiden uit de Conventional Commits sinds de laatste tag."
+                type: string
+                required: false
+            start_rc:
+                description: "Start na het aanmaken van de branch direct de RC-bouw (rc_number 1)."
+                type: boolean
+                default: true
+
+concurrency:
+    group: release-cut
+    cancel-in-progress: false
+
+permissions:
+    contents: read
+
+jobs:
+    cut:
+        runs-on: ubuntu-latest
+        if: github.repository_owner == 'pinkroccade'
+        permissions:
+            contents: read
+            actions: write
+        steps:
+            -   name: Guard branch
+                run: |
+                    if [ "${GITHUB_REF_NAME}" != "main" ]; then
+                      echo "::error::release-cut.yml moet vanaf main worden gestart (nu: ${GITHUB_REF_NAME})."
+                      exit 1
+                    fi
+            -   name: Generate GitHub App token
+                id: token
+                uses: actions/create-github-app-token@64ab729a6294000f5aa4a4bc0b73d1f32bc45510 # v3.3.0
+                with:
+                    client-id: ${{ secrets.NL_PORTAL_APP_CLIENT_ID }}
+                    private-key: ${{ secrets.NL_PORTAL_APP_PRIVATE_KEY }}
+            -   uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+                with:
+                    token: ${{ steps.token.outputs.token }}
+                    fetch-depth: 0
+            -   uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6.5.0
+                with:
+                    node-version: "24"
+            -   name: Cut the rc branch
+                id: cut
+                env:
+                    VERSION: ${{ inputs.version }}
+                run: |
+                    git config user.name "github-actions[bot]"
+                    git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+                    git fetch --tags --force origin
+                    if [ -n "${VERSION}" ]; then
+                      node scripts/release-cut-rc.mjs --version "${VERSION}"
+                    else
+                      node scripts/release-cut-rc.mjs
+                    fi
+                    echo "version=$(cat version.txt)" >> "$GITHUB_OUTPUT"
+            -   name: Push the rc branch
+                env:
+                    VERSION: ${{ steps.cut.outputs.version }}
+                run: git push origin "refs/heads/rc/${VERSION}:refs/heads/rc/${VERSION}"
+            -   name: Start the release candidate build
+                if: ${{ inputs.start_rc }}
+                env:
+                    GH_TOKEN: ${{ github.token }}
+                    VERSION: ${{ steps.cut.outputs.version }}
+                run: gh workflow run build-and-publish-release-candidate.yml --ref "rc/${VERSION}" -f rc_number=1
+            -   name: Summary
+                env:
+                    VERSION: ${{ steps.cut.outputs.version }}
+                    START_RC: ${{ inputs.start_rc }}
+                run: |
+                    {
+                      echo "### Branch rc/${VERSION} aangemaakt"
+                      echo
+                      if [ "${START_RC}" = "true" ]; then
+                        echo "De RC-bouw (\`${VERSION}-RC-1-SNAPSHOT\`) is gestart."
+                      else
+                        echo "Start de RC-bouw zelf: \`gh workflow run build-and-publish-release-candidate.yml --ref rc/${VERSION} -f rc_number=1\`"
+                      fi
+                      echo
+                      echo "Volgende stap, na een groene RC: \`gh workflow run build-and-publish-release.yml --ref rc/${VERSION}\` en keur de release-environment goed."
+                    } >> "$GITHUB_STEP_SUMMARY"
