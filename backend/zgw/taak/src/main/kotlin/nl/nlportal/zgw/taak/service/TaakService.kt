@@ -17,15 +17,15 @@ package nl.nlportal.zgw.taak.service
 
 import io.github.oshai.kotlinlogging.KotlinLogging
 import nl.nlportal.commonground.authentication.AuthenticationMachtigingsDienstService
-import nl.nlportal.portal.authentication.domain.PortalAuthentication
+import nl.nlportal.core.tenancy.TenantDirectory
 import nl.nlportal.core.util.Mapper
+import nl.nlportal.portal.authentication.domain.PortalAuthentication
 import nl.nlportal.zgw.objectenapi.client.ObjectsApiClient
 import nl.nlportal.zgw.objectenapi.domain.Comparator
 import nl.nlportal.zgw.objectenapi.domain.ObjectSearchParameter
 import nl.nlportal.zgw.objectenapi.domain.ObjectsApiObject
 import nl.nlportal.zgw.objectenapi.domain.ResultPage
 import nl.nlportal.zgw.objectenapi.domain.UpdateObjectsApiObjectRequest
-import nl.nlportal.core.tenancy.TenantDirectory
 import nl.nlportal.zgw.taak.domain.TaakIdentificatie
 import nl.nlportal.zgw.taak.domain.TaakObjectV2
 import nl.nlportal.zgw.taak.domain.TaakStatus
@@ -155,7 +155,18 @@ open class TaakService(
         return TaakV2.fromObjectsApi(updatedObjectsApiTask)
     }
 
-    private suspend inline fun <reified T> getObjectsApiTaak(taskId: UUID): ObjectsApiObject<T> = objectsApiClient.getObjectById<T>(taskId.toString())
+    /**
+     * Haalt een taak op UUID op. Leest `modules.taak` per aanroep, buiten elke try (gesloten falen), en behandelt een object van een ander
+     * objecttype dan dat van de eigen tenant als niet gevonden, zodat bestaan niet uitlekt en er niets over de tenantgrens wordt geschreven.
+     */
+    private suspend inline fun <reified T> getObjectsApiTaak(taskId: UUID): ObjectsApiObject<T> {
+        val objectTypeUrl = tenantDirectory.module<TaakConfiguratie>().objectTypeUrl
+        val taak = objectsApiClient.getObjectById<T>(taskId.toString())
+        if (taak.type != objectTypeUrl) {
+            throw ResponseStatusException(HttpStatus.NOT_FOUND)
+        }
+        return taak
+    }
 
     private suspend inline fun <reified T> getTakenResultPageV2(
         pageNumber: Int,

@@ -143,6 +143,8 @@ modules:
 
 De oude properties `nl-portal.config.taak.properties.*` (`object-type-url`) zijn vervallen en weigeren het opstarten zolang ze gezet zijn, ook als omgevingsvariabele (`NLPORTAL_CONFIG_TAAK_PROPERTIES_OBJECTTYPEURL`, en de oudere voorbeeldsleutels `..._TYPEURL` en `..._TYPEURLV2`). `nl-portal.config.taak.enabled` blijft.
 
+Detail, afronden en het uploaden van een document bij een taak lezen `modules.taak` per aanroep: heeft de tenant die niet, dan falen ze gesloten (`MODULE_NIET_GECONFIGUREERD`, geen verzoek naar de bron). Ze toetsen ook het objecttype: een object met een ander type dan `modules.taak.objectTypeUrl` van de eigen tenant geeft hetzelfde antwoord als een onbekende UUID (404), vóór de eigenaarcontrole, en wordt niet afgerond of beschreven. Zo leest en schrijft een inwoner niet via tenant A een taak van tenant B als beide dezelfde Objecten API gebruiken.
+
 ### Betalen via Worldline Direct (`payment-direct`)
 
 Een tenant die betaalt via Worldline Direct heeft een koppeling `payment-direct` en een sectie `modules.payment-direct`. De koppeling ondertekent elk

@@ -33,6 +33,8 @@ import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertThrows
+import org.springframework.http.HttpStatus
+import org.springframework.web.server.ResponseStatusException
 import org.mockito.kotlin.any
 import org.mockito.kotlin.mock
 import org.mockito.kotlin.whenever
@@ -128,9 +130,43 @@ class TaakServiceTenantTest {
         assertThat(bosrand.requestCount).isZero()
     }
 
-    private fun taakJson(status: String) =
+    @Test
+    fun `detail en afronden zonder modules taak falen gesloten zonder verzoek`() {
+        val zonder = TestTenants.tenant(TestTenants.BOSRAND, koppelingen = mapOf("objectenapi" to TestTenants.koppeling(basis(bosrand))))
+        val machtigingen = mock<AuthenticationMachtigingsDienstService>()
+        val zonderService = TaakService(ObjectsApiClient(TestTenants.register(zonder)), TestTenants.directory(zonder), machtigingen)
+
+        runTest(ReactorContext(TestTenants.tenantContext(TestTenants.BOSRAND))) {
+            assertThrows<ModuleNotConfiguredException> { zonderService.getTaakByIdV2(UUID.fromString(TAAK_ID), burger()) }
+            assertThrows<ModuleNotConfiguredException> { zonderService.submitTaakV2(UUID.fromString(TAAK_ID), mapOf("a" to "b"), burger()) }
+        }
+        assertThat(bosrand.requestCount).isZero()
+    }
+
+    @Test
+    fun `detail van een object met het objecttype van een andere tenant geeft 404`() =
+        runTest(ReactorContext(TestTenants.tenantContext(TestTenants.BOSRAND))) {
+            bosrand.enqueue(mockJsonResponse(taakJson("open", TYPE_WIJDE_VELD)))
+
+            val fout = assertThrows<ResponseStatusException> { service.getTaakByIdV2(UUID.fromString(TAAK_ID), burger()) }
+
+            assertThat(fout.statusCode).isEqualTo(HttpStatus.NOT_FOUND)
+        }
+
+    @Test
+    fun `afronden van een object met een ander objecttype geeft 404 en schrijft niets`() =
+        runTest(ReactorContext(TestTenants.tenantContext(TestTenants.BOSRAND))) {
+            bosrand.enqueue(mockJsonResponse(taakJson("open", TYPE_WIJDE_VELD)))
+
+            val fout = assertThrows<ResponseStatusException> { service.submitTaakV2(UUID.fromString(TAAK_ID), mapOf("a" to "b"), burger()) }
+
+            assertThat(fout.statusCode).isEqualTo(HttpStatus.NOT_FOUND)
+            assertThat(bosrand.requestCount).isEqualTo(1)
+        }
+
+    private fun taakJson(status: String, type: String = TYPE_BOSRAND) =
         """
-        {"uuid":"$TAAK_ID","type":"$TYPE_BOSRAND","record":{"index":9,"typeVersion":1,"startAt":"2022-06-01","data":{
+        {"uuid":"$TAAK_ID","type":"$type","record":{"index":9,"typeVersion":1,"startAt":"2022-06-01","data":{
         "titel":"t","status":"$status","soort":"portaalformulier","verloopdatum":"2023-09-20T18:25:43.524Z","eigenaar":"gzac",
         "identificatie":{"type":"bsn","value":"$BSN"},"koppeling":{"registratie":"zaak","value":"5551a7c5-4e92-43e6-8d23-80359b7e22b7"},
         "portaalformulier":{"formulier":{"soort":"url","value":"http://localhost:8010/api/v2/objects/4e40fb4c"},"data":{"voornaam":"Jan"}},

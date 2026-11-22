@@ -57,7 +57,7 @@ open class ObjectenTestTenantConfiguratie {
                     ),
                 modules =
                     mapOf(
-                        "taak" to TaakConfiguratie("http://localhost:8010/api/v1/objecttypes/3c24cab6-4346-4c7d-912b-e34a1e9e21bf"),
+                        "taak" to TaakConfiguratie("http://localhost:8010/api/v1/objecttypes/3e852115-277a-4570-873a-9a64be3aeb35"),
                         "documenten-api" to
                             DocumentenApiConfiguratie(
                                 standaardDocumentApi = "documenten-api",

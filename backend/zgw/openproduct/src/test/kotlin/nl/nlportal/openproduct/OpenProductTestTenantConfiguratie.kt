@@ -55,7 +55,7 @@ open class OpenProductTestTenantConfiguratie {
                     modules =
                         mapOf(
                             "zakenapi" to ZakenApiConfiguratie(),
-                            "taak" to TaakConfiguratie("$url/api/v2/objecttypes/00000000-0000-0000-0000-000000000001"),
+                            "taak" to TaakConfiguratie("http://localhost:8010/api/v1/objecttypes/3e852115-277a-4570-873a-9a64be3aeb35"),
                             "documenten-api" to
                                 DocumentenApiConfiguratie(
                                     standaardDocumentApi = "documenten-api",
