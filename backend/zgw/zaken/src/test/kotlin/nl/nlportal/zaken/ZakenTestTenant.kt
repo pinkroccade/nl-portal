@@ -36,6 +36,7 @@ fun zakenApiTestTenant(url: String) =
         koppelingen =
             mapOf(
                 "zakenapi" to TestTenants.zgwKoppeling(url.trimEnd('/'), "valtimo_client", "zaken-secret"),
+                "objectenapi" to TestTenants.koppeling(url.trimEnd('/')),
                 "documenten-api" to
                     TestTenants.koppeling(
                         url.trimEnd('/'),

@@ -102,10 +102,8 @@ modules:
   ":zgw:objectenapi":
     omvang: M
     risico: hoog
-    toelichting: Client per tenant; getObjectByUrl stuurt de token naar elke binnenkomende URL (tokenlek naar andere host).
-    signalen:
-      config: ObjectsApiClientConfig is een singleton.
-      webclient: Client bouwt zelf een WebClient per aanroep.
+    toelichting: Client per tenant via het register; getObjectByUrl loopt via HostBinding, dus geen token naar een andere host.
+    signalen: {}
   ":zgw:taak":
     omvang: S
     risico: middel

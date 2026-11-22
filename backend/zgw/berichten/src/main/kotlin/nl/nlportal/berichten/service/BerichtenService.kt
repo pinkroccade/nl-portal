@@ -61,7 +61,7 @@ class BerichtenService(
         authentication: PortalAuthentication,
         id: UUID,
     ): Bericht? {
-        val objectsApiBericht = objectenApiService.getObjectById<Bericht>(id.toString()) ?: return null
+        val objectsApiBericht = objectenApiService.getObjectById<Bericht>(id.toString())
 
         val bericht = objectsApiBericht.record.data.copy(id = id)
 
@@ -88,7 +88,7 @@ class BerichtenService(
         documentId: UUID,
     ): Pair<Document, Flow<DataBuffer>>? {
         val objectsApiBericht =
-            objectenApiService.getObjectById<Bericht>(berichtId.toString()) ?: return null
+            objectenApiService.getObjectById<Bericht>(berichtId.toString())
         val bericht = objectsApiBericht.record.data
 
         if (bericht.identificatie.value != authentication.identiteit.vertegenwoordigde.identificatie) {

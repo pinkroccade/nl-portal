@@ -111,6 +111,26 @@ in de secret store staan. `url` en `tokenUrl` zijn in een productieomgeving alle
 geheim van alleen kleine letters en cijfers past in het patroon); de OIN-prefix en de Git-review zijn de echte bewaking. De validator-CLI kent de modules die op het
 klassenpad staan: `java -cp nl-portal-tenant-validator.jar:<module-jars> nl.nlportal.core.tenancy.TenantValidatorCli <map>`.
 
+### Objecten API (`objectenapi`)
+
+De Objecten API (Open Object) is gemigreerd naar een tenantkoppeling `koppelingen.objectenapi`; er is geen `modules.objectenapi`, want er zijn geen per-gemeente-instellingen. Taken, berichten, producten en betalingen lezen en schrijven objecten via de koppeling van de eigen tenant. De module-schakelaar `nl-portal.config.objectenapi.enabled` blijft bestaan; staat die aan en heeft geen enkele tenant de koppeling, dan weigert het opstarten.
+De Objecten API kent alleen `Authorization: Token <token>`, dus de koppeling gebruikt `api-key` met `headerNaam: Authorization`; de waarde van het geheim is `Token <token>`. Een URL die de bron teruggeeft (`getObjectByUrl`) wordt alleen gevolgd als hij onder de basis-URL van dezelfde koppeling valt (HostBinding), zodat het token nooit naar een andere host gaat.
+De oude properties `nl-portal.config.objectenapi.properties.*` (`url`, `token`) zijn vervallen en weigeren het opstarten zolang ze gezet zijn, ook als omgevingsvariabele (`NLPORTAL_CONFIG_OBJECTENAPI_PROPERTIES_URL` en `_TOKEN`).
+
+**Isolatie tussen tenants.** Dat het token alleen naar de eigen koppeling gaat, scheidt de objecten van twee tenants niet als ze dezelfde Objecten API gebruiken. Geef daarom elke tenant een eigen Objecten API-instantie, of een token dat alleen de objecttypen van die tenant ziet (Open Object-autorisatie per objecttype). Wijzen twee tenants naar dezelfde instantie met een token dat elkaars objecttypen mag lezen of schrijven, dan zijn taken en berichten van de ene tenant via de andere op te halen op UUID en kan de betaalwebhook van de ene tenant een taak van de andere afronden. Leg dit vast als livegangpunt (T26, naast #537).
+
+**Bufferlimiet.** Elke koppeling leest een antwoord tot 16 MB in het geheugen (zoals de oude clients); een groter antwoord is een fout. `spring.codec.max-in-memory-size` geldt niet voor koppelingen.
+
+```yaml
+koppelingen:
+    objectenapi:
+        url: https://objecten.bosrand.example
+        auth:
+            type: api-key
+            headerNaam: Authorization
+            waarde: 00000099000000000001.objectenapi-token   # geheim met de waarde "Token <token>"
+```
+
 ### Betalen via Worldline Direct (`payment-direct`)
 
 Een tenant die betaalt via Worldline Direct heeft een koppeling `payment-direct` en een sectie `modules.payment-direct`. De koppeling ondertekent elk

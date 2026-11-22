@@ -48,6 +48,13 @@ koppelingen:
             type: zgw-jwt
             clientId: nl-portal
             secret: 00000099000000000001.zaken-secret
+    # De Objecten API (Open Object) kent alleen "Authorization: Token <token>": een api-key-header, waarvan het geheim "Token <token>" is.
+    objectenapi:
+        url: http://localhost:8010
+        auth:
+            type: api-key
+            headerNaam: Authorization
+            waarde: 00000099000000000001.objectenapi-token
     # Betalen via Worldline Direct (optioneel): haal de commentaartekens weg, ook bij modules hieronder, en zet de geheimen in backend.env.
     # payment-direct:
     #     url: https://payment.preprod.direct.worldline-solutions.com

@@ -54,7 +54,12 @@ internal class KoppelingWebClientFactory(
      */
     private val zonderRedirects = ReactorClientHttpConnector(HttpClient.create().followRedirect(false))
 
-    private fun basisBuilder() = webClientBuilder.clone().clientConnector(zonderRedirects)
+    /** De bufferlimiet staat hier bewust op 16 MB, zoals de oude clients; de Spring-standaard (256 KB) breekt een pagina taken, berichten of zaakdetails af. */
+    private fun basisBuilder() =
+        webClientBuilder
+            .clone()
+            .clientConnector(zonderRedirects)
+            .codecs { it.defaultCodecs().maxInMemorySize(MAX_BUFFER_BYTES) }
 
     fun webClient(
         modulenaam: String,
@@ -241,6 +246,7 @@ internal class KoppelingWebClientFactory(
 
     private companion object {
         val logger = KotlinLogging.logger {}
+        const val MAX_BUFFER_BYTES = 16 * 1024 * 1024
 
         /** IMF-fixdate (RFC 9110): tweecijferige dag, altijd Engelse namen en `GMT`. */
         val GCS_DATUM: DateTimeFormatter = DateTimeFormatter.ofPattern("EEE, dd MMM yyyy HH:mm:ss 'GMT'", Locale.US)

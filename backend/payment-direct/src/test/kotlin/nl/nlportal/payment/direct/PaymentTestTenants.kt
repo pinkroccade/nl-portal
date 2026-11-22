@@ -40,6 +40,7 @@ object PaymentTestTenants {
                     listOf(
                         TestTenants.geheim("api-geheim", oin) to "api-geheim-$geheim",
                         TestTenants.geheim("webhook-geheim", oin) to geheim,
+                        TestTenants.geheim("test-sleutel", oin) to "objecten-token",
                     )
                 }.toTypedArray(),
         )

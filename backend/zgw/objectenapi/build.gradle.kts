@@ -25,6 +25,7 @@ dependencies {
 
     implementation(Dependencies.kotlinCoroutines)
 
+    testImplementation(testFixtures(project(":core")))
     testImplementation(TestDependencies.springBootTest)
     testImplementation(TestDependencies.okHttpMockWebserver)
     testImplementation(TestDependencies.okHttp)

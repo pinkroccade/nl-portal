@@ -25,6 +25,9 @@ object TestHelper {
     val EXTENSIONS_JSON_PATH = "$.extensions"
     private val logger = KotlinLogging.logger {}
 
+    /** De basis-URL (met slash) van de nepserver van de testtenant; de bijlage-URL's in de testdata wijzen ernaar. */
+    private val OBJECTEN_BASIS: String = ObjectenTestServer.server.url("/").toString()
+
     fun WebTestClient.ResponseSpec.verifyOnlyDataExists(basePath: String): WebTestClient.BodyContentSpec =
         this
             .expectBody()
@@ -194,7 +197,7 @@ object TestHelper {
                 "data": {
                     "geopend": false,
                     "bijlages": [
-                        "http://localhost:10001/enkelvoudiginformatieobjecten/095be615-a8ad-4c33-8e9c-c7612fbf6c9f"
+                        "${OBJECTEN_BASIS}enkelvoudiginformatieobjecten/095be615-a8ad-4c33-8e9c-c7612fbf6c9f"
                     ],
                     "onderwerp": "Bericht over uw buurt.",
                     "referentie": "ZAAK-2024-0000000001",
@@ -230,7 +233,7 @@ object TestHelper {
                 "data": {
                     "geopend": true,
                     "bijlages": [
-                        "http://localhost:10001/enkelvoudiginformatieobjecten/095be615-a8ad-4c33-8e9c-c7612fbf6c9f"
+                        "${OBJECTEN_BASIS}enkelvoudiginformatieobjecten/095be615-a8ad-4c33-8e9c-c7612fbf6c9f"
                     ],
                     "onderwerp": "Bericht over uw buurt.",
                     "referentie": "ZAAK-2024-0000000001",
@@ -271,7 +274,7 @@ object TestHelper {
                         "data": {
                             "geopend": false,
                             "bijlages": [
-                                "http://localhost:10001/enkelvoudiginformatieobjecten/095be615-a8ad-4c33-8e9c-c7612fbf6c9f"
+                                "${OBJECTEN_BASIS}enkelvoudiginformatieobjecten/095be615-a8ad-4c33-8e9c-c7612fbf6c9f"
                             ],
                             "onderwerp": "Bericht over uw buurt.",
                             "referentie": "ZAAK-2024-0000000001",
@@ -303,7 +306,7 @@ object TestHelper {
                         "data": {
                             "geopend": false,
                             "bijlages": [
-                                "http://localhost:10001/enkelvoudiginformatieobjecten/095be615-a8ad-4c33-8e9c-c7612fbf6c9f"
+                                "${OBJECTEN_BASIS}enkelvoudiginformatieobjecten/095be615-a8ad-4c33-8e9c-c7612fbf6c9f"
                             ],
                             "onderwerp": "Bericht over uw buurt.",
                             "referentie": "ZAAK-2024-0000000001",
@@ -335,7 +338,7 @@ object TestHelper {
                         "data": {
                             "geopend": false,
                             "bijlages": [
-                                "http://localhost:10001/enkelvoudiginformatieobjecten/095be615-a8ad-4c33-8e9c-c7612fbf6c9f"
+                                "${OBJECTEN_BASIS}enkelvoudiginformatieobjecten/095be615-a8ad-4c33-8e9c-c7612fbf6c9f"
                             ],
                             "onderwerp": "Bericht over uw buurt.",
                             "referentie": "ZAAK-2024-0000000001",
@@ -367,7 +370,7 @@ object TestHelper {
                         "data": {
                             "geopend": false,
                             "bijlages": [
-                                "http://localhost:10001/enkelvoudiginformatieobjecten/095be615-a8ad-4c33-8e9c-c7612fbf6c9f"
+                                "${OBJECTEN_BASIS}enkelvoudiginformatieobjecten/095be615-a8ad-4c33-8e9c-c7612fbf6c9f"
                             ],
                             "onderwerp": "Bericht over uw buurt.",
                             "referentie": "ZAAK-2024-0000000001",
@@ -399,7 +402,7 @@ object TestHelper {
                         "data": {
                             "geopend": false,
                             "bijlages": [
-                                "http://localhost:10001/enkelvoudiginformatieobjecten/095be615-a8ad-4c33-8e9c-c7612fbf6c9f"
+                                "${OBJECTEN_BASIS}enkelvoudiginformatieobjecten/095be615-a8ad-4c33-8e9c-c7612fbf6c9f"
                             ],
                             "onderwerp": "Bericht over uw buurt.",
                             "referentie": "ZAAK-2024-0000000001",
@@ -431,7 +434,7 @@ object TestHelper {
                         "data": {
                             "geopend": false,
                             "bijlages": [
-                                "http://localhost:10001/enkelvoudiginformatieobjecten/095be615-a8ad-4c33-8e9c-c7612fbf6c9f"
+                                "${OBJECTEN_BASIS}enkelvoudiginformatieobjecten/095be615-a8ad-4c33-8e9c-c7612fbf6c9f"
                             ],
                             "onderwerp": "Bericht over uw buurt.",
                             "referentie": "ZAAK-2024-0000000001",
@@ -463,7 +466,7 @@ object TestHelper {
                         "data": {
                             "geopend": false,
                             "bijlages": [
-                                "http://localhost:10001/enkelvoudiginformatieobjecten/095be615-a8ad-4c33-8e9c-c7612fbf6c9f"
+                                "${OBJECTEN_BASIS}enkelvoudiginformatieobjecten/095be615-a8ad-4c33-8e9c-c7612fbf6c9f"
                             ],
                             "onderwerp": "Bericht over uw buurt.",
                             "referentie": "ZAAK-2024-0000000001",
@@ -495,7 +498,7 @@ object TestHelper {
                         "data": {
                             "geopend": false,
                             "bijlages": [
-                                "http://localhost:10001/enkelvoudiginformatieobjecten/095be615-a8ad-4c33-8e9c-c7612fbf6c9f"
+                                "${OBJECTEN_BASIS}enkelvoudiginformatieobjecten/095be615-a8ad-4c33-8e9c-c7612fbf6c9f"
                             ],
                             "onderwerp": "Bericht over uw buurt.",
                             "referentie": "ZAAK-2024-0000000001",
@@ -527,7 +530,7 @@ object TestHelper {
                         "data": {
                             "geopend": false,
                             "bijlages": [
-                                "http://localhost:10001/enkelvoudiginformatieobjecten/095be615-a8ad-4c33-8e9c-c7612fbf6c9f"
+                                "${OBJECTEN_BASIS}enkelvoudiginformatieobjecten/095be615-a8ad-4c33-8e9c-c7612fbf6c9f"
                             ],
                             "onderwerp": "Bericht over uw buurt.",
                             "referentie": "ZAAK-2024-0000000001",
@@ -559,7 +562,7 @@ object TestHelper {
                         "data": {
                             "geopend": false,
                             "bijlages": [
-                                "http://localhost:10001/enkelvoudiginformatieobjecten/095be615-a8ad-4c33-8e9c-c7612fbf6c9f"
+                                "${OBJECTEN_BASIS}enkelvoudiginformatieobjecten/095be615-a8ad-4c33-8e9c-c7612fbf6c9f"
                             ],
                             "onderwerp": "Bericht over uw buurt.",
                             "referentie": "ZAAK-2024-0000000001",
@@ -591,7 +594,7 @@ object TestHelper {
                         "data": {
                             "geopend": false,
                             "bijlages": [
-                                "http://localhost:10001/enkelvoudiginformatieobjecten/095be615-a8ad-4c33-8e9c-c7612fbf6c9f"
+                                "${OBJECTEN_BASIS}enkelvoudiginformatieobjecten/095be615-a8ad-4c33-8e9c-c7612fbf6c9f"
                             ],
                             "onderwerp": "Bericht over uw buurt.",
                             "referentie": "ZAAK-2024-0000000001",

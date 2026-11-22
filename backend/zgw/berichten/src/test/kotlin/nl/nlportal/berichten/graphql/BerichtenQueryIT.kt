@@ -19,11 +19,11 @@ import tools.jackson.databind.JsonNode
 import io.github.oshai.kotlinlogging.KLogger
 import io.github.oshai.kotlinlogging.KotlinLogging
 import nl.nlportal.berichten.BerichtenFlagFile
+import nl.nlportal.berichten.ObjectenTestServer
 import nl.nlportal.berichten.TestHelper
 import nl.nlportal.commonground.authentication.WithBurgerUser
 import nl.nlportal.core.modulegate.ModuleGate
 import nl.nlportal.core.util.Mapper
-import nl.nlportal.zgw.objectenapi.autoconfiguration.ObjectsApiClientConfig
 import okhttp3.mockwebserver.Dispatcher
 import okhttp3.mockwebserver.MockResponse
 import okhttp3.mockwebserver.MockWebServer
@@ -47,23 +47,19 @@ import org.springframework.test.context.DynamicPropertySource
 @TestInstance(TestInstance.Lifecycle.PER_METHOD)
 class BerichtenQueryIT(
     @Autowired private val httpGraphQlTester: HttpGraphQlTester,
-    @Autowired private val objectsApiClientConfig: ObjectsApiClientConfig,
     @Autowired private val moduleGate: ModuleGate,
 ) {
     lateinit var mockObjectenApi: MockWebServer
 
     @BeforeEach
     fun setUp() {
-        mockObjectenApi = MockWebServer()
+        mockObjectenApi = ObjectenTestServer.server
         setupMockObjectsApiServer()
-        mockObjectenApi.start(port = 10001)
-        objectsApiClientConfig.properties.url = mockObjectenApi.url("/").toUri()
     }
 
     @AfterEach
     internal fun tearDown() {
         BerichtenFlagFile.switchTo(true, moduleGate)
-        mockObjectenApi.shutdown()
     }
 
     @Test

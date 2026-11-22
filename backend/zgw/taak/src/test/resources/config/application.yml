@@ -10,9 +10,6 @@ nl-portal:
     config:
         objectenapi:
             enabled: true
-            properties:
-                url: http://localhost:8010
-                token: 0000000000000000000000000000000000000000
         form:
             properties:
                 form-definition-object-type-url: "http://localhost:8010/api/v1/objecttypes/form-definition-type"

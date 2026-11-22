@@ -33,8 +33,8 @@ dependencies {
     implementation(Dependencies.kotlinCoroutinesReactor)
     implementation("org.springframework.data:spring-data-commons")
 
-    testImplementation(testFixtures(project(":core")))
     testImplementation(project(":zgw:common-ground-authentication-test"))
+    testImplementation(testFixtures(project(":core")))
     testImplementation(TestDependencies.springBootTest)
     testImplementation(TestDependencies.springBootWebClientTest)
     testImplementation(TestDependencies.springBootTestWebClient)
