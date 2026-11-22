@@ -179,7 +179,6 @@ class HttpClientRules(
                 "nl.nlportal.besluiten..",
                 "nl.nlportal.openklant..",
                 "nl.nlportal.openproduct..",
-                "nl.nlportal.verificatie..",
             )
 
         /** De regels voor de echte code. */

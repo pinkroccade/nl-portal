@@ -23,7 +23,7 @@ package "functionaliteit" {
   [:zgw:openklant\n<size:10>omvang M, risico middel, tenancy: config, webclient</size>] as zgw_openklant #FBE3A6
   [:zgw:openproduct\n<size:10>omvang M, risico middel, tenancy: config, webclient</size>] as zgw_openproduct #FBE3A6
   [:zgw:taak\n<size:10>omvang S, risico middel</size>] as zgw_taak #FBE3A6
-  [:zgw:verificatie\n<size:10>omvang M, risico middel, tenancy: config, webclient</size>] as zgw_verificatie #FBE3A6
+  [:zgw:verificatie\n<size:10>omvang S, risico laag</size>] as zgw_verificatie #CFE8CF
   [:zgw:zaken\n<size:10>omvang S, risico laag</size>] as zgw_zaken #CFE8CF
   [:zgw:zaken-api\n<size:10>omvang M, risico middel</size>] as zgw_zaken_api #FBE3A6
 }

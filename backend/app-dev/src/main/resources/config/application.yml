@@ -64,6 +64,8 @@ nl-portal:
         "00000099000000000001.documenten-api-secret": ${OPENZAAK_NLPORTAL_SECRET}
         "00000099000000000001.objectenapi-token": Token ${OBJECTS_API_TOKEN}
         "00000099000000000001.documenten-dummydoc-secret": ${OPENZAAK_NLPORTAL_SECRET}
+        "00000099000000000001.verificatie-secret": ${OPENZAAK_NLPORTAL_SECRET}
+        "00000099000000000001.verificatie-apikey": ${OPENZAAK_NLPORTAL_SECRET}
     support:
         ping-endpoint:
             enabled: false
