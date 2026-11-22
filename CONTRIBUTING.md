@@ -161,6 +161,10 @@ carries the EUPL 1.2 header, in one of two forms
 Both templates live in `backend/licenses/`. Never remove a Ritense header by hand:
 the tooling would then put the PinkRoccade header on that file. Enforcement:
 
+- Any change: `mise run copyright:check` (part of `mise run lint`, own CI job) compares with the target branch:
+  a new source file needs the PinkRoccade header, and in a changed, moved or copied file the existing header
+  stays as it was (Ritense including its year; for PinkRoccade only the year may move).
+
 - Backend: `mise run backend:lint` (`./gradlew spotlessCheck`; CI-blocking, part
   of `check` / `build`). Apply locally with `./gradlew spotlessApply` from
   `backend/`; that also brings the PinkRoccade year up to date in files that

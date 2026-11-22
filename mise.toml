@@ -34,7 +34,7 @@ depends = ["backend:test", "frontend:test", "keycloak:test", "scripts:test", "pe
 
 [tasks.lint]
 description = "Lint, typecheck en formatteringscontrole van backend en frontend, plus de controles van workflows, mise-taken en Keycloak-versie"
-depends = ["backend:lint", "frontend:lint", "frontend:typecheck", "frontend:prettier", "perf:check", "workflows:lint", "mise:check-shell", "keycloak:check-version", "helm:lint"]
+depends = ["backend:lint", "frontend:lint", "frontend:typecheck", "frontend:prettier", "perf:check", "workflows:lint", "mise:check-shell", "keycloak:check-version", "helm:lint", "copyright:check"]
 
 [tasks.arch-check]
 description = "Bewaak de architectuurregels (backend: ArchUnit; frontend: package-boundaries valt onder frontend:lint)"
@@ -325,6 +325,10 @@ run = "npx --yes likec4@1.60.0 export png site/likec4 --output site/architectuur
 [tasks."mise:check-shell"]
 description = "Faal als een inline mise-taak bash-syntaxis gebruikt zonder shell = \"bash -c\" (faalt onder Windows)"
 run = "node scripts/check-mise-shell.mjs"
+
+[tasks."copyright:check"]
+description = "Faal als een nieuw bronbestand de PinkRoccade-kop mist of een bestaande kop (Ritense, jaartal incluis) is gewijzigd, t.o.v. origin/main of COPYRIGHT_BASE_REF (ADR 0015)"
+run = "node scripts/check-copyright-headers.mjs"
 
 [tasks."java:check-version"]
 description = "Faal als mise, Dockerfile, README of workflows een andere Java-versie noemen dan javaVersion in backend/gradle.properties"

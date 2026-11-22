@@ -1,7 +1,7 @@
 # Coding standards
 
 Oordeelregels die de reviewer toepast (`code-review`). Wat een tool kan afdwingen staat niet hier maar in de
-build en CI: formattering, copyright-headers, links, `mise run workflows:lint` (actionlint),
+build en CI: formattering, copyright-headers (ook welke kop een nieuw of gewijzigd bestand krijgt: `mise run copyright:check`), links, `mise run workflows:lint` (actionlint),
 `mise run mise:check-shell` en de architectuurtests. Een regel hier is een oordeel dat geen controle kan
 overnemen; ontstaat er een controle voor, dan verhuist de regel daarheen.
 
