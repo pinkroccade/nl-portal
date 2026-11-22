@@ -23,6 +23,7 @@ import nl.nlportal.core.testing.TestTenants
 import nl.nlportal.core.testing.VasteTenantWebFilter
 import nl.nlportal.documentenapi.configuratie.DocumentApiConfiguratie
 import nl.nlportal.documentenapi.configuratie.DocumentenApiConfiguratie
+import nl.nlportal.zgw.taak.tenant.TaakConfiguratie
 import okhttp3.mockwebserver.MockWebServer
 import org.springframework.context.annotation.Bean
 import org.springframework.context.annotation.Configuration
@@ -56,6 +57,7 @@ open class ObjectenTestTenantConfiguratie {
                     ),
                 modules =
                     mapOf(
+                        "taak" to TaakConfiguratie("http://localhost:8010/api/v1/objecttypes/3c24cab6-4346-4c7d-912b-e34a1e9e21bf"),
                         "documenten-api" to
                             DocumentenApiConfiguratie(
                                 standaardDocumentApi = "documenten-api",

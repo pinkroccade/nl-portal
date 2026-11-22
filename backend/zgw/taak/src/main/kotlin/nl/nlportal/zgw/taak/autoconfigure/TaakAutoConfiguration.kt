@@ -17,6 +17,7 @@ package nl.nlportal.zgw.taak.autoconfigure
 
 import nl.nlportal.commonground.authentication.AuthenticationMachtigingsDienstService
 import nl.nlportal.core.security.config.HttpSecurityConfigurer
+import nl.nlportal.core.tenancy.TenantDirectory
 import nl.nlportal.documentenapi.service.DocumentenApiService
 import nl.nlportal.documentenapi.service.VirusScanService
 import nl.nlportal.form.service.ObjectsApiFormDefinitionService
@@ -30,20 +31,18 @@ import nl.nlportal.zgw.taak.web.rest.TaakDocumentResource
 import org.springframework.boot.autoconfigure.AutoConfiguration
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty
-import org.springframework.boot.context.properties.EnableConfigurationProperties
 import org.springframework.context.annotation.Bean
 
 @AutoConfiguration
-@EnableConfigurationProperties(TaakConfig::class)
 @ConditionalOnProperty(prefix = "nl-portal.config", name = ["objectenapi.enabled", "taak.enabled"], havingValue = "true")
 class TaakAutoConfiguration {
     @Bean
     @ConditionalOnMissingBean(TaakService::class)
     fun taskService(
         objectsApiClient: ObjectsApiClient,
-        taakObjectConfig: TaakConfig,
+        tenantDirectory: TenantDirectory,
         authenticationMachtigingsService: AuthenticationMachtigingsDienstService,
-    ): TaakService = TaakService(objectsApiClient, taakObjectConfig.properties, authenticationMachtigingsService)
+    ): TaakService = TaakService(objectsApiClient, tenantDirectory, authenticationMachtigingsService)
 
     @Bean
     @ConditionalOnMissingBean(TaakQueryV2::class)

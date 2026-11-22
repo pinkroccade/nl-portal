@@ -25,11 +25,12 @@ import nl.nlportal.zgw.objectenapi.domain.ObjectSearchParameter
 import nl.nlportal.zgw.objectenapi.domain.ObjectsApiObject
 import nl.nlportal.zgw.objectenapi.domain.ResultPage
 import nl.nlportal.zgw.objectenapi.domain.UpdateObjectsApiObjectRequest
-import nl.nlportal.zgw.taak.autoconfigure.TaakConfig.TaakConfigProperties
+import nl.nlportal.core.tenancy.TenantDirectory
 import nl.nlportal.zgw.taak.domain.TaakIdentificatie
 import nl.nlportal.zgw.taak.domain.TaakObjectV2
 import nl.nlportal.zgw.taak.domain.TaakStatus
 import nl.nlportal.zgw.taak.domain.TaakV2
+import nl.nlportal.zgw.taak.tenant.TaakConfiguratie
 import nl.nlportal.zgw.taak.graphql.TaakPageV2
 import org.springframework.http.HttpStatus
 import org.springframework.web.reactive.function.client.WebClientResponseException
@@ -39,7 +40,7 @@ import tools.jackson.core.type.TypeReference
 
 open class TaakService(
     private val objectsApiClient: ObjectsApiClient,
-    private val taakConfigProperties: TaakConfigProperties,
+    private val tenantDirectory: TenantDirectory,
     val authenticationMachtigingsDienstService: AuthenticationMachtigingsDienstService,
 ) {
     suspend fun getTaken(
@@ -76,13 +77,15 @@ open class TaakService(
         status: TaakStatus? = null,
         title: String? = null,
     ): TaakPageV2 {
+        // Buiten de try: een ontbrekende tenant of taakconfiguratie faalt gesloten en is geen lege pagina.
+        val objectTypeUrl = tenantDirectory.module<TaakConfiguratie>().objectTypeUrl
         try {
             return getTakenResultPageV2<TaakObjectV2>(
                 pageNumber,
                 pageSize,
                 authentication,
                 zaakUUID,
-                taakConfigProperties.objectTypeUrl,
+                objectTypeUrl,
                 status,
                 title,
             ).let { TaakPageV2.fromResultPage(pageNumber, pageSize, it) }
