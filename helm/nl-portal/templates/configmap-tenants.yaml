@@ -1,0 +1,13 @@
+{{- if and .Values.tenancy.tenants (not .Values.tenancy.existingConfigMap) }}
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "nl-portal.tenantsConfigMap" . }}
+  labels:
+    {{- include "nl-portal.labels" (dict "ctx" . "component" "backend") | nindent 4 }}
+data:
+  {{- range $file, $content := .Values.tenancy.tenants }}
+  {{ $file }}: |
+    {{- $content | nindent 4 }}
+  {{- end }}
+{{- end }}

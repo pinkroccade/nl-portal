@@ -1,0 +1,14 @@
+#!/usr/bin/env bash
+#MISE description="Lint de Helm-chart nl-portal: helm lint --strict en kubeconform over elk scenario in helm/nl-portal/ci (values.schema.json wordt daarbij toegepast)"
+set -euo pipefail
+
+cd "$(dirname "$0")/../.."
+CHART=helm/nl-portal
+# De Kubernetes-versie waartegen de gerenderde manifests worden gevalideerd (de laatste die Haven ondersteunt).
+KUBERNETES_VERSION="${HELM_KUBERNETES_VERSION:-1.31.0}"
+
+for values in "$CHART"/ci/*.yaml; do
+    echo "== $values"
+    helm lint --strict "$CHART" -f "$values"
+    helm template lint-test "$CHART" -f "$values" | kubeconform -strict -summary -kubernetes-version "$KUBERNETES_VERSION"
+done

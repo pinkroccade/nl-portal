@@ -1,0 +1,99 @@
+suite: tenantbestanden, sleutels, checksums en frontend
+templates:
+  - configmap-backend.yaml
+  - configmap-frontend.yaml
+  - configmap-tenants.yaml
+  - service-backend.yaml
+  - service-frontend.yaml
+  - deployment-backend.yaml
+  - deployment-frontend.yaml
+  - serviceaccount.yaml
+  - ingress.yaml
+values:
+  - ../ci/full-values.yaml
+release:
+  name: rel
+tests:
+  - it: de tenantbestanden komen in een ConfigMap onder hun bestandsnaam
+    template: configmap-tenants.yaml
+    asserts:
+      - equal:
+          path: metadata.name
+          value: rel-portaal-tenants
+      - matchRegex:
+          path: data["00000099000000000001.yaml"]
+          pattern: "Gemeente De Bosrand"
+      - exists:
+          path: data["base.yaml"]
+  - it: faalt zonder tenantbestanden
+    template: deployment-backend.yaml
+    values:
+      - ../ci/minimal-values.yaml
+    set:
+      tenancy.tenants: null
+    asserts:
+      - failedTemplate:
+          errorPattern: "tenancy.tenants"
+  - it: een bestaande ConfigMap vervangt de eigen ConfigMap
+    values:
+      - ../ci/minimal-values.yaml
+    set:
+      tenancy.existingConfigMap: mijn-tenants
+      tenancy.tenants: null
+    asserts:
+      - hasDocuments:
+          count: 0
+        template: configmap-tenants.yaml
+      - contains:
+          path: spec.template.spec.volumes
+          content:
+            name: tenants
+            configMap:
+              name: mijn-tenants
+        template: deployment-backend.yaml
+  - it: de clientsleutels worden per OIN gemount onder de sleutelmap
+    template: deployment-backend.yaml
+    asserts:
+      - contains:
+          path: spec.template.spec.containers[0].volumeMounts
+          content:
+            name: sleutels
+            mountPath: /etc/nl-portal/sleutels
+            readOnly: true
+      - equal:
+          path: spec.template.spec.volumes[2].projected.sources[0].secret.items[0].path
+          value: 00000099000000000001/clientsleutel.jwk.json
+      - equal:
+          path: spec.template.spec.volumes[2].projected.sources[1].secret.items[0]
+          value:
+            key: sleutel.json
+            path: 00000099000000000002/clientsleutel.jwk.json
+  - it: de backend-pods herstarten bij een wijziging van config, tenantbestanden, flags of de secretversie
+    template: deployment-backend.yaml
+    asserts:
+      - isNotEmpty:
+          path: spec.template.metadata.annotations["checksum/config"]
+      - isNotEmpty:
+          path: spec.template.metadata.annotations["checksum/tenants"]
+      - isNotEmpty:
+          path: spec.template.metadata.annotations["checksum/flags"]
+      - equal:
+          path: spec.template.metadata.annotations["nl-portal.pinkroccade.nl/secret-version"]
+          value: "2026-11-22"
+  - it: de frontend wijst nginx naar de backend-Service
+    template: configmap-frontend.yaml
+    asserts:
+      - equal:
+          path: data.NL_PORTAL_BACKEND_UPSTREAM
+          value: rel-portaal-backend:8080
+      - equal:
+          path: data.GRAPHQL_URI
+          value: /graphql
+      - equal:
+          path: data.IDLE_TIMEOUT_MINUTES
+          value: "15"
+  - it: de frontend-pods herstarten bij een configwijziging
+    template: deployment-frontend.yaml
+    asserts:
+      - isNotEmpty:
+          path: spec.template.metadata.annotations["checksum/config"]

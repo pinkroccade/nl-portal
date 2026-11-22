@@ -4,6 +4,7 @@ Voor ops en beheerders die NL Portal installeren en inrichten.
 
 - [Opzetten NL Portal](./opzetten-nl-portal.md)
 - [Deployment guide](./deployment-guide.md)
+- [Deployen op Kubernetes met Helm](./kubernetes-helm.md)
 - [Feature flags: referentie](./feature-flags.md)
 - [Module dependency guide](./module-dependency-guide.md)
 - [Connectiviteit](./connectiviteit.md)

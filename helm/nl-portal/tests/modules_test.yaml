@@ -1,0 +1,123 @@
+suite: modules en afhankelijkheden
+templates:
+  - configmap-backend.yaml
+  - configmap-frontend.yaml
+  - configmap-tenants.yaml
+  - service-backend.yaml
+  - service-frontend.yaml
+  - deployment-backend.yaml
+  - deployment-frontend.yaml
+  - serviceaccount.yaml
+  - ingress.yaml
+values:
+  - ../ci/minimal-values.yaml
+tests:
+  - it: zet standaard geen module aan
+    template: configmap-backend.yaml
+    documentIndex: 0
+    asserts:
+      - notExists:
+          path: data.NLPORTAL_CONFIG_ZAKENAPI_ENABLED
+      - notExists:
+          path: data.NLPORTAL_CONFIG_TAAK_ENABLED
+  - it: taak zonder objectenapi faalt
+    template: deployment-backend.yaml
+    set:
+      backend.modules.taak.enabled: true
+    asserts:
+      - failedTemplate:
+          errorMessage: "backend.modules.taak.enabled needs backend.modules.objectenapi.enabled (see the module dependencies in the chart README)"
+  - it: berichten zonder documentenapis faalt
+    template: deployment-backend.yaml
+    set:
+      backend.modules.berichten.enabled: true
+      backend.modules.objectenapi.enabled: true
+    asserts:
+      - failedTemplate:
+          errorPattern: "needs backend.modules.documentenapis.enabled"
+  - it: zakenapi zonder catalogiapi faalt
+    template: deployment-backend.yaml
+    set:
+      backend.modules.zakenapi.enabled: true
+    asserts:
+      - failedTemplate:
+          errorPattern: "needs backend.modules.catalogiapi.enabled"
+  - it: taak met objectenapi rendert beide schakelaars
+    template: configmap-backend.yaml
+    documentIndex: 0
+    set:
+      backend.modules.taak.enabled: true
+      backend.modules.objectenapi.enabled: true
+    asserts:
+      - equal:
+          path: data.NLPORTAL_CONFIG_TAAK_ENABLED
+          value: "true"
+      - equal:
+          path: data.NLPORTAL_CONFIG_OBJECTENAPI_ENABLED
+          value: "true"
+  - it: een module met verplichte URL faalt zonder die URL
+    template: deployment-backend.yaml
+    set:
+      backend.modules.besluitenapi.enabled: true
+      backend.modules.besluitenapi.clientId: nl-portal
+    asserts:
+      - failedTemplate:
+          errorPattern: "besluitenapi.url is required"
+  - it: een ongeldige URL wordt door het schema geweigerd
+    template: deployment-backend.yaml
+    set:
+      backend.modules.dmn.url: geen-url
+    asserts:
+      - failedTemplate:
+          errorPattern: "dmn"
+  - it: een onbekende module wordt door het schema geweigerd
+    template: deployment-backend.yaml
+    set:
+      backend.modules.onbekend.enabled: true
+    asserts:
+      - failedTemplate:
+          errorPattern: "onbekend"
+  - it: ClamAV en OpenKlant krijgen hun niet-geheime instellingen
+    template: configmap-backend.yaml
+    documentIndex: 0
+    values:
+      - ../ci/full-values.yaml
+    asserts:
+      - equal:
+          path: data.NLPORTAL_CONFIG_VIRUSSCAN_CLAMAV_PROPERTIES_HOSTNAME
+          value: clamav.example.svc
+      - equal:
+          path: data.NLPORTAL_CONFIG_VIRUSSCAN_CLAMAV_PROPERTIES_PORT
+          value: "3310"
+      - equal:
+          path: data.NLPORTAL_CONFIG_OPENKLANT2_PROPERTIES_KLANTINTERACTIESAPIURL
+          value: https://klant.example.nl/klantinteracties/api/v1
+  - it: feature-flags komen als bestand in een eigen ConfigMap en de backend wijst ernaar
+    template: configmap-backend.yaml
+    values:
+      - ../ci/full-values.yaml
+    asserts:
+      - equal:
+          path: data.NLPORTAL_FEATUREFLAGS_FILE
+          value: /etc/nl-portal/flags/nl-portal.flagd.json
+        documentIndex: 0
+      - matchRegex:
+          path: data["nl-portal.flagd.json"]
+          pattern: "ops.documentenapis.enabled"
+        documentIndex: 1
+  - it: geen flags geeft geen flagbestand
+    template: configmap-backend.yaml
+    asserts:
+      - hasDocuments:
+          count: 1
+      - notExists:
+          path: data.NLPORTAL_FEATUREFLAGS_FILE
+  - it: frontend-eigenschappen worden NLPORTAL_FRONTEND_PROPERTIES_*
+    template: configmap-backend.yaml
+    documentIndex: 0
+    values:
+      - ../ci/full-values.yaml
+    asserts:
+      - equal:
+          path: data.NLPORTAL_FRONTEND_PROPERTIES_MESSAGECOUNTPOLLINGINTERVAL
+          value: "30000"

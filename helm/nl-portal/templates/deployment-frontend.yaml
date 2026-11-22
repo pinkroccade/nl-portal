@@ -1,0 +1,93 @@
+{{- $f := .Values.frontend -}}
+{{- $ctx := dict "ctx" . "component" "frontend" -}}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "nl-portal.componentName" $ctx }}
+  labels:
+    {{- include "nl-portal.labels" $ctx | nindent 4 }}
+spec:
+  replicas: {{ $f.replicaCount }}
+  revisionHistoryLimit: {{ $f.revisionHistoryLimit }}
+  selector:
+    matchLabels:
+      {{- include "nl-portal.selectorLabels" $ctx | nindent 6 }}
+  template:
+    metadata:
+      annotations:
+        checksum/config: {{ include (print $.Template.BasePath "/configmap-frontend.yaml") . | sha256sum }}
+        {{- with $f.podAnnotations }}
+        {{- toYaml . | nindent 8 }}
+        {{- end }}
+      labels:
+        {{- include "nl-portal.labels" $ctx | nindent 8 }}
+        {{- with $f.podLabels }}
+        {{- toYaml . | nindent 8 }}
+        {{- end }}
+    spec:
+      serviceAccountName: {{ include "nl-portal.serviceAccountName" . }}
+      automountServiceAccountToken: {{ .Values.serviceAccount.automountServiceAccountToken }}
+      {{- include "nl-portal.imagePullSecrets" . | nindent 6 }}
+      securityContext:
+        {{- toYaml $f.podSecurityContext | nindent 8 }}
+      {{- with $f.priorityClassName }}
+      priorityClassName: {{ . }}
+      {{- end }}
+      terminationGracePeriodSeconds: {{ $f.terminationGracePeriodSeconds }}
+      containers:
+        - name: frontend
+          image: {{ include "nl-portal.image" (dict "ctx" . "image" $f.image) | quote }}
+          imagePullPolicy: {{ $f.image.pullPolicy }}
+          securityContext:
+            {{- toYaml $f.containerSecurityContext | nindent 12 }}
+          ports:
+            - name: http
+              containerPort: 8081
+              protocol: TCP
+          envFrom:
+            - configMapRef:
+                name: {{ include "nl-portal.componentName" $ctx }}
+          {{- with $f.extraEnv }}
+          env:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+          livenessProbe:
+            httpGet:
+              path: /
+              port: http
+            {{- toYaml $f.probes.liveness | nindent 12 }}
+          readinessProbe:
+            httpGet:
+              path: /
+              port: http
+            {{- toYaml $f.probes.readiness | nindent 12 }}
+          resources:
+            {{- toYaml $f.resources | nindent 12 }}
+          volumeMounts:
+            # The root filesystem is read-only: the runtime config.js and the nginx temp files go to /tmp, the rendered
+            # nginx configuration (from the envsubst template of the image) to conf.d.
+            - name: tmp
+              mountPath: /tmp
+            - name: nginx-conf
+              mountPath: /etc/nginx/conf.d
+      volumes:
+        - name: tmp
+          emptyDir: {}
+        - name: nginx-conf
+          emptyDir: {}
+      {{- with $f.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with $f.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with $f.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with $f.topologySpreadConstraints }}
+      topologySpreadConstraints:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}

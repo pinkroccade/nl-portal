@@ -1,0 +1,79 @@
+global:
+  imageRegistry: registry.example.nl
+  imagePullSecrets:
+    - regcred
+nameOverride: portaal
+serviceAccount:
+  create: true
+  annotations:
+    example.nl/role: nl-portal
+tenancy:
+  tenants:
+    base.yaml: |
+      omgevingstype: productie
+    "00000099000000000001.yaml": |
+      oin: "00000099000000000001"
+      naam: Gemeente De Bosrand
+      domeinen:
+        - debosrand.example.nl
+  keys:
+    - oin: "00000099000000000001"
+      existingSecret: nl-portal-key-00000099000000000001
+    - oin: "00000099000000000002"
+      existingSecret: nl-portal-key-00000099000000000002
+      key: sleutel.json
+backend:
+  replicaCount: 2
+  existingSecret: nl-portal-backend
+  secretVersion: "2026-11-22"
+  keycloakBrokerUrl: https://login.example.nl
+  trustedProxies: [10.0.0.0/8]
+  redis:
+    host: redis.example.svc
+    username: nlportal
+  beheer:
+    enabled: true
+  cors:
+    allowedOrigins: [https://debosrand.example.nl]
+  featureFlags:
+    flags:
+      ops.documentenapis.enabled:
+        state: ENABLED
+        variants: {"on": true, "off": false}
+        defaultVariant: "on"
+  frontendProperties:
+    messageCountPollingInterval: 30000
+  modules:
+    zakenapi: {enabled: true}
+    catalogiapi: {enabled: true}
+    documentenapis: {enabled: true}
+    objectenapi: {enabled: true}
+    besluitenapi: {enabled: true, url: https://zaken.example.nl, clientId: nl-portal}
+    openklant2:
+      enabled: true
+      contactgegevensApiUrl: https://klant.example.nl/contactgegevens/api/v1
+      klantinteractiesApiUrl: https://klant.example.nl/klantinteracties/api/v1
+    openproduct:
+      enabled: true
+      productApiUrl: https://product.example.nl/producten/api/v1
+      productTypeApiUrl: https://product.example.nl/producttypen/api/v1
+    haalcentraalBrp: {enabled: true}
+    clamav: {enabled: true, hostname: clamav.example.svc}
+    taak: {enabled: true}
+    berichten: {enabled: true}
+    formulieren:
+      enabled: true
+      formDefinitionObjectTypeUrl: https://objecten.example.nl/api/v2/objecttypes/4b5f4fba-0746-11ed-b939-0242ac120002
+  extraEnv:
+    - name: SPRING_PROFILES_ACTIVE
+      value: extra
+frontend:
+  replicaCount: 2
+  idleTimeoutMinutes: 15
+ingress:
+  enabled: true
+  className: nginx
+  hosts: [debosrand.example.nl, anderegemeente.example.nl]
+  tls:
+    - secretName: nl-portal-tls
+      hosts: [debosrand.example.nl, anderegemeente.example.nl]

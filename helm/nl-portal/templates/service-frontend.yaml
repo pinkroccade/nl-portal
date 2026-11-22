@@ -1,0 +1,20 @@
+{{- $s := .Values.frontend.service }}
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "nl-portal.componentName" (dict "ctx" . "component" "frontend") }}
+  labels:
+    {{- include "nl-portal.labels" (dict "ctx" . "component" "frontend") | nindent 4 }}
+  {{- with $s.annotations }}
+  annotations:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+spec:
+  type: {{ $s.type }}
+  ports:
+    - name: http
+      port: {{ $s.port }}
+      targetPort: http
+      protocol: TCP
+  selector:
+    {{- include "nl-portal.selectorLabels" (dict "ctx" . "component" "frontend") | nindent 4 }}
