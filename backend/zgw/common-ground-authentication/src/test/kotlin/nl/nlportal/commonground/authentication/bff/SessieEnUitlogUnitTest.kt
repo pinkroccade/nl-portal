@@ -40,13 +40,28 @@ import java.net.URLDecoder
 import java.nio.file.Path
 import java.time.Duration
 
-/** Het demo-tenantbestand heeft `modules.brp`, `modules.zakenapi` en `modules.documenten-api`; de modules zelf zitten niet in deze module, dus minimale bijdragen voor de loader. */
+/** Het demo-tenantbestand heeft `modules.brp`, `modules.zakenapi`, `modules.documenten-api`, `modules.taak`, `modules.berichten` en `modules.verificatie`; de modules zelf zitten niet in deze module, dus minimale bijdragen voor de loader. */
 data class BrpConfiguratieVoorTest(
     val toegestaneWoonplaatsenBewoning: List<String> = emptyList(),
 )
 
 data class ZakenApiConfiguratieVoorTest(
     val nnpKvkQueryIdentificatoren: Boolean = false,
+)
+
+data class TaakConfiguratieVoorTest(
+    val objectTypeUrl: String,
+)
+
+data class BerichtenConfiguratieVoorTest(
+    val berichtObjectTypeUrl: String,
+)
+
+data class VerificatieConfiguratieVoorTest(
+    val apiKey: String? = null,
+    val templateIdTelefoonnummer: String? = null,
+    val templateIdEmail: String? = null,
+    val typenMetVerificatie: List<String> = emptyList(),
 )
 
 data class DocumentenApiConfiguratieVoorTest(
@@ -64,6 +79,21 @@ data class DocumentApiConfiguratieVoorTest(
 private object DocumentenApiVoorTest : TenantModuleConfiguratie<DocumentenApiConfiguratieVoorTest> {
     override val naam = "documenten-api"
     override val klasse = DocumentenApiConfiguratieVoorTest::class
+}
+
+private object TaakVoorTest : TenantModuleConfiguratie<TaakConfiguratieVoorTest> {
+    override val naam = "taak"
+    override val klasse = TaakConfiguratieVoorTest::class
+}
+
+private object BerichtenVoorTest : TenantModuleConfiguratie<BerichtenConfiguratieVoorTest> {
+    override val naam = "berichten"
+    override val klasse = BerichtenConfiguratieVoorTest::class
+}
+
+private object VerificatieVoorTest : TenantModuleConfiguratie<VerificatieConfiguratieVoorTest> {
+    override val naam = "verificatie"
+    override val klasse = VerificatieConfiguratieVoorTest::class
 }
 
 private object ZakenApiVoorTest : TenantModuleConfiguratie<ZakenApiConfiguratieVoorTest> {
@@ -87,7 +117,7 @@ class SessieEnUitlogUnitTest {
     private val store = InMemoryWebSessionStore().also { it.setClock(klok) }
     private val idResolver = CookieWebSessionIdResolver().also { it.cookieName = BffNamen.SESSIE_COOKIE }
     private val demo: TenantDefinition =
-        TenantFileLoader(modules = TenantModules.van(listOf(BrpVoorTest, ZakenApiVoorTest, DocumentenApiVoorTest)))
+        TenantFileLoader(modules = TenantModules.van(listOf(BrpVoorTest, ZakenApiVoorTest, DocumentenApiVoorTest, TaakVoorTest, BerichtenVoorTest, VerificatieVoorTest)))
             .load(Path.of("../../../docker-compose/imports/tenants"))
             .also { assertThat(it.violations).isEmpty() }
             .tenants
