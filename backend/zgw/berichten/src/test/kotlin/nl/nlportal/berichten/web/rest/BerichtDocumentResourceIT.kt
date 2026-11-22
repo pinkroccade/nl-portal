@@ -20,7 +20,6 @@ import nl.nlportal.berichten.ObjectenTestServer
 import nl.nlportal.berichten.TestHelper
 import nl.nlportal.commonground.authentication.WithBurgerUser
 import nl.nlportal.core.modulegate.ModuleGate
-import nl.nlportal.documentenapi.client.DocumentApisConfig
 import okhttp3.mockwebserver.Dispatcher
 import okhttp3.mockwebserver.MockResponse
 import okhttp3.mockwebserver.MockWebServer
@@ -41,7 +40,6 @@ import org.springframework.test.web.reactive.server.WebTestClient
 @TestInstance(TestInstance.Lifecycle.PER_METHOD)
 class BerichtDocumentResourceIT(
     @Autowired private val webTestClient: WebTestClient,
-    @Autowired private val documentApisConfig: DocumentApisConfig,
     @Autowired private val moduleGate: ModuleGate,
 ) {
     lateinit var mockServer: MockWebServer
@@ -50,7 +48,6 @@ class BerichtDocumentResourceIT(
     fun setUp() {
         mockServer = ObjectenTestServer.server
         setupDispatcher()
-        documentApisConfig.properties.getConfig("openzaak").url = mockServer.url("/").toString()
     }
 
     @AfterEach

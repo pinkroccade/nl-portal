@@ -7,6 +7,12 @@ domeinen:
 thema:
     titel: Mijn De Bosrand
 koppelingen:
+    documenten-api:
+        url: http://localhost:56789/documenten/api/v1
+        auth:
+            type: zgw-jwt
+            clientId: test-client
+            secret: 00000099000000000001.documenten-api-secret
     brp:
         url: http://localhost:56789/haalcentraal/api/brp
         leverancier: Haal Centraal BRP-mock
@@ -40,6 +46,14 @@ koppelingen:
             clientId: test-api-sleutel
             secret: 00000099000000000001.payment-direct-api-geheim
 modules:
+    documenten-api:
+        standaardDocumentApi: documenten-api
+        documentApis:
+            documenten-api:
+                rsin: "051845623"
+                documentTypeUrl: http://localhost:56789/catalogi/api/v1/informatieobjecttypen/00000000-0000-0000-0000-000000000000
+        vertrouwelijkheidsaanduidingWitlijst: [openbaar, beperkt_openbaar, intern, zaakvertrouwelijk, vertrouwelijk, confidentieel, geheim, zeer_geheim]
+        statusWitlijst: [ter_vaststelling, in_bewerking, definitief, gearchiveerd]
     brp:
         # Doelbinding BRP per gemeente; leeg of weglaten geeft de standaardvelden en alle woonplaatsen.
         toegestaneWoonplaatsenBewoning: []

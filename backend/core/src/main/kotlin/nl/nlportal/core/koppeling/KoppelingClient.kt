@@ -16,11 +16,16 @@
 package nl.nlportal.core.koppeling
 
 import io.github.oshai.kotlinlogging.KotlinLogging
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.buffer
+import kotlinx.coroutines.reactive.asFlow
 import kotlinx.coroutines.reactor.awaitSingleOrNull
 import nl.nlportal.core.tenancy.Oin
 import nl.nlportal.core.tenancy.TenantContext
 import org.springframework.core.ParameterizedTypeReference
 import org.springframework.core.codec.DecodingException
+import org.springframework.core.io.buffer.DataBuffer
+import org.springframework.core.io.buffer.DataBufferUtils
 import org.springframework.http.HttpHeaders
 import org.springframework.http.HttpMethod
 import org.springframework.http.HttpStatusCode
@@ -29,6 +34,7 @@ import org.springframework.web.reactive.function.UnsupportedMediaTypeException
 import org.springframework.web.reactive.function.client.ClientResponse
 import org.springframework.web.reactive.function.client.WebClient
 import reactor.core.publisher.Mono
+import reactor.core.publisher.Sinks
 import tools.jackson.core.JacksonException
 import tools.jackson.databind.JsonNode
 import tools.jackson.databind.json.JsonMapper
@@ -123,6 +129,64 @@ class KoppelingClient internal constructor(
         uitvoeren(HttpMethod.DELETE, pad, emptyMap(), headers, null) { it.releaseBody().thenReturn(Unit) }
     }
 
+    /**
+     * Een groot antwoord (een document) als stroom van [DataBuffer]s, zonder het geheel in het geheugen te laden. Dezelfde garanties
+     * als een gewone aanroep: tenantcontrole, host-binding, geen redirects, geen eigen autorisatieheaders en één foutvorm (een foutstatus
+     * wordt een [KoppelingException] zonder de body van de bron).
+     *
+     * Een stroom heeft een eigen limiet (`maxGelijktijdigeStromen`) naast die van de metadata-aanroepen. De circuit breaker en de
+     * timeout beoordelen de bron tot en met de eerste respons; daarna geldt alleen een stiltetimeout tussen twee brokken (ook als de
+     * afnemer niet afneemt). Zo'n timeout of een annulering telt niet als storing van de bron; de plek in de limiet komt wel vrij.
+     *
+     * Een buffer die Reactor nog vasthoudt bij annuleren of een fout wordt vrijgegeven. Tot [STROOM_BUFFER] brokken in de brug naar de
+     * [Flow] gaan bij annuleren verloren zonder vrijgave (vervolgwerk). De aanroeper geeft elke ontvangen buffer vrij
+     * (bijvoorbeeld met `DataBufferUtils.release`) of geeft de stroom door aan een antwoord dat dat doet.
+     */
+    suspend fun getStream(
+        pad: String,
+        accept: MediaType? = null,
+        query: Map<String, List<String>> = emptyMap(),
+        headers: Map<String, String> = emptyMap(),
+    ): Flow<DataBuffer> {
+        val doel = voorbereiden(pad, query, headers)
+        val stroom =
+            bewaker.beschermdStroom { fase ->
+                val respons = Sinks.empty<Void>()
+                webClient
+                    .get()
+                    .uri(doel)
+                    .headers { koppen -> headers.forEach { (naam, waarde) -> koppen.set(naam, waarde) } }
+                    // Altijd een eigen Accept: een standaard van de koppeling (application/json) past niet bij een download.
+                    .accept(accept ?: MediaType.ALL)
+                    .exchangeToFlux { antwoord ->
+                        if (antwoord.statusCode().is2xxSuccessful) {
+                            fase.koptekstOntvangen()
+                            respons.tryEmitEmpty()
+                            antwoord.bodyToFlux(DataBuffer::class.java)
+                        } else {
+                            foutAntwoord<DataBuffer>(antwoord).flux()
+                        }
+                    }.timeout(eersteResponsTimeout(respons.asMono())) { Mono.delay(bewaker.timeout) }
+                    .doOnDiscard(DataBuffer::class.java) { DataBufferUtils.release(it) }
+                    .onErrorMap { zetOm(it) }
+            }
+        return stroom.asFlow().buffer(STROOM_BUFFER)
+    }
+
+    /** Eerst de tijd tot de eerste respons, daarna de stilte tot het eerste brok; de timeout van de eerste respons loopt niet door. */
+    private fun eersteResponsTimeout(respons: Mono<Void>): Mono<Long> =
+        Mono
+            .firstWithSignal(
+                Mono.delay(bewaker.timeout).map { true },
+                respons.then(Mono.just(false)),
+            ).flatMap { teLaat -> if (teLaat) Mono.just(0L) else Mono.delay(bewaker.timeout) }
+
+    /** Of [url] een absolute URL onder de basis-URL van deze koppeling is (host-binding); er wordt niets aangeroepen. */
+    fun beheertUrl(url: String): Boolean {
+        val absoluut = runCatching { URI(url).isAbsolute }.getOrDefault(false)
+        return absoluut && runCatching { HostBinding.oplossen(basis, url) }.isSuccess
+    }
+
     private suspend fun <T : Any> uitvoeren(
         methode: HttpMethod,
         pad: String,
@@ -131,13 +195,7 @@ class KoppelingClient internal constructor(
         body: Any?,
         succes: (ClientResponse) -> Mono<T>,
     ): T {
-        // Een client hoort bij één tenant: een bewaarde client mag nooit voor een andere tenant aanroepen.
-        check(TenantContext.current() == oin) { "Koppeling '$naam' hoort bij een andere tenant dan de huidige" }
-        val verboden = if (eigenHeader == null) VERBODEN_HEADERS else VERBODEN_HEADERS + eigenHeader.lowercase()
-        headers.keys.firstOrNull { it.lowercase() in verboden }?.let {
-            throw KoppelingConfiguratieException("Header '$it' hoort bij de koppeling en kan niet per aanroep worden gezet")
-        }
-        val doel = bind(pad, query)
+        val doel = voorbereiden(pad, query, headers)
         val aanroep =
             webClient
                 .method(methode)
@@ -152,6 +210,21 @@ class KoppelingClient internal constructor(
                 .timeout(bewaker.timeout)
                 .onErrorMap { zetOm(it) }
         return bewaker.beschermd(aanroep).awaitSingleOrNull() ?: throw fout(KoppelingFoutsoort.ANTWOORD_ONBRUIKBAAR, null)
+    }
+
+    /** De controles vooraf, gedeeld door elke aanroep: de tenant, de headers en de host-binding; geeft het doel. */
+    private suspend fun voorbereiden(
+        pad: String,
+        query: Map<String, List<String>>,
+        headers: Map<String, String>,
+    ): URI {
+        // Een client hoort bij één tenant: een bewaarde client mag nooit voor een andere tenant aanroepen.
+        check(TenantContext.current() == oin) { "Koppeling '$naam' hoort bij een andere tenant dan de huidige" }
+        val verboden = if (eigenHeader == null) VERBODEN_HEADERS else VERBODEN_HEADERS + eigenHeader.lowercase()
+        headers.keys.firstOrNull { it.lowercase() in verboden }?.let {
+            throw KoppelingConfiguratieException("Header '$it' hoort bij de koppeling en kan niet per aanroep worden gezet")
+        }
+        return bind(pad, query)
     }
 
     private fun bind(
@@ -250,6 +323,9 @@ class KoppelingClient internal constructor(
     companion object {
         /** Het maximum aantal pagina's dat [getAllPages] volgt; een bron die blijft doorverwijzen geeft daarna een fout. */
         const val MAX_PAGINAS = 100
+
+        /** Brokken die tussen de bron en de afnemer mogen wachten; klein, want bij annuleren gaan ze verloren. */
+        const val STROOM_BUFFER = 4
 
         private val logger = KotlinLogging.logger {}
         private val MAPPER: JsonMapper = JsonMapper.builder().build()

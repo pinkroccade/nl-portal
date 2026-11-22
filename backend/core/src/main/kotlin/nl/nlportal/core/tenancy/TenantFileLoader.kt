@@ -259,7 +259,7 @@ class TenantFileLoader(
                 geheimVerwijzingen(configuratie, pad).filterNot { (_, verwijzing) -> verwijzing.valtOnder(bestand.oin) }.forEach { (geheimPad, _) ->
                     violations += buitenNaamruimte(geheimPad).alsViolation(naam)
                 }
-                modules.valideer(module, configuratie, ModuleContext(bestand.koppelingen.keys, authHeaders(bestand))).forEach {
+                modules.valideer(module, configuratie, ModuleContext(bestand.koppelingen.keys, authHeaders(bestand), bestand.koppelingen.mapValues { it.value.url })).forEach {
                     violations += TenantFileViolation(Code.MODULE_CONFIGURATIE_ONGELDIG, naam, "$pad.${it.pad}".trimEnd('.'), it.bericht)
                 }
                 module to configuratie

@@ -17,8 +17,12 @@ package nl.nlportal.berichten
 
 import nl.nlportal.core.tenancy.GeheimenBron
 import nl.nlportal.core.tenancy.TenantDirectory
+import nl.nlportal.core.tenancy.TenantKoppelingAuth
+import nl.nlportal.core.tenancy.TenantKoppelingAuthType
 import nl.nlportal.core.testing.TestTenants
 import nl.nlportal.core.testing.VasteTenantWebFilter
+import nl.nlportal.documentenapi.configuratie.DocumentApiConfiguratie
+import nl.nlportal.documentenapi.configuratie.DocumentenApiConfiguratie
 import okhttp3.mockwebserver.MockWebServer
 import org.springframework.context.annotation.Bean
 import org.springframework.context.annotation.Configuration
@@ -28,25 +32,38 @@ object ObjectenTestServer {
     val server: MockWebServer by lazy { MockWebServer().also { it.start() } }
 }
 
-/** De ITs van deze module draaien zonder tenantresolutie als tenant Bosrand; de Objecten API wijst naar [ObjectenTestServer]. */
+/** De ITs van deze module draaien zonder tenantresolutie als tenant Bosrand; de Objecten API en de Documenten API wijzen naar [ObjectenTestServer]. */
 @Configuration
 open class BerichtenTestTenantConfiguratie {
     @Bean
-    open fun tenantDirectory(): TenantDirectory =
-        TestTenants.directory(
+    open fun tenantDirectory(): TenantDirectory {
+        val url =
+            ObjectenTestServer.server
+                .url("/")
+                .toString()
+                .trimEnd('/')
+        return TestTenants.directory(
             TestTenants.tenant(
                 koppelingen =
                     mapOf(
-                        "objectenapi" to
+                        "objectenapi" to TestTenants.koppeling(url),
+                        "documenten-api" to
                             TestTenants.koppeling(
-                                ObjectenTestServer.server
-                                    .url("/")
-                                    .toString()
-                                    .trimEnd('/'),
+                                url,
+                                auth = TenantKoppelingAuth(TenantKoppelingAuthType.ZGW_JWT, clientId = "test-client", secret = TestTenants.geheim("documenten-secret")),
+                            ),
+                    ),
+                modules =
+                    mapOf(
+                        "documenten-api" to
+                            DocumentenApiConfiguratie(
+                                standaardDocumentApi = "documenten-api",
+                                documentApis = mapOf("documenten-api" to DocumentApiConfiguratie(rsin = "051845623", documentTypeUrl = "http://localhost/catalogi/api/v1/informatieobjecttypen/1")),
                             ),
                     ),
             ),
         )
+    }
 
     @Bean
     open fun vasteTenantWebFilter() = VasteTenantWebFilter()

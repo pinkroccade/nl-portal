@@ -16,13 +16,17 @@
 package nl.nlportal.documentenapi.domain
 
 import com.fasterxml.jackson.annotation.JsonValue
+import nl.nlportal.core.tenancy.TenantbestandWaarde
 
 enum class DocumentStatus(
     @JsonValue val key: String,
-) {
+) : TenantbestandWaarde {
     IN_BEWERKING("in_bewerking"),
     TER_VASTSTELLING("ter_vaststelling"),
     DEFINITIEF("definitief"),
     GEARCHIVEERD("gearchiveerd"),
     GEEN_STATUS(""),
+    ;
+
+    override val waarde: String get() = key
 }

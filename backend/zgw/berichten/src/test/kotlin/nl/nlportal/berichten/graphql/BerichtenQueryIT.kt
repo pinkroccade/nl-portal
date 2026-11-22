@@ -24,7 +24,6 @@ import nl.nlportal.berichten.TestHelper
 import nl.nlportal.commonground.authentication.WithBurgerUser
 import nl.nlportal.core.modulegate.ModuleGate
 import nl.nlportal.core.util.Mapper
-import nl.nlportal.documentenapi.client.DocumentApisConfig
 import okhttp3.mockwebserver.Dispatcher
 import okhttp3.mockwebserver.MockResponse
 import okhttp3.mockwebserver.MockWebServer
@@ -48,7 +47,6 @@ import org.springframework.test.context.DynamicPropertySource
 @TestInstance(TestInstance.Lifecycle.PER_METHOD)
 class BerichtenQueryIT(
     @Autowired private val httpGraphQlTester: HttpGraphQlTester,
-    @Autowired private val documentApisConfig: DocumentApisConfig,
     @Autowired private val moduleGate: ModuleGate,
 ) {
     lateinit var mockObjectenApi: MockWebServer
@@ -57,7 +55,6 @@ class BerichtenQueryIT(
     fun setUp() {
         mockObjectenApi = ObjectenTestServer.server
         setupMockObjectsApiServer()
-        documentApisConfig.properties.getConfig("openzaak").url = mockObjectenApi.url("/").toString()
     }
 
     @AfterEach
