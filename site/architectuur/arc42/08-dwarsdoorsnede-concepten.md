@@ -147,7 +147,7 @@ via een rolling update wordt uitgerold, niet via hot reload; een andere OpenFeat
 - **Frontend**: de uitkomst voor de frontend komt via `GET /api/public/frontend`; de browser praat
   nooit met een flag-systeem.
 - **Nu flag-gedreven**: alle frontend-toggles (`ops.frontend.*`), de vrije custom-toggles en de module
-  berichten (`ops.berichten.enabled`): `ModuleGate` (module `core`) beslist per request of een query of
+  berichten (`permission.berichten.enabled`): `ModuleGate` (module `core`) beslist per request of een query of
   resource beschikbaar is en de `modules`-lijst volgt dezelfde flag. Een module-flag declareert de flags die hij
   vereist (berichten vereist documentenapis); een uitgeschakelde afhankelijkheid maakt de module fail-closed
   niet beschikbaar; zie

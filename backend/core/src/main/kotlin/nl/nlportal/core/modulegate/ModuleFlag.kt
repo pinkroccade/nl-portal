@@ -19,7 +19,7 @@ import nl.nlportal.core.featureflag.FeatureFlag
 import nl.nlportal.core.featureflag.ToggleType
 
 /**
- * The feature flag that switches a module on or off per request. The key is `ops.<module>.enabled`.
+ * The permission flag that switches a module on or off per tenant. The key is `permission.<module>.enabled`; it is fail-closed.
  * A module registers its flag as a bean so that the frontend module list and the module status know it.
  * Without a flag definition the module is off.
  *
@@ -30,8 +30,13 @@ import nl.nlportal.core.featureflag.ToggleType
 data class ModuleFlag(
     val module: String,
     val requires: List<ModuleFlag> = emptyList(),
+    /**
+     * The name under which the module has its configuration in the tenant file: `modules.<name>` or `koppelingen.<name>`.
+     * Defaults to the module name. A module is only usable for a tenant that has this configuration.
+     */
+    val configuratieNaam: String = module,
 ) {
-    val flag = FeatureFlag("ops.$module.enabled", ToggleType.OPS)
+    val flag = FeatureFlag("permission.$module.enabled", ToggleType.PERMISSION)
 
     /** Every module this module needs, directly or through other modules, without duplicates. */
     val allRequired: List<ModuleFlag> get() = requires.flatMap { listOf(it) + it.allRequired }.distinct()

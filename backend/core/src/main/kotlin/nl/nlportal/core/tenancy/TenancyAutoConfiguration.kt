@@ -77,6 +77,13 @@ class TenancyAutoConfiguration {
         properties: TenancyProperties,
     ) = TenantWebFilter(directory, TrustedProxies(properties.trustedProxies))
 
+    /** Een eigen bean, niet in de factory van het koppelingregister: de controle hoort bij de tenancy, niet bij de koppelingen. */
+    @Bean
+    fun meerdereTenantsGuard(
+        directory: TenantDirectory,
+        modules: ObjectProvider<NietGemigreerdeModule>,
+    ) = MeerdereTenantsGuard(directory, modules.orderedStream().toList())
+
     @Bean
     fun managementExposureGuard(environment: Environment) = ManagementExposureGuard(environment)
 

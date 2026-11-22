@@ -16,9 +16,10 @@
 package nl.nlportal.documentenapi
 
 import nl.nlportal.core.modulegate.ModuleFlag
+import nl.nlportal.documentenapi.configuratie.DocumentenApiTenantConfiguratie
 
 /**
- * The module flag of the documenten API: `ops.documentenapis.enabled`. Modules that need documents, such as berichten,
+ * The module flag of the documenten API: `permission.documentenapis.enabled`. Modules that need documents, such as berichten,
  * list it in [ModuleFlag.requires]. The module's own beans still depend on the `documentenapis.enabled` property at startup.
  */
-val DOCUMENTENAPIS_MODULE = ModuleFlag("documentenapis")
+val DOCUMENTENAPIS_MODULE = ModuleFlag("documentenapis", configuratieNaam = DocumentenApiTenantConfiguratie.NAAM)

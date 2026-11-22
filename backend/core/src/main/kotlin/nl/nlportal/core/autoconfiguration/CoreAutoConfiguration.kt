@@ -26,6 +26,7 @@ import nl.nlportal.core.frontend.web.rest.PingResource
 import nl.nlportal.core.modulegate.ModuleFlag
 import nl.nlportal.core.modulegate.ModuleGate
 import nl.nlportal.core.modulegate.ModuleNotAvailableAdvice
+import nl.nlportal.core.tenancy.TenantDirectory
 import nl.nlportal.core.util.Mapper
 import org.springframework.beans.factory.ObjectProvider
 import org.springframework.boot.autoconfigure.AutoConfiguration
@@ -55,7 +56,8 @@ class CoreAutoConfiguration {
         featureGate: FeatureGate,
         featureContextFactory: FeatureContextFactory,
         modules: ObjectProvider<ModuleFlag>,
-    ) = ModuleGate(featureGate, featureContextFactory, modules.orderedStream().toList())
+        tenants: ObjectProvider<TenantDirectory>,
+    ) = ModuleGate(featureGate, featureContextFactory, modules.orderedStream().toList(), tenants.ifAvailable)
 
     @Bean
     @ConditionalOnMissingBean(ModuleNotAvailableAdvice::class)

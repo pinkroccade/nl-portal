@@ -20,8 +20,10 @@ import dev.openfeature.contrib.providers.flagd.FlagdOptions
 import dev.openfeature.contrib.providers.flagd.FlagdProvider
 import dev.openfeature.sdk.FeatureProvider
 import dev.openfeature.sdk.OpenFeatureAPI
+import nl.nlportal.core.tenancy.GeheimenBron
 import java.nio.file.Files
 import java.nio.file.StandardCopyOption
+import org.springframework.beans.factory.ObjectProvider
 import org.springframework.boot.autoconfigure.AutoConfiguration
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean
 import org.springframework.boot.context.properties.EnableConfigurationProperties
@@ -57,7 +59,13 @@ class FeatureFlagAutoConfiguration {
 
     @Bean
     @ConditionalOnMissingBean(FeatureContextFactory::class)
-    fun featureContextFactory(properties: FeatureFlagProperties): FeatureContextFactory = FeatureContextFactory(properties.context)
+    fun featureContextFactory(
+        properties: FeatureFlagProperties,
+        geheimen: ObjectProvider<GeheimenBron>,
+    ): FeatureContextFactory =
+        FeatureContextFactory(properties.context) { oin ->
+            geheimen.ifAvailable?.resolve(FeatureContextFactory.sleutelVerwijzing(oin))
+        }
 
     // The flagd file provider reads a file system path, so the bundled flag file is copied out of the classpath.
     private fun bundledFlagFile(): String {

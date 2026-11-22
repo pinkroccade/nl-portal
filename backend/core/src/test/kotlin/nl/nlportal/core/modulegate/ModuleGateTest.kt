@@ -62,12 +62,12 @@ class ModuleGateTest {
 
     @Test
     fun `a module flag is an ops flag named after the module`() {
-        assertEquals("ops.berichten.enabled", berichten.flag.key)
+        assertEquals("permission.berichten.enabled", berichten.flag.key)
     }
 
     @Test
     fun `a module is enabled when its flag is on`() {
-        val gate = gateWith(mapOf("ops.berichten.enabled" to true))
+        val gate = gateWith(mapOf("permission.berichten.enabled" to true))
 
         assertTrue(gate.isEnabled(berichten, ImmutableContext()))
         assertDoesNotThrow { gate.require(berichten, null) }
@@ -75,7 +75,7 @@ class ModuleGateTest {
 
     @Test
     fun `a module is disabled when its flag is off or unknown`() {
-        val gate = gateWith(mapOf("ops.berichten.enabled" to false))
+        val gate = gateWith(mapOf("permission.berichten.enabled" to false))
 
         assertFalse(gate.isEnabled(berichten, ImmutableContext()))
         assertFalse(gate.isEnabled(taak, ImmutableContext()))
@@ -83,7 +83,7 @@ class ModuleGateTest {
 
     @Test
     fun `requiring a disabled module throws a not-available error naming the module`() {
-        val gate = gateWith(mapOf("ops.berichten.enabled" to false))
+        val gate = gateWith(mapOf("permission.berichten.enabled" to false))
 
         val error = assertThrows<ModuleNotAvailableException> { gate.require(berichten, null) }
 
@@ -93,14 +93,14 @@ class ModuleGateTest {
 
     @Test
     fun `the status lists every registered module with its flag outcome`() {
-        val gate = gateWith(mapOf("ops.berichten.enabled" to true, "ops.taak.enabled" to false))
+        val gate = gateWith(mapOf("permission.berichten.enabled" to true, "permission.taak.enabled" to false))
 
         assertEquals(mapOf("berichten" to true, "taak" to false), gate.status(ImmutableContext()))
     }
 
     @Test
     fun `a module is enabled when its own flag and all required flags are on`() {
-        val gate = gateWith(mapOf("ops.afhankelijk.enabled" to true, "ops.documenten.enabled" to true, "ops.objecten.enabled" to true))
+        val gate = gateWith(mapOf("permission.afhankelijk.enabled" to true, "permission.documenten.enabled" to true, "permission.objecten.enabled" to true))
 
         assertTrue(gate.isEnabled(dependent, ImmutableContext()))
         assertDoesNotThrow { gate.require(dependent, null) }
@@ -108,8 +108,8 @@ class ModuleGateTest {
 
     @Test
     fun `a module is disabled when one of its required flags is off or unknown`() {
-        val offGate = gateWith(mapOf("ops.afhankelijk.enabled" to true, "ops.documenten.enabled" to true, "ops.objecten.enabled" to false))
-        val unknownGate = gateWith(mapOf("ops.afhankelijk.enabled" to true, "ops.documenten.enabled" to true))
+        val offGate = gateWith(mapOf("permission.afhankelijk.enabled" to true, "permission.documenten.enabled" to true, "permission.objecten.enabled" to false))
+        val unknownGate = gateWith(mapOf("permission.afhankelijk.enabled" to true, "permission.documenten.enabled" to true))
 
         assertFalse(offGate.isEnabled(dependent, ImmutableContext()))
         assertFalse(unknownGate.isEnabled(dependent, ImmutableContext()))
@@ -118,7 +118,7 @@ class ModuleGateTest {
 
     @Test
     fun `a required flag that is on does not enable a module whose own flag is off`() {
-        val gate = gateWith(mapOf("ops.afhankelijk.enabled" to false, "ops.documenten.enabled" to true, "ops.objecten.enabled" to true))
+        val gate = gateWith(mapOf("permission.afhankelijk.enabled" to false, "permission.documenten.enabled" to true, "permission.objecten.enabled" to true))
 
         assertFalse(gate.isEnabled(dependent, ImmutableContext()))
     }
@@ -128,10 +128,10 @@ class ModuleGateTest {
         val gate =
             gateWith(
                 mapOf(
-                    "ops.keten.enabled" to true,
-                    "ops.afhankelijk.enabled" to true,
-                    "ops.documenten.enabled" to true,
-                    "ops.objecten.enabled" to false,
+                    "permission.keten.enabled" to true,
+                    "permission.afhankelijk.enabled" to true,
+                    "permission.documenten.enabled" to true,
+                    "permission.objecten.enabled" to false,
                 ),
             )
 
@@ -140,7 +140,7 @@ class ModuleGateTest {
 
     @Test
     fun `the status shows a module with an unmet requirement as off`() {
-        val gate = gateWith(mapOf("ops.afhankelijk.enabled" to true, "ops.documenten.enabled" to false), listOf(dependent, documenten))
+        val gate = gateWith(mapOf("permission.afhankelijk.enabled" to true, "permission.documenten.enabled" to false), listOf(dependent, documenten))
 
         assertEquals(mapOf("afhankelijk" to false, "documenten" to false), gate.status(ImmutableContext()))
     }

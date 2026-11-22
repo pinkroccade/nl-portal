@@ -22,7 +22,7 @@ Evaluatie gebeurt per request met de [evaluatiecontext](./deployment-guide.md#fe
 
 ## Module-flags
 
-Een backendmodule kan per request aan of uit staan met een module-flag `ops.<module>.enabled`. Staat hij uit, dan
+Een backendmodule kan per request aan of uit staan met een permission-flag `permission.<module>.enabled`, per tenant (OIN in de evaluatiecontext). Staat hij uit, dan
 geeft een GraphQL-query een fout `Module '<module>' is niet beschikbaar` (`extensions.code` is `MODULE_NOT_AVAILABLE`) en een
 REST-resource HTTP 503; de velden blijven in het GraphQL-schema staan. De `modules`-lijst van `GET /api/public/frontend` en de
 modulestatus op de beheerpoort volgen dezelfde flag. Een flag die ontbreekt betekent: uit. Hoe je een module hierop overzet staat in
@@ -30,8 +30,8 @@ modulestatus op de beheerpoort volgen dezelfde flag. Een flag die ontbreekt bete
 
 | Flag | Type | Standaard | Effect |
 |---|---|---|---|
-| `ops.berichten.enabled` | ops | uit | Zet de module berichten aan: de GraphQL-queries `getBericht`, `getBerichten` en `getUnopenedBerichtenCount` en de download `GET /api/berichten/{berichtId}/document/{documentId}/content`. De module is alleen aan als ook `ops.documentenapis.enabled` aan staat (zie de afhankelijkheden hieronder). Daarnaast heeft hij nog `nl-portal.config.documentenapis.enabled` en een Objecten API nodig (die blijven opstartinstellingen). Via `modules.berichten.enabled`. De eigenschap `nl-portal.config.berichten.enabled` bestaat niet meer. |
-| `ops.documentenapis.enabled` | ops | uit | Afhankelijkheidsvlag van de documenten API. Modules die documenten serveren (nu berichten) vereisen hem. De module zelf wordt er nog niet door aan- of uitgezet; dat gebeurt nog met `nl-portal.config.documentenapis.enabled`. |
+| `permission.berichten.enabled` | permission | uit | Zet de module berichten aan: de GraphQL-queries `getBericht`, `getBerichten` en `getUnopenedBerichtenCount` en de download `GET /api/berichten/{berichtId}/document/{documentId}/content`. De module is alleen aan als ook `permission.documentenapis.enabled` aan staat (zie de afhankelijkheden hieronder). Daarnaast heeft hij nog `nl-portal.config.documentenapis.enabled` en een Objecten API nodig (die blijven opstartinstellingen). Via `modules.berichten.enabled`. De eigenschap `nl-portal.config.berichten.enabled` bestaat niet meer. |
+| `permission.documentenapis.enabled` | ops | uit | Afhankelijkheidsvlag van de documenten API. Modules die documenten serveren (nu berichten) vereisen hem. De module zelf wordt er nog niet door aan- of uitgezet; dat gebeurt nog met `nl-portal.config.documentenapis.enabled`. |
 
 ### Afhankelijkheden tussen modules
 
@@ -44,4 +44,4 @@ Een module-flag declareert de flags die hij vereist. Een module is alleen bereik
 
 De graaf staat in de code bij de module-flag (`BERICHTEN_MODULE`, `DOCUMENTENAPIS_MODULE`); voeg bij een nieuwe module een regel toe aan deze tabel.
 
-Het meegeleverde bestand (`backend/core/src/main/resources/feature-flags/default.flagd.json`) zet alle toggles en modules uit (ook de afhankelijkheidsvlag `ops.documentenapis.enabled`). Het compose-bestand `docker-compose/imports/flags/nl-portal.flagd.json` zet ze voor de lokale stack aan (en ook `ops.berichten.enabled` en `ops.documentenapis.enabled`), behalve `open-product` en `cases-result-explanation`.
+Het meegeleverde bestand (`backend/core/src/main/resources/feature-flags/default.flagd.json`) zet alle toggles en modules uit (ook de afhankelijkheidsvlag `permission.documentenapis.enabled`). Het compose-bestand `docker-compose/imports/flags/nl-portal.flagd.json` zet ze voor de lokale stack aan (en ook `permission.berichten.enabled` en `permission.documentenapis.enabled`), behalve `open-product` en `cases-result-explanation`.

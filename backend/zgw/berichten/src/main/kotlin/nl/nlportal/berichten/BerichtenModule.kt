@@ -18,5 +18,5 @@ package nl.nlportal.berichten
 import nl.nlportal.core.modulegate.ModuleFlag
 import nl.nlportal.documentenapi.DOCUMENTENAPIS_MODULE
 
-/** The module flag of berichten: `ops.berichten.enabled`. Berichten serves documents and so requires documentenapis. */
+/** The module flag of berichten: `permission.berichten.enabled`. Berichten serves documents and so requires documentenapis. */
 val BERICHTEN_MODULE = ModuleFlag("berichten", requires = listOf(DOCUMENTENAPIS_MODULE))

@@ -30,6 +30,7 @@ import nl.nlportal.zakenapi.service.ZakenApiService
 import nl.nlportal.zgw.objectenapi.client.ObjectsApiClient
 import nl.nlportal.zgw.taak.service.TaakService
 import org.springframework.beans.factory.annotation.Autowired
+import nl.nlportal.core.tenancy.NietGemigreerdeModule
 import org.springframework.boot.autoconfigure.AutoConfiguration
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty
@@ -43,6 +44,10 @@ import org.springframework.web.reactive.function.client.WebClient
 )
 @ConditionalOnProperty(prefix = "nl-portal.config", name = ["openproduct.enabled", "objectenapi.enabled", "taak.enabled", "zakenapi.enabled", "documentenapis.enabled"], havingValue = "true")
 class OpenProductAutoConfiguration {
+    /** Nog niet gemigreerd naar tenantconfiguratie: een runtime met meer dan een tenant weigert op te starten zolang de module aan staat. Verdwijnt met de migratie. */
+    @Bean
+    fun openproductNietGemigreerd() = NietGemigreerdeModule("openproduct")
+
     @Bean
     @ConditionalOnMissingBean(OpenProductClient::class)
     fun openProductClient(openProductModuleConfiguration: OpenProductModuleConfiguration): OpenProductClient =

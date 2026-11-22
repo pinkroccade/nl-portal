@@ -70,12 +70,12 @@ class TenantValidatorCliTest {
     }
 
     @Test
-    fun `de optie meerdere-tenants staat een tweede tenant toe`() {
+    fun `een tweede tenant is toegestaan, ook met de oude optie meerdere-tenants`() {
         schrijf("base.yaml", "omgevingstype: test\ninlogmiddelen: [test]\n")
         schrijf("00000099000000000001.yaml", "oin: \"00000099000000000001\"\nnaam: N\ndomeinen: [a.example]\nthema:\n  titel: T\nauthenticatie:\n  issuer: https://login.example/realms/k3\n  sleutelBestand: /run/secrets/00000099000000000001/k2.jwk\n")
         schrijf("00000099000000000002.yaml", "oin: \"00000099000000000002\"\nnaam: N\ndomeinen: [b.example]\nthema:\n  titel: T\nauthenticatie:\n  issuer: https://login.example/realms/k4\n  sleutelBestand: /run/secrets/00000099000000000002/k3.jwk\n")
 
-        assertThat(Uitvoer().run(dir.toString())).isEqualTo(1)
+        assertThat(Uitvoer().run(dir.toString())).isZero()
         assertThat(Uitvoer().run(dir.toString(), "--meerdere-tenants")).isZero()
     }
 

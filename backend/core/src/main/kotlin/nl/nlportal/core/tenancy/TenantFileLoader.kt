@@ -88,7 +88,7 @@ class InvalidTenantConfigurationException(
  * @param sleutelmap de vaste basismap van de clientsleutels (`nl-portal.sleutelmap`). Met een waarde controleert de loader ook de bestanden: het sleutelbestand
  * van elke tenant bestaat onder `<sleutelmap>/<oin>/` (ook na het oplossen van symlinks) en is een bruikbare sleutel (privé RSA, PS256, kid), en geen twee
  * tenants delen een `kid` of sleutel. Zonder waarde (de validator-CLI zonder `--sleutelmap`, CI van een config-repository zonder geheimen) controleert hij alleen het pad.
- * @param meerdereTenantsToegestaan blijft `false` tot alle modules hun configuratie per tenant lezen (epic #499, stap 7).
+ * @param meerdereTenantsToegestaan is sinds de centrale modulegate (epic #499, T22) `true`: een niet-gemigreerde module die aan staat weigert het opstarten bij meer dan een tenant ([MeerdereTenantsGuard]), in plaats van een algemeen verbod.
  */
 class TenantFileLoader(
     private val meerdereTenantsToegestaan: Boolean = MEERDERE_TENANTS_TOEGESTAAN,
@@ -623,8 +623,8 @@ class TenantFileLoader(
     )
 
     companion object {
-        /** Wordt `true` zodra de laatste module naar een tenantbestand is gemigreerd (epic #499, stap 7). */
-        const val MEERDERE_TENANTS_TOEGESTAAN = false
+        /** `true` sinds T22: het verbod op een tweede tenant is vervangen door [MeerdereTenantsGuard] per niet-gemigreerde module. */
+        const val MEERDERE_TENANTS_TOEGESTAAN = true
 
         private const val BASIS = "base"
         private const val MAX_BESTAND = 64 * 1024

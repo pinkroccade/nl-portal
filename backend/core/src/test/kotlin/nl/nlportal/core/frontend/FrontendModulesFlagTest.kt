@@ -87,7 +87,7 @@ class FrontendModulesFlagTest(
                 {
                   "${'$'}schema": "https://flagd.dev/schema/v0/flags.json",
                   "flags": {
-                    "ops.voorbeeld.enabled": {
+                    "permission.voorbeeld.enabled": {
                       "state": "ENABLED",
                       "variants": { "on": true, "off": false },
                       "defaultVariant": "${if (enabled) "on" else "off"}"

@@ -18,6 +18,8 @@ package nl.nlportal.core.featureflag
 import dev.openfeature.sdk.EvaluationContext
 import dev.openfeature.sdk.ImmutableContext
 import dev.openfeature.sdk.Value
+import nl.nlportal.core.tenancy.GeheimVerwijzing
+import nl.nlportal.core.tenancy.Oin
 import org.apache.commons.codec.digest.HmacAlgorithms
 import org.apache.commons.codec.digest.HmacUtils
 import org.springframework.security.authentication.AnonymousAuthenticationToken
@@ -31,9 +33,14 @@ import reactor.core.publisher.Mono
  *
  * The context never holds personal data: only tenant, environment, user type and an opaque user id,
  * a keyed HMAC of the identity provider subject with a per-tenant secret.
+ *
+ * With an [Oin] the context is that of one tenant: the `tenant` attribute is the OIN and the user id is keyed with the
+ * secret of that tenant ([tenantSleutel]), never with a key of another tenant or a global one. A tenant without a key
+ * gets no user id. Without an OIN (single-tenant runtime) the global [FeatureFlagProperties.Context.userIdSecret] applies.
  */
 class FeatureContextFactory(
     private val properties: FeatureFlagProperties.Context,
+    private val tenantSleutel: (Oin) -> String? = { null },
 ) {
     /** The context of the current request, read from the reactive security context. */
     fun current(): Mono<EvaluationContext> =
@@ -43,19 +50,27 @@ class FeatureContextFactory(
             .map { create(it) }
             .switchIfEmpty(Mono.fromSupplier { create(null) })
 
-    fun create(authentication: Authentication?): EvaluationContext {
+    fun create(authentication: Authentication?): EvaluationContext = create(authentication, null)
+
+    fun create(
+        authentication: Authentication?,
+        oin: Oin?,
+    ): EvaluationContext {
         val user = authentication?.takeIf { it.isAuthenticated && it !is AnonymousAuthenticationToken }
         val attributes =
             buildMap {
-                put(TENANT, Value(properties.tenant))
+                put(TENANT, Value(oin?.value ?: properties.tenant))
                 properties.environment?.let { put(ENVIRONMENT, Value(it)) }
                 (user as? UserTypeAware)?.let { put(USER_TYPE, Value(it.userType)) }
             }
-        return ImmutableContext(opaqueUserId(user), attributes)
+        return ImmutableContext(opaqueUserId(user, oin), attributes)
     }
 
-    private fun opaqueUserId(user: Authentication?): String? {
-        val secret = properties.userIdSecret?.takeIf { it.isNotBlank() } ?: return null
+    private fun opaqueUserId(
+        user: Authentication?,
+        oin: Oin?,
+    ): String? {
+        val secret = (if (oin != null) tenantSleutel(oin) else properties.userIdSecret)?.takeIf { it.isNotBlank() } ?: return null
         val subject = (user as? UserTypeAware)?.subject ?: return null
         return HmacUtils(HmacAlgorithms.HMAC_SHA_256, secret).hmacHex(subject)
     }
@@ -64,5 +79,8 @@ class FeatureContextFactory(
         const val TENANT = "tenant"
         const val ENVIRONMENT = "environment"
         const val USER_TYPE = "userType"
+
+        /** De verwijzing naar de HMAC-sleutel van [oin] in de secret store; valt onder de OIN-naamruimte van de tenant. */
+        fun sleutelVerwijzing(oin: Oin) = GeheimVerwijzing("${oin.value}.evaluatiecontext-hmac")
     }
 }

@@ -45,7 +45,7 @@ object TenantValidatorCli {
             err.println("Gebruik: nl-portal-tenant-validator <map met tenantbestanden> [--meerdere-tenants] [--sleutelmap=<map>] | --schema (modules: zet hun jars op het klassenpad met java -cp)")
             return 2
         }
-        val result = TenantFileLoader(meerdereTenantsToegestaan = "--meerdere-tenants" in opties, sleutelmap = sleutelmap?.let { Path.of(it) }).load(Path.of(paden.single()))
+        val result = TenantFileLoader(meerdereTenantsToegestaan = TenantFileLoader.MEERDERE_TENANTS_TOEGESTAAN || "--meerdere-tenants" in opties, sleutelmap = sleutelmap?.let { Path.of(it) }).load(Path.of(paden.single()))
         if (result.violations.isEmpty()) {
             out.println("OK: ${result.tenants.size} tenant(s): ${result.tenants.joinToString { it.oin.value }}")
             return 0

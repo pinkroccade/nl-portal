@@ -17,10 +17,12 @@ package nl.nlportal.payment.direct.autoconfiguration
 
 import nl.nlportal.core.koppeling.KoppelingAutoConfiguration
 import nl.nlportal.core.koppeling.KoppelingRegister
+import nl.nlportal.core.modulegate.ModuleFlag
 import nl.nlportal.core.tenancy.GeheimenBron
 import nl.nlportal.core.tenancy.TenancyAutoConfiguration
 import nl.nlportal.core.tenancy.TenantDirectory
 import nl.nlportal.core.tenancy.VervallenProperties
+import nl.nlportal.payment.direct.PAYMENT_DIRECT_MODULE
 import nl.nlportal.payment.direct.api.DirectPaymentController
 import nl.nlportal.payment.direct.client.DirectPaymentClient
 import nl.nlportal.payment.direct.configuratie.DirectPaymentTenantConfiguratie
@@ -46,6 +48,10 @@ class DirectPaymentAutoConfiguration {
     /** Ook `enabled` is vervallen: de hele oude prefix weigert het opstarten, met een verwijzing naar `modules.payment-direct`. */
     @Bean
     fun directPaymentVervallenProperties() = VervallenProperties(DirectPaymentTenantConfiguratie.NAAM, "nl-portal.config.payment.direct")
+
+    /** Maakt de modulevlag bekend voor de modulelijst en de modulestatus; de afdwinging per request volgt met de centrale modulegate. */
+    @Bean
+    fun directPaymentModuleFlag(): ModuleFlag = PAYMENT_DIRECT_MODULE
 
     @Bean
     @ConditionalOnMissingBean(DirectPaymentClient::class)

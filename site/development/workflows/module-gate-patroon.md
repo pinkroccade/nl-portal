@@ -32,7 +32,7 @@ flags staat in [ADR 0014](../adr/0014-feature-flags-via-openfeature.md), de rege
 
 ## De module-flag
 
-Een `ModuleFlag("berichten")` is de ops-flag `ops.berichten.enabled`. De module maakt hem bekend als bean, zodat de
+Een `ModuleFlag("berichten")` is de permission-flag `permission.berichten.enabled`. De module maakt hem bekend als bean, zodat de
 frontend-lijst en de modulestatus hem kennen:
 
 ```kotlin
