@@ -181,7 +181,6 @@ class HttpClientRules(
                 "nl.nlportal.commonground.authentication..",
                 "nl.nlportal.openklant..",
                 "nl.nlportal.openproduct..",
-                "nl.nlportal.verificatie..",
                 "nl.nlportal.zgw.taak..",
             )
 

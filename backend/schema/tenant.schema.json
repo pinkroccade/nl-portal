@@ -278,6 +278,31 @@
           "required" : [ "profielen" ],
           "additionalProperties" : false
         },
+        "verificatie" : {
+          "type" : "object",
+          "properties" : {
+            "apiKey" : {
+              "type" : "string",
+              "pattern" : "^[a-z0-9]+([._-][a-z0-9]+)*$"
+            },
+            "templateIdTelefoonnummer" : {
+              "type" : "string",
+              "minLength" : 1
+            },
+            "templateIdEmail" : {
+              "type" : "string",
+              "minLength" : 1
+            },
+            "typenMetVerificatie" : {
+              "type" : "array",
+              "items" : {
+                "type" : "string",
+                "enum" : [ "TELEFOONNUMMER", "EMAIL", "OVERIG" ]
+              }
+            }
+          },
+          "additionalProperties" : false
+        },
         "zakenapi" : {
           "type" : "object",
           "properties" : {

@@ -19,6 +19,8 @@ import nl.nlportal.core.koppeling.KoppelingAutoConfiguration
 import nl.nlportal.core.koppeling.KoppelingRegister
 import nl.nlportal.core.tenancy.GeheimenBron
 import nl.nlportal.core.tenancy.TenantDirectory
+import nl.nlportal.core.tenancy.VervallenProperties
+import nl.nlportal.verificatie.tenant.VerificatieTenantConfiguratie
 import nl.nlportal.verificatie.service.VerificatieService
 import org.springframework.boot.autoconfigure.AutoConfiguration
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean
@@ -39,4 +41,12 @@ class VerificatieAutoConfiguration {
         tenantDirectory: TenantDirectory,
         geheimenBron: GeheimenBron,
     ) = VerificatieService(koppelingRegister, tenantDirectory, geheimenBron)
+
+    /** Aan zonder een tenant met `modules.verificatie` weigert het opstarten, in plaats van bij het eerste verzoek te falen. */
+    @Bean
+    fun verificatieModuleControle(tenantDirectory: TenantDirectory) = VerificatieModuleControle(tenantDirectory)
+
+    /** De oude `...properties.*` (url, clientId, secret, apiKey, templates, ssl, typesNeedVerification) zijn vervallen: staan ze nog gezet, dan weigert core het opstarten. */
+    @Bean
+    fun verificatieVervallenProperties() = VervallenProperties(VerificatieTenantConfiguratie.MODULE, "nl-portal.config.verificatie.properties")
 }
