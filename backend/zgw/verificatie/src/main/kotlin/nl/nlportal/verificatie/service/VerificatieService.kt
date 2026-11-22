@@ -17,123 +17,94 @@ package nl.nlportal.verificatie.service
 
 import io.github.oshai.kotlinlogging.KotlinLogging
 import java.time.ZonedDateTime
-import nl.nlportal.verificatie.autoconfigure.VerificatieModuleConfiguration.VerificatieConfigurationProperties
-import nl.nlportal.verificatie.client.VerificatieClient
+import nl.nlportal.core.koppeling.KoppelingException
+import nl.nlportal.core.koppeling.KoppelingRegister
+import nl.nlportal.core.koppeling.post
+import nl.nlportal.core.tenancy.GeheimenBron
+import nl.nlportal.core.tenancy.TenantDirectory
 import nl.nlportal.verificatie.client.domain.VerificatieCreateApiRequest
+import nl.nlportal.verificatie.client.domain.VerificatieCreateApiResponse
 import nl.nlportal.verificatie.client.domain.VerificatieVerifyApiRequest
-import nl.nlportal.verificatie.graphql.domain.VerificatieType
+import nl.nlportal.verificatie.client.domain.VerificatieVerifyApiResponse
 import nl.nlportal.verificatie.graphql.domain.VerificatieCreateInput
 import nl.nlportal.verificatie.graphql.domain.VerificatieCreateResponse
+import nl.nlportal.verificatie.graphql.domain.VerificatieType
 import nl.nlportal.verificatie.graphql.domain.VerificatieVerifyInput
 import nl.nlportal.verificatie.graphql.domain.VerificatieVerifyResponse
+import nl.nlportal.verificatie.tenant.VerificatieConfiguratie
+import nl.nlportal.verificatie.tenant.VerificatieTenantConfiguratie
 
+/**
+ * Verstuurt en controleert verificatiecodes via de koppeling `verificatie` en `modules.verificatie` van de huidige tenant. De tenant volgt
+ * uit de context van het request; zonder tenant of zonder die koppeling of configuratie faalt elke operatie gesloten. Alleen een fout van
+ * de bron zelf geeft een mislukte respons, met een vaste tekst: de bron kan het adres of nummer van de inwoner terugsturen.
+ */
 class VerificatieService(
-    private val verificatieConfigurationProperties: VerificatieConfigurationProperties,
-    private val verificatieClient: VerificatieClient,
+    private val register: KoppelingRegister,
+    private val directory: TenantDirectory,
+    private val geheimen: GeheimenBron,
 ) {
-    suspend fun createVerificatie(
-        verificatieCreateInput: VerificatieCreateInput,
-    ): VerificatieCreateResponse {
-        try {
-            val request =
-                VerificatieCreateApiRequest(
-                    phoneNumber =
-                        when (verificatieCreateInput.type) {
-                            VerificatieType.TELEFOONNUMMER -> {
-                                verificatieCreateInput.waarde
-                            }
+    /** Of een digitaal adres van dit [type] bij de huidige tenant eerst geverifieerd moet worden. */
+    suspend fun vereistVerificatie(type: VerificatieType?): Boolean = configuratie().typenMetVerificatie.contains(type)
 
-                            else -> {
-                                null
-                            }
-                        },
-                    email =
-                        when (verificatieCreateInput.type) {
-                            VerificatieType.EMAIL -> {
-                                verificatieCreateInput.waarde
-                            }
-
-                            else -> {
-                                null
-                            }
-                        },
-                    reference = verificatieCreateInput.uuid?.toString(),
-                    apiKey = verificatieConfigurationProperties.apiKey,
-                    templateId =
-                        when (verificatieCreateInput.type) {
-                            VerificatieType.TELEFOONNUMMER -> {
-                                verificatieConfigurationProperties.templateIdPhoneNumber
-                            }
-
-                            else -> {
-                                verificatieConfigurationProperties.templateIdEmail
-                            }
-                        },
-                )
-
-            val response = verificatieClient.create(request)
-            return VerificatieCreateResponse(
-                uuid = verificatieCreateInput.uuid,
-                success = response.success,
+    suspend fun createVerificatie(verificatieCreateInput: VerificatieCreateInput): VerificatieCreateResponse {
+        val configuratie = configuratie()
+        val type = verificatieCreateInput.type
+        val request =
+            VerificatieCreateApiRequest(
+                phoneNumber = verificatieCreateInput.waarde.takeIf { type == VerificatieType.TELEFOONNUMMER },
+                email = verificatieCreateInput.waarde.takeIf { type == VerificatieType.EMAIL },
+                reference = verificatieCreateInput.uuid?.toString(),
+                apiKey = configuratie.apiKey?.let { geheimen.vereis(it) },
+                templateId = if (type == VerificatieType.TELEFOONNUMMER) configuratie.templateIdTelefoonnummer else configuratie.templateIdEmail,
             )
-        } catch (e: Exception) {
-            logger.error(e) { "Issue creating verificatie request failed: ${e.message}" }
-            return VerificatieCreateResponse(
-                uuid = verificatieCreateInput.uuid,
-                success = false,
-                errorMessage = "Issue createing verificatie request failed: ${e.message}",
-            )
+        return try {
+            val response: VerificatieCreateApiResponse = register.current(KOPPELING).post("/api/verification-requests", request)
+            VerificatieCreateResponse(uuid = verificatieCreateInput.uuid, success = response.success)
+        } catch (ex: KoppelingException) {
+            logFout("aanmaken", ex)
+            VerificatieCreateResponse(uuid = verificatieCreateInput.uuid, success = false, errorMessage = FOUTMELDING_AANMAKEN)
         }
     }
 
-    suspend fun verify(
-        verificatieVerifyInput: VerificatieVerifyInput,
-    ): VerificatieVerifyResponse {
-        try {
-            val request =
-                VerificatieVerifyApiRequest(
-                    phoneNumber =
-                        when (verificatieVerifyInput.type) {
-                            VerificatieType.TELEFOONNUMMER -> {
-                                verificatieVerifyInput.waarde
-                            }
-
-                            else -> {
-                                null
-                            }
-                        },
-                    email =
-                        when (verificatieVerifyInput.type) {
-                            VerificatieType.EMAIL -> {
-                                verificatieVerifyInput.waarde
-                            }
-
-                            else -> {
-                                null
-                            }
-                        },
-                    reference = verificatieVerifyInput.uuid?.toString(),
-                    code = verificatieVerifyInput.code,
-                )
-
-            val response = verificatieClient.verify(request)
-            return VerificatieVerifyResponse(
-                uuid = verificatieVerifyInput.uuid,
-                verified = response.verified,
-                verifiedOn = response.verifiedOn,
+    suspend fun verify(verificatieVerifyInput: VerificatieVerifyInput): VerificatieVerifyResponse {
+        configuratie()
+        val type = verificatieVerifyInput.type
+        val request =
+            VerificatieVerifyApiRequest(
+                phoneNumber = verificatieVerifyInput.waarde.takeIf { type == VerificatieType.TELEFOONNUMMER },
+                email = verificatieVerifyInput.waarde.takeIf { type == VerificatieType.EMAIL },
+                reference = verificatieVerifyInput.uuid?.toString(),
+                code = verificatieVerifyInput.code,
             )
-        } catch (e: Exception) {
-            logger.error(e) { "Issue verify verificatie request failed: ${e.message}" }
-            return VerificatieVerifyResponse(
+        return try {
+            val response: VerificatieVerifyApiResponse = register.current(KOPPELING).post("/api/verification-requests/verify", request)
+            VerificatieVerifyResponse(uuid = verificatieVerifyInput.uuid, verified = response.verified, verifiedOn = response.verifiedOn)
+        } catch (ex: KoppelingException) {
+            logFout("controleren", ex)
+            VerificatieVerifyResponse(
                 uuid = verificatieVerifyInput.uuid,
                 verified = false,
                 verifiedOn = ZonedDateTime.now(),
-                errorMessage = "Issue verify verificatie request failed: ${e.message}",
+                errorMessage = FOUTMELDING_CONTROLEREN,
             )
         }
     }
 
+    private suspend fun configuratie(): VerificatieConfiguratie = directory.module<VerificatieConfiguratie>()
+
+    // Geen bericht, oorzaak of stacktrace: die kunnen het adres of nummer van de inwoner bevatten. De referentie vindt de aanroep terug.
+    private fun logFout(
+        onderdeel: String,
+        ex: KoppelingException,
+    ) {
+        logger.error { "Verificatie $onderdeel mislukt: koppeling '${ex.koppeling}', soort ${ex.soort}, referentie ${ex.correlatieId}" }
+    }
+
     companion object {
+        const val KOPPELING = VerificatieTenantConfiguratie.KOPPELING
+        const val FOUTMELDING_AANMAKEN = "Het aanmaken van het verificatieverzoek is mislukt"
+        const val FOUTMELDING_CONTROLEREN = "Het controleren van de verificatiecode is mislukt"
         private val logger = KotlinLogging.logger {}
     }
 }

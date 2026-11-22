@@ -19,7 +19,6 @@ import nl.nlportal.openklant.graphql.DigitaleAdresMutation
 import nl.nlportal.openklant.graphql.DigitaleAdresQuery
 import nl.nlportal.openklant.graphql.KlantContactQuery
 import nl.nlportal.openklant.service.OpenKlant2Service
-import nl.nlportal.verificatie.autoconfigure.VerificatieModuleConfiguration
 import nl.nlportal.verificatie.service.VerificatieService
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty
@@ -31,11 +30,9 @@ class OpenKlantGraphqlAutoConfiguration {
     @ConditionalOnMissingBean(DigitaleAdresQuery::class)
     fun digitaleAdresQuery(
         openKlant2Service: OpenKlant2Service,
-        verificatieModuleConfiguration: VerificatieModuleConfiguration,
         verificatieService: VerificatieService?,
     ) = DigitaleAdresQuery(
         openklant2Service = openKlant2Service,
-        verificatieModuleConfiguration = verificatieModuleConfiguration,
         verificatieService = verificatieService,
     )
 
@@ -43,11 +40,9 @@ class OpenKlantGraphqlAutoConfiguration {
     @ConditionalOnMissingBean(DigitaleAdresMutation::class)
     fun digitaleAdresMutation(
         openKlant2Service: OpenKlant2Service,
-        verificatieModuleConfiguration: VerificatieModuleConfiguration,
         verificatieService: VerificatieService?,
     ) = DigitaleAdresMutation(
         openklant2Service = openKlant2Service,
-        verificatieModuleConfiguration = verificatieModuleConfiguration,
         verificatieService = verificatieService,
     )
 

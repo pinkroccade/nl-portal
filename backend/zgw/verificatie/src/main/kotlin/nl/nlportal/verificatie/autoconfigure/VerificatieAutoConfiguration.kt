@@ -15,39 +15,28 @@
  */
 package nl.nlportal.verificatie.autoconfigure
 
-import nl.nlportal.core.ssl.ClientSslContextResolver
-import nl.nlportal.verificatie.client.VerificatieClient
+import nl.nlportal.core.koppeling.KoppelingAutoConfiguration
+import nl.nlportal.core.koppeling.KoppelingRegister
+import nl.nlportal.core.tenancy.GeheimenBron
+import nl.nlportal.core.tenancy.TenantDirectory
 import nl.nlportal.verificatie.service.VerificatieService
-import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.autoconfigure.AutoConfiguration
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty
-import org.springframework.boot.context.properties.EnableConfigurationProperties
 import org.springframework.context.annotation.Bean
 
-@AutoConfiguration
-@EnableConfigurationProperties(VerificatieModuleConfiguration::class)
+/**
+ * De verificatiemodule staat aan met `nl-portal.config.verificatie.enabled=true`. De gegevens per tenant staan in het tenantbestand
+ * (`modules.verificatie` en `koppelingen.verificatie`); deze schakelaar is alleen de keuze of de runtime de module aanbiedt.
+ */
+@AutoConfiguration(after = [KoppelingAutoConfiguration::class])
+@ConditionalOnProperty(prefix = "nl-portal.config", name = ["verificatie.enabled"], havingValue = "true")
 class VerificatieAutoConfiguration {
-    @Bean("verificatieClient")
-    @ConditionalOnMissingBean(VerificatieClient::class)
-    @ConditionalOnProperty(prefix = "nl-portal.config", name = ["verificatie.enabled"], havingValue = "true")
-    fun verificatieClient(
-        verificatieModuleConfiguration: VerificatieModuleConfiguration,
-        @Autowired(required = false) clientSslContextResolver: ClientSslContextResolver? = null,
-    ): VerificatieClient =
-        VerificatieClient(
-            verificatieConfigurationProperties = verificatieModuleConfiguration.properties,
-            clientSslContextResolver = clientSslContextResolver,
-        )
-
     @Bean
     @ConditionalOnMissingBean(VerificatieService::class)
-    @ConditionalOnProperty(prefix = "nl-portal.config", name = ["verificatie.enabled"], havingValue = "true")
     fun verificatieService(
-        verificatieModuleConfiguration: VerificatieModuleConfiguration,
-        verificatieClient: VerificatieClient,
-    ) = VerificatieService(
-        verificatieConfigurationProperties = verificatieModuleConfiguration.properties,
-        verificatieClient = verificatieClient,
-    )
+        koppelingRegister: KoppelingRegister,
+        tenantDirectory: TenantDirectory,
+        geheimenBron: GeheimenBron,
+    ) = VerificatieService(koppelingRegister, tenantDirectory, geheimenBron)
 }
