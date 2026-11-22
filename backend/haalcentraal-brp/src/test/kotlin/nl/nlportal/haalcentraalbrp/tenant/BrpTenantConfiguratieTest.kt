@@ -191,7 +191,7 @@ internal class BrpTenantConfiguratieTest {
         Files.writeString(dir.resolve("base.yaml"), basis)
         Files.writeString(
             dir.resolve("$oin.yaml"),
-            "oin: \"$oin\"\nnaam: Gemeente De Bosrand\ndomeinen: [bosrand.example]\nthema:\n  titel: De Bosrand\n$koppelingenBlok$modulesBlok\n",
+            "oin: \"$oin\"\nnaam: Gemeente De Bosrand\ndomeinen: [bosrand.example]\nthema:\n  titel: De Bosrand\nauthenticatie:\n  issuer: https://login.example/realms/bosrand\n  sleutelBestand: /run/secrets/$oin/sleutel.jwk\n$koppelingenBlok$modulesBlok\n",
         )
         return TenantFileLoader(modules = TenantModules.van(listOf(spi))).load(dir)
     }

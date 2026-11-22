@@ -13,12 +13,14 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-import { useAuth } from "react-oidc-context";
+import { useContext } from "react";
+import SessionContext from "../session/SessionContext";
 
+/** Uitloggen: een `POST` met CSRF-token die de portaalsessie en de Keycloak-sessie beëindigt. */
 const useLogout = () => {
-  const auth = useAuth();
+  const { logout } = useContext(SessionContext);
 
-  return { logout: auth.signoutRedirect };
+  return { logout };
 };
 
 export default useLogout;

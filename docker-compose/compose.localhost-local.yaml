@@ -11,7 +11,18 @@ services:
         build: ../backend
         network_mode: "service:localhost"
         env_file: imports/backend.env
+        # De clientsleutel is 0600 van de gebruiker die `mise run dev:setup` draaide; de container leest hem als diezelfde uid (Linux).
+        user: "${LOCAL_UID:-1000}:${LOCAL_GID:-1000}"
+        depends_on:
+            - nl-portal-sessies
         environment:
+            # De BFF (ADR 0022): sessies in Redis met ACL, en de publieke basis-URL van Keycloak waaronder elke issuer valt.
+            REDIS_HOST: nl-portal-sessies
+            REDIS_USERNAME: nlportal
+            # De Redis van de compose-stack praat geen TLS; buiten lokaal staat REDIS_SSL standaard aan.
+            REDIS_SSL: "false"
+            REDIS_PASSWORD: ${REDIS_PASSWORD:?draai eerst mise run dev:setup}
+            KEYCLOAK_BROKER_URL: http://localhost:8082
             KEYCLOAK_CLIENT_SECRET: ${KEYCLOAK_M2M_CLIENT_SECRET:?draai eerst mise run dev:setup}
             NL_PORTAL_GEHEIMEN_00000099000000000001_OBJECTENAPI_TOKEN: "Token ${OBJECTS_API_TOKEN:?draai eerst mise run dev:setup}"
             NL_PORTAL_GEHEIMEN_00000099000000000001_ZAKEN_SECRET: "${OPENZAAK_NLPORTAL_SECRET:?draai eerst mise run dev:setup}"
@@ -22,12 +33,15 @@ services:
             NLPORTAL_CONFIG_OPENKLANT2_PROPERTIES_TOKEN: "${OPENKLANT_API_TOKEN:?draai eerst mise run dev:setup}"
             NLPORTAL_BEHEER_WACHTWOORDHASH: "{noop}${BACKEND_BEHEER_PASSWORD:?draai eerst mise run dev:setup}"
             NLPORTAL_FEATUREFLAGS_FILE: /etc/nl-portal/flags/nl-portal.flagd.json
-            NL_PORTAL_TENANTS_DIRECTORY: /etc/nl-portal/tenants
+            NL_PORTAL_TENANTS_DIRECTORY: /etc/nl-portal/imports/tenants
+            NL_PORTAL_SLEUTELMAP: /etc/nl-portal/sleutels
             SPRING_CONFIG_IMPORT: optional:configtree:/etc/nl-portal/koppelingen/
         volumes:
             - ./imports/flags:/etc/nl-portal/flags:ro
             - ./imports/koppelingen:/etc/nl-portal/koppelingen:ro
-            - ./imports/tenants:/etc/nl-portal/tenants:ro
+            # De map met tenantbestanden en de sleutelmap met de gegenereerde clientsleutel per tenant (<oin>/clientsleutel.jwk.json).
+            - ./imports/tenants:/etc/nl-portal/imports/tenants:ro
+            - ./.generated/tenants:/etc/nl-portal/sleutels:ro
 
     nl-portal-frontend:
         container_name: nl-portal-frontend

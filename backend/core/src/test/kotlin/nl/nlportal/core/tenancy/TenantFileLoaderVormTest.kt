@@ -38,7 +38,7 @@ class TenantFileLoaderVormTest {
         inhoud: String,
     ) = Files.writeString(dir.resolve(naam), inhoud.trimIndent())
 
-    private fun tenant(extra: String = "") = "oin: \"$bosrand\"\nnaam: Gemeente\ndomeinen: [bosrand.example]\nthema:\n  titel: De Bosrand\n$extra\n"
+    private fun tenant(extra: String = "") = "oin: \"$bosrand\"\nnaam: Gemeente\ndomeinen: [bosrand.example]\nthema:\n  titel: De Bosrand\nauthenticatie:\n  issuer: https://login.example/realms/$bosrand\n  sleutelBestand: /run/secrets/$bosrand/k.jwk\n$extra\n"
 
     private fun laad() = TenantFileLoader(meerdereTenantsToegestaan = false, modules = modules).load(dir)
 

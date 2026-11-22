@@ -64,6 +64,7 @@ mise run keycloak:build              # provider-jar: keycloak/provider/build/lib
 mise run keycloak:check-version      # Dockerfile en provider-build gebruiken dezelfde Keycloak-versie, basisimage op digest
 mise run keycloak:image              # image nl-portal-keycloak:dev (vereist Docker)
 mise run keycloak:integration-test   # eigen image tegen een echte Keycloak met gesimuleerde DigiD en wallet (vereist Docker)
+mise run keycloak:bff-login-test      # echte BFF-login: backend (bootRun) tegen Keycloak uit de dev-compose, gedreven door een Node-browser (vereist Docker; poorten 8080, 8082, 6379 vrij)
 mise run keycloak:verify-dependencies  # verification-metadata.xml opnieuw genereren na een dependencywijziging
 mise run sbom:keycloak-image         # CycloneDX-SBOM van het image
 mise run security:keycloak-vuln-scan # grype op de SBOM (faalt op high/critical met een beschikbare fix)
@@ -130,7 +131,7 @@ het pad `/` (geen `/auth`): de compose-stack en de backend- en frontendconfigura
 | Realm-template en keycloak-config-cli met de mappers; realmtest (beide handtekeningvlaggen en vastgepind certificaat per SAML-koppeling, wissende mapper per notitie, geen identiteitskoppeling, accountconsole uit, scope `acr` van de client af, OIDC-koppeling van de wallet) | #505 |
 | Renovate-regex-manager (eigen groep) voor versie, digest en `gradle.properties`; CI-job voor `keycloak:test`, `check-version` en de integratietest; SBOM en grype in CI; cosign en SLSA-provenance; controlepunt voor de herzieningsdatum van `.grype.yaml` (2027-01-31); SonarCloud-dekking voor `keycloak/provider` | #524 |
 | `acr`-volgordetabel (Basis < Midden < Substantieel < Hoog), onbekende en lege `acr` weigeren, niveau-afdwinging | #506 |
-| BSN uit `NameID`/`ActingSubjectID`/`LegalSubjectID`: `NameQualifier`, format en sectorprefix `s00000000:` controleren, elfproef; blokkeert livegang | #506 |
+| BSN uit `NameID`/`ActingSubjectID`/`LegalSubjectID`: `NameQualifier`, format en sectorprefix `s00000000:` controleren, elfproef; blokkeert livegang | #550 |
 | Echte DigiD (artifact-binding, `EncryptedID`) en echte wallet zijn niet getest; de simulator en de eigen IdP van de test zijn dat niet | #505, #506 |
 
 ## Terugvalplan
@@ -146,7 +147,9 @@ overslaan.**
   `nlportal-saml-attribute-note-mapper` (`acting_subject_id`, `legal_subject_id`), en per OIDC-koppeling (wallet)
   `nlportal-oidc-claim-note-mapper`, elk met `syncMode: FORCE`. keycloak-config-cli kent het mappertype pas als het in
   het image zit: draai hem tegen dit image.
-- Zet op `nl-portal-backend` de client-mappers `oidc-usersessionmodel-note-mapper` en haal de scope `acr` eraf.
+- Zet op `nl-portal-backend` de client-mappers `oidc-usersessionmodel-note-mapper` en haal de scope `acr` eraf. De mapper voor
+  `acting_subject_id` (het BSN) zet de claim alleen in userinfo (`userinfo.token.claim: true`, `id.token.claim: false`): het ID-token gaat als
+  `id_token_hint` de browser in en de BFF leest het BSN uit userinfo.
 - Een SAML-koppeling met `useMetadataDescriptorUrl` (certificaat uit de metadata-URL, niet vastgepind) faalt gesloten: de mapper eist
   een vastgepind `signingCertificate` en geeft anders een loginfout. Pin het certificaat in de koppeling; de realm-generator weigert
   een metadata-URL al bij het genereren.
@@ -167,17 +170,19 @@ tenantbestand (`docker-compose/imports/tenants`) en voegt alleen de fragmenten v
 `mise run dev:setup` genereert zo per tenant `docker-compose/.generated/keycloak/<oin>.json` plus een sleutelpaar voor
 `private_key_jwt` (de private JWK komt in `docker-compose/.generated/tenants/<oin>/clientsleutel.jwk.json`, de publieke in het realm).
 keycloak-config-cli (service `nl-portal-keycloak-config` in de compose) laadt het resultaat tegen dit image. Geheimen staan niet
-in het realm: de m2m-client en de wallet-koppeling verwijzen naar kcc-substitutie (`$(env:NAAM)`).
+in het realm: de wallet-koppeling verwijst naar kcc-substitutie (`$(env:NAAM)`).
 
 Wat de generator afdwingt en de realmtest (`scripts/lib/realm.test.mjs`, in `mise run test`) bewijst, per gegenereerd realm:
-alleen `nl-portal-backend` (private_key_jwt, PS256, PKCE S256, `at+jwt`, exacte redirect- en post-logout-URI's, back-channel
-logout-URL, geen service-account, geen directe grants), tot #506 ook de huidige SPA-client en `nl-portal-m2m`; accountconsole uit;
+alleen `nl-portal-backend` (private_key_jwt, PS256, PKCE S256, `at+jwt`, exacte redirect- en post-logout-URI's, geen
+back-channel-logout-URL zolang het endpoint ontbreekt (T24 #523 zet hem terug), geen service-account, geen directe grants), geen SPA-client, geen `nl-portal-m2m` en geen token exchange; accountconsole uit;
 scope `acr` van `nl-portal-backend` af; per koppeling een mapper voor elke notitie die een client-mapper leest;
 SAML met `validateSignature`, `wantAssertionsSigned` en een vastgepind `signingCertificate`, minimumniveau als
 `authnContextClassRef`; wallet met code-flow, PKCE S256, clientauthenticatie en TLS; geen identiteitskoppeling; SSO-tijden niet
 langer dan het portaal; buiten ontwikkeling alleen `https`-koppelingen. Het testinlogmiddel (de standaard
 browserflow; demo-gebruikers alleen in ontwikkeling) bestaat alleen als de tenant het kent; de generator weigert het in productie, en een realm
-zonder testinlogmiddel heeft de flow `alleen-koppelingen` en geen gebruikers. Buiten ontwikkeling staat er geen SPA-client, geen
+zonder testinlogmiddel heeft de flow `alleen-koppelingen` en geen gebruikers. De mappers die claims uit gebruikersattributen
+schrijven (`test-inlogmiddel`, `test-acr`, `test-bsn`, fragment `inlogmiddel/test.json`) zitten alleen in een realm met het testinlogmiddel, en
+buiten ontwikkeling is `unmanagedAttributePolicy` `ADMIN_VIEW`, zodat niemand een attribuut kan zetten dat een claim wordt. Buiten ontwikkeling staat er geen SPA-client, geen
 directe grant (ROPC), geen wildcard-redirect en geen `offline_access`; offline sessies zijn begrensd op 8 uur en refresh-tokens roteren.
 `nl-portal-backend` krijgt alleen de scope `basic`, geen `profile` of `email`: de gebruikersnaam van een gebrokerde gebruiker is `<alias>.<UUID>`
 (nooit de NameID of een ander nummer) en staat niet in een token; wat Keycloak per koppeling onthoudt (de federated identity) is de NameID.

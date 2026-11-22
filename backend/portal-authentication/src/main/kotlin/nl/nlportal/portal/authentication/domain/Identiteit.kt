@@ -15,12 +15,19 @@
  */
 package nl.nlportal.portal.authentication.domain
 
+import nl.nlportal.core.tenancy.Betrouwbaarheidsniveau
+import nl.nlportal.core.tenancy.Inlogmiddel
 import java.util.UUID
 
-/** Wie er inlogt: de uitgever (`iss`) en het onderwerp (`sub`) van het token. */
+/**
+ * Wie er inlogt (de actor): de uitgever (`iss`) en het onderwerp (`sub`) van het ID-token, het inlogmiddel waarmee en het
+ * betrouwbaarheidsniveau waarop is ingelogd. De BFF controleert beide bij de callback voor ze hier terechtkomen.
+ */
 data class Gebruiker(
     val issuer: String,
     val subject: String,
+    val inlogmiddel: Inlogmiddel,
+    val niveau: Betrouwbaarheidsniveau,
 )
 
 /** Soort van de identificatie van een vertegenwoordigde. */
@@ -71,12 +78,11 @@ sealed interface Vertegenwoordigde {
  * Alleen de authenticatiemodule bouwt een identiteit (ArchUnit-regel); alle andere modules lezen hem via
  * [PortalAuthentication.identiteit].
  *
- * Bewust nog niet aanwezig: de tenant (komt met het tenantmodel, #504) en het inlogmiddel en betrouwbaarheidsniveau
- * van de gebruiker (komen met het realm-template, #505, want de claims bestaan nog niet).
+ * De tenant staat niet in de identiteit maar in de sessie (een gecontroleerd attribuut) en in de tenantcontext.
  */
 data class Identiteit(
     val gebruiker: Gebruiker,
     val vertegenwoordigde: Vertegenwoordigde,
-    /** Machtigingsdienst-UUID's uit het token, of `null` als het token er geen heeft. */
+    /** Machtigingsdienst-UUID's, of `null` als er geen zijn (de BFF levert ze nog niet; machtigen staat uit). */
     val machtigingsdienstUuids: List<UUID>? = null,
 )

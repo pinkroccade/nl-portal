@@ -42,4 +42,5 @@ object Versions {
     const val hamcrest = "3.0"
     const val mockitoKotlin = "6.1.0"
     const val okHttp3 = "5.2.0"
+    const val mockOauth2Server = "7.0.1"
 }

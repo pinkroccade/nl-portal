@@ -8,7 +8,7 @@
 import { after, before, beforeEach, describe, it } from "node:test";
 import assert from "node:assert/strict";
 import { createServer } from "node:http";
-import { KC, Jar, admin, decodeJwt, deletePortalUsers, exchange, login, waitForKeycloak } from "./stack.mjs";
+import { KC, Jar, admin, decodeJwt, deletePortalUsers, exchange, login, userinfo, waitForKeycloak } from "./stack.mjs";
 import { assertion, nieuweSleutel, nieuwId, response } from "./saml-idp.mjs";
 
 const SP = `${KC}/realms/portal`;
@@ -83,8 +83,9 @@ beforeEach(async () => {
 
 async function inloggen(opties = {}) {
   const result = await login({ idp: "digid-handmatig", username: "x", password: "x", ...opties });
-  if (!result.code) return { result, idToken: null };
-  return { result, idToken: decodeJwt((await exchange(result)).id_token) };
+  if (!result.code) return { result, idToken: null, userinfo: null };
+  const tokens = await exchange(result);
+  return { result, idToken: decodeJwt(tokens.id_token), userinfo: await userinfo(tokens.access_token) };
 }
 
 // Een geweigerde login toont een Keycloak-foutpagina: geen code, geen token, geen terugval op het wachtwoordformulier.
@@ -101,20 +102,22 @@ describe("Ondertekende SAML-assertions via de mappers van het eigen image", () =
     respons = ondertekend({
       attributen: [{ naam: ACTING, waarden: ["999990008"] }, { naam: LEGAL, waarden: ["999990020"] }],
     });
-    const { idToken, result } = await inloggen();
+    const { idToken, userinfo, result } = await inloggen();
     assert.ok(idToken, `geen token: ${result.pageText}`);
     assert.equal(idToken.acr, MIDDEN);
-    assert.equal(idToken.acting_subject_id, "999990008");
+    assert.equal(userinfo.acting_subject_id, "999990008");
+    assert.equal(idToken.acting_subject_id, undefined, "het BSN staat alleen in userinfo");
     assert.equal(idToken.legal_subject_id, "999990020");
   });
 
   // De callbacktoets in #506 weigert een lege of ontbrekende acr; hier alleen bewezen dat de mapper geen niveau verzint.
   it("geeft een token zonder acr als het AuthnStatement geen AuthnContextClassRef heeft", async () => {
     respons = ondertekend({ authn: [null] });
-    const { idToken, result } = await inloggen();
+    const { idToken, userinfo, result } = await inloggen();
     assert.ok(idToken, `geen token: ${result.pageText}`);
     assert.ok(afwezig(idToken.acr), `er is toch een acr: ${idToken.acr}`);
-    assert.equal(idToken.acting_subject_id, "999990008");
+    assert.equal(userinfo.acting_subject_id, "999990008");
+    assert.equal(idToken.acting_subject_id, undefined, "het BSN staat alleen in userinfo");
   });
 
   it("laat een eerder niveau niet staan als dezelfde gebruiker met prompt=login opnieuw inlogt zonder AuthnContextClassRef", async () => {
@@ -139,9 +142,10 @@ describe("Ondertekende SAML-assertions via de mappers van het eigen image", () =
   it("leest een NameID als attribuutwaarde (BSN in de NameID, zonder versleuteling)", async () => {
     const nameId = { xml: `<saml:NameID Format="urn:oasis:names:tc:SAML:2.0:nameid-format:persistent">999990008</saml:NameID>` };
     respons = ondertekend({ attributen: [{ naam: ACTING, waarden: [nameId] }] });
-    const { idToken, result } = await inloggen();
+    const { idToken, userinfo, result } = await inloggen();
     assert.ok(idToken, `geen token: ${result.pageText}`);
-    assert.equal(idToken.acting_subject_id, "999990008");
+    assert.equal(userinfo.acting_subject_id, "999990008");
+    assert.equal(idToken.acting_subject_id, undefined, "het BSN staat alleen in userinfo");
   });
 
   it("weigert de login bij een EncryptedID als attribuutwaarde", async () => {
@@ -209,7 +213,7 @@ describe("Het BSN komt niet in de gebruikersnaam of in tokens", () => {
       const result = await login({ idp: "digid-handmatig", username: "x", password: "x" });
       assert.ok(result.code, `geen code: ${result.pageText}`);
       const tokens = await exchange(result);
-      return { id: decodeJwt(tokens.id_token), access: decodeJwt(tokens.access_token), tokens };
+      return { id: decodeJwt(tokens.id_token), access: decodeJwt(tokens.access_token), info: await userinfo(tokens.access_token), tokens };
     };
     const eerste = await log();
     for (const [naam, claims] of [["ID-token", eerste.id], ["access-token", eerste.access]]) {
@@ -217,7 +221,8 @@ describe("Het BSN komt niet in de gebruikersnaam of in tokens", () => {
       assert.equal(claims.preferred_username, undefined, `${naam}: preferred_username`);
       assert.equal(claims.email, undefined, `${naam}: email`);
     }
-    assert.equal(eerste.id.acting_subject_id, "111222333");
+    assert.equal(eerste.info.acting_subject_id, "111222333");
+    assert.equal(eerste.id.acting_subject_id, undefined, "het BSN staat alleen in userinfo");
     assert.equal(eerste.tokens.refresh_token, undefined, "de BFF gebruikt geen refresh-token");
     assert.ok([].concat(eerste.access.aud).includes("nl-portal-backend"), "RFC 9068: aud");
 

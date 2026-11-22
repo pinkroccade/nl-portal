@@ -6,6 +6,10 @@ domeinen:
     - bosrand.example
 thema:
     titel: Mijn De Bosrand
+authenticatie:
+    issuer: http://localhost:9999/realms/test
+    # Relatief aan de sleutelmap (build/test-sleutels, nl-portal.sleutelmap); de testrun maakt het bestand (zie TestSleutelInitializer).
+    sleutelBestand: 00000099000000000001/clientsleutel.jwk.json
 koppelingen:
     documenten-api:
         url: http://localhost:56789/documenten/api/v1

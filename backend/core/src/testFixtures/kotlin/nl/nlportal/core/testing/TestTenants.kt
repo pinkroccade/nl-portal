@@ -19,6 +19,7 @@ import kotlinx.coroutines.reactor.ReactorContext
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withContext
 import nl.nlportal.core.koppeling.KoppelingRegister
+import nl.nlportal.core.tenancy.Authenticatie
 import nl.nlportal.core.tenancy.Betrouwbaarheidsniveau
 import nl.nlportal.core.tenancy.GeheimVerwijzing
 import nl.nlportal.core.tenancy.GeheimenBron
@@ -77,6 +78,7 @@ object TestTenants {
         domeinen = domeinen,
         thema = Thema(titel = "Test"),
         inlogmiddelen = setOf(Inlogmiddel.TEST),
+        authenticatie = Authenticatie("https://login.example/realms/${oin.value}", "/k-${oin.value}.jwk"),
         minimumNiveau = Betrouwbaarheidsniveau.SUBSTANTIEEL,
         sessie = Sessie(),
         koppelingen = koppelingen,

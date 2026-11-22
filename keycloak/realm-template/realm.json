@@ -63,10 +63,7 @@
         "client_credentials.use_refresh_token": "false",
         "use.refresh.tokens": "false",
         "oauth2.device.authorization.grant.enabled": "false",
-        "post.logout.redirect.uris": "{{postLogoutRedirectUris}}",
-        "backchannel.logout.url": "{{backchannelLogoutUrl}}",
-        "backchannel.logout.session.required": "true",
-        "backchannel.logout.revoke.offline.tokens": "false"
+        "post.logout.redirect.uris": "{{postLogoutRedirectUris}}"
       },
       "defaultClientScopes": [
         "basic"
@@ -121,9 +118,9 @@
             "user.session.note": "acting_subject_id",
             "claim.name": "acting_subject_id",
             "jsonType.label": "String",
-            "id.token.claim": "true",
+            "id.token.claim": "false",
             "access.token.claim": "false",
-            "userinfo.token.claim": "false",
+            "userinfo.token.claim": "true",
             "introspection.token.claim": "false"
           }
         },
@@ -144,147 +141,12 @@
       ]
     },
     {
-      "clientId": "nl-portal-m2m",
-      "enabled": true,
-      "clientAuthenticatorType": "client-secret",
-      "secret": "$(env:KEYCLOAK_M2M_CLIENT_SECRET)",
-      "redirectUris": [],
-      "webOrigins": [],
-      "standardFlowEnabled": false,
-      "implicitFlowEnabled": false,
-      "directAccessGrantsEnabled": false,
-      "serviceAccountsEnabled": true,
-      "publicClient": false,
-      "protocol": "openid-connect",
-      "attributes": {
-        "oidc.ciba.grant.enabled": "false",
-        "backchannel.logout.session.required": "true",
-        "display.on.consent.screen": "false",
-        "oauth2.device.authorization.grant.enabled": "false",
-        "backchannel.logout.revoke.offline.tokens": "false",
-        "standard.token.exchange.enabled": "true"
-      },
-      "fullScopeAllowed": true,
-      "protocolMappers": [
-        {
-          "name": "Client Host",
-          "protocol": "openid-connect",
-          "protocolMapper": "oidc-usersessionmodel-note-mapper",
-          "config": {
-            "user.session.note": "clientHost",
-            "introspection.token.claim": "true",
-            "userinfo.token.claim": "true",
-            "id.token.claim": "true",
-            "access.token.claim": "true",
-            "claim.name": "clientHost",
-            "jsonType.label": "String"
-          }
-        },
-        {
-          "name": "Client ID",
-          "protocol": "openid-connect",
-          "protocolMapper": "oidc-usersessionmodel-note-mapper",
-          "config": {
-            "user.session.note": "client_id",
-            "introspection.token.claim": "true",
-            "userinfo.token.claim": "true",
-            "id.token.claim": "true",
-            "access.token.claim": "true",
-            "claim.name": "client_id",
-            "jsonType.label": "String"
-          }
-        },
-        {
-          "name": "Client IP Address",
-          "protocol": "openid-connect",
-          "protocolMapper": "oidc-usersessionmodel-note-mapper",
-          "config": {
-            "user.session.note": "clientAddress",
-            "introspection.token.claim": "true",
-            "userinfo.token.claim": "true",
-            "id.token.claim": "true",
-            "access.token.claim": "true",
-            "claim.name": "clientAddress",
-            "jsonType.label": "String"
-          }
-        },
-        {
-          "name": "m2m-audience",
-          "protocol": "openid-connect",
-          "protocolMapper": "oidc-audience-mapper",
-          "config": {
-            "introspection.token.claim": "true",
-            "included.client.audience": "nl-portal-m2m",
-            "id.token.claim": "false",
-            "lightweight.claim": "false",
-            "access.token.claim": "true"
-          }
-        }
-      ],
-      "defaultClientScopes": [
-        "web-origins",
-        "acr",
-        "profile",
-        "roles",
-        "email",
-        "aanvrager"
-      ],
-      "optionalClientScopes": [
-        "address",
-        "phone",
-        "microprofile-jwt"
-      ]
-    },
-    {
       "clientId": "account",
       "enabled": false
     },
     {
       "clientId": "account-console",
       "enabled": false
-    }
-  ],
-  "clientScopes": [
-    {
-      "name": "aanvrager",
-      "description": "Maps the bsn and kvk user attributes onto the aanvrager claim. Attached to the m2m client only, so the browser token never carries a BSN or KVK.",
-      "protocol": "openid-connect",
-      "attributes": {
-        "include.in.token.scope": "true",
-        "display.on.consent.screen": "false"
-      },
-      "protocolMappers": [
-        {
-          "name": "bsn",
-          "protocol": "openid-connect",
-          "protocolMapper": "oidc-usermodel-attribute-mapper",
-          "config": {
-            "introspection.token.claim": "true",
-            "userinfo.token.claim": "true",
-            "user.attribute": "bsn",
-            "id.token.claim": "true",
-            "lightweight.claim": "false",
-            "access.token.claim": "true",
-            "claim.name": "aanvrager.bsn",
-            "jsonType.label": "String"
-          }
-        },
-        {
-          "name": "kvk",
-          "protocol": "openid-connect",
-          "protocolMapper": "oidc-usermodel-attribute-mapper",
-          "config": {
-            "introspection.token.claim": "true",
-            "userinfo.token.claim": "true",
-            "user.attribute": "kvk",
-            "id.token.claim": "true",
-            "lightweight.claim": "false",
-            "access.token.claim": "true",
-            "claim.name": "aanvrager.kvk",
-            "jsonType.label": "String"
-          }
-        }
-      ]
     }
   ],
   "authenticationFlows": [
@@ -334,7 +196,7 @@
         "providerId": "declarative-user-profile",
         "config": {
           "kc.user.profile.config": [
-            "{\"attributes\":[{\"name\":\"username\",\"displayName\":\"${username}\",\"validations\":{\"length\":{\"min\":3,\"max\":255}},\"permissions\":{\"view\":[\"admin\",\"user\"],\"edit\":[\"admin\"]}},{\"name\":\"email\",\"displayName\":\"${email}\",\"validations\":{\"email\":{},\"length\":{\"max\":255}},\"permissions\":{\"view\":[\"admin\",\"user\"],\"edit\":[\"admin\"]}},{\"name\":\"firstName\",\"displayName\":\"${firstName}\",\"permissions\":{\"view\":[\"admin\",\"user\"],\"edit\":[\"admin\"]}},{\"name\":\"lastName\",\"displayName\":\"${lastName}\",\"permissions\":{\"view\":[\"admin\",\"user\"],\"edit\":[\"admin\"]}}],\"unmanagedAttributePolicy\":\"ADMIN_EDIT\"}"
+            "{\"attributes\":[{\"name\":\"username\",\"displayName\":\"${username}\",\"validations\":{\"length\":{\"min\":3,\"max\":255}},\"permissions\":{\"view\":[\"admin\",\"user\"],\"edit\":[\"admin\"]}},{\"name\":\"email\",\"displayName\":\"${email}\",\"validations\":{\"email\":{},\"length\":{\"max\":255}},\"permissions\":{\"view\":[\"admin\",\"user\"],\"edit\":[\"admin\"]}},{\"name\":\"firstName\",\"displayName\":\"${firstName}\",\"permissions\":{\"view\":[\"admin\",\"user\"],\"edit\":[\"admin\"]}},{\"name\":\"lastName\",\"displayName\":\"${lastName}\",\"permissions\":{\"view\":[\"admin\",\"user\"],\"edit\":[\"admin\"]}}],\"unmanagedAttributePolicy\":\"{{unmanagedAttributePolicy}}\"}"
           ]
         }
       }

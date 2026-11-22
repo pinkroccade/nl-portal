@@ -18,8 +18,6 @@ package nl.nlportal.app
 import org.springframework.boot.autoconfigure.SpringBootApplication
 import org.springframework.boot.runApplication
 import org.springframework.context.annotation.Bean
-import org.springframework.security.oauth2.jwt.ReactiveJwtDecoder
-import reactor.core.publisher.Mono
 import java.util.concurrent.CopyOnWriteArraySet
 import org.springframework.boot.graphql.autoconfigure.GraphQlSourceBuilderCustomizer
 
@@ -36,7 +34,7 @@ class UnmappedGraphQlFields {
 /**
  * Test application that uses the REAL OauthSecurityAutoConfiguration.
  * Unlike other module TestApplication classes, this does NOT exclude security.
- * A mock ReactiveJwtDecoder is provided to avoid needing a real Keycloak.
+ * The login (BFF) runs against the test tenant file; no identity provider is needed as long as no test logs in.
  */
 @SpringBootApplication
 class TestApplication {
@@ -59,12 +57,4 @@ class TestApplication {
                 }
             }
         }
-
-    @Bean
-    fun reactiveJwtDecoder(): ReactiveJwtDecoder {
-        // Return a decoder that always fails - we want unauthenticated tests to fail
-        return ReactiveJwtDecoder { _ ->
-            Mono.error(RuntimeException("No real JWT decoder configured for tests"))
-        }
-    }
 }

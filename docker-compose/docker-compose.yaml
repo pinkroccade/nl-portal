@@ -21,6 +21,27 @@ services:
             - "5011:5011" # Haalcentraal Bewoning
             - "3310:3310" # ClamAV virus scan
 
+    # Sessies van de BFF (ADR 0022): Redis met ACL (de default-gebruiker staat uit, alleen `nlportal`), zonder persistentie en met
+    # noeviction, zodat een volle Redis sessies niet ongemerkt weggooit voor hun TTL. Elke sleutel heeft een TTL (Spring Session en
+    # de pre-auth-sessie). Eén instantie per cel; lokaal alleen op 127.0.0.1 gepubliceerd voor `bootRun`. De ACL staat in
+    # templates/redis/users.acl (een ACL-bestand kent geen commentaar): de default-gebruiker uit, `nlportal` alleen op de
+    # sleutels `nlp:*` en `spring:session:*` en zonder admin-, gevaarlijke en scriptcommando's.
+    nl-portal-sessies:
+        container_name: nl-portal-sessies
+        image: redis:8.2-alpine@sha256:da23c2478319ceb4903857d77a2fd7aa5137d9e9d4c8165dafbacedac6403e95
+        command: ["redis-server", "--aclfile", "/etc/redis/users.acl", "--save", "", "--appendonly", "no", "--maxmemory", "256mb", "--maxmemory-policy", "noeviction"]
+        ports:
+            - "127.0.0.1:6379:6379"
+        environment:
+            REDIS_PASSWORD: ${REDIS_PASSWORD:?draai eerst mise run dev:setup}
+        volumes:
+            - ./.generated/redis/users.acl:/etc/redis/users.acl:ro
+        healthcheck:
+            test: ["CMD-SHELL", "redis-cli --user nlportal --pass \"$$REDIS_PASSWORD\" --no-auth-warning ping | grep -q PONG"]
+            interval: 5s
+            timeout: 3s
+            retries: 10
+
     # Eigen Keycloak-image met de NL Portal-mappers (keycloak/, #527): bouw het eerst met `mise run keycloak:image`.
     # Draait geoptimaliseerd (`start --optimized`): de bouwopties (postgres, health) zitten in het image.
     nl-portal-keycloak:
@@ -64,7 +85,6 @@ services:
             IMPORT_CACHE_ENABLED: "false"
             IMPORT_VAR_SUBSTITUTION_ENABLED: "true"
             IMPORT_VAR_SUBSTITUTION_UNDEFINED_THROWS_EXCEPTIONS: "true"
-            KEYCLOAK_M2M_CLIENT_SECRET: ${KEYCLOAK_M2M_CLIENT_SECRET:?draai eerst mise run dev:setup}
             # Zodra een tenant het inlogmiddel wallet aanzet (#529) hoort hier ook KEYCLOAK_WALLET_CLIENT_SECRET: kcc breekt anders op de
             # ontbrekende variabele (UNDEFINED_THROWS_EXCEPTIONS).
         volumes:

@@ -27,13 +27,18 @@ management:
 spring:
     application:
         name: nl-portal-app
-    security:
-        oauth2:
-            resourceserver:
-                jwt:
-                    jwk-set-uri: ${JWKS_URI}
-                    # Verwachte issuer (publieke URL van de realm); verplicht, zie keycloak-token-exchange.md.
-                    issuer-uri: ${KEYCLOAK_ISSUER_URI}
+    data:
+        redis:
+            # Sessies en pre-auth-sessies van de BFF (ADR 0022). Redis draait met authenticatie (ACL), zonder persistentie en met
+            # een TTL op elke sleutel; standaard met TLS (REDIS_SSL=false alleen lokaal). Eén instantie per cel.
+            host: ${REDIS_HOST:localhost}
+            port: ${REDIS_PORT:6379}
+            username: ${REDIS_USERNAME:}
+            password: ${REDIS_PASSWORD:}
+            ssl:
+                enabled: ${REDIS_SSL:true}
+            repositories:
+                enabled: false
     graphql:
         graphiql:
             enabled: false
@@ -51,18 +56,21 @@ logging:
         root: ${LOGLEVEL:INFO}
 
 nl-portal:
+    # De vaste basismap van de clientsleutels van de tenants (bestandsmount van de secret store): per tenant een map met de OIN als naam.
+    # Een sleutelbestand (`authenticatie.sleutelBestand`) is relatief aan deze map en moet na het oplossen van symlinks onder <sleutelmap>/<oin>/ liggen; verplicht.
+    sleutelmap: ${NL_PORTAL_SLEUTELMAP}
     tenancy:
         # Map met base.yaml en per tenant <oin>.yaml (het tenantbestand); verplicht, de runtime start niet zonder.
         directory: ${NL_PORTAL_TENANTS_DIRECTORY}
         # IP-adressen of CIDR-blokken van de ingress; alleen van deze adressen gelden Forwarded en X-Forwarded-Host.
+        # Nooit het adres van de nginx-sidecar (127.0.0.1/::1) opnemen: die vertrouwt de ingress niet voor deze headers.
         trusted-proxies: ${NL_PORTAL_TRUSTED_PROXIES:}
     authentication:
-        keycloak:
-            resource: ${KEYCLOAK_CLIENT_ID}
-            audience: ${KEYCLOAK_TOKEN_EXCHANGE_AUDIENCE:}
-            token-uri: ${KEYCLOAK_TOKEN_URI:}
-            credentials:
-                secret: ${KEYCLOAK_CLIENT_SECRET}
+        bff:
+            # De login is verplicht: zonder tenancy weigert de runtime het opstarten in plaats van zonder login te draaien.
+            vereist: true
+        # Publieke basis-URL van de broker (Keycloak). De runtime start niet als de issuer van een tenant er niet onder valt.
+        broker-url: ${KEYCLOAK_BROKER_URL}
         machtingsdienst:
             resource-url: # classpath:example-machtigingsdiensten.json
     security:

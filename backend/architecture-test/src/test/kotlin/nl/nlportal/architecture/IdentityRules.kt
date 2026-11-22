@@ -33,7 +33,7 @@ import nl.nlportal.portal.authentication.domain.Vertegenwoordigde
 /**
  * De identiteitsregels (epic #499, ADR 0022 besluit 14): alleen de authenticatiemodule bouwt een identiteit,
  * andere modules gaan niet zelf met tokens om maar gebruiken de identiteit via de leesroute, en het ruwe token
- * is alleen voor benoemde lezers bereikbaar.
+ * is voor niemand buiten de authenticatiemodule bereikbaar (er is geen token meer in de sessie-identiteit).
  *
  * Alle gegevens zijn parameters zodat een overtredende fixture de regels kan bewijzen.
  *
@@ -44,7 +44,6 @@ import nl.nlportal.portal.authentication.domain.Vertegenwoordigde
  * @param tokenPackages de pakketten waarmee een token wordt gelezen of geparsed.
  * @param tokenExceptions klassen buiten de authenticatiemodule die wel met zulke pakketten werken.
  * @param bearerTokenHolder het type dat het ruwe token vasthoudt.
- * @param bearerTokenReaders de pakketten die het ruwe token mogen lezen.
  * @param authenticationModules pad-fragmenten van de modules waarin de authenticatiepakketten mogen staan.
  */
 class IdentityRules(
@@ -53,7 +52,6 @@ class IdentityRules(
     private val tokenPackages: Array<String> = PRODUCTION_TOKEN_PACKAGES,
     private val tokenExceptions: Set<String> = emptySet(),
     private val bearerTokenHolder: String = PortalAuthentication::class.java.name,
-    private val bearerTokenReaders: Array<String> = emptyArray(),
     private val authenticationModules: Set<String> = emptySet(),
 ) {
     private val outsideAuthentication = resideOutsideOfPackages(*authenticationPackages)
@@ -100,11 +98,10 @@ class IdentityRules(
                     "gebruiken PortalAuthentication.identiteit, de enige leesroute",
             )
 
-    /** Het ruwe token (`bearerToken`, `credentials`) wordt alleen door de benoemde lezers gelezen. */
+    /** Het ruwe token (`bearerToken`, `credentials`) wordt buiten de authenticatiemodule door niemand gelezen. */
     fun onlyNamedReadersUseTheBearerToken(): ArchRule =
         noClasses()
             .that(outsideAuthentication)
-            .and(resideOutsideOfPackages(*bearerTokenReaders))
             .should()
             .callMethodWhere(
                 DescribedPredicate.describe("read the raw bearer token") { call: JavaCall<*> ->
@@ -112,8 +109,8 @@ class IdentityRules(
                 },
             ).allowEmptyShould(false)
             .because(
-                "ADR 0022 besluit 14: het ruwe token is geen tweede leesroute naar de identiteit; alleen een benoemde " +
-                    "lezer geeft het door aan een bron",
+                "ADR 0022 besluit 14: het ruwe token is geen tweede leesroute naar de identiteit; geen enkele module geeft " +
+                    "het door aan een bron (uitgaand verkeer loopt via KoppelingClient)",
             )
 
     /** De authenticatiepakketten bestaan alleen in de bedoelde modules: een pakketnaam alleen geeft geen vrijstelling. */
@@ -164,8 +161,9 @@ class IdentityRules(
                         // Tekent uitgaande ZGW-tokens en client-assertions met Nimbus; leest geen inkomend token.
                         "nl.nlportal.core.koppeling.ZgwJwtGenerator",
                         "nl.nlportal.core.koppeling.ClientAssertion",
-                        // Resource-serverconfiguratie met de converter; verdwijnt of verhuist met de BFF-tracer (epic #499, stap 4).
-                        "nl.nlportal.core.security.OauthSecurityAutoConfiguration",
+                        // Leest het sleutelbestand van de client-registratie (privé JWK, PS256) bij opstarten en in de validator; geen token.
+                        "nl.nlportal.core.tenancy.ClientSleutelBestand",
+                        "nl.nlportal.core.tenancy.TenantFileLoader",
                     ),
                 authenticationModules =
                     setOf("/portal-authentication/", "/common-ground-authentication/", "/common-ground-authentication-test/"),

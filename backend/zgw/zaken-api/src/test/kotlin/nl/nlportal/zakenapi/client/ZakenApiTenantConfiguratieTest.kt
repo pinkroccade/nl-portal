@@ -37,12 +37,13 @@ class ZakenApiTenantConfiguratieTest {
 
     private val bosrand = "00000099000000000001"
     private val modules = TenantModules.van(listOf(ZakenApiTenantConfiguratie()))
+    private val authenticatie = "authenticatie:\n  issuer: https://login.example/realms/$bosrand\n  sleutelBestand: /run/secrets/$bosrand/k.jwk\n"
     private val koppeling = "koppelingen:\n  zakenapi:\n    url: http://localhost:8001\n    auth:\n      type: zgw-jwt\n      clientId: nl-portal\n      secret: $bosrand.zaken-secret\n"
 
     private fun laad(extra: String): TenantFileResult {
         Files.writeString(
             dir.resolve("$bosrand.yaml"),
-            "oin: \"$bosrand\"\nnaam: Gemeente\ndomeinen: [bosrand.example]\nthema:\n  titel: De Bosrand\n" +
+            "oin: \"$bosrand\"\nnaam: Gemeente\ndomeinen: [bosrand.example]\nthema:\n  titel: De Bosrand\n$authenticatie" +
                 "omgevingstype: test\ninlogmiddelen: [test]\n$extra\n",
         )
         return TenantFileLoader(modules = modules).load(dir)

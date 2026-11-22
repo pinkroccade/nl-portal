@@ -26,7 +26,7 @@ const DOMEIN = /^[a-z0-9]([a-z0-9-]*[a-z0-9])?(\.[a-z0-9]([a-z0-9-]*[a-z0-9])?)*
 const MAX_INACTIVITEIT = 15 * 60;
 const MAX_ABSOLUUT = 8 * 60 * 60;
 
-/** Inlogmiddelen met een eigen fragment; `test` heeft er geen (de demo-gebruikers komen alleen in ontwikkeling, zie `genereerRealm`). */
+/** Inlogmiddelen met een koppeling naar een externe IdP; `test` heeft een fragment zonder koppeling (de demo-gebruikers komen alleen in ontwikkeling, zie `genereerRealm`). */
 const KOPPELINGEN = { digid: ["singleSignOnServiceUrl", "idpEntityId", "signingCertificate"], wallet: ["authorizationUrl", "tokenUrl", "jwksUrl", "issuer", "clientId"] };
 const URL_VELDEN = { digid: ["singleSignOnServiceUrl", "idpEntityId"], wallet: ["authorizationUrl", "tokenUrl", "jwksUrl", "issuer"] };
 const BEKEND = new Set(["test", ...Object.keys(KOPPELINGEN)]);
@@ -60,9 +60,17 @@ function vul(waarde, context) {
   return waarde.replace(/\{\{([A-Za-z0-9_.]+)\}\}/g, (_, pad) => String(opzoeken(context, pad)));
 }
 
-/** Voegt fragmenten samen: objecten diep, lijsten achter elkaar, de rest wordt vervangen. */
+/** Voegt fragmenten samen: objecten diep, lijsten achter elkaar (een client met dezelfde `clientId` wordt samengevoegd), de rest wordt vervangen. */
 function voegSamen(basis, extra) {
-  if (Array.isArray(basis) && Array.isArray(extra)) return [...basis, ...extra];
+  if (Array.isArray(basis) && Array.isArray(extra)) {
+    const uit = [...basis];
+    for (const item of extra) {
+      const i = item?.clientId === undefined ? -1 : uit.findIndex((b) => b?.clientId === item.clientId);
+      if (i >= 0) uit[i] = voegSamen(uit[i], item);
+      else uit.push(item);
+    }
+    return uit;
+  }
   if (basis && extra && typeof basis === "object" && typeof extra === "object" && !Array.isArray(basis) && !Array.isArray(extra)) {
     const uit = { ...basis };
     for (const [k, v] of Object.entries(extra)) uit[k] = k in uit ? voegSamen(uit[k], v) : v;
@@ -127,7 +135,6 @@ export function genereerRealm({ tenant, realm, brokerUrl, clientSleutels, idp = 
 
   // Ontwikkeling draait de frontend op poort 3000 over http; alle andere omgevingen zitten achter TLS op het gemeentedomein.
   const origins = domeinen.map((d) => (ontwikkeling ? `http://${d}:3000` : `https://${d}`));
-  const [origin] = origins;
   const sessie = tenant.sessie ?? {};
   const inactiviteit = sessie.inactiviteit ? duurInSeconden(sessie.inactiviteit) : MAX_INACTIVITEIT;
   const absoluut = sessie.absoluut ? duurInSeconden(sessie.absoluut) : MAX_ABSOLUUT;
@@ -149,20 +156,17 @@ export function genereerRealm({ tenant, realm, brokerUrl, clientSleutels, idp = 
     jwks: JSON.stringify({ keys: clientSleutels }),
     redirectUris: origins.map((o) => `${o}/login/oauth2/code/${oin}`),
     postLogoutRedirectUris: origins.map((o) => `${o}/`).join("##"),
-    backchannelLogoutUrl: `${origin}/logout/connect/back-channel/${oin}`,
-    spaOrigin: origin,
-    spaRedirectUris: origins.map((o) => `${o}/*`),
-    spaWebOrigins: origins,
+    // Gebruikersattributen die een claim kunnen worden (test-mappers) schrijft alleen ontwikkeling; elders is het profiel alleen-lezen.
+    unmanagedAttributePolicy: ontwikkeling ? "ADMIN_EDIT" : "ADMIN_VIEW",
     digidAuthnContextClassRefs: JSON.stringify([DIGID_NIVEAU[niveau]]),
     idp,
   };
 
   let uit = leesJson("realm.json");
   for (const middel of inlogmiddelen.filter((m) => m in KOPPELINGEN)) uit = voegSamen(uit, leesJson(`inlogmiddel/${middel}.json`));
-  // Alleen in ontwikkeling: de demo-gebruikers met vaste wachtwoorden (hashes in Git) en de tussenfase-SPA-client (tot #506).
-  if (ontwikkeling) {
-    if (inlogmiddelen.includes("test")) uit = voegSamen(uit, leesJson("demo-gebruikers.json"));
-    uit = voegSamen(uit, leesJson("tussenfase/spa.json"));
-  }
+  // Testinlogmiddel: de mappers die claims uit gebruikersattributen schrijven (B-M1), in elke omgeving waar het middel aan staat behalve productie.
+  if (inlogmiddelen.includes("test")) uit = voegSamen(uit, leesJson("inlogmiddel/test.json"));
+  // Alleen in ontwikkeling: de demo-gebruikers met vaste wachtwoorden (hashes in Git).
+  if (ontwikkeling && inlogmiddelen.includes("test")) uit = voegSamen(uit, leesJson("demo-gebruikers.json"));
   return vul(uit, context);
 }

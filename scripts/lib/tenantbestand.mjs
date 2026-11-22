@@ -1,4 +1,4 @@
-// Leest de tenantbestanden (`base.yaml` + `<oin>.yaml`, zie backend/core/schema/tenant.schema.json) voor de dev-scripts.
+// Leest de tenantbestanden (`base.yaml` + `<oin>.yaml`, zie backend/schema/tenant.schema.json) voor de dev-scripts.
 // Het repo heeft geen root-`package.json` en dus geen YAML-dependency; dit is een parser voor precies de vorm van het
 // tenantbestand: `sleutel: waarde`, geneste mappen, lijsten (blok en `[a, b]`), commentaar en gequote tekst. Alles daarbuiten
 // geeft een fout. De echte validatie (schema en regels) blijft die van de tenantvalidator in `backend/core`; deze lezer

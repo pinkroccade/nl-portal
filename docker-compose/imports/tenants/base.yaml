@@ -3,3 +3,5 @@
 # JSON-schema: backend/schema/tenant.schema.json
 omgevingstype: ontwikkeling
 inlogmiddelen: [test]
+# Het testinlogmiddel levert altijd niveau basis; het standaardminimum (substantieel) weigert dan elke demo-login (niveau_te_laag).
+minimumNiveau: basis

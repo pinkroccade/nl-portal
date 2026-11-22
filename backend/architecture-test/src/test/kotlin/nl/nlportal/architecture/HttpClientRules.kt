@@ -177,7 +177,6 @@ class HttpClientRules(
         val NOT_YET_MIGRATED =
             arrayOf(
                 "nl.nlportal.besluiten..",
-                "nl.nlportal.commonground.authentication..",
                 "nl.nlportal.openklant..",
                 "nl.nlportal.openproduct..",
                 "nl.nlportal.verificatie..",

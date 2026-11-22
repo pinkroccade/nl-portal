@@ -2,10 +2,15 @@
 oin: "00000099000000000001"
 naam: Gemeente De Bosrand
 domeinen:
+    - debosrand.localhost
     - localhost
 thema:
     titel: Mijn De Bosrand
-
+authenticatie:
+    issuer: http://localhost:8082/realms/nlportal
+    # Relatief aan de sleutelmap (nl-portal.sleutelmap), in de map met de OIN van deze tenant; `mise run dev:setup` maakt het sleutelpaar
+    # (docker-compose/.generated/tenants).
+    sleutelBestand: 00000099000000000001/clientsleutel.jwk.json
 koppelingen:
     # De Documenten API: elke documenten-API is een eigen koppeling; modules.documenten-api noemt ze bij naam.
     documenten-api:

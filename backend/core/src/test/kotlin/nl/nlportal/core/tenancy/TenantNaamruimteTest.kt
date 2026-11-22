@@ -66,7 +66,7 @@ class TenantNaamruimteTest {
         extra: String,
         oin: String = bosrand,
         omgeving: String = basis,
-    ) = schrijf("$oin.yaml", "oin: \"$oin\"\nnaam: Gemeente\ndomeinen: [bosrand.example]\nthema:\n  titel: De Bosrand\n$omgeving$extra\n")
+    ) = schrijf("$oin.yaml", "oin: \"$oin\"\nnaam: Gemeente\ndomeinen: [bosrand.example]\nthema:\n  titel: De Bosrand\n$omgeving\nauthenticatie:\n  issuer: https://login.example/realms/$oin\n  sleutelBestand: /run/secrets/$oin/k.jwk\n$extra\n")
 
     private fun laad() = TenantFileLoader(modules = modules).load(dir)
 
@@ -376,6 +376,7 @@ private object TenantDefinitionVoorTest {
             domeinen = listOf("a.example"),
             thema = Thema("T"),
             inlogmiddelen = setOf(Inlogmiddel.TEST),
+            authenticatie = Authenticatie("https://login.example/realms/t", "/k.jwk"),
             minimumNiveau = Betrouwbaarheidsniveau.BASIS,
             sessie = Sessie(),
             modules = mapOf("proef" to configuratie),

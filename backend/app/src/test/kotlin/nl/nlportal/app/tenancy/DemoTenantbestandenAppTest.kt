@@ -15,6 +15,8 @@
  */
 package nl.nlportal.app.tenancy
 
+import nl.nlportal.core.tenancy.Betrouwbaarheidsniveau
+import nl.nlportal.core.tenancy.Inlogmiddel
 import nl.nlportal.core.tenancy.TenantFileLoader
 import nl.nlportal.core.tenancy.TenantModules
 import org.assertj.core.api.Assertions.assertThat
@@ -34,6 +36,16 @@ class DemoTenantbestandenAppTest {
 
         assertThat(result.violations).isEmpty()
         assertThat(result.tenants).hasSize(1)
+    }
+
+    @Test
+    fun `de demo-tenant laat het testinlogmiddel toe, dat altijd niveau basis levert`() {
+        val demo = TenantFileLoader().load(Path.of("../../docker-compose/imports/tenants")).tenants.single()
+
+        assertThat(demo.inlogmiddelen).containsExactly(Inlogmiddel.TEST)
+        assertThat(demo.minimumNiveau)
+            .describedAs("het testinlogmiddel zet acr=Basis; een hoger minimum weigert elke demo-login")
+            .isEqualTo(Betrouwbaarheidsniveau.BASIS)
     }
 
     @Test

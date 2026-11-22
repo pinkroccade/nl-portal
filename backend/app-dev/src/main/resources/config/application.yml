@@ -24,12 +24,14 @@ management:
 spring:
     application:
         name: nl-portal-app-dev
-    security:
-        oauth2:
-            resourceserver:
-                jwt:
-                    jwk-set-uri: http://localhost:8082/realms/nlportal/protocol/openid-connect/certs
-                    issuer-uri: http://localhost:8082/realms/nlportal
+    data:
+        redis:
+            host: ${REDIS_HOST:localhost}
+            port: ${REDIS_PORT:6379}
+            username: ${REDIS_USERNAME:}
+            password: ${REDIS_PASSWORD:}
+            repositories:
+                enabled: false
     graphql:
         graphiql:
             enabled: true
@@ -44,7 +46,12 @@ graphql:
 
 logging:
     level:
-        root: DEBUG
+        root: INFO
+        nl.nlportal: DEBUG
+        # Deze loggers kunnen op DEBUG sessie-ID's, cookies, tokens of sessie-attributen met BSN loggen.
+        io.lettuce: INFO
+        reactor.netty: INFO
+        org.springframework.security.oauth2: INFO
 
 nl-portal:
     # De demo-tenant van de compose-stack (koppelingen en modulegegevens, zoals de Documenten API); de geheimen komen uit .env.properties.
@@ -60,11 +67,15 @@ nl-portal:
     support:
         ping-endpoint:
             enabled: false
+    # De clientsleutel per tenant staat onder de sleutelmap, in een map met de OIN als naam (mise run dev:setup maakt ze).
+    sleutelmap: ${NL_PORTAL_SLEUTELMAP:../../docker-compose/.generated/tenants}
+    # De demo-tenant van de compose-stack; bootRun draait in deze moduleomgeving.
+    tenancy:
+        directory: ${NL_PORTAL_TENANTS_DIRECTORY:../../docker-compose/imports/tenants}
     authentication:
-        keycloak:
-            resource: nl-portal-m2m
-            credentials:
-                secret: ${KEYCLOAK_CLIENT_SECRET:}
+        bff:
+            vereist: true
+        broker-url: ${KEYCLOAK_BROKER_URL:http://localhost:8082}
     security:
         cors:
             -   path: "/**"

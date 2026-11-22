@@ -115,9 +115,9 @@
             "user.session.note": "acting_subject_id",
             "claim.name": "acting_subject_id",
             "jsonType.label": "String",
-            "id.token.claim": "true",
+            "id.token.claim": "false",
             "access.token.claim": "false",
-            "userinfo.token.claim": "false"
+            "userinfo.token.claim": "true"
           }
         },
         {

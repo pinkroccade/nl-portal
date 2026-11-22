@@ -27,6 +27,7 @@ import org.springframework.boot.context.properties.EnableConfigurationProperties
 import org.springframework.boot.test.context.runner.ApplicationContextRunner
 import org.springframework.context.annotation.Configuration
 import org.springframework.web.reactive.function.client.WebClient
+import nl.nlportal.core.tenancy.Authenticatie
 import nl.nlportal.core.tenancy.Betrouwbaarheidsniveau
 import nl.nlportal.core.tenancy.Inlogmiddel
 import nl.nlportal.core.tenancy.Oin
@@ -88,7 +89,7 @@ class KoppelingenTest {
 
     @Test
     fun `het register weigert bij het opstarten meer dan een tenant zolang de koppelingen niet per tenant zijn`() {
-        fun tenant(oin: Oin) = TenantDefinition(oin, "Gemeente", Omgevingstype.TEST, listOf("${oin.value}.example"), Thema(titel = "t"), setOf(Inlogmiddel.TEST), Betrouwbaarheidsniveau.SUBSTANTIEEL, Sessie())
+        fun tenant(oin: Oin) = TenantDefinition(oin, "Gemeente", Omgevingstype.TEST, listOf("${oin.value}.example"), Thema(titel = "t"), setOf(Inlogmiddel.TEST), Authenticatie("https://login.example/realms/${oin.value}", "/k.jwk"), Betrouwbaarheidsniveau.SUBSTANTIEEL, Sessie())
         ApplicationContextRunner()
             .withConfiguration(AutoConfigurations.of(KoppelingAutoConfiguration::class.java))
             .withBean(WebClient.Builder::class.java, { WebClient.builder() })

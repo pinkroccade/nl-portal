@@ -19,6 +19,15 @@ model {
       ingangen '2'
     }
   }
+  capability inloggenSessie 'Inloggen en portaalsessie' {
+    #actief
+    description 'De backend is de OIDC-client (BFF); de browser krijgt alleen een sessiecookie. Het sessie-endpoint zegt of er is ingelogd, zonder tokens of BSN.'
+    metadata {
+      status 'actief'
+      modules 'backend/zgw/common-ground-authentication'
+      ingangen '1'
+    }
+  }
   capability zakenInzien 'Zaken inzien' {
     #actief
     description 'Burger/ondernemer ziet zijn lopende en afgeronde zaken met status, documenten en besluiten.'
@@ -147,6 +156,7 @@ model {
   }
 
   portaalConfiguratie -> nlPortal.backend.core 'Geïmplementeerd in'
+  inloggenSessie -> nlPortal.backend.zgwIntegrations.commonGroundAuthentication 'Geïmplementeerd in'
   zakenInzien -> nlPortal.backend.zgwIntegrations.zaken 'Geïmplementeerd in'
   zakenInzien -> nlPortal.backend.zgwIntegrations.zakenApi 'Geïmplementeerd in'
   zakenInzien -> nlPortal.backend.zgwIntegrations.catalogiApi 'Geïmplementeerd in'

@@ -18,8 +18,9 @@ import { genereerRealm } from "./lib/realm.mjs";
 import { leesTenantbestanden } from "./lib/tenantbestand.mjs";
 
 export const SECRET_NAMES = [
-  "KEYCLOAK_M2M_CLIENT_SECRET",
   "KEYCLOAK_ADMIN_PASSWORD",
+  // Redis voor de sessies van de BFF: ACL-gebruiker `nlportal` (de default-gebruiker staat uit).
+  "REDIS_PASSWORD",
   "KEYCLOAK_DB_PASSWORD",
   // Open Zaak: JWT-secrets van de ZGW-clients en de koppeling met Open Notificaties.
   "OPENZAAK_NLPORTAL_SECRET",
@@ -60,18 +61,19 @@ export const TEMPLATES = [
   { template: "docker-compose/templates/openklant-2/configuration.json", output: "docker-compose/.generated/openklant-2/configuration.json" },
   { template: "docker-compose/templates/openklant-2/admin_user.json", output: "docker-compose/.generated/openklant-2/admin_user.json" },
   { template: "docker-compose/templates/openproduct/configuration.json", output: "docker-compose/.generated/openproduct/configuration.json" },
+  { template: "docker-compose/templates/redis/users.acl", output: "docker-compose/.generated/redis/users.acl" },
   { template: "backend/app/.env.properties.example", output: "backend/app/.env.properties" },
 ];
 
-// :app-dev leest zijn secrets uit een eigen, gitignored bestand: het client-secret van de m2m-client
-// (als KEYCLOAK_CLIENT_SECRET) en de secrets en tokens waarmee het de ZGW-componenten aanroept.
-export const APP_DEV_SECRETS = ["OPENZAAK_NLPORTAL_SECRET", "OBJECTS_API_TOKEN", "OPENKLANT_API_TOKEN", "OPENPRODUCT_API_TOKEN"];
+// :app-dev leest zijn secrets uit een eigen, gitignored bestand: het Redis-wachtwoord van de BFF-sessies en de secrets en tokens
+// waarmee het de ZGW-componenten aanroept.
+export const APP_DEV_SECRETS = ["REDIS_PASSWORD", "OPENZAAK_NLPORTAL_SECRET", "OBJECTS_API_TOKEN", "OPENKLANT_API_TOKEN", "OPENPRODUCT_API_TOKEN"];
 export const APP_DEV_OUTPUT = "backend/app-dev/.env.properties";
 // Tenants: waar de tenantbestanden staan en waar het realm en de clientsleutel per tenant terechtkomen (gitignored).
 export const TENANTS_MAP = "docker-compose/imports/tenants";
 export const REALM_UITVOER = (oin) => `docker-compose/.generated/keycloak/${oin}.json`;
 export const CLIENTSLEUTEL_UITVOER = (oin) => `docker-compose/.generated/tenants/${oin}/clientsleutel.jwk.json`;
-// Tot de BFF van #506 gebruiken de bestaande configuratie, de SPA en de perf-seed de realmnaam `nlportal`; met één tenant is
+// Tot de tweede tenant gebruiken de bestaande configuratie en de perf-seed de realmnaam `nlportal`; met één tenant is
 // dat geen conflict. Een tweede tenant (stap 8) krijgt zijn OIN als realmnaam (ADR 0021 besluit 3).
 export const DEV_REALM = "nlportal";
 export const DEV_BROKER_URL = "http://localhost:8082";
@@ -99,8 +101,13 @@ export function render(template, values, source = "template") {
   });
 }
 
-export function withManagedBlock(existing, values) {
-  const block = [BLOCK_START, ...SECRET_NAMES.map((name) => `${name}=${values[name]}`), BLOCK_END].join("\n");
+/**
+ * De private clientsleutel is 0600 van de gebruiker die dev:setup draait. De backend-container leest hem alleen als dezelfde uid
+ * (compose: `user: ${LOCAL_UID}:${LOCAL_GID}`), dus het blok legt die uid vast. Windows kent geen uid; compose valt dan terug op 1000.
+ */
+export function withManagedBlock(existing, values, gebruiker = {}) {
+  const gebruikerRegels = gebruiker.uid === undefined ? [] : [`LOCAL_UID=${gebruiker.uid}`, `LOCAL_GID=${gebruiker.gid}`];
+  const block = [BLOCK_START, ...SECRET_NAMES.map((name) => `${name}=${values[name]}`), ...gebruikerRegels, BLOCK_END].join("\n");
   const pattern = new RegExp(`${BLOCK_START}[\\s\\S]*?${BLOCK_END}`);
   if (pattern.test(existing)) return existing.replace(pattern, () => block);
   return `${existing.replace(/\s*$/, "")}\n\n${block}\n`;
@@ -127,6 +134,17 @@ export function genereerTenantRealms(root, sleutelMaker = maakClientSleutel) {
   });
 }
 
+/**
+ * Uid 0 (dev:setup onder sudo) schrijft geen LOCAL_UID: de backend-container zou als root draaien. Compose valt dan terug op 1000
+ * en de 0600-sleutel is voor root, dus de run faalt zichtbaar in plaats van stil met te veel rechten.
+ */
+export const gebruikerVoor = (uid, gid) => {
+  if (uid === 0) throw new Error("dev:setup draaien als root (sudo) is niet toegestaan: de backend-container zou als root draaien; draai het als gewone gebruiker");
+  return uid === undefined ? {} : { uid, gid };
+};
+
+const huidigeGebruiker = () => (process.getuid ? gebruikerVoor(process.getuid(), process.getgid()) : {});
+
 export function devSetup(root, secrets = generateSecrets()) {
   const written = [];
   const values = { ...secrets, OPENKLANT_ADMIN_PASSWORD_HASH: djangoPasswordHash(secrets.OPENKLANT_ADMIN_PASSWORD) };
@@ -139,7 +157,7 @@ export function devSetup(root, secrets = generateSecrets()) {
 
   // Eigen regels in een bestaande docker-compose/.env (RUN_MODE, NETWERK, ...) blijven staan.
   const base = existsSync(join(root, COMPOSE_ENV)) ? COMPOSE_ENV : COMPOSE_ENV_EXAMPLE;
-  write(root, COMPOSE_ENV, withManagedBlock(readFileSync(join(root, base), "utf8"), secrets));
+  write(root, COMPOSE_ENV, withManagedBlock(readFileSync(join(root, base), "utf8"), secrets, huidigeGebruiker()));
   written.push(COMPOSE_ENV);
 
   write(
@@ -147,8 +165,9 @@ export function devSetup(root, secrets = generateSecrets()) {
     APP_DEV_OUTPUT,
     [
       "# Gegenereerd door mise run dev:setup (gitignored).",
-      `KEYCLOAK_CLIENT_SECRET=${secrets.KEYCLOAK_M2M_CLIENT_SECRET}`,
       ...APP_DEV_SECRETS.map((name) => `${name}=${secrets[name]}`),
+      // bootRun op de host praat met de TLS-loze Redis van de compose; buiten lokaal staat REDIS_SSL standaard aan.
+      "REDIS_SSL=false",
       "",
     ].join("\n"),
   );

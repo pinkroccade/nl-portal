@@ -15,17 +15,16 @@
  */
 package nl.nlportal.commonground.authentication
 
-import io.github.oshai.kotlinlogging.KotlinLogging
-import org.springframework.beans.factory.annotation.Value
 import org.springframework.boot.autoconfigure.AutoConfiguration
 import org.springframework.boot.context.properties.EnableConfigurationProperties
 import org.springframework.context.annotation.Bean
-import org.springframework.core.annotation.Order
 import org.springframework.core.io.ResourceLoader
-import org.springframework.security.oauth2.jwt.ReactiveJwtDecoder
-import java.net.URI
 
-@EnableConfigurationProperties(KeycloakConfig::class, AuthenticationMachtigingsDienstConfig::class)
+/**
+ * De machtigingsdienst-configuratie. Het inloggen zelf (de BFF) staat in [nl.nlportal.commonground.authentication.bff.BffAutoConfiguration];
+ * er is geen resource-server, geen Bearer-pad en geen token exchange meer.
+ */
+@EnableConfigurationProperties(AuthenticationMachtigingsDienstConfig::class)
 @AutoConfiguration
 class AuthenticationConfiguration {
     @Bean
@@ -37,33 +36,4 @@ class AuthenticationConfiguration {
             authenticationMachtigingsDienstConfig,
             resourceLoader,
         )
-
-    @Order(value = 0)
-    @Bean
-    fun commonGroundAuthenticationConverter(
-        reactiveJwtDecoder: ReactiveJwtDecoder,
-        keycloakConfig: KeycloakConfig,
-        @Value("\${$ISSUER_URI_PROPERTY:}") issuerUri: String,
-    ): CommonGroundAuthenticationConverter {
-        check(issuerUri.isNotBlank()) {
-            "The expected token issuer is missing: set KEYCLOAK_ISSUER_URI ($ISSUER_URI_PROPERTY) " +
-                "to the public URL of the realm, e.g. https://login.example.nl/auth/realms/portal."
-        }
-        if (keycloakConfig.audience.isNotBlank()) {
-            logger.info {
-                "Keycloak token exchange is configured with audience '${keycloakConfig.audience}'. " +
-                    "Ensure the m2m client can issue this audience; otherwise every exchange fails."
-            }
-        }
-        val tokenEndpoint =
-            keycloakConfig.tokenUri.ifBlank { "$issuerUri/protocol/openid-connect/token" }
-
-        return CommonGroundAuthenticationConverter(reactiveJwtDecoder, keycloakConfig, URI.create(tokenEndpoint))
-    }
-
-    companion object {
-        val logger = KotlinLogging.logger {}
-
-        private const val ISSUER_URI_PROPERTY = "spring.security.oauth2.resourceserver.jwt.issuer-uri"
-    }
 }

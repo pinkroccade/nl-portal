@@ -17,48 +17,22 @@ package nl.nlportal.core.security
 
 import org.assertj.core.api.Assertions.assertThat
 import org.junit.jupiter.api.Test
-import org.mockito.Mockito.mock
-import org.springframework.beans.factory.NoSuchBeanDefinitionException
 import org.springframework.boot.autoconfigure.AutoConfigurations
 import org.springframework.boot.test.context.runner.ReactiveWebApplicationContextRunner
-import org.springframework.context.annotation.Bean
-import org.springframework.context.annotation.Configuration
-import org.springframework.core.convert.converter.Converter
-import org.springframework.security.authentication.AbstractAuthenticationToken
-import org.springframework.security.oauth2.jwt.Jwt
 import org.springframework.security.oauth2.jwt.ReactiveJwtDecoder
-import reactor.core.publisher.Mono
+import org.springframework.security.web.server.SecurityWebFilterChain
 
 internal class OauthSecurityAutoConfigurationTest {
     private val runner =
         ReactiveWebApplicationContextRunner()
             .withConfiguration(AutoConfigurations.of(OauthSecurityAutoConfiguration::class.java))
-            .withUserConfiguration(DecoderConfiguration::class.java)
 
     @Test
-    fun `without a jwt converter the context does not start, there is no second authentication path`() {
+    fun `the security filter chain starts without any token conversion, there is no resource server`() {
         runner.run { context ->
-            assertThat(context).hasFailed()
-            assertThat(context.startupFailure).hasRootCauseInstanceOf(NoSuchBeanDefinitionException::class.java)
-        }
-    }
-
-    @Test
-    fun `with a jwt converter the security filter chain starts`() {
-        runner.withUserConfiguration(ConverterConfiguration::class.java).run { context ->
             assertThat(context).hasNotFailed()
+            assertThat(context).hasSingleBean(SecurityWebFilterChain::class.java)
+            assertThat(context).doesNotHaveBean(ReactiveJwtDecoder::class.java)
         }
-    }
-
-    @Configuration
-    class DecoderConfiguration {
-        @Bean
-        fun decoder(): ReactiveJwtDecoder = mock(ReactiveJwtDecoder::class.java)
-    }
-
-    @Configuration
-    class ConverterConfiguration {
-        @Bean
-        fun converter(): Converter<Jwt, Mono<AbstractAuthenticationToken>> = Converter { Mono.empty() }
     }
 }

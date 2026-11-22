@@ -98,12 +98,12 @@ class TenantResolutionIT(
 
     @Test
     fun `refresh en restart bestaan nergens`() {
-        // In :app vraagt de security-keten eerst om inloggegevens (401); de 404 zonder security toetst TenancyOverHttpTest
+        // In :app vraagt de security-keten eerst om inloggegevens (401) of weigert de POST zonder CSRF-token (403); de 404 zonder security toetst TenancyOverHttpTest
         // in core, en de exposure uit de geleverde application.yml toetst ShippedConfigurationTest.
         for (poort in listOf(serverPort, managementPort)) {
             for (endpoint in listOf("refresh", "restart")) {
                 client(poort).post().uri("/actuator/$endpoint").header("Host", "bosrand.example").exchange().expectStatus().value {
-                    assertThat(it).describedAs("poort $poort $endpoint").isIn(401, 404)
+                    assertThat(it).describedAs("poort $poort $endpoint").isIn(401, 403, 404)
                 }
             }
         }

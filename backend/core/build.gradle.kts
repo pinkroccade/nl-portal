@@ -37,7 +37,8 @@ dependencies {
     api(Dependencies.springWebFlux)
     api(Dependencies.springBootWebClient)
     api("org.springframework.security:spring-security-oauth2-jose")
-    api("org.springframework.boot:spring-boot-starter-security-oauth2-resource-server")
+    // De backend is OAuth2-client (BFF, ADR 0022); er is geen resource-server en geen Bearer-pad.
+    api("org.springframework.boot:spring-boot-starter-security-oauth2-client")
 
     // Jackson
     api(Dependencies.jacksonKotlinModule)

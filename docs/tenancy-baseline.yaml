@@ -93,10 +93,10 @@ modules:
   ":zgw:common-ground-authentication":
     omvang: L
     risico: hoog
-    toelichting: Eén Keycloak-client en jwk-set-uri, issuer en token-endpoint voor de hele runtime (uit configuratie, niet uit het token).
+    toelichting: De BFF (ADR 0022) leest client-registratie, issuer en sleutel per tenant uit het tenantbestand; de machtigingsdienst-configuratie is nog een singleton.
     signalen:
-      config: KeycloakConfig is een singleton.
-      webclient: WebClient.create() in CommonGroundAuthenticationConverter.
+      config: AuthenticationMachtigingsDienstConfig is een singleton.
+      anoniem: Het sessie-endpoint /api/public/sessie is bewust anoniem; het geeft alleen de status van de eigen sessie, met de tenant uit het host-domein.
   ":zgw:objectenapi":
     omvang: M
     risico: hoog

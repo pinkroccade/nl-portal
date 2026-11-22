@@ -37,7 +37,15 @@ per tenant file in `imports/tenants`, a realm from the one template in `../keycl
 `private_key_jwt` (the private JWK lands in `.generated/tenants/<oin>/clientsleutel.jwk.json`), and the `nl-portal-keycloak-config`
 service loads the realm with keycloak-config-cli and exits. After changing a tenant file or the template: run `mise run dev:setup`
 and `docker compose run --rm nl-portal-keycloak-config` (it also undoes manual changes in the console). The realm keeps the
-name `nlportal` until the BFF ticket (#506); details are in [keycloak/README.md](../keycloak/README.md).
+name `nlportal` for the development tenant; details are in [keycloak/README.md](../keycloak/README.md).
+
+The backend is the OIDC client (BFF): the realm only has the client `nl-portal-backend` (no SPA client, no `nl-portal-m2m`, no token exchange),
+and sessions live in Redis (`nl-portal-sessies`, ACL from `.generated/redis/users.acl`, no persistence, `127.0.0.1:6379`). Log in at
+`http://debosrand.localhost:3000` (or `http://localhost:3000`) as `burger`; the host selects the tenant. The private client key is a `0600` file
+owned by the user who ran `mise run dev:setup`, so the backend container (modes `local` and `remote`) runs as that user: `dev:setup` writes your
+uid and gid as `LOCAL_UID`/`LOCAL_GID` to `.env` (Windows has none; Compose then falls back to `1000:1000`). When the key is unreadable for the
+container user, the backend refuses to start; fix it by running `mise run dev:setup` as the user that starts Compose, not by loosening the
+file mode.
 
 ### Compose structure and profiles
 The compose file is built up out of sets of containers (profiles) that each enable a piece of

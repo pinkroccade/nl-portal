@@ -14,7 +14,7 @@ cd ../../docker-compose && docker compose --profile zgw --profile haalcentraal u
 cd ../backend && ./gradlew :app-dev:bootRun
 ```
 
-Only a generated `.env.properties` is read (`mise run dev:setup`): the Keycloak client secret and the
+Only a generated `.env.properties` is read (`mise run dev:setup`): the Redis password and the
 secrets and tokens of the ZGW components, which `application.yml` references as placeholders. Unlike `:app`,
 this module is configured otherwise entirely from its own
 [`src/main/resources/config/application.yml`](src/main/resources/config/application.yml), which inlines
@@ -25,6 +25,7 @@ The tenancy is on, like in `:app`: `nl-portal.tenancy.directory` points at the d
 [`docker-compose/imports/tenants`](../../docker-compose/imports/tenants), which holds the `koppelingen` and `modules` of the
 modules that were migrated to the tenant file (so far `haalcentraal-brp`). The demo mocks need no secrets
 (`auth.type: geen`); a source that does would get its secret inlined under `nl-portal.geheimen` in `application.yml`. Requests need the host `localhost` (a tenant domain).
+The client key of the login (`authenticatie.sleutelBestand`) lives under `nl-portal.sleutelmap` (default `docker-compose/.generated/tenants`, made by `mise run dev:setup`), in a folder named after the tenant OIN; the file must resolve (symlinks included) to that folder.
 
 GraphQL is at http://localhost:8080/graphql (GraphiQL and introspection are on). Log in with the test
 users from the [docker-compose stack](../../docker-compose/README.md).

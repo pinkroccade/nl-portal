@@ -19,6 +19,7 @@ import {
   djangoPasswordHash,
   generateSecrets,
   render,
+  gebruikerVoor,
   withManagedBlock,
 } from "./dev-setup.mjs";
 
@@ -66,6 +67,19 @@ test("withManagedBlock behoudt eigen regels en vervangt het blok bij herhaling",
   assert.match(tweede, /KEYCLOAK_DB_PASSWORD=KEYCLOAK_DB_PASSWORD-2/);
 });
 
+test("withManagedBlock zet LOCAL_UID en LOCAL_GID zodat de container de 0600-clientsleutel kan lezen", () => {
+  const blok = withManagedBlock("RUN_MODE=local\n", fixed(1), { uid: 1234, gid: 5678 });
+  assert.match(blok, /^LOCAL_UID=1234$/m);
+  assert.match(blok, /^LOCAL_GID=5678$/m);
+  assert.doesNotMatch(withManagedBlock("", fixed(1), {}), /LOCAL_UID/, "zonder uid (Windows) valt compose terug op 1000");
+});
+
+test("gebruikerVoor weigert uid 0 en laat Windows (geen uid) door", () => {
+  assert.throws(() => gebruikerVoor(0, 0), /root/);
+  assert.deepEqual(gebruikerVoor(1000, 1001), { uid: 1000, gid: 1001 });
+  assert.deepEqual(gebruikerVoor(undefined, undefined), {});
+});
+
 test("devSetup rendert dezelfde waarden in realm, compose en :app", () => {
   const root = scratchRoot();
   try {
@@ -76,11 +90,10 @@ test("devSetup rendert dezelfde waarden in realm, compose en :app", () => {
     // De realms worden uit het tenantbestand gegenereerd; keycloak-config-cli leest de geheimen uit de omgeving (compose),
     // dus het realm bevat alleen een verwijzing en .env bevat de waarde.
     const realm = JSON.parse(read(REALM_UITVOER(OIN)));
-    const m2m = realm.clients.find((c) => c.clientId === "nl-portal-m2m");
-    assert.equal(m2m.secret, "$(env:KEYCLOAK_M2M_CLIENT_SECRET)");
+    assert.equal(realm.clients.find((c) => c.clientId === "nl-portal-m2m"), undefined, "er is geen m2m-client en dus geen clientgeheim");
     assert.equal(realm.displayName, "Gemeente De Bosrand");
-    assert.match(read(COMPOSE_ENV), new RegExp(`^KEYCLOAK_M2M_CLIENT_SECRET=${secrets.KEYCLOAK_M2M_CLIENT_SECRET}$`, "m"));
-    assert.ok(!JSON.stringify(realm).includes(secrets.KEYCLOAK_M2M_CLIENT_SECRET));
+    assert.match(read(COMPOSE_ENV), new RegExp("^REDIS_PASSWORD=" + secrets.REDIS_PASSWORD + "$", "m"));
+    assert.ok(!JSON.stringify(realm).includes(secrets.REDIS_PASSWORD));
 
     // Het sleutelpaar van nl-portal-backend: de private JWK in de gitignored map voor de backend, de publieke in het realm.
     const prive = JSON.parse(read(CLIENTSLEUTEL_UITVOER(OIN)));
@@ -92,15 +105,14 @@ test("devSetup rendert dezelfde waarden in realm, compose en :app", () => {
     assert.ok(prive.d);
     // Alleen de eigenaar leest de private sleutel (POSIX; Windows kent deze modus niet).
     if (process.platform !== "win32") assert.equal(statSync(join(root, CLIENTSLEUTEL_UITVOER(OIN))).mode & 0o777, 0o600);
-    assert.match(
-      read("backend/app/.env.properties"),
-      new RegExp(`^KEYCLOAK_CLIENT_SECRET=${secrets.KEYCLOAK_M2M_CLIENT_SECRET}$`, "m"),
-    );
+    assert.match(read("backend/app/.env.properties"), new RegExp("^REDIS_PASSWORD=" + secrets.REDIS_PASSWORD + "$", "m"));
+    assert.match(read("backend/app/.env.properties"), /^REDIS_SSL=false$/m, "bootRun op de host praat met de TLS-loze Redis van de compose");
+    assert.doesNotMatch(read(APP_DEV_OUTPUT), /KEYCLOAK_CLIENT_SECRET/);
+    assert.match(read(APP_DEV_OUTPUT), /^REDIS_SSL=false$/m, "app-dev bootRun op de host praat met de TLS-loze Redis");
     assert.match(
       read("backend/app/.env.properties"),
       new RegExp(`^NL_PORTAL_GEHEIMEN_00000099000000000001_ZAKEN_SECRET=${secrets.OPENZAAK_NLPORTAL_SECRET}$`, "m"),
     );
-    assert.match(read(APP_DEV_OUTPUT), new RegExp(`KEYCLOAK_CLIENT_SECRET=${secrets.KEYCLOAK_M2M_CLIENT_SECRET}`));
     for (const name of APP_DEV_SECRETS) assert.match(read(APP_DEV_OUTPUT), new RegExp(`^${name}=${secrets[name]}$`, "m"));
 
     // Open Zaak, Objects, Open Notificaties, Open Klant en Open Product delen de JWT-secrets en tokens

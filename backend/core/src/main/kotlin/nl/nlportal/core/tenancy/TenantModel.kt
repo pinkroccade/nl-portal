@@ -99,6 +99,27 @@ data class Sessie(
 }
 
 /**
+ * De client-registratie van de backend (de BFF) bij de Keycloak-realm van de tenant (ADR 0022). De private sleutel staat
+ * niet in het tenantbestand maar in een bestand dat de secret store aanlevert (bestandsmount); alleen het pad staat hier.
+ * Issuer, sleutelpad en interne basis-URL horen bij precies één tenant en komen nooit uit de gedeelde basis ([NietErfbaar]).
+ *
+ * @property issuer publieke issuer van de realm; komt terug in het ID-token en in de `iss`-parameter van de callback.
+ * @property sleutelBestand pad naar de private JWK (RSA, PS256, met `kid`) voor `private_key_jwt`.
+ * @property clientId de enige vertrouwelijke client van de tenant.
+ * @property interneBasisUrl optioneel adres van de realm voor serververkeer (token- en JWKS-endpoint) als de publieke issuer intern niet bereikbaar is.
+ */
+data class Authenticatie(
+    @NietErfbaar val issuer: String,
+    @NietErfbaar val sleutelBestand: String,
+    val clientId: String = STANDAARD_CLIENT_ID,
+    @NietErfbaar val interneBasisUrl: String? = null,
+) {
+    companion object {
+        const val STANDAARD_CLIENT_ID = "nl-portal-backend"
+    }
+}
+
+/**
  * Verwijzing naar een geheim in de secret store, op naam. Het tenantbestand bevat nooit het geheim zelf (story 12); de naam
  * wordt bij het opstarten opgelost via [GeheimenBron]. Een eigenschap van dit type komt nooit uit de gedeelde basis (story 11).
  */
@@ -120,7 +141,7 @@ value class GeheimVerwijzing(
     override fun toString() = "geheim:$naam"
 
     companion object {
-        const val PATROON = "^[a-z0-9]+([._-][a-z0-9]+)*\$"
+        const val PATROON = "^[a-z0-9]+([._-][a-z0-9]+)*$"
         private val FORMAAT = Regex(PATROON)
         private const val SCHEIDINGSTEKENS = "._-"
     }
@@ -203,6 +224,7 @@ data class TenantBestand(
     val domeinen: List<String>,
     val thema: Thema,
     val inlogmiddelen: List<Inlogmiddel>,
+    val authenticatie: Authenticatie,
     val minimumNiveau: Betrouwbaarheidsniveau = Betrouwbaarheidsniveau.SUBSTANTIEEL,
     val sessie: Sessie = Sessie(),
     val koppelingen: Map<String, TenantKoppeling> = emptyMap(),
@@ -217,6 +239,7 @@ data class TenantDefinition(
     val domeinen: List<String>,
     val thema: Thema,
     val inlogmiddelen: Set<Inlogmiddel>,
+    val authenticatie: Authenticatie,
     val minimumNiveau: Betrouwbaarheidsniveau,
     val sessie: Sessie,
     val koppelingen: Map<String, TenantKoppeling> = emptyMap(),

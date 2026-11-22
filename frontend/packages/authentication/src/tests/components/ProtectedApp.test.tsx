@@ -18,6 +18,7 @@ import { act } from "react";
 import { createRoot, Root } from "react-dom/client";
 import { IntlProvider } from "react-intl";
 import ProtectedApp from "../../components/ProtectedApp";
+import SessionContext from "../../session/SessionContext";
 
 // jsdom doesn't implement the <dialog> element's imperative API used by @gemeente-denhaag/modal.
 (
@@ -30,28 +31,14 @@ HTMLDialogElement.prototype.close = function () {
   this.removeAttribute("open");
 };
 
-const signinRedirectMock = vi.fn();
-const signoutRedirectMock = vi.fn();
-let isAuthenticated = false;
-
-vi.mock("react-oidc-context", () => ({
-  useAuth: () => ({
-    isLoading: false,
-    get isAuthenticated() {
-      return isAuthenticated;
-    },
-    signinRedirect: signinRedirectMock,
-    signoutRedirect: signoutRedirectMock,
-    events: { addUserLoaded: () => () => {} },
-  }),
-}));
+const logoutMock = vi.fn();
 
 describe("ProtectedApp", () => {
   let container: HTMLDivElement;
   let root: Root;
 
   beforeEach(() => {
-    isAuthenticated = false;
+    logoutMock.mockClear();
     container = document.createElement("div");
     document.body.appendChild(container);
     root = createRoot(container);
@@ -62,30 +49,35 @@ describe("ProtectedApp", () => {
     container.remove();
   });
 
-  it("fire-and-forgets the signin redirect when the user isn't authenticated", () => {
+  const render = (idleTimeoutMinutes: number, autoIdleSessionLogout = true) =>
     act(() => {
       root.render(
         <IntlProvider locale="en" messages={{}} onError={() => {}}>
-          <ProtectedApp>child</ProtectedApp>
+          <SessionContext.Provider
+            value={{
+              sessie: { ingelogd: true },
+              isCompany: false,
+              isProxy: false,
+              markeerVerlopen: () => {},
+              logout: logoutMock,
+            }}
+          >
+            <ProtectedApp
+              idleTimeoutMinutes={idleTimeoutMinutes}
+              autoIdleSessionLogout={autoIdleSessionLogout}
+            >
+              child
+            </ProtectedApp>
+          </SessionContext.Provider>
         </IntlProvider>,
       );
     });
 
-    expect(signinRedirectMock).toHaveBeenCalled();
-  });
-
-  it("fire-and-forgets the signout redirect when the idle logout warning is confirmed", () => {
-    isAuthenticated = true;
+  it("logs out through the session when the idle logout warning is confirmed", () => {
     vi.useFakeTimers();
 
     try {
-      act(() => {
-        root.render(
-          <IntlProvider locale="en" messages={{}} onError={() => {}}>
-            <ProtectedApp idleTimeoutMinutes={5}>child</ProtectedApp>
-          </IntlProvider>,
-        );
-      });
+      render(5);
 
       // the "show warning" IdleTimer fires after (idleTimeoutMinutes - 5) minutes, i.e. immediately.
       act(() => {
@@ -101,7 +93,40 @@ describe("ProtectedApp", () => {
         logoutButton?.click();
       });
 
-      expect(signoutRedirectMock).toHaveBeenCalled();
+      expect(logoutMock).toHaveBeenCalled();
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it("logs out automatically after the idle timeout", () => {
+    vi.useFakeTimers();
+
+    try {
+      render(15);
+
+      act(() => {
+        vi.advanceTimersByTime(15 * 60 * 1000);
+      });
+
+      expect(logoutMock).toHaveBeenCalled();
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it("does not run a timer when idle logout is switched off", () => {
+    vi.useFakeTimers();
+
+    try {
+      render(1, false);
+
+      act(() => {
+        vi.advanceTimersByTime(60 * 60 * 1000);
+      });
+
+      expect(logoutMock).not.toHaveBeenCalled();
+      expect(container.textContent).toBe("child");
     } finally {
       vi.useRealTimers();
     }

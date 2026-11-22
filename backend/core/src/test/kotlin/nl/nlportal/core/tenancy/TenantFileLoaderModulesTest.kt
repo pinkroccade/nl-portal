@@ -89,7 +89,7 @@ class TenantFileLoaderModulesTest {
         oin: String = bosrand,
         extra: String = "",
         domein: String = "bosrand.example",
-    ) = "oin: \"$oin\"\nnaam: Gemeente\ndomeinen: [$domein]\nthema:\n  titel: De Bosrand\n$extra\n"
+    ) = "oin: \"$oin\"\nnaam: Gemeente\ndomeinen: [$domein]\nthema:\n  titel: De Bosrand\nauthenticatie:\n  issuer: https://login.example/realms/$oin\n  sleutelBestand: /run/secrets/$oin/k.jwk\n$extra\n"
 
     private val basis = "omgevingstype: acceptatie\ninlogmiddelen: [digid]\n"
 

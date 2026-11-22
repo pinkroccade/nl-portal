@@ -62,8 +62,28 @@ class RestEndpointAuthorizationIT {
     @Autowired
     lateinit var webTestClient: WebTestClient
 
-    /** De tenantresolutie vereist een host (het tenantbestand van de test kent `localhost`). */
-    private fun client() = webTestClient.mutate().baseUrl("http://localhost").build()
+    /**
+     * Zoals de SPA: host van de tenant, Origin en het CSRF-token uit het cookie dat de backend bij het eerste request zet, in cookie en
+     * header, zodat een muterend request de beveiligingsketen bereikt.
+     */
+    private fun client(): WebTestClient {
+        val anoniem = webTestClient.mutate().baseUrl("http://localhost").build()
+        val token =
+            anoniem
+                .get()
+                .uri("/api/public/sessie")
+                .exchange()
+                .returnResult(String::class.java)
+                .responseCookies["__Host-XSRF-TOKEN"]!!
+                .first()
+                .value
+        return anoniem
+            .mutate()
+            .defaultHeader("Origin", "http://localhost")
+            .defaultCookie("__Host-XSRF-TOKEN", token)
+            .defaultHeader("X-XSRF-TOKEN", token)
+            .build()
+    }
 
     @Autowired
     lateinit var requestMappingHandlerMapping: RequestMappingHandlerMapping

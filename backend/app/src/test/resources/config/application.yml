@@ -5,6 +5,9 @@ server:
 management:
     server:
         port: 0
+    health:
+        redis:
+            enabled: false
 
 spring:
     profiles:
@@ -14,13 +17,13 @@ spring:
             enabled: true
         schema:
             locations: classpath*:graphql/**/
-    security:
-        oauth2:
-            resourceserver:
-                jwt:
-                    issuer-uri: http://localhost:9999/auth/realms/test
+    data:
+        redis:
+            repositories:
+                enabled: false
 
 nl-portal:
+    sleutelmap: build/test-sleutels
     tenancy:
         directory: src/test/resources/tenants
     geheimen:
@@ -37,11 +40,7 @@ nl-portal:
         endpoints:
             unsecured: /api/public/**
     authentication:
-        keycloak:
-            resource: test-client
-            audience: test-audience
-            credentials:
-                secret: test-secret
+        broker-url: http://localhost:9999
     config:
         besluitenapi:
             enabled: true

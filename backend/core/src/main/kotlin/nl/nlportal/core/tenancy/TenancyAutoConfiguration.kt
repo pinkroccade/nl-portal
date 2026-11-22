@@ -31,6 +31,9 @@ import java.nio.file.Path
 
 private val logger = KotlinLogging.logger {}
 
+/** De vaste basismap van de clientsleutels; per tenant een map met de OIN als naam (zie [ClientSleutelBestand]). */
+const val SLEUTELMAP = "nl-portal.sleutelmap"
+
 /** Waar of de tenancy aanstaat: de eigenschap bestaat, met welke waarde dan ook (anders zou `false` haar stil uitzetten). */
 internal class TenancyIngesteld : Condition {
     override fun matches(
@@ -56,9 +59,10 @@ class TenancyAutoConfiguration {
     fun tenantDirectory(
         properties: TenancyProperties,
         modules: TenantModules,
+        environment: Environment,
     ): TenantDirectory {
         require(!properties.directory.isNullOrBlank()) { "nl-portal.tenancy.directory is leeg; noem de map met de tenantbestanden" }
-        val tenants = TenantFileLoader(modules = modules).load(Path.of(properties.directory!!)).orThrow()
+        val tenants = TenantFileLoader(modules = modules, sleutelmap = environment.getProperty(SLEUTELMAP)?.takeIf { it.isNotBlank() }?.let { Path.of(it) }).load(Path.of(properties.directory!!)).orThrow()
         logger.info { "Tenants geladen: ${tenants.joinToString { "${it.oin} (${it.domeinen.joinToString()})" }}" }
         return TenantDirectory(tenants)
     }

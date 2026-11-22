@@ -1,5 +1,6 @@
 // Hulpcode voor de test: Keycloak bereiken, de realms afmaken en een login als een browser doorlopen.
 import { createHash, randomBytes } from "node:crypto";
+import assert from "node:assert/strict";
 
 export const KC = "http://localhost:18080";
 export const REDIRECT_URI = "http://localhost:18081/bff/callback";
@@ -177,11 +178,19 @@ export function decodeJwt(jwt) {
   return JSON.parse(Buffer.from(jwt.split(".")[1], "base64url").toString("utf8"));
 }
 
+/** De claims van het userinfo-endpoint: daar (en alleen daar) staat het BSN voor de BFF. */
+export async function userinfo(accessToken, realm = "portal") {
+  const r = await fetch(`${KC}/realms/${realm}/protocol/openid-connect/userinfo`, { headers: { authorization: `Bearer ${accessToken}` } });
+  const tekst = await r.text();
+  assert.equal(r.status, 200, `userinfo: ${tekst}`);
+  return JSON.parse(tekst);
+}
+
 export async function loginForIdToken(opts) {
   const result = await login(opts);
-  if (!result.code) return { ...result, idToken: null };
+  if (!result.code) return { ...result, idToken: null, userinfo: null };
   const tokens = await exchange(result);
-  return { ...result, tokens, idToken: decodeJwt(tokens.id_token), accessToken: decodeJwt(tokens.access_token) };
+  return { ...result, tokens, idToken: decodeJwt(tokens.id_token), accessToken: decodeJwt(tokens.access_token), userinfo: await userinfo(tokens.access_token, opts.realm) };
 }
 
 const SAML_CLASSES = "urn:oasis:names:tc:SAML:2.0:ac:classes:";

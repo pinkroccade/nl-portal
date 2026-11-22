@@ -19,7 +19,7 @@ De backend variabelen volgen de Spring Boot relaxed binding naamconventie: de pr
 | elk koppelteken weggelaten | `NLPORTAL_SUPPORT_PINGENDPOINT_ENABLED` | ja |
 | mengvorm | `NLPORTAL_SUPPORT_PING_ENDPOINT_ENABLED` | **nee** |
 
-Bij properties waarvan alleen het voorste deel een koppelteken heeft — zoals `nl-portal.authentication.keycloak.resource` — vallen beide schrijfwijzen samen en speelt dit niet. Gebruik bij voorkeur de variabelen van de app image (zoals `KEYCLOAK_CLIENT_ID`), dan loop je hier niet tegenaan.
+Bij properties waarvan alleen het voorste deel een koppelteken heeft — zoals `nl-portal.authentication.broker-url` — vallen beide schrijfwijzen samen en speelt dit niet. Gebruik bij voorkeur de variabelen van de app image (zoals `KEYCLOAK_BROKER_URL`), dan loop je hier niet tegenaan.
 
 ### Deployen met Helm (Kubernetes)
 
@@ -66,23 +66,24 @@ De Catalogi API is ook gemigreerd en heeft per tenant alleen een koppeling (geen
 
 Alle module properties, inclusief de optionele, zijn met inline documentatie te vinden in `docker-compose/imports/backend.env` in de monorepo.
 
-### Backend: Keycloak-koppeling
+### Backend: Keycloak-koppeling en sessies
 
-De backend kent Keycloak onder twee adressen: het **publieke** adres, zoals de browser het ziet, en
-eventueel een **intern** adres waarop de backend Keycloak zelf bereikt (bijvoorbeeld een
-servicenaam in Kubernetes of docker-compose).
+De backend is zelf de OIDC-client (BFF, [ADR 0022](../development/adr/0022-backend-for-frontend-als-authenticatiepatroon.md)). De issuer, het
+sleutelbestand en eventueel een interne route naar Keycloak staan per tenant in het tenantbestand (blok `authenticatie`); zie de
+[Keycloak configuratie](./keycloak.md). De backend krijgt daarnaast:
 
-| Variabele | Verplicht | Adres | Betekenis |
-| --------- | --------- | ----- | --------- |
-| `KEYCLOAK_ISSUER_URI` | ja | publiek | De verwachte issuer: de URL van de realm, teken voor teken gelijk aan de `iss`-claim van de tokens, zonder `/` aan het eind (`https://login.gemeente.nl/auth/realms/portal`). Een token met een andere `iss` krijgt een 401. Zonder deze variabele start de backend niet. |
-| `JWKS_URI` | ja | intern of publiek | De sleutelset waarmee de backend handtekeningen controleert (`<realm-url>/protocol/openid-connect/certs`). |
-| `KEYCLOAK_TOKEN_URI` | nee | intern of publiek | Het token-endpoint voor de token exchange. Leeg: `<KEYCLOAK_ISSUER_URI>/protocol/openid-connect/token`. |
+| Variabele | Verplicht | Betekenis |
+| --------- | --------- | --------- |
+| `KEYCLOAK_BROKER_URL` | ja | Basis-URL van de publieke ID-broker. Elke issuer in de tenantbestanden moet eronder vallen. |
+| `NL_PORTAL_SLEUTELMAP` | ja | Vaste map met per tenant een map met de OIN als naam, met daarin de private clientsleutel (`<OIN>/clientsleutel.jwk.json`, 0600, leesbaar voor de gebruiker van de backend). |
+| `REDIS_HOST`, `REDIS_PORT`, `REDIS_USERNAME`, `REDIS_PASSWORD`, `REDIS_SSL` | ja | De Redis voor de portaalsessies: ACL, geen persistentie, `noeviction`, TLS standaard aan (`REDIS_SSL=false` alleen lokaal), één instantie per cel. Valt Redis uit, dan moeten gebruikers opnieuw inloggen. |
 
-De backend leidt het token-endpoint nooit af uit het binnenkomende token. Heeft de backend een
-interne route naar Keycloak, zet dan `JWKS_URI` en `KEYCLOAK_TOKEN_URI` op het interne adres; de
-issuer blijft het publieke adres. Laat Keycloak de publieke URL in de tokens zetten, ook bij een
-verzoek via het interne adres (`KC_HOSTNAME` op de publieke URL en
-`KC_HOSTNAME_BACKCHANNEL_DYNAMIC=true`).
+De backend leidt het token-endpoint nooit af uit een binnenkomend bericht. Heeft de backend een interne route naar Keycloak, zet dan
+`authenticatie.interneBasisUrl` in het tenantbestand; de issuer blijft het publieke adres. Laat Keycloak de publieke URL in de tokens zetten,
+ook bij een verzoek via het interne adres (`KC_HOSTNAME` op de publieke URL en `KC_HOSTNAME_BACKCHANNEL_DYNAMIC=true`).
+
+Het frontend-image heeft geen identity-instellingen meer. De reverse proxy (nginx in het image, of de ingress) moet `/graphql`, `/api`,
+`/oauth2`, `/login` en `/logout` naar de backend sturen en de `Host`-header van de browser doorgeven: de host bepaalt de tenant.
 
 ### Backend: CORS
 
@@ -194,4 +195,4 @@ flagbestand.
 
 Zie [Eigen vormgeving](../gebruik-en-inrichting/eigen-vormgeving.md) voor `themeClass` en theming.
 
-Zie de [Keycloak configuratie](./keycloak.md) pagina voor het instellen van de bijbehorende clients in Keycloak. Zie [Standard token exchange](./keycloak-token-exchange.md) voor de inrichting van de token exchange.
+Zie de [Keycloak configuratie](./keycloak.md) pagina voor het instellen van de bijbehorende clients in Keycloak.

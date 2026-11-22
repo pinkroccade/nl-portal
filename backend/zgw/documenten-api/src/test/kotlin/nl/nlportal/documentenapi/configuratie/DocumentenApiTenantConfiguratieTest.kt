@@ -35,6 +35,8 @@ class DocumentenApiTenantConfiguratieTest {
     private val bosrand = "00000099000000000001"
     private val modules = TenantModules.van(listOf(DocumentenApiTenantConfiguratie()))
 
+    private val authenticatie =
+        "authenticatie:\n  issuer: https://login.example/realms/$bosrand\n  sleutelBestand: /run/secrets/$bosrand/k.jwk"
     private val koppelingen =
         """
         koppelingen:
@@ -59,7 +61,7 @@ class DocumentenApiTenantConfiguratieTest {
         Files.writeString(dir.resolve("base.yaml"), "omgevingstype: acceptatie\ninlogmiddelen: [digid]\n")
         Files.writeString(
             dir.resolve("$bosrand.yaml"),
-            "oin: \"$bosrand\"\nnaam: Gemeente\ndomeinen: [bosrand.example]\nthema:\n  titel: De Bosrand\n$koppelingen\n$extraKoppelingen\nmodules:\n  documenten-api:\n" +
+            "oin: \"$bosrand\"\nnaam: Gemeente\ndomeinen: [bosrand.example]\nthema:\n  titel: De Bosrand\n$authenticatie\n$koppelingen\n$extraKoppelingen\nmodules:\n  documenten-api:\n" +
                 modulesBlok.trimIndent().prependIndent("    ") + "\n",
         )
         return TenantFileLoader(modules = modules).load(dir)
@@ -191,7 +193,7 @@ class DocumentenApiTenantConfiguratieTest {
         )
         Files.writeString(
             dir.resolve("$bosrand.yaml"),
-            "oin: \"$bosrand\"\nnaam: Gemeente\ndomeinen: [bosrand.example]\nthema:\n  titel: De Bosrand\n$koppelingen\n",
+            "oin: \"$bosrand\"\nnaam: Gemeente\ndomeinen: [bosrand.example]\nthema:\n  titel: De Bosrand\n$authenticatie\n$koppelingen\n",
         )
 
         val result = TenantFileLoader(modules = modules).load(dir)

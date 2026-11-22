@@ -19,7 +19,7 @@ import com.nimbusds.jwt.SignedJWT
 import nl.nlportal.architecture.fixtures.identityvio.auth.Identity
 import nl.nlportal.architecture.fixtures.identityvio.auth.Session
 import org.springframework.security.oauth2.jwt.Jwt
-import org.springframework.security.oauth2.server.resource.authentication.JwtAuthenticationToken
+import org.springframework.security.oauth2.core.user.OAuth2User
 
 class BuildsIdentity {
     fun forge() = Identity("forged")
@@ -38,7 +38,7 @@ class ReadsClaims {
 }
 
 class ReadsTokenAttributes {
-    fun bsnOf(authentication: JwtAuthenticationToken): Any? = authentication.tokenAttributes["bsn"]
+    fun bsnOf(user: OAuth2User): Any? = user.attributes["bsn"]
 }
 
 class ParsesBearerToken {

@@ -25,6 +25,7 @@ import nl.nlportal.core.modulegate.ModuleNotAvailableException
 import nl.nlportal.core.tenancy.TenantContextMissingException
 import nl.nlportal.core.util.ModuleNotConfiguredException
 import org.springframework.graphql.execution.DataFetcherExceptionResolverAdapter
+import org.springframework.security.core.AuthenticationException
 import java.util.UUID
 
 /**
@@ -32,7 +33,8 @@ import java.util.UUID
  * `TenantContextMissingException`, `KoppelingConfiguratieException`) bevatten OIN, koppeling- of headernamen en gaan dus
  * niet met hun melding naar de browser: de browser krijgt een vaste melding, een generieke code en een correlatieId. De log
  * noemt de code, het correlatieId, de klassenaam en de melding van de uitzondering (voor de beheerder), nooit de oorzaak
- * (`cause`) of een stacktrace.
+ * (`cause`) of een stacktrace. `UNAUTHENTICATED` (geen identiteit: de sessie is verlopen of ongeldig) laat de frontend de sessie als
+ * verlopen behandelen; `/graphql` geeft daarvoor geen HTTP 401 omdat anonieme queries bestaan.
  */
 class GraphQLExceptionHandler : DataFetcherExceptionResolverAdapter() {
     override fun resolveToSingleError(
@@ -45,6 +47,9 @@ class GraphQLExceptionHandler : DataFetcherExceptionResolverAdapter() {
 
                 // Foutdetails van een bron gaan niet naar de browser: alleen een generieke code en de referentie voor de log.
                 is KoppelingException -> Uitkomst(ex.message, mapOf("code" to "KOPPELING_FOUT", "correlatieId" to ex.correlatieId))
+
+                // Geen identiteit (sessie verlopen of ongeldig): de frontend behandelt deze code als verlopen sessie. Nooit de melding van de bron doorgeven.
+                is AuthenticationException -> Uitkomst("Niet geauthenticeerd", mapOf("code" to "UNAUTHENTICATED"))
 
                 is ModuleNotConfiguredException -> intern(ex, "Module is niet beschikbaar", "MODULE_NIET_GECONFIGUREERD")
 

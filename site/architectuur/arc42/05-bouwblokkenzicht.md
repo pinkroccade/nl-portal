@@ -73,6 +73,7 @@ ingangen (GraphQL-operaties, REST-endpoints, event-listeners) het bereikbaar is.
 | Capability | Status | Modules | Ingangen |
 |---|---|---|---|
 | [Portaalconfiguratie en health](#capability-portaal-configuratie) | `actief` | `backend/core` | 2 |
+| [Inloggen en portaalsessie](#capability-inloggen-sessie) | `actief` | `backend/zgw/common-ground-authentication` | 1 |
 | [Zaken inzien](#capability-zaken-inzien) | `actief` | `backend/zgw/zaken`, `backend/zgw/zaken-api`, `backend/zgw/catalogi-api` | 3 |
 | [Besluiten inzien](#capability-besluiten-inzien) | `twijfel` | `backend/zgw/besluiten` | 0 |
 | [Berichten ontvangen](#capability-berichten-ontvangen) | `actief` | `backend/zgw/berichten`, `backend/zgw/documenten-api`, `backend/zgw/objectenapi` | 4 |
@@ -101,6 +102,19 @@ Levert feature-flags/configuratie aan de frontend en een optionele ping voor mon
 |---|---|---|---|---|
 | rest | `GET /api/public/frontend` | ja | `actief` |  |
 | rest | `GET /api/public/ping` | nee | `actief` |  |
+
+<a id="capability-inloggen-sessie"></a>
+### Inloggen en portaalsessie (`inloggen-sessie`)
+
+De backend is de OIDC-client (BFF); de browser krijgt alleen een sessiecookie. Het sessie-endpoint zegt of er is ingelogd, zonder tokens of BSN.
+
+- **Status:** `actief`
+- **Bewijs:** SessionProvider in de frontend vraagt GET /api/public/sessie bij opstart; login, callback en uitloggen zijn Spring-Security-routes (/oauth2, /login, /logout).
+- **Modules:** `backend/zgw/common-ground-authentication`
+
+| Type | Ingang | Frontend gebruikt | Status | Voorwaarde |
+|---|---|---|---|---|
+| rest | `GET /api/public/sessie` | ja | `actief` |  |
 
 <a id="capability-zaken-inzien"></a>
 ### Zaken inzien (`zaken-inzien`)
@@ -324,7 +338,6 @@ Opvragen van bestanden, contacten, links, locaties, organisaties en prijzen uit 
 |---|---|
 | `backend/graphql` | library (GraphQL-config, scalars, exceptionhandler) |
 | `backend/portal-authentication` | infra (authenticatie-basis) |
-| `backend/zgw/common-ground-authentication` | infra (Keycloak/OIDC) |
 | `backend/zgw/common-ground-authentication-test` | test-library |
 | `backend/zgw/objectenapi` | library (client Objecten API) |
 | `backend/zgw/catalogi-api` | library (client Catalogi API) |

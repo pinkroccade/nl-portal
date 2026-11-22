@@ -56,6 +56,8 @@ Sinds epic #499 (stap 2) leest de runtime een map met tenantbestanden: `base.yam
 omgeving, optioneel) en per tenant `<oin>.yaml`, dat de basis overschrijft. De map staat in
 `NL_PORTAL_TENANTS_DIRECTORY` en is verplicht; `docker-compose/imports/tenants` bevat de demo-tenant *De Bosrand*.
 
+De clientsleutel van de login (`authenticatie.sleutelBestand`) staat onder de vaste sleutelmap `nl-portal.sleutelmap` (`NL_PORTAL_SLEUTELMAP`, verplicht), in een map met de OIN van de tenant als naam; het pad in het tenantbestand is relatief aan de sleutelmap. De runtime start niet als het bestand ontbreekt, geen bruikbare sleutel is (privé RSA, minstens 3072 bit, `alg: PS256`, met `kid`), na het oplossen van symlinks buiten `<sleutelmap>/<oin>/` ligt, of als twee tenants dezelfde `kid` of sleutel delen. De validator-CLI toetst het pad altijd en met `--sleutelmap=<map>` ook het bestand zelf.
+
 ```yaml
 oin: "00000099000000000001"   # altijd tussen aanhalingstekens
 naam: Gemeente De Bosrand
@@ -73,6 +75,12 @@ sessie:
 De tenant volgt uit de host van het request (kleine letters, zonder poort en trailing dot, exact tegen
 `domeinen`). `Forwarded` en `X-Forwarded-Host` tellen alleen van de adressen in `NL_PORTAL_TRUSTED_PROXIES` (de
 ingress); van elk ander adres telt alleen de `Host`-header. Een onbekende host krijgt een kale 404.
+
+Het adres van de nginx-sidecar van de frontend (`127.0.0.1`/`::1`) hoort **nooit** in `NL_PORTAL_TRUSTED_PROXIES`: de sidecar
+stuurt de `Host`-header van de browser door en overschrijft `X-Forwarded-Host` met diezelfde waarde en `Forwarded` met een lege
+waarde, maar vertrouwt de ingress ervoor niet. Zet alleen het adres of blok van de ingress zelf in de lijst. De sidecar meldt
+`Strict-Transport-Security` alleen als de ingress `X-Forwarded-Proto: https` meegeeft. De CSP heeft bewust geen `form-action`:
+Chromium toetst die ook op de redirect na de uitlog-POST naar Keycloak, en de broker-URL is in de sidecar niet bekend.
 
 Koppelingen en modulegegevens staan in hetzelfde bestand. Geheimen staan er nooit zelf in, alleen als naam van een geheim in de secret store:
 
