@@ -36,8 +36,6 @@ nl-portal:
             enabled: true
         taak:
             enabled: true
-            properties:
-                object-type-url: "http://host.docker.internal:8010/api/v1/objecttypes/3e852115-277a-4570-873a-9a64be3aeb34"
 
 logging:
     level:

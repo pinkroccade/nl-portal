@@ -24,6 +24,7 @@ import nl.nlportal.core.testing.VasteTenantWebFilter
 import nl.nlportal.documentenapi.configuratie.DocumentApiConfiguratie
 import nl.nlportal.documentenapi.configuratie.DocumentenApiConfiguratie
 import nl.nlportal.zakenapi.client.ZakenApiConfiguratie
+import nl.nlportal.zgw.taak.tenant.TaakConfiguratie
 import org.springframework.context.annotation.Bean
 import org.springframework.context.annotation.Configuration
 
@@ -54,6 +55,7 @@ open class OpenProductTestTenantConfiguratie {
                     modules =
                         mapOf(
                             "zakenapi" to ZakenApiConfiguratie(),
+                            "taak" to TaakConfiguratie("http://localhost:8010/api/v1/objecttypes/3e852115-277a-4570-873a-9a64be3aeb35"),
                             "documenten-api" to
                                 DocumentenApiConfiguratie(
                                     standaardDocumentApi = "documenten-api",

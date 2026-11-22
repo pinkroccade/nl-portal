@@ -71,7 +71,6 @@ import nl.nlportal.zgw.objectenapi.client.ObjectsApiClient
 import nl.nlportal.zgw.objectenapi.domain.Comparator
 import nl.nlportal.zgw.objectenapi.domain.ObjectSearchParameter
 import nl.nlportal.zgw.objectenapi.domain.ObjectsApiObject
-import nl.nlportal.zgw.taak.autoconfigure.TaakConfig.TaakConfigProperties
 import nl.nlportal.zgw.taak.domain.TaakObjectV2
 import nl.nlportal.zgw.taak.domain.TaakV2
 import nl.nlportal.zgw.taak.graphql.TaakPageV2
@@ -83,7 +82,6 @@ import org.springframework.web.server.ResponseStatusException
 class OpenProductService(
     private val openProductClient: OpenProductClient,
     private val openProductTypeClient: OpenProductTypeClient,
-    private val objectsApiTaskConfigProperties: TaakConfigProperties,
     private val zakenApiService: ZakenApiService,
     private val authenticationMachtigingsDienstService: AuthenticationMachtigingsDienstService,
     private val documentenApiService: DocumentenApiService,

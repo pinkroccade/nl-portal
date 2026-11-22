@@ -105,9 +105,8 @@ modules:
   ":zgw:taak":
     omvang: S
     risico: middel
-    toelichting: Objecttype-URL per tenant; volgt het objectenapi-register.
-    signalen:
-      config: TaakConfig is een singleton.
+    toelichting: Gemigreerd (T18 #517); het objecttype is tenantconfiguratie (modules.taak) en de taken lopen via de koppeling objectenapi van de tenant.
+    signalen: {}
   ":form":
     omvang: S
     risico: laag
