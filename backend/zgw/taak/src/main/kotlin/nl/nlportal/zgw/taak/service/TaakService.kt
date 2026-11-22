@@ -163,7 +163,7 @@ open class TaakService(
         val objectTypeUrl = tenantDirectory.module<TaakConfiguratie>().objectTypeUrl
         val taak = objectsApiClient.getObjectById<T>(taskId.toString())
         if (taak.type != objectTypeUrl) {
-            throw ResponseStatusException(HttpStatus.NOT_FOUND)
+            throw ResponseStatusException(HttpStatus.NOT_FOUND, "Failed to GET ${T::class.java.simpleName}")
         }
         return taak
     }

@@ -154,6 +154,18 @@ class TaakServiceTenantTest {
         }
 
     @Test
+    fun `een vreemd objecttype en een onbekende UUID zijn voor de browser niet te onderscheiden`() =
+        runTest(ReactorContext(TestTenants.tenantContext(TestTenants.BOSRAND))) {
+            bosrand.enqueue(MockResponse().setResponseCode(404).setHeader("Content-Type", "application/json").setBody("{}"))
+            val onbekend = assertThrows<ResponseStatusException> { service.getTaakByIdV2(UUID.fromString(TAAK_ID), burger()) }
+            bosrand.enqueue(mockJsonResponse(taakJson("open", TYPE_WIJDE_VELD)))
+            val vreemd = assertThrows<ResponseStatusException> { service.getTaakByIdV2(UUID.fromString(TAAK_ID), burger()) }
+
+            assertThat(vreemd.statusCode).isEqualTo(onbekend.statusCode)
+            assertThat(vreemd.message).isEqualTo(onbekend.message)
+        }
+
+    @Test
     fun `afronden van een object met een ander objecttype geeft 404 en schrijft niets`() =
         runTest(ReactorContext(TestTenants.tenantContext(TestTenants.BOSRAND))) {
             bosrand.enqueue(mockJsonResponse(taakJson("open", TYPE_WIJDE_VELD)))
