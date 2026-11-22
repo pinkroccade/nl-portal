@@ -62,7 +62,7 @@ class BerichtenService(
         authentication: PortalAuthentication,
         id: UUID,
     ): Bericht? {
-        val objectsApiBericht = objectenApiService.getObjectById<Bericht>(id.toString())
+        val objectsApiBericht = eigenBericht(id) ?: return null
 
         val bericht = objectsApiBericht.record.data.copy(id = id)
 
@@ -88,8 +88,7 @@ class BerichtenService(
         berichtId: UUID,
         documentId: UUID,
     ): Pair<Document, Flow<DataBuffer>>? {
-        val objectsApiBericht =
-            objectenApiService.getObjectById<Bericht>(berichtId.toString())
+        val objectsApiBericht = eigenBericht(berichtId) ?: return null
         val bericht = objectsApiBericht.record.data
 
         if (bericht.identificatie.value != authentication.identiteit.vertegenwoordigde.identificatie) {
@@ -118,6 +117,21 @@ class BerichtenService(
         val document = documentenApiService.getDocument(bijlageUrl)
         val content = documentenApiService.getDocumentContentStreaming(bijlageUrl)
         return document to content
+    }
+
+    /**
+     * Haalt het object op en geeft het alleen terug als het van het Berichten-objecttype van de eigen tenant is. Zo faalt het
+     * gesloten zonder `modules.berichten` en leest of herschrijft een inwoner nooit een object van een andere tenant of een ander
+     * objecttype op een gedeelde Objecten API; zo'n object geldt als niet gevonden.
+     */
+    private suspend fun eigenBericht(id: UUID): ObjectsApiObject<Bericht>? {
+        val berichtObjectTypeUrl = directory.module<BerichtenConfiguratie>().berichtObjectTypeUrl
+        val objectsApiBericht = objectenApiService.getObjectById<Bericht>(id.toString())
+        if (objectsApiBericht.type != berichtObjectTypeUrl) {
+            logger.debug { "Object $id is geen bericht van de eigen tenant" }
+            return null
+        }
+        return objectsApiBericht
     }
 
     suspend fun getDocumenten(

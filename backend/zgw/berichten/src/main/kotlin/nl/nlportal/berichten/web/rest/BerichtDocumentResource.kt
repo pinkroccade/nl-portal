@@ -88,7 +88,7 @@ class BerichtDocumentResource(
         code: String,
     ): ResponseEntity<Map<String, String>> {
         val correlatieId = UUID.randomUUID().toString()
-        log.warn { "Interne fout bij een berichtdocument ($code, ${e::class.simpleName}: ${e.message}), referentie $correlatieId" }
+        log.warn { "Interne fout bij een berichtdocument ($code, ${e::class.simpleName}), referentie $correlatieId" }
         return ResponseEntity(mapOf("code" to code, "correlatieId" to correlatieId), HttpStatus.INTERNAL_SERVER_ERROR)
     }
 

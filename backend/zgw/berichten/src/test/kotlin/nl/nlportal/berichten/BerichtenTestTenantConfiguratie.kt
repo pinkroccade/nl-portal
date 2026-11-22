@@ -56,7 +56,7 @@ open class BerichtenTestTenantConfiguratie {
                     ),
                 modules =
                     mapOf(
-                        "berichten" to BerichtenConfiguratie("https://example.com/api/v1/objecttypes/78731088-430f-49fd-9a4c-80ddd42ded28"),
+                        "berichten" to BerichtenConfiguratie("http://host.docker.internal:8010/api/v1/objecttypes/78731088-430f-49fd-9a4c-80ddd42ded28"),
                         "documenten-api" to
                             DocumentenApiConfiguratie(
                                 standaardDocumentApi = "documenten-api",
