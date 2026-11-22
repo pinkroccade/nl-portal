@@ -133,7 +133,7 @@ koppelingen:
 
 ### Berichten (`berichten`)
 
-Berichten leest en schrijft in de Objecten API van de eigen tenant (de koppeling `koppelingen.objectenapi`) en haalt bijlagen via `modules.documenten-api`. De enige instelling per gemeente is de URL van het objecttype Bericht: `modules.berichten.berichtObjectTypeUrl`. Een tenant met `modules.berichten` maar zonder `koppelingen.objectenapi` weigert het opstarten (met de OIN in de melding); een tenant zonder `modules.berichten` krijgt bij elke berichtenaanvraag de foutcode `MODULE_NIET_GECONFIGUREERD` (GraphQL en REST, met `correlatieId`).
+Berichten leest en schrijft in de Objecten API van de eigen tenant (de koppeling `koppelingen.objectenapi`) en haalt bijlagen via `modules.documenten-api`. De enige instelling per gemeente is de URL van het objecttype Bericht: `modules.berichten.berichtObjectTypeUrl`. Een tenant met `modules.berichten` maar zonder `koppelingen.objectenapi` weigert het opstarten (met de OIN in de melding); een tenant zonder `modules.berichten` krijgt bij elke berichtenaanvraag de foutcode `MODULE_NIET_GECONFIGUREERD` (GraphQL en REST, met `correlatieId`), ook bij het openen van één bericht en het downloaden van een bijlage. Een object met een ander objecttype dan `berichtObjectTypeUrl` van de eigen tenant geldt als niet gevonden en wordt nooit herschreven.
 De oude property `nl-portal.config.berichten.properties.bericht-object-type-url` is vervallen en weigert het opstarten zolang hij gezet is, ook als omgevingsvariabele (`NLPORTAL_CONFIG_BERICHTEN_PROPERTIES_BERICHTOBJECTTYPEURL`).
 
 ```yaml
