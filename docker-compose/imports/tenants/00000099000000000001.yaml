@@ -54,7 +54,8 @@ modules:
             documenten-api:
                 rsin: "051845623"
                 documentTypeUrl: http://localhost:8001/catalogi/api/v1/informatieobjecttypen/36e40d95-e411-4884-b08f-e5864ec8167f
-            documenten-dummydoc: {}
+            documenten-dummydoc:
+                rsin: "051845623"
         # toegestaneMimeTypes: [application/pdf, image/png, image/jpeg]
         vertrouwelijkheidsaanduidingWitlijst: [openbaar, beperkt_openbaar, intern, zaakvertrouwelijk, vertrouwelijk, confidentieel, geheim, zeer_geheim]
         statusWitlijst: [ter_vaststelling, in_bewerking, definitief, gearchiveerd]
