@@ -1,0 +1,192 @@
+{{- $b := .Values.backend -}}
+{{- $ctx := dict "ctx" . "component" "backend" -}}
+{{- $secret := required "backend.existingSecret is required: the chart creates no Secrets (see the secret keys in the chart README)" $b.existingSecret -}}
+{{- $m := $b.modules -}}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "nl-portal.componentName" $ctx }}
+  labels:
+    {{- include "nl-portal.labels" $ctx | nindent 4 }}
+spec:
+  replicas: {{ $b.replicaCount }}
+  revisionHistoryLimit: {{ $b.revisionHistoryLimit }}
+  selector:
+    matchLabels:
+      {{- include "nl-portal.selectorLabels" $ctx | nindent 6 }}
+  template:
+    metadata:
+      annotations:
+        checksum/config: {{ include (print $.Template.BasePath "/configmap-backend.yaml") . | sha256sum }}
+        {{- if $b.featureFlags }}
+        checksum/flags: {{ $b.featureFlags | toJson | sha256sum }}
+        {{- end }}
+        {{- if .Values.tenancy.tenants }}
+        checksum/tenants: {{ .Values.tenancy.tenants | toJson | sha256sum }}
+        {{- end }}
+        {{- if $b.secretVersion }}
+        nl-portal.pinkroccade.nl/secret-version: {{ $b.secretVersion | quote }}
+        {{- end }}
+        {{- with $b.podAnnotations }}
+        {{- toYaml . | nindent 8 }}
+        {{- end }}
+      labels:
+        {{- include "nl-portal.labels" $ctx | nindent 8 }}
+        {{- with $b.podLabels }}
+        {{- toYaml . | nindent 8 }}
+        {{- end }}
+    spec:
+      serviceAccountName: {{ include "nl-portal.serviceAccountName" . }}
+      automountServiceAccountToken: {{ .Values.serviceAccount.automountServiceAccountToken }}
+      {{- include "nl-portal.imagePullSecrets" . | nindent 6 }}
+      securityContext:
+        {{- toYaml $b.podSecurityContext | nindent 8 }}
+      {{- with $b.priorityClassName }}
+      priorityClassName: {{ . }}
+      {{- end }}
+      terminationGracePeriodSeconds: {{ $b.terminationGracePeriodSeconds }}
+      containers:
+        - name: backend
+          image: {{ include "nl-portal.image" (dict "ctx" . "image" $b.image) | quote }}
+          imagePullPolicy: {{ $b.image.pullPolicy }}
+          securityContext:
+            {{- toYaml $b.containerSecurityContext | nindent 12 }}
+          ports:
+            - name: http
+              containerPort: 8080
+              protocol: TCP
+            # The actuator: never part of the Service or the Ingress.
+            - name: management
+              containerPort: {{ $b.management.port }}
+              protocol: TCP
+          envFrom:
+            - configMapRef:
+                name: {{ include "nl-portal.componentName" $ctx }}
+            # The tenant secrets (NL_PORTAL_GEHEIMEN_<OIN>_<NAME>) differ per tenant, so the whole Secret is exposed.
+            - secretRef:
+                name: {{ $secret }}
+          env:
+            - name: REDIS_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: {{ $secret }}
+                  key: {{ $b.secretKeys.redisPassword }}
+            - name: REDIS_USERNAME
+              valueFrom:
+                secretKeyRef:
+                  name: {{ $secret }}
+                  key: {{ $b.secretKeys.redisUsername }}
+                  optional: true
+            - name: REDIS_SSL
+              valueFrom:
+                secretKeyRef:
+                  name: {{ $secret }}
+                  key: {{ $b.secretKeys.redisSsl }}
+                  optional: true
+            {{- if $b.beheer.enabled }}
+            - name: NLPORTAL_BEHEER_WACHTWOORDHASH
+              valueFrom:
+                secretKeyRef:
+                  name: {{ $secret }}
+                  key: {{ $b.secretKeys.beheerPasswordHash }}
+            {{- end }}
+            {{- if $m.besluitenapi.enabled }}
+            - name: NLPORTAL_CONFIG_BESLUITENAPI_PROPERTIES_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: {{ $secret }}
+                  key: {{ $b.secretKeys.besluitenapiSecret }}
+            {{- end }}
+            {{- if $m.openklant2.enabled }}
+            - name: NLPORTAL_CONFIG_OPENKLANT2_PROPERTIES_TOKEN
+              valueFrom:
+                secretKeyRef:
+                  name: {{ $secret }}
+                  key: {{ $b.secretKeys.openklant2Token }}
+            {{- end }}
+            {{- if $m.openproduct.enabled }}
+            - name: NLPORTAL_CONFIG_OPENPRODUCT_PROPERTIES_TOKEN
+              valueFrom:
+                secretKeyRef:
+                  name: {{ $secret }}
+                  key: {{ $b.secretKeys.openproductToken }}
+            {{- end }}
+            {{- with $b.extraEnv }}
+            {{- toYaml . | nindent 12 }}
+            {{- end }}
+          startupProbe:
+            httpGet:
+              path: /actuator/health/liveness
+              port: management
+            {{- toYaml $b.probes.startup | nindent 12 }}
+          livenessProbe:
+            httpGet:
+              path: /actuator/health/liveness
+              port: management
+            {{- toYaml $b.probes.liveness | nindent 12 }}
+          readinessProbe:
+            httpGet:
+              path: /actuator/health/readiness
+              port: management
+            {{- toYaml $b.probes.readiness | nindent 12 }}
+          resources:
+            {{- toYaml $b.resources | nindent 12 }}
+          volumeMounts:
+            # Writable path for the JVM and Tomcat; the root filesystem is read-only.
+            - name: tmp
+              mountPath: /tmp
+            - name: tenants
+              mountPath: /etc/nl-portal/tenants
+              readOnly: true
+            - name: sleutels
+              mountPath: /etc/nl-portal/sleutels
+              readOnly: true
+            {{- if $b.featureFlags }}
+            - name: flags
+              mountPath: /etc/nl-portal/flags
+              readOnly: true
+            {{- end }}
+            {{- with $b.extraVolumeMounts }}
+            {{- toYaml . | nindent 12 }}
+            {{- end }}
+      volumes:
+        - name: tmp
+          emptyDir: {}
+        - name: tenants
+          configMap:
+            name: {{ include "nl-portal.tenantsConfigMap" . }}
+        - name: sleutels
+          projected:
+            defaultMode: {{ .Values.tenancy.keysDefaultMode }}
+            sources:
+              {{- range .Values.tenancy.keys }}
+              - secret:
+                  name: {{ .existingSecret }}
+                  items:
+                    - key: {{ default "clientsleutel.jwk.json" .key }}
+                      path: {{ printf "%s/%s" .oin "clientsleutel.jwk.json" }}
+              {{- end }}
+        {{- if $b.featureFlags }}
+        - name: flags
+          configMap:
+            name: {{ include "nl-portal.fullname" . }}-flags
+        {{- end }}
+        {{- with $b.extraVolumes }}
+        {{- toYaml . | nindent 8 }}
+        {{- end }}
+      {{- with $b.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with $b.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with $b.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with $b.topologySpreadConstraints }}
+      topologySpreadConstraints:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}

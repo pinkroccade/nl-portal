@@ -47,3 +47,13 @@ test("de pagina's en de runtime-config dragen de beveiligingsheaders (add_header
 test("HSTS staat alleen aan als de ingress https meldt", () => {
   assert.match(conf, /map \$http_x_forwarded_proto \$hsts \{\s+default "";\s+https "max-age=\d+; includeSubDomains";/);
 });
+
+const dockerfile = readFileSync(join(dirname(fileURLToPath(import.meta.url)), "..", "frontend/Dockerfile"), "utf8");
+
+test("het doeladres van de proxy is configureerbaar en staat standaard op de sidecar-backend", () => {
+  for (const { selector, body } of proxied) {
+    assert.match(body, /proxy_pass http:\/\/\$\{NL_PORTAL_BACKEND_UPSTREAM\};/, selector);
+  }
+  assert.doesNotMatch(conf, /localhost:8080/);
+  assert.match(dockerfile, /^ENV NL_PORTAL_BACKEND_UPSTREAM=localhost:8080$/m);
+});

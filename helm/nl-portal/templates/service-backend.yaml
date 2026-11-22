@@ -1,0 +1,21 @@
+{{- $s := .Values.backend.service }}
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "nl-portal.componentName" (dict "ctx" . "component" "backend") }}
+  labels:
+    {{- include "nl-portal.labels" (dict "ctx" . "component" "backend") | nindent 4 }}
+  {{- with $s.annotations }}
+  annotations:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+spec:
+  type: {{ $s.type }}
+  ports:
+    # Only the application port. The management port (actuator) is never in a Service.
+    - name: http
+      port: {{ $s.port }}
+      targetPort: http
+      protocol: TCP
+  selector:
+    {{- include "nl-portal.selectorLabels" (dict "ctx" . "component" "backend") | nindent 4 }}

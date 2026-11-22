@@ -38,6 +38,10 @@ COPY --chown=101:101 --chmod=+x packages/app/entrypoint.sh /docker-entrypoint.d/
 # non-root requirement is self-documenting and can't silently regress.
 USER 101
 
+# Waar de nginx /graphql, /api, /oauth2, /login en /logout naartoe stuurt (host:poort). Standaard de sidecar-backend op localhost;
+# op Kubernetes wijst de Helm-chart het naar de backend-Service. De envsubst-stap van de basisimage vult het in de template in.
+ENV NL_PORTAL_BACKEND_UPSTREAM=localhost:8080
+
 EXPOSE 8081
 
 LABEL org.opencontainers.image.description="NL Portal Frontend."
