@@ -10,7 +10,10 @@ toegepast* met een verwijzing naar het besluit.
 `site/`, `backend/` (Kotlin) of `.github/workflows/` wordt genoemd maar hier niet bestaat, en op een
 bron zonder check, afwijkingsbesluit of getoetst principe. Het
 [principeregister](../architectuur/principes.md) is het tweede dekkingspad: een bron waarnaar een principe met
-een geldige toetsing verwijst, telt als gedekt ([ADR 0023](../development/adr/0023-architectuurprincipes-en-toetsing.md)). Periodiek nalopen of de versies nog actueel zijn staat in
+een geldige toetsing verwijst, telt als gedekt, tenzij de bron een *Open* matrixrij heeft
+([ADR 0023](../development/adr/0023-architectuurprincipes-en-toetsing.md)). De uitvoer van de check noemt de
+bronnen die alleen via een principe gedekt zijn: die zijn minder streng getoetst dan een bron met een
+matrixrij. Periodiek nalopen of de versies nog actueel zijn staat in
 [periodieke checks](../development/workflows/periodic-checks.md#6-bronversies-nalopen).
 
 ## Register
@@ -20,7 +23,7 @@ en toetsingsdocumenten naar dit ID waar een bron wordt uitgevoerd.
 
 | ID | Bron | Versie | Geraadpleegd op | Wijze van raadplegen |
 |---|---|---|---|---|
-| `N-ASVS-5.0` | [OWASP ASVS](https://github.com/OWASP/ASVS/tree/v5.0.0_release/5.0/en), hoofdstukken V6, V8, V9, V10, V12, V13 | 5.0.0 (2025-05-30), level 3 | 2026-11-05 | Zelf gelezen (V6, V8, V9, V10 volledig; V12 en V13 alleen de eisentabellen) |
+| `N-ASVS-5.0` | [OWASP ASVS](https://github.com/OWASP/ASVS/tree/v5.0.0_release/5.0/en), hoofdstukken V6, V8, V9, V10, V12, V13 | 5.0.0 (2025-05-30); level 2 is de basis (P-01), level 3 waar de matrix het noemt | 2026-11-05 | Zelf gelezen (V6, V8, V9, V10 volledig; V12 en V13 alleen de eisentabellen) |
 | `N-RFC-8693` | [RFC 8693, OAuth 2.0 Token Exchange](https://www.rfc-editor.org/rfc/rfc8693) | RFC 8693 (2020-01) | 2026-11-05 | Niet zelf gelezen: via een samenvattende fetch-tool |
 | `N-KEYCLOAK-TOKEN-EXCHANGE` | [Keycloak, token exchange](https://www.keycloak.org/securing-apps/token-exchange) | Niet vastgesteld (de pagina noemt geen Keycloak-versie) | 2026-11-05 | Niet zelf gelezen: via een samenvattende fetch-tool |
 | `N-CG-5LAGEN` | Common Ground 5-lagenmodel, zoals uitgewerkt in [5-lagenmodel](../architectuur/5-lagenmodel.md) | Interne uitwerking, geen versienummer | 2026-11-08 | Zelf gelezen (interne pagina; het externe model is niet opnieuw geraadpleegd) |
@@ -31,11 +34,10 @@ en toetsingsdocumenten naar dit ID waar een bron wordt uitgevoerd.
 | `N-NORA-3.0` | [NORA, basisprincipes](https://www.noraonline.nl/wiki/Basisprincipes) | Basisprincipes uit NORA 3.0 (2010); actuele wikistand niet vastgesteld | 2026-11-21 | Niet zelf gelezen: via een samenvattende zoektool |
 | `N-GEMMA-2` | [GEMMA, Gemeentelijke Model Architectuur](https://www.gemmaonline.nl/) | GEMMA 2 met de technische architectuur (sinds 2024); geen releasenummer vastgesteld | 2026-11-21 | Niet zelf gelezen: via een samenvattende zoektool |
 | `N-FS-PTOLU` | [Forum Standaardisatie, lijst open standaarden "pas toe of leg uit"](https://www.forumstandaardisatie.nl/open-standaarden) | Lijst zonder versienummer, stand van de raadpleegdatum. Een bibliotheek: alleen de standaarden die op een keuze van toepassing zijn, tellen (P-09) | 2026-11-21 | Niet zelf gelezen: via een samenvattende zoektool |
-| `N-NLAPI-2.2` | [NLGov REST API Design Rules](https://gitdocumentatie.logius.nl/publicatie/api/adr/2.2.1/) (verplicht op de pas-toe-of-leg-uitlijst) | 2.2.1 (2.2 aangemeld bij Forum Standaardisatie 2026-06) | 2026-11-21 | Niet zelf gelezen: versie en status via een samenvattende zoektool |
-| `N-WCAG-2.2` | [W3C Web Content Accessibility Guidelines 2.2](https://www.w3.org/TR/WCAG22/), niveau AA (verplicht via de pas-toe-of-leg-uitlijst, Digitoegankelijk) | W3C Recommendation 2.2 (2023-10-05, bijgewerkt 2024-12-12) | 2026-11-21 | Niet opnieuw gelezen: versie uit eerdere kennis |
+| `N-NLAPI-2.2` | [NLGov REST API Design Rules](https://gitdocumentatie.logius.nl/publicatie/api/adr/2.2.1/) (versie 2.1 is verplicht op de pas-toe-of-leg-uitlijst; 2.2 is vastgesteld maar staat er nog niet op) | 2.2.1 (2.2 aangemeld bij Forum Standaardisatie 2026-06, nog niet op de lijst) | 2026-11-21 | Niet zelf gelezen: versie en status via een samenvattende zoektool |
+| `N-WCAG-2.2` | [W3C Web Content Accessibility Guidelines 2.2](https://www.w3.org/TR/WCAG22/), niveau AA is de eis en baseline van NL Portal, AAA het streven (de wet verwijst naar EN 301 549, dus WCAG 2.1) | W3C Recommendation 2.2 (2023-10-05, bijgewerkt 2024-12-12) | 2026-11-21 | Niet opnieuw gelezen: versie uit eerdere kennis |
 
-RFC 9068 en RFC 8707 zijn achtergrond bij ASVS-eisen 9.2.x en 10.3.1 en staan daarom niet als eigen bron in dit register; ze komen erbij zodra een guardrail of besluit ze uitvoert. RFC 8693 en de Keycloak-pagina zijn tweedehands: uitspraken die we daaruit overnemen moeten
-voor definitief gebruik tegen de bron zelf gelezen worden. Het onderzoek
+RFC 9068 en RFC 8707 zijn achtergrond bij ASVS-eisen 9.2.x en 10.3.1 en staan daarom niet als eigen bron in dit register; ze komen erbij zodra een guardrail of besluit ze uitvoert. Van de W3C- en IETF-standaarden staan alleen WCAG, RFC 9700 en RFC 8693 hier; de rest komt erbij zodra een principe of besluit ze uitvoert (P-09). RFC 8693 en de Keycloak-pagina staan er nog als bron van de token exchange die ADR 0022 heeft laten vervallen; ze zijn tweedehands en moeten voor hergebruik tegen de bron zelf gelezen worden. Het onderzoek
 [ASVS 5.0.0 level 3 voor token-exchange](../development/research/asvs-5-l3-token-exchange.md#1-bronnen-en-versie)
 beschrijft per hoofdstuk wat precies is gelezen.
 
@@ -54,14 +56,14 @@ Bron → eis → guardrail of check → bewijs.
 
 | Bron | Eis | Status | Guardrail of check | Bewijs | Besluit of verwijzing |
 |---|---|---|---|---|---|
-| `N-ASVS-5.0` | 9.1.1 (L1): handtekening van het token valideren | Getoetst | `CommonGroundAuthenticationConverter` met `jwk-set-uri`-decoder | [Toetsing token exchange, 9.1.1](../development/research/asvs-5-l3-toetsing-token-exchange.md) | - |
-| `N-ASVS-5.0` | 9.2.1 (L1): `exp` en `nbf` valideren | Getoetst | `JwtTimestampValidator` (Spring-standaard, 60 s skew) | [Toetsing token exchange, 9.2.1](../development/research/asvs-5-l3-toetsing-token-exchange.md) | - |
-| `N-ASVS-5.0` | 10.4.10 (L2): clientauthenticatie met confidential client | Getoetst | Token exchange gebruikt `client_id` en `client_secret` in de form-body | [Toetsing token exchange, 10.4.10](../development/research/asvs-5-l3-toetsing-token-exchange.md) | - |
-| `N-ASVS-5.0` | 9.2.3, 9.2.4, 10.3.1 (L2): `aud` valideren | Open | Property `spring.security.oauth2.resourceserver.jwt.audiences`; de app image zet die niet aan | - | [Toetsing token exchange](../development/research/asvs-5-l3-toetsing-token-exchange.md) (resultaat "Na inrichting") |
-| `N-ASVS-5.0` | 10.3.5, 10.4.14, 10.4.16 (L3): sender-constrained tokens en sterke clientauthenticatie | Open | - | - | [Toetsing token exchange, open punten](../development/research/asvs-5-l3-toetsing-token-exchange.md) (besluit over DPoP/mTLS en `private_key_jwt` nodig) |
-| `N-NLGOV-OAUTH-1.1.0` | 2.1.1, 2.3.3: een vertrouwelijke client authenticeert met `private_key_jwt` (of `tls_client_auth`) | Open | Token exchange gebruikt nu `client_id` en `client_secret` in de form-body | - | [ADR 0022](../development/adr/0022-backend-for-frontend-als-authenticatiepatroon.md) kiest `private_key_jwt`; bouw in epic [#499](https://github.com/pinkroccade/nl-portal/issues/499) |
-| `N-RFC-8693` | Token exchange zonder impersonation; machtiging is een eigen claimmodel | Getoetst | `CommonGroundAuthenticationConverterTokenExchangeTest` | [Onderzoek ASVS L3 token exchange](../development/research/asvs-5-l3-token-exchange.md) | - |
-| `N-KEYCLOAK-TOKEN-EXCHANGE` | Standard token exchange V2 als enige pad | Getoetst | `CommonGroundAuthenticationConverterTokenExchangeTest` | [Onderzoek ASVS L3 token exchange](../development/research/asvs-5-l3-token-exchange.md) | - |
+| `N-ASVS-5.0` | 9.1.1, 9.2.1 (L1): handtekening, `exp` en `nbf` van het token valideren | Open | - | - | De resource-server- en converter-toetsing is vervallen met [ADR 0022](../development/adr/0022-backend-for-frontend-als-authenticatiepatroon.md) (geen `JwtDecoder` meer); de toetsing voor de BFF is nog niet herhaald ([toetsing token exchange](../development/research/asvs-5-l3-toetsing-token-exchange.md) is verouderd) |
+| `N-ASVS-5.0` | 10.4.10 (L2): clientauthenticatie met confidential client | Getoetst | `TenantClientRegistraties` (`private_key_jwt`, geen `client_secret`) | `InloggenTest` (login per tenant met `private_key_jwt`) | - |
+| `N-ASVS-5.0` | 10.4.16 (L3): sterke clientauthenticatie (`private_key_jwt` of mTLS) | Getoetst | `TenantClientRegistraties` (`ClientAuthenticationMethod.PRIVATE_KEY_JWT`) | `InloggenTest` | - |
+| `N-ASVS-5.0` | 9.2.3, 9.2.4, 10.3.1 (L2): `aud` valideren | Open | - | - | De resource-server-property is vervallen met [ADR 0022](../development/adr/0022-backend-for-frontend-als-authenticatiepatroon.md); de validatie van `iss` en `aud` van het ID-token (`CallbackTest`) is nog niet aan deze eisen getoetst |
+| `N-ASVS-5.0` | 10.3.5, 10.4.14 (L3): sender-constrained tokens | Open | - | - | [Toetsing token exchange, open punten](../development/research/asvs-5-l3-toetsing-token-exchange.md) (besluit over DPoP/mTLS nodig; `private_key_jwt` is gebouwd) |
+| `N-NLGOV-OAUTH-1.1.0` | 2.1.1, 2.3.3: een vertrouwelijke client authenticeert met `private_key_jwt` (of `tls_client_auth`) | Getoetst | `TenantClientRegistraties` (`private_key_jwt`, authorization code met PKCE) | `InloggenTest` (login per tenant met `private_key_jwt` van de eigen sleutel) | [ADR 0022](../development/adr/0022-backend-for-frontend-als-authenticatiepatroon.md), gebouwd in epic [#499](https://github.com/pinkroccade/nl-portal/issues/499) |
+| `N-RFC-8693` | Token exchange zonder impersonation | Bewust niet toegepast | ArchUnit-regel in `AuthenticatiePadRulesTest`: er is geen token exchange | - | [ADR 0022](../development/adr/0022-backend-for-frontend-als-authenticatiepatroon.md), besluit 7: geen token exchange meer |
+| `N-KEYCLOAK-TOKEN-EXCHANGE` | Standard token exchange V2 als enige pad | Bewust niet toegepast | ArchUnit-regel in `AuthenticatiePadRulesTest`: er is geen token exchange | - | [ADR 0022](../development/adr/0022-backend-for-frontend-als-authenticatiepatroon.md), besluit 7: geen token exchange meer |
 | `N-CG-5LAGEN` | Core hangt niet af van een feature-module | Afgedwongen | ArchUnit-regel `ArchitectureRules.coreDoesNotDependOnFeature` | `LayerArchitectureTest` (draait in `./gradlew build`) | - |
 | `N-CG-5LAGEN` | Gedeelde infrastructuur hangt niet af van een feature-module | Afgedwongen | ArchUnit-regel `ArchitectureRules.sharedInfraDoesNotDependOnFeature` | `LayerArchitectureTest` | - |
 | `N-CG-5LAGEN` | Alleen `app` en `app-dev` stellen de modules samen | Afgedwongen | ArchUnit-regel `ArchitectureRules.nothingDependsOnApp` | `LayerArchitectureTest` | - |

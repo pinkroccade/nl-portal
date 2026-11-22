@@ -1,13 +1,15 @@
 # 10. Kwaliteitseisen
 
 Uitwerking van de kwaliteitsdoelen uit hoofdstuk 1.2 als concrete, (idealiter) toetsbare scenario's.
-**Dit zijn voorstellen, geen vastgestelde eisen** — net als hoofdstuk 1.2 zijn ze afgeleid uit de
-bestaande code/CI/documentatie, niet uit een stakeholderinterview.
+De kwaliteitsdoelen volgen uit het [principeregister](../principes.md)
+([ADR 0023](../../development/adr/0023-architectuurprincipes-en-toetsing.md)); de scenario's hieronder zijn hun
+toetsbare uitwerking, met per scenario de huidige borging en waar die ontbreekt of niet is geverifieerd.
 
-## 10.1 Kwaliteitsboom (voorstel)
+## 10.1 Kwaliteitsboom
 
 | Kwaliteit | Scenario | Huidige borging |
 |---|---|---|
+| Toegankelijkheid | Een nieuw of gewijzigd frontendcomponent voldoet aan WCAG 2.2 AA (P-11) | Lintregel `eslint-plugin-jsx-a11y` in `frontend/eslint.config.mjs`, PR-blocking via de lint-stap. Contrast, focusvolgorde en betekenis ziet lint niet: dat is een [reviewpunt](https://github.com/pinkroccade/nl-portal/blob/main/CODING_STANDARDS.md#toegankelijkheid). Geen geautomatiseerde audit |
 | Vertrouwd/beveiligd | Een afhankelijkheid met een bekende CVE wordt binnen één sprint gesignaleerd | OWASP Dependency-Check in CI (`dependency-check.yml`) — reactief, geen SLA vastgelegd |
 | Vertrouwd/beveiligd | Een document met malware wordt geweigerd vóór opslag in Open Zaak | ClamAV-integratie (zie hoofdstuk 6.3) — werking niet apart getest in deze review |
 | Interoperabiliteit | Een nieuwe ZGW-bron kan worden toegevoegd zonder bestaande modules te wijzigen | Gedeeltelijk: modulaire opzet bestaat, maar zonder gedeelde adapter (zie hoofdstuk 5.2/8.2) kost het toevoegen copy-paste, geen isolatie van bugs |

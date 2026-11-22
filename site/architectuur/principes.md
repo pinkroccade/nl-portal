@@ -5,23 +5,28 @@ NL Portal toetsen. Het besluit en de werkwijze staan in
 [ADR 0023](../development/adr/0023-architectuurprincipes-en-toetsing.md); de status is *Voorgesteld* tot de
 architect het register heeft beoordeeld.
 
-Elk principe volgt het TOGAF-format **Statement**, **Rationale** en **Implications**, aangevuld met:
+Elk principe volgt het TOGAF-format **Name** (de kop), **Statement**, **Rationale** en **Implications**,
+aangevuld met:
 
 - **Bron:** minstens één ID uit de [normatieve bronnen](../compliance/normatieve-bronnen.md).
 - **Toetsing:** hoe we het principe bewaken, als `;`-gescheiden lijst `<soort>: <verwijzing>`. De soort is
   *ArchUnit-regel*, *Fitness test*, *CI-controle*, *Lintregel* of *Reviewpunt*. Een principe zonder
   automatische toetsing krijgt een reviewpunt in
-  [`CODING_STANDARDS.md`](https://github.com/pinkroccade/nl-portal/blob/main/CODING_STANDARDS.md#principes-zonder-automatische-toetsing),
+  [`CODING_STANDARDS.md`](https://github.com/pinkroccade/nl-portal/blob/main/CODING_STANDARDS.md#reviewpunten-bij-de-architectuurprincipes),
   nooit niets.
 
 `mise run compliance:check` bewaakt dit register en draait in CI. Het faalt op een principe zonder bron of
-toetsing, op een bron zonder register-ID, op een toetsing zonder bekende soort, op een reviewpunt dat niet naar
-`CODING_STANDARDS.md` verwijst en op een principe-ID dat elders in `site/`, `backend/` of de workflows staat maar
-hier niet bestaat. Verwijs met het ID (`P-07`) naar een principe, bijvoorbeeld in een ADR of een
-`.because()`-tekst.
+toetsing, op een toetsing zonder bekende soort of zonder verwijzing, op een verwijzing naar een testklasse,
+mise-taak, workflow, bestand of `CODING_STANDARDS.md`-anker dat niet bestaat, op een reviewpunt dat niet naar
+`CODING_STANDARDS.md` verwijst, op een principekop zonder geldig ID, een dubbel principe of veld en op een
+principe-ID dat elders in `site/`, `backend/` of de workflows staat maar hier niet bestaat. Verwijs met het ID
+(`P-07`) naar een principe, bijvoorbeeld in een ADR of een `.because()`-tekst.
 
 Een toetsing bewijst niet dat het principe volledig wordt nageleefd; ze bewaakt het deel dat een controle kan
-zien. Wat erbuiten valt, is de reden voor het reviewpunt.
+zien. Wat erbuiten valt, is de reden voor het reviewpunt, en per principe staat bij *Implications* welk deel dat
+is. De controlnummers van ISO/IEC 27002:2022 bij `N-BIO2-1.3` zijn niet tegen de BIO2-tekst zelf gecontroleerd
+(zie het [register](../compliance/normatieve-bronnen.md)); lees ze als verwijzing naar ISO/IEC 27002:2022, niet
+als BIO2-claim.
 
 ## Overzicht
 
@@ -64,23 +69,26 @@ Reviewpunt: [security by design](https://github.com/pinkroccade/nl-portal/blob/m
 
 ### P-02 Tokens en geheimen verlaten de server niet
 
-**Statement:** Toegangstokens, verversingstokens en clientgeheimen blijven op de server; de browser krijgt ze
-niet (backend-for-frontend, ADR 0022). De OAuth-inrichting volgt het NL GOV Assurance profile for OAuth 2.0;
-RFC 9700 is de basis waar het profiel niets specifiekers zegt. Zolang token exchange bestaat, volgt hij RFC 8693
-zonder impersonation.
+**Statement:** Toegangstokens, verversingstokens en clientgeheimen blijven op de server; de browser krijgt alleen
+een sessiecookie (backend-for-frontend, ADR 0022). De OAuth-inrichting volgt het NL GOV Assurance profile for
+OAuth 2.0; RFC 9700 is de basis waar het profiel niets specifiekers zegt.
 
 **Rationale:** Een token in de browser is via XSS of een gecompromitteerde extensie uit te lezen. Het NL GOV-profiel
 staat op de pas-toe-of-leg-uitlijst en is voor de overheid de norm; RFC 9700 ontraadt daarnaast de flows en het
 tokengebruik die tokens blootstellen.
 
-**Implications:** Nieuwe authenticatiecode gaat uit van een vertrouwelijke client op de server die zich met
-`private_key_jwt` authenticeert (profiel 2.1.1, 2.3.3); de huidige token exchange met `client_secret` staat als
-Open in de traceerbaarheidsmatrix. Waar profiel en RFC 9700 verschillen, wint het profiel. Een afwijking van het
-profiel vraagt een ADR.
+**Implications:** De backend is een vertrouwelijke client op de server en authenticeert zich met
+`private_key_jwt` (profiel 2.1.1, 2.3.3), nooit met een `client_secret`; er is geen resource server, geen
+`JwtDecoder` en geen token exchange meer (ADR 0022). Nieuwe authenticatiecode volgt dat patroon. Waar profiel en
+RFC 9700 verschillen, wint het profiel. Een afwijking van het profiel vraagt een ADR. Wat de toetsing niet ziet:
+het sessie-endpoint is getest op de afwezigheid van tokens en BSN, niet elke andere response van de backend; dat
+deel blijft een reviewpunt.
 
-**Bron:** `N-NLGOV-OAUTH-1.1.0`, `N-RFC-9700`, `N-RFC-8693`, `N-ASVS-5.0`
+**Bron:** `N-NLGOV-OAUTH-1.1.0`, `N-RFC-9700`, `N-ASVS-5.0`
 
-**Toetsing:** Fitness test: `CommonGroundAuthenticationConverterTokenExchangeTest`;
+**Toetsing:** Fitness test: `AuthenticatiePadRulesTest` (geen resource server, geen `JwtDecoder`, geen token
+exchange); Fitness test: `InloggenTest` (`private_key_jwt`, een bearer-token wordt nergens geaccepteerd);
+Fitness test: `SessieEndpointTest` (geen token of BSN in het sessie-endpoint);
 Reviewpunt: [security by design](https://github.com/pinkroccade/nl-portal/blob/main/CODING_STANDARDS.md#security-by-design)
 
 ### P-03 Geen geheimen in code of configuratie
@@ -92,11 +100,13 @@ een flag-systeem; het komt uit de omgeving waarin NL Portal draait.
 git-geschiedenis staan nadat het is verwijderd.
 
 **Implications:** Voorbeeldconfiguratie gebruikt placeholders. Een gelekt geheim wordt ingetrokken, niet alleen
-verwijderd.
+verwijderd. De scan (gitleaks) bewaakt de repository; een geheim in een image of een flag-systeem is een
+reviewpunt.
 
-**Bron:** `N-BIO2-1.3` (ISO/IEC 27002:2022 5.17 en 8.4), `N-ASVS-5.0`
+**Bron:** `N-BIO2-1.3` (ISO/IEC 27002:2022 5.17), `N-ASVS-5.0`
 
-**Toetsing:** CI-controle: `secret-scan.yml` (`mise run security:secrets-scan`, gitleaks)
+**Toetsing:** CI-controle: `secret-scan.yml` (`mise run security:secrets-scan`, gitleaks);
+Reviewpunt: [security by design](https://github.com/pinkroccade/nl-portal/blob/main/CODING_STANDARDS.md#security-by-design)
 
 ### P-04 Kwetsbaarheden in afhankelijkheden worden bewaakt
 
@@ -124,9 +134,10 @@ BSN, KVK-nummer en naam komen niet in logs, flagcontext of telemetrie.
 wordt, kan niet lekken.
 
 **Implications:** Een nieuw veld in een response, log of evaluatiecontext heeft een doel. ADR 0020 is het
-precedent: de evaluatiecontext van feature flags bevat alleen een opaque gebruikers-id.
+precedent: de evaluatiecontext van feature flags bevat alleen een opaque gebruikers-id. De fitness test bewaakt
+die evaluatiecontext; logs en telemetrie zijn een reviewpunt.
 
-**Bron:** `N-AVG-2016`, `N-BIO2-1.3` (ISO/IEC 27002:2022 5.34)
+**Bron:** `N-AVG-2016`, `N-BIO2-1.3` (ISO/IEC 27002:2022 5.34, 8.15 en 8.11)
 
 **Toetsing:** Fitness test: `FeatureContextPrivacyTest`;
 Reviewpunt: [privacy en dataminimalisatie](https://github.com/pinkroccade/nl-portal/blob/main/CODING_STANDARDS.md#privacy-en-dataminimalisatie)
@@ -158,8 +169,9 @@ code per klant weg te laten.
 
 **Implications:** Least functionality werkt in vier lagen: product, tenant, koppelingen en geheimen,
 afhankelijkheden. De uitwerking staat in het ADR-ticket over least functionality
-([#532](https://github.com/pinkroccade/nl-portal/issues/532)). Tot de removability fitness function er is, is de
-toetsing een reviewpunt.
+([#532](https://github.com/pinkroccade/nl-portal/issues/532)). Een removability fitness function (een module die
+uit de build kan zonder de kern te breken) bestaat nog niet; de ArchUnit-regels van P-08 bewaken alleen de
+richting van afhankelijkheden. Tot die fitness function er is, is de toetsing een reviewpunt.
 
 **Bron:** `N-BIO2-1.3` (ISO/IEC 27002:2022 8.9), `N-ASVS-5.0`
 
@@ -205,13 +217,15 @@ beide, en waar de lijst-standaard verplicht is, blijven we eraan voldoen of legg
 
 ### P-10 REST-API's volgen de NL API Design Rules
 
-**Statement:** Een REST-API die NL Portal aanbiedt, volgt de NLGov REST API Design Rules. Het GraphQL-contract
-tussen frontend en backend valt er niet onder; die afwijking wordt uitgelegd volgens P-09.
+**Statement:** Een REST-API die NL Portal aanbiedt, volgt de NLGov REST API Design Rules, versie 2.2. Het
+GraphQL-contract tussen frontend en backend valt er niet onder; die afwijking wordt uitgelegd volgens P-09.
 
-**Rationale:** De Design Rules staan verplicht op de pas-toe-of-leg-uitlijst en maken API's van verschillende
-overheden voorspelbaar voor afnemers.
+**Rationale:** De Design Rules maken API's van verschillende overheden voorspelbaar voor afnemers. Versie 2.2 is
+vastgesteld maar staat nog niet op de pas-toe-of-leg-uitlijst; daar is versie 2.1 verplicht. Dat is een
+voorbeeld van de regel in P-09: een nieuwere standaard dan de lijst, toegepast met uitleg.
 
-**Implications:** Een nieuw REST-endpoint wordt aan de regels getoetst. De uitleg voor het GraphQL-contract is
+**Implications:** Een nieuw REST-endpoint wordt aan de regels van 2.2 getoetst; waar 2.2 afwijkt van de verplichte
+2.1, noemt de uitleg beide en blijft de API aan 2.1 voldoen of legt uit waarom niet. De uitleg voor het GraphQL-contract is
 een open punt voor de analyse van epic [#530](https://github.com/pinkroccade/nl-portal/issues/530).
 
 **Bron:** `N-NLAPI-2.2`, `N-FS-PTOLU`
@@ -220,10 +234,13 @@ een open punt voor de analyse van epic [#530](https://github.com/pinkroccade/nl-
 
 ### P-11 Toegankelijk volgens WCAG 2.2 AA
 
-**Statement:** De frontend voldoet aan WCAG 2.2 niveau AA.
+**Statement:** De frontend voldoet aan WCAG 2.2 niveau AA; dat is de eis en de baseline. Niveau AAA is het
+streven.
 
-**Rationale:** Toegankelijkheid is wettelijk verplicht voor overheidswebsites en staat op de
-pas-toe-of-leg-uitlijst. Een burger die de portal niet kan gebruiken, wordt uitgesloten van zijn eigen zaken.
+**Rationale:** Toegankelijkheid is wettelijk verplicht voor overheidswebsites. De wet verwijst naar EN 301 549 en
+dus naar WCAG 2.1; NL Portal houdt een strengere norm aan. WCAG 2.2 is een nieuwere W3C-standaard dan de wet
+noemt, toegepast volgens P-09. Een burger die de portal niet kan gebruiken, wordt uitgesloten van zijn eigen
+zaken.
 
 **Implications:** Een nieuw component gebruikt semantische HTML en is met het toetsenbord te bedienen. Lint vangt
 een deel; wat lint niet ziet (contrast, focusvolgorde, betekenis) is een reviewpunt.
@@ -276,7 +293,8 @@ doel dat uit zijn naam of README blijkt. Groei is geen bezwaar zolang hij volgt 
 is. Omvang is geen doel op zich.
 
 **Implications:** Een nieuwe map of module noemt zijn doel. Een map waarvan niemand het doel kan noemen, is een
-kandidaat om op te ruimen.
+kandidaat om op te ruimen. De ArchUnit-regel bewaakt alleen de afwezigheid van cycli; of elke map en module één
+doel heeft, is het reviewpunt.
 
 **Bron:** `N-CG-5LAGEN`, `N-GEMMA-2`
 
