@@ -52,6 +52,7 @@ tasks.named<Test>("test") {
     val buildModules = rootProject.subprojects.filter { it.path != project.path }.sortedBy { it.path }
     inputs.property("buildModulePaths", buildModules.map { it.path })
     buildModules.forEach { inputs.files(fileTree(it.projectDir.resolve("src/main"))).withPropertyName("sources-${it.path}") }
+    buildModules.forEach { inputs.files(fileTree(it.projectDir.resolve("src/test"))).withPropertyName("testsources-${it.path}") }
     systemProperty("architecture.modules", buildModules.joinToString("|") { "${it.path}=${it.projectDir.absolutePath}" })
     // Make fitness-test warnings visible in the Gradle output.
     testLogging.showStandardStreams = true
