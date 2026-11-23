@@ -41,8 +41,8 @@ die niet:
 ## Status
 
 Dit is een eerste versie, geschreven vanuit de bestaande code en documentatie (geen
-stakeholderinterviews). Hoofdstukken 1 ("kwaliteitsdoelen") en 10 ("kwaliteitseisen") zijn het meest
-afhankelijk van stakeholderinput en zijn hier als **voorstel** opgenomen — valideer ze met de
-productverantwoordelijke(n) voordat je ze als vaststaand beschouwt. Houd dit document bij zodra een
+stakeholderinterviews). De kwaliteitsdoelen (hoofdstuk 1.2) en de kwaliteitseisen (hoofdstuk 10) volgen uit het
+[principeregister](../principes.md); de status van dat register is die van
+[ADR 0023](../../development/adr/0023-architectuurprincipes-en-toetsing.md). Houd dit document bij zodra een
 architectuurbeslissing wijzigt; het hoort bij de pull request die de wijziging doorvoert, niet bij
 een aparte "documentatie-inhaalslag".

@@ -34,7 +34,7 @@ hieronder koppelt de kwaliteitsdoelen aan de principes die ze uitwerken.
 | 5 | **Toegankelijkheid** | Wettelijk verplicht voor overheidswebsites; een burger die de portal niet kan gebruiken, wordt uitgesloten van zijn eigen zaken. | P-11 |
 | 6 | **Testbaarheid** | Backend- en frontend-CI draaien verplicht tests; zie hoofdstuk 10 voor concrete scenario's. | P-13, P-15 |
 
-Toegankelijkheid is bij de vaststelling als zesde doel toegevoegd; het ontbrak in het eerdere voorstel.
+Toegankelijkheid is als zesde doel opgenomen (P-11).
 
 ## 1.3 Stakeholders
 

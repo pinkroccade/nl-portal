@@ -36,7 +36,7 @@ overnemen; ontstaat er een controle voor, dan verhuist de regel daarheen.
 - `Closes #n` alleen als de acceptatiecriteria gehaald zijn. Is er iets open gebleven, dan staat `Refs #n` in de
   body en zegt de PR wat nog moet.
 
-## Principes zonder automatische toetsing
+## Reviewpunten bij de architectuurprincipes
 
 Reviewpunten bij de [architectuurprincipes](site/architectuur/principes.md). Elk punt toetst het deel van een
 principe dat geen controle kan zien; noem in de review het principe-ID als een wijziging het raakt.
@@ -47,6 +47,7 @@ principe dat geen controle kan zien; noem in de review het principe-ID als een w
   raakt, en een nieuwe eis die we uitvoeren krijgt een rij in de traceerbaarheidsmatrix. Een token of geheim dat
   naar de browser gaat, vraagt een ADR. OAuth-code volgt het NL GOV Assurance profile for OAuth 2.0; RFC 9700
   geldt alleen waar het profiel niets specifiekers zegt.
+- (P-03) Een geheim staat ook niet in een image of een flag-systeem; de secret-scan ziet alleen de repository.
 
 ### Privacy en dataminimalisatie
 

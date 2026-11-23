@@ -29,12 +29,15 @@ principe is het omgekeerde: hij kost bij elke build tijd zonder dat iemand weet 
    of reviewpunt. Een principe zonder automatische toetsing krijgt een expliciet reviewpunt in
    `CODING_STANDARDS.md`, nooit niets. Ontstaat er later een controle, dan verhuist het punt daarheen.
 4. **`compliance:check` dwingt dit af.** Het faalt op een principe zonder bron of toetsing, op een toetsing zonder
-   bekende soort, op een reviewpunt zonder verwijzing naar `CODING_STANDARDS.md` en op een principe-ID dat
-   ergens genoemd wordt maar niet in het register staat.
-5. **Tweede dekkingspad voor bronnen.** Een normatieve bron telt als gedekt als een principe met een geldige
-   toetsing ernaar verwijst, naast de bestaande traceerbaarheidsmatrix op eisniveau. Zo kunnen we een brede bron
-   zoals GEMMA, NORA of WCAG opnemen voordat er een controle per eis bestaat, zonder een status *Getoetst* te
-   claimen die niet is waargemaakt.
+   bekende soort of zonder verwijzing, op een verwijzing naar een testklasse, mise-taak, workflow, bestand of
+   `CODING_STANDARDS.md`-anker dat niet bestaat, op een reviewpunt zonder verwijzing naar `CODING_STANDARDS.md`,
+   op een principekop zonder geldig ID, een dubbel principe of veld, een ontbrekend register en op een
+   principe-ID dat ergens genoemd wordt maar niet in het register staat.
+5. **Tweede dekkingspad voor bronnen.** Een normatieve bron zonder *Open* matrixrij telt als gedekt als een
+   principe met een geldige toetsing ernaar verwijst, naast de bestaande traceerbaarheidsmatrix op eisniveau. Zo
+   kunnen we een brede bron zoals GEMMA, NORA of WCAG opnemen voordat er een controle per eis bestaat, zonder een
+   status *Getoetst* te claimen die niet is waargemaakt. Een bron met een *Open* rij heeft een bekend gat en wordt
+   alleen door de matrix gedekt; `compliance:check` meldt welke bronnen alleen via een principe gedekt zijn.
 6. **Thema's.** Het register werkt negen thema's uit: security by design (ASVS 5.0 L2), privacy by design en
    dataminimalisatie (AVG art. 25), BIO2, least functionality met een modulaire kern, open standaarden (Forum
    Standaardisatie, NL API Design Rules, IETF, W3C/WCAG 2.2), Common Ground en GEMMA, docs as code, een
