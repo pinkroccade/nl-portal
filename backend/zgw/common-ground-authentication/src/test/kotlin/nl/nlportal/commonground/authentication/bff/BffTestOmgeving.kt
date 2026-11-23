@@ -95,6 +95,8 @@ data class TokenSpec(
     val metAuthTime: Boolean = true,
     /** Verschuiving van `auth_time` ten opzichte van de klok van de test. */
     val authTimeOffset: Duration = Duration.ZERO,
+    /** Levensduur van het ID-token; negatief geeft een token dat al verlopen is. */
+    val geldigheid: Duration = Duration.ofHours(1),
 ) {
     companion object {
         const val DIGID_BASIS = "urn:oasis:names:tc:SAML:2.0:ac:classes:PasswordProtectedTransport"
@@ -131,7 +133,7 @@ class GestuurdeTokens(
             putAll(spec.extra)
         }
 
-    override fun tokenExpiry() = 3600L
+    override fun tokenExpiry() = spec.geldigheid.seconds
 }
 
 /** Een tenant van de testomgeving: de definitie en de bijbehorende sleutel en testprovider. */
