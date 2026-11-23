@@ -84,7 +84,7 @@ class GraphQLExceptionHandlerTest {
     fun `elke andere authenticatiefout krijgt dezelfde code`() {
         val graphqlFout = GraphQLExceptionHandler().resolveException(BadCredentialsException("geheim detail"), env).block()!!.single()
 
-        assertEquals("UNAUTHENTICATED", graphqlFout.extensions["code"])
+        assertEquals("UNAUTHENTICATED", graphqlFout.extensions?.get("code"))
         assertFalse(graphqlFout.message.contains("geheim"))
     }
 
@@ -95,8 +95,8 @@ class GraphQLExceptionHandlerTest {
         val graphqlFout = GraphQLExceptionHandler().resolveException(fout, env).block()!!.single()
 
         assertEquals("Module is niet beschikbaar", graphqlFout.message)
-        assertEquals("MODULE_NIET_GECONFIGUREERD", graphqlFout.extensions["code"])
-        assertNotNull(graphqlFout.extensions["correlatieId"])
+        assertEquals("MODULE_NIET_GECONFIGUREERD", graphqlFout.extensions?.get("code"))
+        assertNotNull(graphqlFout.extensions?.get("correlatieId"))
         assertFalse(graphqlFout.toSpecification().toString().contains("00000099000000000001"))
     }
 
@@ -105,8 +105,8 @@ class GraphQLExceptionHandlerTest {
         val graphqlFout = GraphQLExceptionHandler().resolveException(TenantContextMissingException(), env).block()!!.single()
 
         assertEquals("Niet geautoriseerd", graphqlFout.message)
-        assertEquals("TENANT_ONTBREEKT", graphqlFout.extensions["code"])
-        assertNotNull(graphqlFout.extensions["correlatieId"])
+        assertEquals("TENANT_ONTBREEKT", graphqlFout.extensions?.get("code"))
+        assertNotNull(graphqlFout.extensions?.get("correlatieId"))
     }
 
     @Test
@@ -116,8 +116,8 @@ class GraphQLExceptionHandlerTest {
         val graphqlFout = GraphQLExceptionHandler().resolveException(fout, env).block()!!.single()
 
         assertEquals("Koppeling is niet beschikbaar", graphqlFout.message)
-        assertEquals("KOPPELING_FOUT", graphqlFout.extensions["code"])
-        assertNotNull(graphqlFout.extensions["correlatieId"])
+        assertEquals("KOPPELING_FOUT", graphqlFout.extensions?.get("code"))
+        assertNotNull(graphqlFout.extensions?.get("correlatieId"))
     }
 
     @Test
@@ -131,7 +131,7 @@ class GraphQLExceptionHandlerTest {
             val graphqlFout = GraphQLExceptionHandler().resolveException(fout, env).block()!!.single()
 
             val regel = appender.list.single()
-            val correlatieId = graphqlFout.extensions["correlatieId"] as String
+            val correlatieId = graphqlFout.extensions?.get("correlatieId") as String
             val tekst = regel.formattedMessage
             assertTrue(tekst.contains("KOPPELING_FOUT"))
             assertTrue(tekst.contains("KoppelingConfiguratieException"))
