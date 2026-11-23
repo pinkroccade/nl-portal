@@ -25,7 +25,6 @@ services:
             REDIS_SSL: "false"
             REDIS_PASSWORD: ${REDIS_PASSWORD:?draai eerst mise run dev:setup}
             KEYCLOAK_BROKER_URL: http://localhost:8082
-            KEYCLOAK_CLIENT_SECRET: ${KEYCLOAK_M2M_CLIENT_SECRET:?draai eerst mise run dev:setup}
             NL_PORTAL_GEHEIMEN_00000099000000000001_OBJECTENAPI_TOKEN: "Token ${OBJECTS_API_TOKEN:?draai eerst mise run dev:setup}"
             NL_PORTAL_GEHEIMEN_00000099000000000001_ZAKEN_SECRET: "${OPENZAAK_NLPORTAL_SECRET:?draai eerst mise run dev:setup}"
             NL_PORTAL_GEHEIMEN_00000099000000000001_CATALOGIAPI_SECRET: "${OPENZAAK_NLPORTAL_SECRET:?draai eerst mise run dev:setup}"

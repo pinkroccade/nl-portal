@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { pbkdf2Sync } from "node:crypto";
 import { execFileSync } from "node:child_process";
-import { cpSync, mkdirSync, mkdtempSync, readFileSync, rmSync, statSync } from "node:fs";
+import { cpSync, mkdirSync, mkdtempSync, readFileSync, readdirSync, rmSync, statSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, join, resolve } from "node:path";
 import { test } from "node:test";
@@ -179,4 +179,20 @@ test("rooktest: geen vaste secrets in tracked bestanden", () => {
   for (const { template } of TEMPLATES.filter((t) => t.template.endsWith(".json"))) {
     assert.doesNotMatch(readFileSync(join(repoRoot, template), "utf8"), /"privateKey"/, `${template} bevat sleutelmateriaal`);
   }
+});
+
+test("elke verplichte compose-variabele wordt door dev:setup of .env.example gedekt", () => {
+  const composeMap = join(repoRoot, "docker-compose");
+  const bestanden = readdirSync(composeMap).filter((naam) => /^(docker-)?compose.*\.ya?ml$/.test(naam));
+  assert.ok(bestanden.length > 0, "geen compose-bestanden gevonden");
+  const example = readFileSync(join(repoRoot, COMPOSE_ENV_EXAMPLE), "utf8");
+  const inExample = new Set([...example.matchAll(/^#?([A-Z][A-Z0-9_]*)=/gm)].map((m) => m[1]));
+  const gedekt = new Set([...SECRET_NAMES, ...inExample]);
+  const ongedekt = [];
+  for (const naam of bestanden) {
+    for (const m of readFileSync(join(composeMap, naam), "utf8").matchAll(/\$\{([A-Z][A-Z0-9_]*):\?/g)) {
+      if (!gedekt.has(m[1])) ongedekt.push(`${naam}: ${m[1]}`);
+    }
+  }
+  assert.deepEqual(ongedekt, [], "verplichte variabelen die dev:setup niet vult; draai de stack anders nooit op een schone checkout");
 });
