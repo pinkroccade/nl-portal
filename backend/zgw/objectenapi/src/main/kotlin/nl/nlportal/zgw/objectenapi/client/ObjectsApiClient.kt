@@ -15,53 +15,36 @@
  */
 package nl.nlportal.zgw.objectenapi.client
 
-import nl.nlportal.core.util.requireConfigured
-import io.netty.handler.logging.LogLevel.TRACE
-import java.util.UUID
-import nl.nlportal.core.util.Mapper
-import nl.nlportal.zgw.objectenapi.autoconfiguration.ObjectsApiClientConfig.ObjectsApiClientConfigProperties
+import nl.nlportal.core.koppeling.KoppelingClient
+import nl.nlportal.core.koppeling.KoppelingException
+import nl.nlportal.core.koppeling.KoppelingFoutsoort
+import nl.nlportal.core.koppeling.KoppelingRegister
+import nl.nlportal.core.koppeling.typeReferentie
 import nl.nlportal.zgw.objectenapi.domain.CreateObjectsApiObjectRequest
 import nl.nlportal.zgw.objectenapi.domain.ObjectSearchParameter
 import nl.nlportal.zgw.objectenapi.domain.ObjectsApiObject
 import nl.nlportal.zgw.objectenapi.domain.ResultPage
 import nl.nlportal.zgw.objectenapi.domain.UpdateObjectsApiObjectRequest
-import org.springframework.http.HttpStatusCode
-import org.springframework.http.MediaType
-import org.springframework.http.client.reactive.ReactorClientHttpConnector
-import org.springframework.http.codec.json.JacksonJsonDecoder
-import org.springframework.http.codec.json.JacksonJsonEncoder
-import org.springframework.web.reactive.function.client.ExchangeStrategies
-import org.springframework.web.reactive.function.client.WebClient
-import org.springframework.web.reactive.function.client.awaitBodilessEntity
-import org.springframework.web.reactive.function.client.awaitBody
-import org.springframework.web.reactive.function.client.awaitBodyOrNull
+import org.springframework.core.ParameterizedTypeReference
+import org.springframework.http.HttpStatus
 import org.springframework.web.server.ResponseStatusException
-import reactor.netty.http.client.HttpClient
-import reactor.netty.transport.logging.AdvancedByteBufFormat.TEXTUAL
+import org.springframework.web.util.UriUtils
+import java.nio.charset.StandardCharsets
+import java.util.UUID
 
+/**
+ * De Objecten API van de huidige tenant, via zijn koppeling `objectenapi` (per aanroep opgehaald, nooit bewaard). Een object-URL
+ * uit een antwoord van een andere bron volgt alleen als hij onder de basis-URL van die koppeling valt (host-binding).
+ */
 open class ObjectsApiClient(
-    private val objectsApiClientConfig: ObjectsApiClientConfigProperties,
+    private val koppelingen: KoppelingRegister,
 ) {
-    suspend inline fun <reified T> getObjectById(id: String): ObjectsApiObject<T>? =
-        webClient()
-            .get()
-            .uri("/api/v2/objects/$id")
-            .accept(MediaType.APPLICATION_JSON)
-            .retrieve()
-            .onStatus(HttpStatusCode::isError) { response ->
-                throw ResponseStatusException(
-                    response.statusCode(),
-                    "Failed to ${response.request().method.name()} ${T::class.java.simpleName}",
-                )
-            }.awaitBodyOrNull()
+    private suspend fun koppeling(): KoppelingClient = koppelingen.current(MODULE)
 
-    suspend inline fun <reified T> getObjectByUrl(url: String): ObjectsApiObject<T>? =
-        webClientWithoutBaseUrl()
-            .get()
-            .uri(url)
-            .accept(MediaType.APPLICATION_JSON)
-            .retrieve()
-            .awaitBodyOrNull()
+    /** Alleen een 404 van de bron komt als [ResponseStatusException] (NOT_FOUND) naar boven; elke andere fout, ook een 401, 403 of 429, is een [KoppelingException]: een bronstatus zegt iets over onze koppeling, niet over de aanvraag van de inwoner. */
+    suspend inline fun <reified T> getObjectById(id: String): ObjectsApiObject<T> = getObjectById(id, typeReferentie<ObjectsApiObject<T>>(), T::class.java.simpleName)
+
+    suspend inline fun <reified T> getObjectByUrl(url: String): ObjectsApiObject<T> = getObjectByUrl(url, typeReferentie<ObjectsApiObject<T>>())
 
     suspend inline fun <reified T> getObjects(
         objectSearchParameters: List<ObjectSearchParameter>,
@@ -69,93 +52,85 @@ open class ObjectsApiClient(
         page: Int,
         pageSize: Int,
         ordering: String? = null,
-    ): ResultPage<ObjectsApiObject<T>> =
-        webClient()
-            .get()
-            .uri { uriBuilder ->
-                uriBuilder
-                    .path("/api/v2/objects")
-                    .queryParam("page", page)
-                    .queryParam("pageSize", pageSize)
-                objectTypeUrl?.let { uriBuilder.queryParam("type", it) }
-                uriBuilder.queryParam("data_attrs", ObjectSearchParameter.toQueryParameter(objectSearchParameters))
-                ordering?.let { uriBuilder.queryParam("ordering", ordering) }
-                uriBuilder.build()
-            }.accept(MediaType.APPLICATION_JSON)
-            .retrieve()
-            .awaitBody()
+    ): ResultPage<ObjectsApiObject<T>> = getObjects(objectSearchParameters, objectTypeUrl, page, pageSize, ordering, typeReferentie<ResultPage<ObjectsApiObject<T>>>())
 
     suspend inline fun <reified T> updateObject(
         objectUuid: UUID,
         objectsApiObject: UpdateObjectsApiObjectRequest<T>,
-    ): ObjectsApiObject<T> =
-        webClient()
-            .put()
-            .uri("/api/v2/objects/$objectUuid")
-            .contentType(MediaType.APPLICATION_JSON)
-            .accept(MediaType.APPLICATION_JSON)
-            .bodyValue(objectsApiObject)
-            .retrieve()
-            .awaitBody()
+    ): ObjectsApiObject<T> = updateObject(objectUuid, objectsApiObject, typeReferentie<ObjectsApiObject<T>>())
 
-    suspend inline fun <reified T> createObject(objectsApiObject: CreateObjectsApiObjectRequest<T>): ObjectsApiObject<T> =
-        webClient()
-            .post()
-            .uri("/api/v2/objects")
-            .contentType(MediaType.APPLICATION_JSON)
-            .accept(MediaType.APPLICATION_JSON)
-            .bodyValue(objectsApiObject)
-            .retrieve()
-            .awaitBody()
+    suspend inline fun <reified T> createObject(objectsApiObject: CreateObjectsApiObjectRequest<T>): ObjectsApiObject<T> = createObject(objectsApiObject, typeReferentie<ObjectsApiObject<T>>())
 
     suspend fun deleteObjectById(id: UUID) {
-        webClient()
-            .delete()
-            .uri("/api/v2/objects/$id")
-            .accept(MediaType.APPLICATION_JSON)
-            .retrieve()
-            .awaitBodilessEntity()
+        koppeling().delete("$OBJECTEN_PAD/$id", CRS_HEADERS)
     }
 
-    fun webClient(): WebClient =
-        webclientBuilder
-            .baseUrl(objectsApiClientConfig.url.toString().requireConfigured("objectenapi", "url"))
-            .defaultHeader("Accept-Crs", "EPSG:4326")
-            .defaultHeader("Content-Crs", "EPSG:4326")
-            .defaultHeader("Authorization", "Token ${objectsApiClientConfig.token.requireConfigured("objectenapi", "token")}")
-            .build()
+    // De kern staat in gewone (niet-inline) methoden, zodat de logica hier gemeten wordt en niet bij elke aanroeper.
 
-    fun webClientWithoutBaseUrl(): WebClient =
-        webclientBuilder
-            .defaultHeader("Accept-Crs", "EPSG:4326")
-            .defaultHeader("Content-Crs", "EPSG:4326")
-            .defaultHeader("Authorization", "Token ${objectsApiClientConfig.token.requireConfigured("objectenapi", "token")}")
-            .build()
+    @PublishedApi
+    internal suspend fun <T> getObjectById(
+        id: String,
+        type: ParameterizedTypeReference<ObjectsApiObject<T>>,
+        typenaam: String,
+    ): ObjectsApiObject<T> =
+        try {
+            koppeling().get("$OBJECTEN_PAD/${UriUtils.encodePathSegment(id, StandardCharsets.UTF_8)}", type, headers = CRS_HEADERS)
+        } catch (e: KoppelingException) {
+            throw bronStatus(e, typenaam)
+        }
 
-    private val webclientBuilder =
-        WebClient
-            .builder()
-            .clientConnector(
-                ReactorClientHttpConnector(
-                    HttpClient.create().wiretap(
-                        "reactor.netty.http.client.HttpClient",
-                        TRACE,
-                        TEXTUAL,
-                    ),
-                ),
-            ).exchangeStrategies(
-                ExchangeStrategies
-                    .builder()
-                    .codecs { configurer ->
-                        with(configurer.defaultCodecs()) {
-                            maxInMemorySize(16 * 1024 * 1024)
-                            jacksonJsonEncoder(
-                                JacksonJsonEncoder(Mapper.get()),
-                            )
-                            jacksonJsonDecoder(
-                                JacksonJsonDecoder(Mapper.get()),
-                            )
-                        }
-                    }.build(),
-            )
+    @PublishedApi
+    internal suspend fun <T> getObjectByUrl(
+        url: String,
+        type: ParameterizedTypeReference<ObjectsApiObject<T>>,
+    ): ObjectsApiObject<T> = koppeling().get(url, type, headers = CRS_HEADERS)
+
+    @PublishedApi
+    internal suspend fun <T> getObjects(
+        objectSearchParameters: List<ObjectSearchParameter>,
+        objectTypeUrl: String?,
+        page: Int,
+        pageSize: Int,
+        ordering: String?,
+        type: ParameterizedTypeReference<ResultPage<ObjectsApiObject<T>>>,
+    ): ResultPage<ObjectsApiObject<T>> {
+        val query = mutableMapOf("page" to listOf(page.toString()), "pageSize" to listOf(pageSize.toString()))
+        objectTypeUrl?.let { query["type"] = listOf(it) }
+        query["data_attrs"] = listOf(ObjectSearchParameter.toQueryParameter(objectSearchParameters))
+        ordering?.let { query["ordering"] = listOf(it) }
+        return koppeling().get(OBJECTEN_PAD, type, query, CRS_HEADERS)
+    }
+
+    @PublishedApi
+    internal suspend fun <T> updateObject(
+        objectUuid: UUID,
+        objectsApiObject: UpdateObjectsApiObjectRequest<T>,
+        type: ParameterizedTypeReference<ObjectsApiObject<T>>,
+    ): ObjectsApiObject<T> = koppeling().put("$OBJECTEN_PAD/$objectUuid", objectsApiObject, type, CRS_HEADERS)
+
+    @PublishedApi
+    internal suspend fun <T> createObject(
+        objectsApiObject: CreateObjectsApiObjectRequest<T>,
+        type: ParameterizedTypeReference<ObjectsApiObject<T>>,
+    ): ObjectsApiObject<T> = koppeling().post(OBJECTEN_PAD, objectsApiObject, type, CRS_HEADERS)
+
+    private fun bronStatus(
+        fout: KoppelingException,
+        type: String,
+    ): Throwable =
+        if (fout.status == HTTP_NOT_FOUND && (fout.soort == KoppelingFoutsoort.BRON_PROBLEEM || fout.soort == KoppelingFoutsoort.BRON_NIET_CONFORM)) {
+            ResponseStatusException(HttpStatus.NOT_FOUND, "Failed to GET $type")
+        } else {
+            fout
+        }
+
+    companion object {
+        const val MODULE = "objectenapi"
+
+        private const val HTTP_NOT_FOUND = 404
+
+        private const val OBJECTEN_PAD = "/api/v2/objects"
+
+        private val CRS_HEADERS = mapOf("Accept-Crs" to "EPSG:4326", "Content-Crs" to "EPSG:4326")
+    }
 }

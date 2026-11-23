@@ -7,6 +7,10 @@
 // "release/<major>.x" line for a hotfix (falling back to the local branch if there's no "origin"
 // remote, which is only the case in tests/scratch checkouts). Does not push - that stays a
 // deliberate, separate step for the releaser.
+//
+// Optional: "--version X.Y.Z" forces the version instead of deriving it from the commits (first release,
+// or a release without feat/fix commits). The changelog still lists every user-facing commit since the
+// previous tag, or since the start of history when there is none.
 
 import { execFileSync } from "node:child_process";
 import { writeFileSync } from "node:fs";
@@ -104,13 +108,27 @@ function readFileAtRef(ref, path) {
   return tryGit(["show", `${ref}:${path}`]);
 }
 
+const SEMVER = /^\d+\.\d+\.\d+$/;
+
+// Returns the forced version, or null when --version is absent. Throws on a missing or malformed value.
+function parseVersionArg(argv) {
+  const index = argv.indexOf("--version");
+  if (index === -1) return null;
+  const value = argv[index + 1];
+  if (!value || !SEMVER.test(value)) {
+    throw new Error(`"${value ?? ""}" is geen geldige SemVer-versie (verwacht X.Y.Z, zonder v-prefix).`);
+  }
+  return value;
+}
+
 function main() {
+  const forcedVersion = parseVersionArg(process.argv.slice(2));
   assertCleanWorkingTree();
   const baseRef = resolveBaseRef();
   const latestTag = resolveLatestTag(baseRef);
   const commits = commitsSince(latestTag, baseRef);
 
-  const bump = nextBump(commits);
+  const bump = forcedVersion ? "forced" : nextBump(commits);
   if (bump === "none") {
     console.log(
       `No feat/fix/refactor/perf/breaking commits since ${latestTag ?? "the start of history"} on ${baseRef} - nothing to release.`,
@@ -123,7 +141,7 @@ function main() {
   if (!currentVersion) {
     throw new Error(`Could not read version.txt from ${baseRef}.`);
   }
-  const nextVersion = applyBump(currentVersion, bump);
+  const nextVersion = forcedVersion ?? applyBump(currentVersion, bump);
 
   const date = new Date().toISOString().slice(0, 10);
   const section = renderSection(nextVersion, date, categorize(commits));
@@ -131,6 +149,9 @@ function main() {
   const newChangelog = insertSection(existingChangelog, section);
 
   const branch = `rc/${nextVersion}`;
+  if (tryGit(["rev-parse", "--verify", "--quiet", `refs/heads/${branch}`])) {
+    throw new Error(`De branch ${branch} bestaat al.`);
+  }
   git(["switch", "-c", branch, baseRef]);
 
   writeFileSync("version.txt", `${nextVersion}\n`);

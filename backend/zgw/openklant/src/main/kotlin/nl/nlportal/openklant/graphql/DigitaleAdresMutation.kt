@@ -17,12 +17,11 @@ package nl.nlportal.openklant.graphql
 
 import java.time.LocalDate
 import java.util.UUID
-import nl.nlportal.commonground.authentication.CommonGroundAuthentication
+import nl.nlportal.portal.authentication.domain.PortalAuthentication
 import nl.nlportal.openklant.graphql.domain.DigitaleAdresRequest
 import nl.nlportal.openklant.graphql.domain.DigitaleAdresResponse
 import nl.nlportal.openklant.graphql.domain.DigitaleAdresType
 import nl.nlportal.openklant.service.OpenKlant2Service
-import nl.nlportal.verificatie.autoconfigure.VerificatieModuleConfiguration
 import nl.nlportal.verificatie.graphql.domain.VerificatieCreateInput
 import nl.nlportal.verificatie.graphql.domain.VerificatieType
 import nl.nlportal.verificatie.graphql.domain.VerificatieVerifyInput
@@ -36,16 +35,15 @@ import org.springframework.web.server.ResponseStatusException
 @Controller
 class DigitaleAdresMutation(
     private val openklant2Service: OpenKlant2Service,
-    private val verificatieModuleConfiguration: VerificatieModuleConfiguration,
     private val verificatieService: VerificatieService?,
 ) {
     @MutationMapping
     suspend fun createUserDigitaleAdres(
-        authentication: CommonGroundAuthentication,
+        authentication: PortalAuthentication,
         @Argument digitaleAdresRequest: DigitaleAdresRequest,
     ): DigitaleAdresResponse? {
         if (verificatieService != null &&
-            verificatieModuleConfiguration.properties.typesNeedVerification.contains(DigitaleAdresType.toVerificationType(digitaleAdresRequest.type))
+            verificatieService.vereistVerificatie(DigitaleAdresType.toVerificationType(digitaleAdresRequest.type))
         ) {
             // verificate flow
             val response = doVerificatie(digitaleAdresRequest)
@@ -59,16 +57,16 @@ class DigitaleAdresMutation(
                 authentication = authentication,
                 digitaleAdres = digitaleAdresRequest.asOpenKlant2DigitaleAdres(),
             )
-        return digitaleAdres?.let { DigitaleAdresResponse.fromOpenKlant2DigitaleAdres(digitaleAdres, verificatieModuleConfiguration, verificatieService) }
+        return digitaleAdres?.let { DigitaleAdresResponse.fromOpenKlant2DigitaleAdres(digitaleAdres, verificatieService) }
     }
 
     @MutationMapping
     suspend fun updateUserDigitaleAdres(
-        authentication: CommonGroundAuthentication,
+        authentication: PortalAuthentication,
         @Argument digitaleAdresRequest: DigitaleAdresRequest,
     ): DigitaleAdresResponse? {
         if (verificatieService != null &&
-            verificatieModuleConfiguration.properties.typesNeedVerification.contains(DigitaleAdresType.toVerificationType(digitaleAdresRequest.type)) &&
+            verificatieService.vereistVerificatie(DigitaleAdresType.toVerificationType(digitaleAdresRequest.type)) &&
             digitaleAdresRequest.verificatieDatum == null
         ) {
             // verificate flow
@@ -83,12 +81,12 @@ class DigitaleAdresMutation(
                     digitaleAdres = digitaleAdresRequest.asOpenKlant2DigitaleAdresUpdate(),
                 )
 
-        return digitaleAdres?.let { DigitaleAdresResponse.fromOpenKlant2DigitaleAdres(digitaleAdres, verificatieModuleConfiguration, verificatieService) }
+        return digitaleAdres?.let { DigitaleAdresResponse.fromOpenKlant2DigitaleAdres(digitaleAdres, verificatieService) }
     }
 
     @MutationMapping
     suspend fun deleteUserDigitaleAdres(
-        authentication: CommonGroundAuthentication,
+        authentication: PortalAuthentication,
         @Argument digitaleAdresId: UUID,
     ): Boolean? {
         openklant2Service

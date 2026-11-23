@@ -35,8 +35,8 @@ Legenda: **Voldaan** = aantoonbaar in code of standaardconfiguratie. **Na inrich
 | 9.1.3 | L1 | Voldaan | Sleutelbron is vast (`JWKS_URI`); `jku`/`x5u`-headers worden niet gevolgd. |
 | 9.2.1 | L1 | Voldaan | `JwtTimestampValidator` is standaard actief (`exp`/`nbf`, 60 s skew). |
 | 9.2.2 | L2 | Niet voldaan | Geen controle op tokentype (`typ`/`azp`); een met dezelfde sleutel ondertekend ID-token wordt als Bearer geaccepteerd. |
-| 9.2.3 | L2 | Na inrichting | `spring.security.oauth2.resourceserver.jwt.audiences` bestaat en is gedocumenteerd ([Audience validatie](../../hosting-en-configuratie/keycloak.md#audience-validatie)), maar de app image zet het **niet** aan. Zonder die waarde wordt elke token van het realm geaccepteerd. |
-| 9.2.4 | L2 | Na inrichting | Vereist een unieke audience per client (audience mappers in de [token exchange pagina](../../hosting-en-configuratie/keycloak-token-exchange.md#stap-2-audience-mappers)) én de property uit 9.2.3. |
+| 9.2.3 | L2 | Na inrichting | `spring.security.oauth2.resourceserver.jwt.audiences` bestaat en is gedocumenteerd (Audience validatie (sectie vervallen met #506)), maar de app image zet het **niet** aan. Zonder die waarde wordt elke token van het realm geaccepteerd. |
+| 9.2.4 | L2 | Na inrichting | Vereist een unieke audience per client (audience mappers in de token exchange pagina (pagina vervallen met #506)) én de property uit 9.2.3. |
 | 10.3.1 | L2 | Na inrichting | Zelfde als 9.2.3. Met de standard token exchange werkt `audience` als filter; de harde grens ontstaat pas door de `audiences`-property aan te zetten. (Met V1 kon de uitgewisselde token geen gedeelde audience met de browsertoken dragen; die belemmering is weg.) |
 | 10.3.2 | L2 | Niet voldaan | `JwtGrantedAuthoritiesConverter` zet alleen `scope` om naar `SCOPE_*`; de claims `aanvrager`, `gemachtigde` en `urn:etoegang:core:ServiceUUID` zijn eigen claims. Of alle endpoints op scope/rol autoriseren (in plaats van op "geauthenticeerd") is niet onderzocht; zonder dat bewijs geldt de eis als niet voldaan. |
 | 10.3.3 | L2 | Niet voldaan | Gebruikers worden op `bsn`/`kvk`/`aanvrager.sub` herkend; `iss` + `sub` wordt niet als sleutel gebruikt. Zie ook 6.8.1. |
@@ -47,7 +47,7 @@ Legenda: **Voldaan** = aantoonbaar in code of standaardconfiguratie. **Na inrich
 | Eis | Lvl | Resultaat | Onderbouwing |
 |---|---|---|---|
 | 10.1.1 | L2 | Voldaan | Het binnenkomende token gaat alleen als `subject_token` naar Keycloak. Het uitgewisselde token wordt niet gelogd. Let op: bij een mislukte exchange logt de backend de volledige response-body van Keycloak (`logger.error`), zonder token, maar met `error_description`; de gebruiker krijgt die niet te zien. |
-| 10.4.4 | L1 | Buiten NL Portal | Clientgrants staan in Keycloak. De [token exchange pagina](../../hosting-en-configuratie/keycloak-token-exchange.md#stap-0-de-twee-clients-aanmaken) schrijft voor: m2m zonder standard flow, frontend zonder service accounts. |
+| 10.4.4 | L1 | Buiten NL Portal | Clientgrants staan in Keycloak. De token exchange pagina (pagina vervallen met #506) schrijft voor: m2m zonder standard flow, frontend zonder service accounts. |
 | 10.4.10 | L2 | Voldaan | Confidential client; `client_id` + `client_secret` in de form-body (`client_secret_post`). |
 | 10.4.11 | L2 | Na inrichting | De `aanvrager`-scope is als *Default* aan de m2m-client gekoppeld en niet aan de frontend. De overige default scopes van de m2m-client zijn niet in de repo vastgelegd. |
 | 10.2.3 | L3 | Niet voldaan | Het exchange-verzoek stuurt geen `scope`; dat levert alle default scopes van de m2m-client op. Minimale scopes zijn niet afgedwongen of vastgelegd. |

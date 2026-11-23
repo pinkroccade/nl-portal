@@ -1,0 +1,79 @@
+suite: management-poort en probes
+templates:
+  - configmap-backend.yaml
+  - configmap-frontend.yaml
+  - configmap-tenants.yaml
+  - service-backend.yaml
+  - service-frontend.yaml
+  - deployment-backend.yaml
+  - deployment-frontend.yaml
+  - serviceaccount.yaml
+  - ingress.yaml
+values:
+  - ../ci/minimal-values.yaml
+tests:
+  - it: de Service bevat alleen de applicatiepoort en nooit de management-poort
+    template: service-backend.yaml
+    asserts:
+      - lengthEqual:
+          path: spec.ports
+          count: 1
+      - equal:
+          path: spec.ports[0].name
+          value: http
+      - equal:
+          path: spec.ports[0].port
+          value: 8080
+      - notMatchRegex:
+          path: spec.ports[0].name
+          pattern: "management"
+  - it: de management-poort blijft buiten de Service als je hem wijzigt
+    template: service-backend.yaml
+    set:
+      backend.management.port: 9000
+    asserts:
+      - lengthEqual:
+          path: spec.ports
+          count: 1
+  - it: de actuator staat als containerpoort op de beheerpoort en volgt de value
+    template: deployment-backend.yaml
+    set:
+      backend.management.port: 9000
+    asserts:
+      - contains:
+          path: spec.template.spec.containers[0].ports
+          content:
+            name: management
+            containerPort: 9000
+            protocol: TCP
+  - it: de beheerpoort mag niet gelijk zijn aan de applicatiepoort
+    template: deployment-backend.yaml
+    set:
+      backend.management.port: 8080
+    asserts:
+      - failedTemplate:
+          errorPattern: "management"
+  - it: de probes gebruiken de health-groups op de management-poort
+    template: deployment-backend.yaml
+    asserts:
+      - equal:
+          path: spec.template.spec.containers[0].livenessProbe.httpGet
+          value:
+            path: /actuator/health/liveness
+            port: management
+      - equal:
+          path: spec.template.spec.containers[0].readinessProbe.httpGet
+          value:
+            path: /actuator/health/readiness
+            port: management
+      - equal:
+          path: spec.template.spec.containers[0].startupProbe.httpGet.path
+          value: /actuator/health/liveness
+  - it: de configuratie geeft de poort door aan Spring
+    template: configmap-backend.yaml
+    set:
+      backend.management.port: 9000
+    asserts:
+      - equal:
+          path: data.MANAGEMENT_SERVER_PORT
+          value: "9000"

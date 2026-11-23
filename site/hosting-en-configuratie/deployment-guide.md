@@ -9,7 +9,7 @@ description: >-
 
 De NL Portal images (`ghcr.io/pinkroccade/nl-portal-backend` en `ghcr.io/pinkroccade/nl-portal-frontend`) worden volledig geconfigureerd via environment variabelen. De complete, versie-specifieke referentie met inline documentatie vind je in de monorepo, in de bestanden `docker-compose/imports/backend.env` en `docker-compose/imports/frontend.env`. Raadpleeg altijd het bestand dat hoort bij de release die je deployt.
 
-De backend variabelen volgen de Spring Boot relaxed binding naamconventie: de property `nl-portal.config.zakenapi.properties.url` wordt de environment variabele `NLPORTAL_CONFIG_ZAKENAPI_PROPERTIES_URL`.
+De backend variabelen volgen de Spring Boot relaxed binding naamconventie: de property `nl-portal.config.zakenapi.enabled` wordt de environment variabele `NLPORTAL_CONFIG_ZAKENAPI_ENABLED`.
 
 **Let op bij properties met koppeltekens in meerdere delen.** Relaxed binding accepteert twee schrijfwijzen, maar je moet er consequent één aanhouden: vervang *elk* koppelteken door een underscore, óf laat *elk* koppelteken weg. Een mengvorm wordt **stilzwijgend genegeerd** — geen foutmelding, geen waarschuwing, de property houdt gewoon zijn standaardwaarde. Voor `nl-portal.support.ping-endpoint.enabled`:
 
@@ -19,50 +19,70 @@ De backend variabelen volgen de Spring Boot relaxed binding naamconventie: de pr
 | elk koppelteken weggelaten | `NLPORTAL_SUPPORT_PINGENDPOINT_ENABLED` | ja |
 | mengvorm | `NLPORTAL_SUPPORT_PING_ENDPOINT_ENABLED` | **nee** |
 
-Bij properties waarvan alleen het voorste deel een koppelteken heeft — zoals `nl-portal.authentication.keycloak.resource` — vallen beide schrijfwijzen samen en speelt dit niet. Gebruik bij voorkeur de variabelen van de app image (zoals `KEYCLOAK_CLIENT_ID`), dan loop je hier niet tegenaan.
+Bij properties waarvan alleen het voorste deel een koppelteken heeft — zoals `nl-portal.authentication.broker-url` — vallen beide schrijfwijzen samen en speelt dit niet. Gebruik bij voorkeur de variabelen van de app image (zoals `KEYCLOAK_BROKER_URL`), dan loop je hier niet tegenaan.
 
 ### Deployen met Helm (Kubernetes)
 
-Dit verwees eerder naar officiële Helm charts in Ritense's `helm-charts` repository, met charts voor
-de NL Portal backend, frontend en het Configuratiepaneel (backend en frontend). Pinkroccade's eigen
-equivalent is nog niet ingericht; zie [epic #191](https://github.com/pinkroccade/nl-portal/issues/191).
+Voor Kubernetes bestaat een eigen Helm-chart, `nl-portal`, in de map `helm/nl-portal` van de monorepo (epic [#191](https://github.com/pinkroccade/nl-portal/issues/191)).
+Installatie, secrets, tenantbestanden en upgraden staan op [Deployen op Kubernetes met Helm](./kubernetes-helm.md).
 
 ### Backend: module-configuratie
 
 De functionele modules van de backend (onder andere Zaken API, Catalogi API, Documenten APIs, Open Object, OpenKlant 2, HaalCentraal BRP (`haalcentraal-brp`) en Handelsregister (`kvk`, als omgevingsvariabele `NLPORTAL_CONFIG_KVK_ENABLED`), Berichten, Taak, Prefill, DMN, OpenProduct, betalingen en virusscan) worden per module aangezet met een enable-vlag. Alle modules staan standaard uit.
 
-Elke module heeft daarnaast eigen properties die met hetzelfde patroon worden gezet: `NLPORTAL_CONFIG_<MODULE>_PROPERTIES_<PROPERTY>`. Bijvoorbeeld voor de Zaken API:
+Elke module die nog niet naar het tenantbestand is gemigreerd heeft daarnaast eigen properties die met hetzelfde patroon worden gezet: `NLPORTAL_CONFIG_<MODULE>_PROPERTIES_<PROPERTY>`. De Zaken API is gemigreerd: zij heeft alleen nog de enable-vlag, en haar URL, authenticatie en overige gegevens staan per tenant in het [tenantbestand](tenantbestand-flag-en-secret-store.md):
 
 ```shell
 NLPORTAL_CONFIG_ZAKENAPI_ENABLED=true
-NLPORTAL_CONFIG_ZAKENAPI_PROPERTIES_URL=https://openzaak.example.com
-NLPORTAL_CONFIG_ZAKENAPI_PROPERTIES_CLIENTID=nl-portal
-NLPORTAL_CONFIG_ZAKENAPI_PROPERTIES_SECRET=<secret>
+# het geheim van koppelingen.zakenapi uit het tenantbestand, met het OIN van de tenant in de naam (minstens 32 tekens)
+NL_PORTAL_GEHEIMEN_00000099000000000001_ZAKEN_SECRET=<secret>
 ```
+
+```yaml
+# <oin>.yaml in de map NL_PORTAL_TENANTS_DIRECTORY
+koppelingen:
+    zakenapi:
+        url: https://openzaak.example.com
+        auth:
+            type: zgw-jwt
+            clientId: nl-portal
+            secret: 00000099000000000001.zaken-secret
+modules:
+    zakenapi:
+        uitgeslotenZaaktypen: []              # UUID's van zaaktypen die nooit in de lijst komen
+        nnpKvkQueryIdentificatoren: false     # bedrijven zoeken als niet-natuurlijk persoon (kvkNummer)
+```
+
+**Let op:** `koppelingen.zakenapi` en `modules.zakenapi` horen bij elkaar: het ene zonder het andere weigert het opstarten, met de OIN van de tenant in de melding. Zijn alle waarden standaard, schrijf dan `modules.zakenapi: {}` (de tenantbestand-loader accepteert dat; het script `mise run dev:setup` kent alleen de uitgeschreven vorm). Het geheim is willekeurig gegenereerd en minstens 32 tekens.
+
+De Catalogi API is ook gemigreerd en heeft per tenant alleen een koppeling (geen `modules.catalogiapi`): `koppelingen.catalogiapi` (auth-type `zgw-jwt`, geheim als `NL_PORTAL_GEHEIMEN_<OIN>_CATALOGIAPI_SECRET`). Staat de module aan en heeft geen enkele tenant die koppeling, dan weigert het opstarten. De oude `NLPORTAL_CONFIG_CATALOGIAPI_PROPERTIES_*` zijn vervallen en weigeren het opstarten zolang ze gezet zijn.
+
+**Let op:** de URL van `koppelingen.catalogiapi` moet gelijk zijn aan de canonieke zaaktype-URL's die de Zaken API opslaat (het deel vóór `/catalogi/api/v1/zaaktypen/`). Het filter `zaaktype__not_in` voor `modules.zakenapi.uitgeslotenZaaktypen` bouwt zijn waarden uit die URL. Wijkt de URL af (bijvoorbeeld een interne of gateway-URL), dan filtert de Zaken API niets en corrigeert alleen de nafilter op zaaktype-UUID: een zaak van een uitgesloten zaaktype wordt dan niet getoond, maar het totaal en het aantal pagina's tellen die zaken nog wel mee. Een tenant met uitgesloten zaaktypen heeft deze koppeling ook nodig; zonder faalt de zakenlijst bij de eerste aanvraag.
 
 **Let op:** de zaken-functionaliteit vereist dat de Zaken API, Catalogi API én Open Object modules alle drie enabled zijn.
 
-**Ontbrekende configuratie:** een module controleert zijn verplichte instellingen (URL, `clientId`, `secret` of token) pas bij het eerste gebruik, niet bij het opstarten. Zet je een module aan zonder die instellingen, dan start de backend gewoon op en faalt de eerste aanroep van die module met een foutmelding als `Module 'zakenapi' is not configured: setting 'url' is missing`. Controleer na het aanzetten van een module dus altijd dat een aanroep slaagt; een goede opstart bewijst nog niet dat de configuratie klopt.
+**Ontbrekende configuratie:** een module die nog niet naar het tenantbestand is gemigreerd controleert zijn verplichte instellingen (URL, `clientId`, `secret` of token) pas bij het eerste gebruik, niet bij het opstarten. Zet je een module aan zonder die instellingen, dan start de backend gewoon op en faalt de eerste aanroep van die module met een foutmelding als `Module 'documentenapis' is not configured: setting 'url' is missing`. Controleer na het aanzetten van een module dus altijd dat een aanroep slaagt; een goede opstart bewijst nog niet dat de configuratie klopt.
 
 Alle module properties, inclusief de optionele, zijn met inline documentatie te vinden in `docker-compose/imports/backend.env` in de monorepo.
 
-### Backend: Keycloak-koppeling
+### Backend: Keycloak-koppeling en sessies
 
-De backend kent Keycloak onder twee adressen: het **publieke** adres, zoals de browser het ziet, en
-eventueel een **intern** adres waarop de backend Keycloak zelf bereikt (bijvoorbeeld een
-servicenaam in Kubernetes of docker-compose).
+De backend is zelf de OIDC-client (BFF, [ADR 0022](../development/adr/0022-backend-for-frontend-als-authenticatiepatroon.md)). De issuer, het
+sleutelbestand en eventueel een interne route naar Keycloak staan per tenant in het tenantbestand (blok `authenticatie`); zie de
+[Keycloak configuratie](./keycloak.md). De backend krijgt daarnaast:
 
-| Variabele | Verplicht | Adres | Betekenis |
-| --------- | --------- | ----- | --------- |
-| `KEYCLOAK_ISSUER_URI` | ja | publiek | De verwachte issuer: de URL van de realm, teken voor teken gelijk aan de `iss`-claim van de tokens, zonder `/` aan het eind (`https://login.gemeente.nl/auth/realms/portal`). Een token met een andere `iss` krijgt een 401. Zonder deze variabele start de backend niet. |
-| `JWKS_URI` | ja | intern of publiek | De sleutelset waarmee de backend handtekeningen controleert (`<realm-url>/protocol/openid-connect/certs`). |
-| `KEYCLOAK_TOKEN_URI` | nee | intern of publiek | Het token-endpoint voor de token exchange. Leeg: `<KEYCLOAK_ISSUER_URI>/protocol/openid-connect/token`. |
+| Variabele | Verplicht | Betekenis |
+| --------- | --------- | --------- |
+| `KEYCLOAK_BROKER_URL` | ja | Basis-URL van de publieke ID-broker. Elke issuer in de tenantbestanden moet eronder vallen. |
+| `NL_PORTAL_SLEUTELMAP` | ja | Vaste map met per tenant een map met de OIN als naam, met daarin de private clientsleutel (`<OIN>/clientsleutel.jwk.json`, 0600, leesbaar voor de gebruiker van de backend). |
+| `REDIS_HOST`, `REDIS_PORT`, `REDIS_USERNAME`, `REDIS_PASSWORD`, `REDIS_SSL` | ja | De Redis voor de portaalsessies: ACL, geen persistentie, `noeviction`, TLS standaard aan (`REDIS_SSL=false` alleen lokaal), één instantie per cel. Valt Redis uit, dan moeten gebruikers opnieuw inloggen. |
 
-De backend leidt het token-endpoint nooit af uit het binnenkomende token. Heeft de backend een
-interne route naar Keycloak, zet dan `JWKS_URI` en `KEYCLOAK_TOKEN_URI` op het interne adres; de
-issuer blijft het publieke adres. Laat Keycloak de publieke URL in de tokens zetten, ook bij een
-verzoek via het interne adres (`KC_HOSTNAME` op de publieke URL en
-`KC_HOSTNAME_BACKCHANNEL_DYNAMIC=true`).
+De backend leidt het token-endpoint nooit af uit een binnenkomend bericht. Heeft de backend een interne route naar Keycloak, zet dan
+`authenticatie.interneBasisUrl` in het tenantbestand; de issuer blijft het publieke adres. Laat Keycloak de publieke URL in de tokens zetten,
+ook bij een verzoek via het interne adres (`KC_HOSTNAME` op de publieke URL en `KC_HOSTNAME_BACKCHANNEL_DYNAMIC=true`).
+
+Het frontend-image heeft geen identity-instellingen meer. De reverse proxy (nginx in het image, of de ingress) moet `/graphql`, `/api`,
+`/oauth2`, `/login` en `/logout` naar de backend sturen en de `Host`-header van de browser doorgeven: de host bepaalt de tenant.
 
 ### Backend: CORS
 
@@ -174,4 +194,4 @@ flagbestand.
 
 Zie [Eigen vormgeving](../gebruik-en-inrichting/eigen-vormgeving.md) voor `themeClass` en theming.
 
-Zie de [Keycloak configuratie](./keycloak.md) pagina voor het instellen van de bijbehorende clients in Keycloak. Zie [Standard token exchange](./keycloak-token-exchange.md) voor de inrichting van de token exchange.
+Zie de [Keycloak configuratie](./keycloak.md) pagina voor het instellen van de bijbehorende clients in Keycloak.

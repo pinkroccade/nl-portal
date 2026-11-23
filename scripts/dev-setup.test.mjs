@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { pbkdf2Sync } from "node:crypto";
 import { execFileSync } from "node:child_process";
-import { cpSync, mkdirSync, mkdtempSync, readFileSync, rmSync } from "node:fs";
+import { cpSync, mkdirSync, mkdtempSync, readFileSync, rmSync, statSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, join, resolve } from "node:path";
 import { test } from "node:test";
@@ -9,17 +9,21 @@ import { fileURLToPath } from "node:url";
 import {
   APP_DEV_OUTPUT,
   APP_DEV_SECRETS,
+  CLIENTSLEUTEL_UITVOER,
   COMPOSE_ENV,
   COMPOSE_ENV_EXAMPLE,
+  REALM_UITVOER,
   SECRET_NAMES,
   TEMPLATES,
   devSetup,
   djangoPasswordHash,
   generateSecrets,
   render,
+  gebruikerVoor,
   withManagedBlock,
 } from "./dev-setup.mjs";
 
+const OIN = "00000099000000000001";
 const repoRoot = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 const git = (...args) => execFileSync("git", args, { cwd: repoRoot, encoding: "utf8" });
 
@@ -33,6 +37,7 @@ function scratchRoot() {
     mkdirSync(dirname(join(root, path)), { recursive: true });
     cpSync(join(repoRoot, path), join(root, path));
   }
+  cpSync(join(repoRoot, "docker-compose/imports/tenants"), join(root, "docker-compose/imports/tenants"), { recursive: true });
   return root;
 }
 
@@ -62,6 +67,19 @@ test("withManagedBlock behoudt eigen regels en vervangt het blok bij herhaling",
   assert.match(tweede, /KEYCLOAK_DB_PASSWORD=KEYCLOAK_DB_PASSWORD-2/);
 });
 
+test("withManagedBlock zet LOCAL_UID en LOCAL_GID zodat de container de 0600-clientsleutel kan lezen", () => {
+  const blok = withManagedBlock("RUN_MODE=local\n", fixed(1), { uid: 1234, gid: 5678 });
+  assert.match(blok, /^LOCAL_UID=1234$/m);
+  assert.match(blok, /^LOCAL_GID=5678$/m);
+  assert.doesNotMatch(withManagedBlock("", fixed(1), {}), /LOCAL_UID/, "zonder uid (Windows) valt compose terug op 1000");
+});
+
+test("gebruikerVoor weigert uid 0 en laat Windows (geen uid) door", () => {
+  assert.throws(() => gebruikerVoor(0, 0), /root/);
+  assert.deepEqual(gebruikerVoor(1000, 1001), { uid: 1000, gid: 1001 });
+  assert.deepEqual(gebruikerVoor(undefined, undefined), {});
+});
+
 test("devSetup rendert dezelfde waarden in realm, compose en :app", () => {
   const root = scratchRoot();
   try {
@@ -69,14 +87,33 @@ test("devSetup rendert dezelfde waarden in realm, compose en :app", () => {
     devSetup(root, secrets);
     const read = (p) => readFileSync(join(root, p), "utf8");
 
-    const realm = JSON.parse(read("docker-compose/.generated/keycloak/nlportal-realm.json"));
-    const m2m = realm.clients.find((c) => c.clientId === "nl-portal-m2m");
-    assert.equal(m2m.secret, secrets.KEYCLOAK_M2M_CLIENT_SECRET);
+    // De realms worden uit het tenantbestand gegenereerd; keycloak-config-cli leest de geheimen uit de omgeving (compose),
+    // dus het realm bevat alleen een verwijzing en .env bevat de waarde.
+    const realm = JSON.parse(read(REALM_UITVOER(OIN)));
+    assert.equal(realm.clients.find((c) => c.clientId === "nl-portal-m2m"), undefined, "er is geen m2m-client en dus geen clientgeheim");
+    assert.equal(realm.displayName, "Gemeente De Bosrand");
+    assert.match(read(COMPOSE_ENV), new RegExp("^REDIS_PASSWORD=" + secrets.REDIS_PASSWORD + "$", "m"));
+    assert.ok(!JSON.stringify(realm).includes(secrets.REDIS_PASSWORD));
+
+    // Het sleutelpaar van nl-portal-backend: de private JWK in de gitignored map voor de backend, de publieke in het realm.
+    const prive = JSON.parse(read(CLIENTSLEUTEL_UITVOER(OIN)));
+    const jwks = JSON.parse(realm.clients.find((c) => c.clientId === "nl-portal-backend").attributes["jwks.string"]);
+    assert.deepEqual(jwks.keys.map((k) => k.kid), [prive.kid]);
+    assert.equal(jwks.keys[0].n, prive.n);
+    assert.equal(jwks.keys[0].d, undefined);
+    assert.equal(prive.alg, "PS256");
+    assert.ok(prive.d);
+    // Alleen de eigenaar leest de private sleutel (POSIX; Windows kent deze modus niet).
+    if (process.platform !== "win32") assert.equal(statSync(join(root, CLIENTSLEUTEL_UITVOER(OIN))).mode & 0o777, 0o600);
+    assert.match(read("backend/app/.env.properties"), new RegExp("^REDIS_PASSWORD=" + secrets.REDIS_PASSWORD + "$", "m"));
+    assert.match(read("backend/app/.env.properties"), /^REDIS_SSL=false$/m, "bootRun op de host praat met de TLS-loze Redis van de compose");
+    assert.doesNotMatch(read(APP_DEV_OUTPUT), /KEYCLOAK_CLIENT_SECRET/);
+    assert.match(read(APP_DEV_OUTPUT), /^REDIS_SSL=false$/m, "app-dev bootRun op de host praat met de TLS-loze Redis");
+    assert.match(read(APP_DEV_OUTPUT), /^REDIS_USERNAME=nlportal$/m, "de default-gebruiker van de Redis-ACL staat uit");
     assert.match(
       read("backend/app/.env.properties"),
-      new RegExp(`^KEYCLOAK_CLIENT_SECRET=${secrets.KEYCLOAK_M2M_CLIENT_SECRET}$`, "m"),
+      new RegExp(`^NL_PORTAL_GEHEIMEN_00000099000000000001_ZAKEN_SECRET=${secrets.OPENZAAK_NLPORTAL_SECRET}$`, "m"),
     );
-    assert.match(read(APP_DEV_OUTPUT), new RegExp(`KEYCLOAK_CLIENT_SECRET=${secrets.KEYCLOAK_M2M_CLIENT_SECRET}`));
     for (const name of APP_DEV_SECRETS) assert.match(read(APP_DEV_OUTPUT), new RegExp(`^${name}=${secrets[name]}$`, "m"));
 
     // Open Zaak, Objects, Open Notificaties, Open Klant en Open Product delen de JWT-secrets en tokens
@@ -98,12 +135,12 @@ test("devSetup rendert dezelfde waarden in realm, compose en :app", () => {
     assert.equal(algoritme, "pbkdf2_sha256");
     assert.equal(hash, pbkdf2Sync(secrets.OPENKLANT_ADMIN_PASSWORD, salt, Number(iteraties), 32, "sha256").toString("base64"));
     for (const name of SECRET_NAMES) assert.match(read(COMPOSE_ENV), new RegExp(`^${name}=${secrets[name]}$`, "m"));
-    assert.ok(read("docker-compose/.generated/keycloak/master-realm.json").includes(secrets.KEYCLOAK_ADMIN_PASSWORD));
     for (const { output } of TEMPLATES) assert.doesNotMatch(read(output), /\{\{[A-Z_]+\}\}/);
 
     // Opnieuw uitvoeren geeft een verse omgeving.
     const again = generateSecrets();
     devSetup(root, again);
+    assert.notEqual(JSON.parse(read(CLIENTSLEUTEL_UITVOER(OIN))).kid, prive.kid);
     assert.ok(!read(COMPOSE_ENV).includes(secrets.KEYCLOAK_DB_PASSWORD));
     assert.ok(read(COMPOSE_ENV).includes(again.KEYCLOAK_DB_PASSWORD));
   } finally {
@@ -119,7 +156,7 @@ test("djangoPasswordHash geeft het Django-formaat met een verse salt", () => {
 });
 
 test("rooktest: gegenereerde bestanden zijn gitignored", () => {
-  const outputs = [...TEMPLATES.map((t) => t.output), APP_DEV_OUTPUT, COMPOSE_ENV];
+  const outputs = [...TEMPLATES.map((t) => t.output), REALM_UITVOER(OIN), CLIENTSLEUTEL_UITVOER(OIN), APP_DEV_OUTPUT, COMPOSE_ENV];
   const ignored = git("check-ignore", ...outputs).split(/\r?\n/).filter(Boolean);
   assert.deepEqual([...ignored].sort(), [...outputs].sort());
 });
@@ -128,7 +165,7 @@ test("rooktest: geen vaste secrets in tracked bestanden", () => {
   const tracked = git("ls-files").split(/\r?\n/).filter(Boolean);
   for (const { output } of TEMPLATES) assert.ok(!tracked.includes(output), `${output} is ingecheckt`);
   for (const path of tracked.filter((p) => p.startsWith("docker-compose/imports/keycloak/"))) {
-    assert.fail(`${path}: realms horen als template onder docker-compose/templates/keycloak/`);
+    assert.fail(`${path}: realms horen als template onder keycloak/realm-template/`);
   }
   for (const path of tracked) {
     let text;

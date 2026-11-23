@@ -23,7 +23,7 @@ import nl.nlportal.catalogiapi.domain.StatusType
 import nl.nlportal.catalogiapi.domain.ZaakStatusType
 import nl.nlportal.catalogiapi.domain.ZaakType
 import nl.nlportal.catalogiapi.service.CatalogiApiService
-import nl.nlportal.commonground.authentication.CommonGroundAuthentication
+import nl.nlportal.portal.authentication.domain.PortalAuthentication
 import nl.nlportal.documentenapi.domain.Document
 import nl.nlportal.zakenapi.domain.Zaak
 import nl.nlportal.zakenapi.domain.ZaakDetails
@@ -45,7 +45,7 @@ open class ZaakQuery(
 ) {
     @QueryMapping
     open suspend fun getZaken(
-        authentication: CommonGroundAuthentication,
+        authentication: PortalAuthentication,
         @Argument page: Int? = 1,
         @Argument pageSize: Int? = null,
         @Argument zaakTypeUrl: String? = null,
@@ -68,7 +68,7 @@ open class ZaakQuery(
     @QueryMapping
     open suspend fun getZaak(
         @Argument id: UUID,
-        authentication: CommonGroundAuthentication,
+        authentication: PortalAuthentication,
     ): Zaak =
         zakenApiService.getZaak(
             id = id,

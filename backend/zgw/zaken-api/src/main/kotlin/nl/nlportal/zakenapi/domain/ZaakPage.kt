@@ -16,7 +16,7 @@
 package nl.nlportal.zakenapi.domain
 
 import nl.nlportal.graphql.Page
-import nl.nlportal.zakenapi.domain.ResultPage
+import nl.nlportal.core.koppeling.ResultPage
 import nl.nlportal.zakenapi.domain.Zaak
 
 class ZaakPage(

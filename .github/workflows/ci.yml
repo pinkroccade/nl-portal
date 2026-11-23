@@ -36,6 +36,8 @@ jobs:
                             - 'frontend/**'
                         scripts:
                             - 'scripts/**'
+                            # De scripttests lezen de demo-tenantbestanden onder docker-compose/.
+                            - 'docker-compose/**'
                         mise:
                             - 'mise.toml'
                         workflows:
@@ -103,7 +105,7 @@ jobs:
                 with:
                     node-version: "24"
             -   name: Set up mise
-                uses: jdx/mise-action@b44d12e7d0d8ee7461bb893e1b1993500433185b # v5.2.7
+                uses: jdx/mise-action@924e7c586e33d7d4bae9c14e26c5d22e2beb6e78 # v5.3.0
                 with:
                     install: false
             -   name: Run scripts tests
@@ -120,7 +122,7 @@ jobs:
                 with:
                     node-version: "24"
             -   name: Set up mise
-                uses: jdx/mise-action@b44d12e7d0d8ee7461bb893e1b1993500433185b # v5.2.7
+                uses: jdx/mise-action@924e7c586e33d7d4bae9c14e26c5d22e2beb6e78 # v5.3.0
                 with:
                     install: false
             -   name: Check that the Java version is consistent
@@ -137,11 +139,32 @@ jobs:
                 with:
                     node-version: "24"
             -   name: Set up mise
-                uses: jdx/mise-action@b44d12e7d0d8ee7461bb893e1b1993500433185b # v5.2.7
+                uses: jdx/mise-action@924e7c586e33d7d4bae9c14e26c5d22e2beb6e78 # v5.3.0
                 with:
                     install: false
             -   name: Check that inline mise tasks with bash syntax set a shell
                 run: mise run mise:check-shell
+
+    copyright-headers:
+        needs: changes
+        if: ${{ github.event_name == 'pull_request' && (needs.changes.outputs.backend == 'true' || needs.changes.outputs.frontend == 'true' || needs.changes.outputs.scripts == 'true') }}
+        runs-on: ubuntu-latest
+        steps:
+            -   uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+                with:
+                    fetch-depth: 0
+            -   name: Set up Node.js
+                uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6.5.0
+                with:
+                    node-version: "24"
+            -   name: Set up mise
+                uses: jdx/mise-action@924e7c586e33d7d4bae9c14e26c5d22e2beb6e78 # v5.3.0
+                with:
+                    install: false
+            -   name: Check the copyright headers of new and changed files (ADR 0015)
+                env:
+                    COPYRIGHT_BASE_REF: origin/${{ github.base_ref }}
+                run: mise run copyright:check
 
     compliance-register-consistent:
         needs: changes
@@ -154,7 +177,7 @@ jobs:
                 with:
                     node-version: "24"
             -   name: Set up mise
-                uses: jdx/mise-action@b44d12e7d0d8ee7461bb893e1b1993500433185b # v5.2.7
+                uses: jdx/mise-action@924e7c586e33d7d4bae9c14e26c5d22e2beb6e78 # v5.3.0
                 with:
                     install: false
             -   name: Check the register of normative sources (N-CG-5LAGEN, N-ASVS-5.0, ...)
@@ -167,7 +190,7 @@ jobs:
         steps:
             -   uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
             -   name: Set up mise
-                uses: jdx/mise-action@b44d12e7d0d8ee7461bb893e1b1993500433185b # v5.2.7
+                uses: jdx/mise-action@924e7c586e33d7d4bae9c14e26c5d22e2beb6e78 # v5.3.0
             -   name: Regenerate capability docs and fail on diff
                 run: mise run docs:capabilities-check
             -   name: Validate LikeC4 model incl. generated capabilities
@@ -180,7 +203,7 @@ jobs:
         steps:
             -   uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
             -   name: Set up mise
-                uses: jdx/mise-action@b44d12e7d0d8ee7461bb893e1b1993500433185b # v5.2.7
+                uses: jdx/mise-action@924e7c586e33d7d4bae9c14e26c5d22e2beb6e78 # v5.3.0
             -   name: Build docs site (navigation tests, dead-link and anchor check)
                 run: mise run docs:build
 
@@ -191,14 +214,14 @@ jobs:
         steps:
             -   uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
             -   name: Set up mise (alleen actionlint en shellcheck)
-                uses: jdx/mise-action@b44d12e7d0d8ee7461bb893e1b1993500433185b # v5.2.7
+                uses: jdx/mise-action@924e7c586e33d7d4bae9c14e26c5d22e2beb6e78 # v5.3.0
                 with:
                     install_args: actionlint shellcheck
             -   name: Lint de workflows
                 run: mise run workflows:lint
 
     ci-required:
-        needs: [changes, validate, test-scripts, java-version-consistent, mise-shell-consistent, capabilities-docs-fresh, compliance-register-consistent, docs-site, workflows-lint]
+        needs: [changes, validate, test-scripts, java-version-consistent, mise-shell-consistent, copyright-headers, capabilities-docs-fresh, compliance-register-consistent, docs-site, workflows-lint]
         if: always()
         runs-on: ubuntu-latest
         steps:
@@ -208,6 +231,7 @@ jobs:
                     SCRIPTS_RESULT: ${{ needs.test-scripts.result }}
                     JAVA_VERSION_RESULT: ${{ needs.java-version-consistent.result }}
                     MISE_SHELL_RESULT: ${{ needs.mise-shell-consistent.result }}
+                    COPYRIGHT_RESULT: ${{ needs.copyright-headers.result }}
                     CAPABILITIES_RESULT: ${{ needs.capabilities-docs-fresh.result }}
                     COMPLIANCE_RESULT: ${{ needs.compliance-register-consistent.result }}
                     DOCS_SITE_RESULT: ${{ needs.docs-site.result }}
@@ -217,6 +241,7 @@ jobs:
                     echo "::notice::test-scripts result = ${SCRIPTS_RESULT}"
                     echo "::notice::java-version-consistent result = ${JAVA_VERSION_RESULT}"
                     echo "::notice::mise-shell-consistent result = ${MISE_SHELL_RESULT}"
+                    echo "::notice::copyright-headers result = ${COPYRIGHT_RESULT}"
                     echo "::notice::capabilities-docs-fresh result = ${CAPABILITIES_RESULT}"
                     echo "::notice::compliance-register-consistent result = ${COMPLIANCE_RESULT}"
                     echo "::notice::docs-site result = ${DOCS_SITE_RESULT}"
@@ -231,6 +256,9 @@ jobs:
                       exit 1
                     fi
                     if [ "${MISE_SHELL_RESULT}" = "failure" ] || [ "${MISE_SHELL_RESULT}" = "cancelled" ]; then
+                      exit 1
+                    fi
+                    if [ "${COPYRIGHT_RESULT}" = "failure" ] || [ "${COPYRIGHT_RESULT}" = "cancelled" ]; then
                       exit 1
                     fi
                     if [ "${CAPABILITIES_RESULT}" = "failure" ] || [ "${CAPABILITIES_RESULT}" = "cancelled" ]; then

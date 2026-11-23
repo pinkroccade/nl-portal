@@ -50,6 +50,181 @@ nooit in een flag-systeem. Daarom bevat een flag alleen aan of uit. Ook flagwijz
 rolling restart van de eigen cel; er is geen uitzondering op "elke wijziging is een rolling restart". Het
 flagbestand wordt wel periodiek herladen, maar het ontwerp rekent daar niet op.
 
+## Wat al werkt: het tenantbestand voor tenantresolutie
+
+Sinds epic #499 (stap 2) leest de runtime een map met tenantbestanden: `base.yaml` (de gedeelde basis van de
+omgeving, optioneel) en per tenant `<oin>.yaml`, dat de basis overschrijft. De map staat in
+`NL_PORTAL_TENANTS_DIRECTORY` en is verplicht; `docker-compose/imports/tenants` bevat de demo-tenant *De Bosrand*.
+
+De clientsleutel van de login (`authenticatie.sleutelBestand`) staat onder de vaste sleutelmap `nl-portal.sleutelmap` (`NL_PORTAL_SLEUTELMAP`, verplicht), in een map met de OIN van de tenant als naam; het pad in het tenantbestand is relatief aan de sleutelmap. De runtime start niet als het bestand ontbreekt, geen bruikbare sleutel is (privé RSA, minstens 3072 bit, `alg: PS256`, met `kid`), na het oplossen van symlinks buiten `<sleutelmap>/<oin>/` ligt, of als twee tenants dezelfde `kid` of sleutel delen. De validator-CLI toetst het pad altijd en met `--sleutelmap=<map>` ook het bestand zelf.
+
+```yaml
+oin: "00000099000000000001"   # altijd tussen aanhalingstekens
+naam: Gemeente De Bosrand
+omgevingstype: ontwikkeling   # productie | acceptatie | test | ontwikkeling (mag in base.yaml)
+domeinen: [localhost]
+thema:
+    titel: Mijn De Bosrand
+inlogmiddelen: [test]         # digid | eherkenning | wallet | test (test niet in productie)
+minimumNiveau: substantieel   # basis | midden | substantieel | hoog (standaard substantieel)
+sessie:
+    inactiviteit: PT15M       # hoogstens 15 minuten
+    absoluut: PT8H            # hoogstens 8 uur
+```
+
+De tenant volgt uit de host van het request (kleine letters, zonder poort en trailing dot, exact tegen
+`domeinen`). `Forwarded` en `X-Forwarded-Host` tellen alleen van de adressen in `NL_PORTAL_TRUSTED_PROXIES` (de
+ingress); van elk ander adres telt alleen de `Host`-header. Een onbekende host krijgt een kale 404.
+
+Het adres van de nginx-sidecar van de frontend (`127.0.0.1`/`::1`) hoort **nooit** in `NL_PORTAL_TRUSTED_PROXIES`: de sidecar
+stuurt de `Host`-header van de browser door en overschrijft `X-Forwarded-Host` met diezelfde waarde en `Forwarded` met een lege
+waarde, maar vertrouwt de ingress ervoor niet. Zet alleen het adres of blok van de ingress zelf in de lijst. De sidecar meldt
+`Strict-Transport-Security` alleen als de ingress `X-Forwarded-Proto: https` meegeeft. De CSP heeft bewust geen `form-action`:
+Chromium toetst die ook op de redirect na de uitlog-POST naar Keycloak, en de broker-URL is in de sidecar niet bekend.
+
+Koppelingen en modulegegevens staan in hetzelfde bestand. Geheimen staan er nooit zelf in, alleen als naam van een geheim in de secret store:
+
+```yaml
+koppelingen:
+    zaken:                    # de modulenaam, of een eigen naam voor een tweede koppeling van dezelfde module
+        url: https://zaken.example.nl
+        leverancier: Open Zaak
+        auth:
+            type: zgw-jwt     # api-key | bearer | zgw-jwt | oauth2-client-credentials | oauth2-private-key-jwt | gcs-v1-hmac | geen
+            clientId: bosrand # per tenant, nooit uit base.yaml
+            secret: 00000099000000000001.zaken-secret   # naam van het geheim, altijd met de eigen OIN vooraan; de waarde staat in de secret store
+modules:
+    brp:                      # de configuratie die de module bijdraagt (TenantModuleConfiguratie)
+        velden: [naam, geboortedatum]
+```
+
+De KvK-module (`kvk`) heeft geen eigen moduleconfiguratie: de bron staat onder `koppelingen.kvk` (`url` en een `api-key` met `headerNaam: X-API-KEY` en het geheim `<oin>.kvk-sleutel`; een bron achter de cloud gateway zonder sleutel gebruikt `auth.type: geen`). Een tenant zonder `koppelingen.kvk` krijgt op elke KvK-aanroep een fout (`MODULE_NIET_GECONFIGUREERD`), nooit een leeg antwoord; alleen een fout van de bron geeft `null`. De module-schakelaar `nl-portal.config.kvk.enabled` blijft bestaan; staat hij aan en heeft geen enkele tenant `koppelingen.kvk`, dan weigert het opstarten met een melding (er is geen `modules.kvk` waaruit de koppeling kan volgen); de oude properties `...kvk.properties.*` (`url`, `apiKey`, `ssl`) zijn vervallen en weigeren het opstarten zolang ze nog gezet zijn (ook als omgevingsvariabele); de melding verwijst naar `koppelingen.kvk`. Een KvK- of vestigingsnummer dat niet 8 respectievelijk 12 cijfers is gaat niet naar de bron en geeft `null`; uitgaande clientcertificaten (`ssl`) vervallen omdat de cloud gateway ze beheert.
+
+De BRP-module (`haalcentraal-brp`) is zo gemigreerd: de bron staat onder `koppelingen.brp` (personen) en, voor het aantal bewoners, `koppelingen.brp-bewoning`
+(optioneel), met `auth.type: geen`: de bron zit achter de cloud gateway, die per gemeente zelf authenticeert, dus er is geen sleutel en geen geheim. Een leverancier die wel een sleutel vraagt, gebruikt `api-key`. `modules.brp` bevat de doelbinding van de gemeente: `velden` (de velden die bij de BRP
+worden opgevraagd; standaard 24 velden), `toegestaneWoonplaatsenBewoning` (leeg betekent alle woonplaatsen) en `aanvullendeHeaders` (vaste headers zoals `x-doelbinding`,
+geen geheimen; ze zijn niet erfbaar uit `base.yaml`, en een headernaam die op een geheim lijkt, of gelijk is aan de auth-header van de koppeling, weigert het opstarten). `modules.brp` zonder `koppelingen.brp` weigert het opstarten. De module-schakelaar `nl-portal.config.haalcentraal-brp.enabled` blijft bestaan;
+de oude properties `...haalcentraal-brp.properties.*` (URL's, `apiKey`, `ssl`, `brpFields`, `allowedCitiesForBewoning`) zijn vervallen en weigeren het opstarten zolang ze nog gezet zijn (ook als omgevingsvariabele). Een bearer-token van de
+inwoner gaat niet meer naar de BRP; uitgaande clientcertificaten (`ssl`) vervallen omdat de cloud gateway de PKIoverheid-certificaten per gemeente beheert.
+
+De runtime weigert te starten bij een koppeling zonder verplichte velden voor haar `auth.type` (de melding noemt de OIN), een geheim dat geen naam
+is (de waarde zelf wordt nooit getoond), een geheim dat niet in de secret store staat, en een `modules.<naam>` zonder bijbehorende module. Credentials en
+geheimverwijzingen mogen niet in `base.yaml` staan. Geheimen lost de runtime op uit de omgeving: de naam `00000099000000000001.zaken-secret` is de omgevingsvariabele
+`NL_PORTAL_GEHEIMEN_00000099000000000001_ZAKEN_SECRET` (of de property `nl-portal.geheimen.00000099000000000001.zaken-secret`).
+Elke geheimverwijzing begint met de OIN van het eigen bestand (gevolgd door `.`, `-` of `_`), en een `privateKeyBestand` staat in een map met de eigen
+OIN (`/run/secrets/<oin>/client.pem`, zonder `..` en zonder andere OIN-map): een verwijzing naar de naamruimte van een andere tenant weigert het opstarten
+(`GEHEIM_VAN_ANDERE_TENANT`), ook in de validator-CLI. Zo kan een gekopieerd tenantbestand nooit stil de geheimen van een andere gemeente gebruiken. De
+meldingen noemen het veld en de OIN, nooit de naam of waarde van een geheim. Voor `modules.<naam>` geldt hetzelfde, en elk geheim daarin moet bij het opstarten
+in de secret store staan. `url` en `tokenUrl` zijn in een productieomgeving alleen `https`. Let op: de controle "is dit een naam" is een heuristiek (een
+geheim van alleen kleine letters en cijfers past in het patroon); de OIN-prefix en de Git-review zijn de echte bewaking. De validator-CLI kent de modules die op het
+klassenpad staan: `java -cp nl-portal-tenant-validator.jar:<module-jars> nl.nlportal.core.tenancy.TenantValidatorCli <map>`.
+
+### Objecten API (`objectenapi`)
+
+De Objecten API (Open Object) is gemigreerd naar een tenantkoppeling `koppelingen.objectenapi`; er is geen `modules.objectenapi`, want er zijn geen per-gemeente-instellingen. Taken, berichten, producten en betalingen lezen en schrijven objecten via de koppeling van de eigen tenant. De module-schakelaar `nl-portal.config.objectenapi.enabled` blijft bestaan; staat die aan en heeft geen enkele tenant de koppeling, dan weigert het opstarten.
+De Objecten API kent alleen `Authorization: Token <token>`, dus de koppeling gebruikt `api-key` met `headerNaam: Authorization`; de waarde van het geheim is `Token <token>`. Een URL die de bron teruggeeft (`getObjectByUrl`) wordt alleen gevolgd als hij onder de basis-URL van dezelfde koppeling valt (HostBinding), zodat het token nooit naar een andere host gaat.
+De oude properties `nl-portal.config.objectenapi.properties.*` (`url`, `token`) zijn vervallen en weigeren het opstarten zolang ze gezet zijn, ook als omgevingsvariabele (`NLPORTAL_CONFIG_OBJECTENAPI_PROPERTIES_URL` en `_TOKEN`).
+
+**Isolatie tussen tenants.** Dat het token alleen naar de eigen koppeling gaat, scheidt de objecten van twee tenants niet als ze dezelfde Objecten API gebruiken. Geef daarom elke tenant een eigen Objecten API-instantie, of een token dat alleen de objecttypen van die tenant ziet (Open Object-autorisatie per objecttype). Wijzen twee tenants naar dezelfde instantie met een token dat elkaars objecttypen mag lezen of schrijven, dan zijn taken en berichten van de ene tenant via de andere op te halen op UUID en kan de betaalwebhook van de ene tenant een taak van de andere afronden. Leg dit vast als livegangpunt (T26, naast #537).
+
+**Bufferlimiet.** Elke koppeling leest een antwoord tot 16 MB in het geheugen (zoals de oude clients); een groter antwoord is een fout. `spring.codec.max-in-memory-size` geldt niet voor koppelingen.
+
+```yaml
+koppelingen:
+    objectenapi:
+        url: https://objecten.bosrand.example
+        auth:
+            type: api-key
+            headerNaam: Authorization
+            waarde: 00000099000000000001.objectenapi-token   # geheim met de waarde "Token <token>"
+```
+
+### Taken (`taak`)
+
+De taakmodule is gemigreerd naar `modules.taak` (T18 #517). Per gemeente staat daar alleen het objecttype waarin de taken staan; de taken lopen via de koppeling `objectenapi` van dezelfde tenant. Zonder die koppeling weigert het laden van het tenantbestand `modules.taak`. Staat de module aan (`nl-portal.config.taak.enabled`) en heeft geen enkele tenant `modules.taak`, dan weigert het opstarten ook.
+
+```yaml
+modules:
+    taak:
+        objectTypeUrl: https://objecten.bosrand.example/api/v2/objecttypes/b4a617af-6969-45e8-9afd-d51e170716d5
+```
+
+De oude properties `nl-portal.config.taak.properties.*` (`object-type-url`) zijn vervallen en weigeren het opstarten zolang ze gezet zijn, ook als omgevingsvariabele (`NLPORTAL_CONFIG_TAAK_PROPERTIES_OBJECTTYPEURL`, en de oudere voorbeeldsleutels `..._TYPEURL` en `..._TYPEURLV2`). `nl-portal.config.taak.enabled` blijft.
+
+Detail, afronden en het uploaden van een document bij een taak lezen `modules.taak` per aanroep: heeft de tenant die niet, dan falen ze gesloten (`MODULE_NIET_GECONFIGUREERD`, geen verzoek naar de bron). Ze toetsen ook het objecttype: een object met een ander type dan `modules.taak.objectTypeUrl` van de eigen tenant geeft hetzelfde antwoord als een onbekende UUID (404), vóór de eigenaarcontrole, en wordt niet afgerond of beschreven. Zo leest en schrijft een inwoner niet via tenant A een taak van tenant B als beide dezelfde Objecten API gebruiken.
+
+### Berichten (`berichten`)
+
+Berichten leest en schrijft in de Objecten API van de eigen tenant (de koppeling `koppelingen.objectenapi`) en haalt bijlagen via `modules.documenten-api`. De enige instelling per gemeente is de URL van het objecttype Bericht: `modules.berichten.berichtObjectTypeUrl`. Een tenant met `modules.berichten` maar zonder `koppelingen.objectenapi` weigert het opstarten (met de OIN in de melding); een tenant zonder `modules.berichten` krijgt bij elke berichtenaanvraag de foutcode `MODULE_NIET_GECONFIGUREERD` (GraphQL en REST, met `correlatieId`), ook bij het openen van één bericht en het downloaden van een bijlage. Een object met een ander objecttype dan `berichtObjectTypeUrl` van de eigen tenant geldt als niet gevonden en wordt nooit herschreven.
+De oude property `nl-portal.config.berichten.properties.bericht-object-type-url` is vervallen en weigert het opstarten zolang hij gezet is, ook als omgevingsvariabele (`NLPORTAL_CONFIG_BERICHTEN_PROPERTIES_BERICHTOBJECTTYPEURL`).
+
+```yaml
+modules:
+    berichten:
+        berichtObjectTypeUrl: https://objecten.bosrand.example/api/v2/objecttypes/<uuid>
+```
+
+### Betalen via Worldline Direct (`payment-direct`)
+
+Een tenant die betaalt via Worldline Direct heeft een koppeling `payment-direct` en een sectie `modules.payment-direct`. De koppeling ondertekent elk
+uitgaand verzoek zelf (`type: gcs-v1-hmac`, `clientId` is het API-sleutel-ID, `secret` verwijst naar het API-geheim); de module bewaart geen sleutel.
+Een profiel dat een eigen API-sleutel heeft, noemt een eigen koppeling in `koppeling` (standaard `payment-direct`).
+
+```yaml
+koppelingen:
+    payment-direct:
+        url: https://payment.preprod.direct.worldline-solutions.com
+        auth:
+            type: gcs-v1-hmac
+            clientId: <API-sleutel-ID>
+            secret: 00000099000000000001.payment-direct-api-geheim
+modules:
+    payment-direct:
+        webhookUrl: https://bosrand.example/api/public/payment/direct/postsale   # optioneel
+        customTemplateUrl: <hosted checkout-variant>                             # optioneel
+        toonResultaatPagina: false
+        profielen:
+            belastingzaken:       # naam van het profiel, ook te vinden op pspId
+                pspId: TAX
+                taal: nl_NL
+                valuta: EUR
+                returnUrl: https://bosrand.example/terug
+                koppeling: payment-direct          # optioneel
+                webhookSleutelId: <sleutel-ID van de webhook>    # samen met webhookGeheim
+                webhookGeheim: 00000099000000000001.payment-direct-webhook-geheim
+                creditcardAan: false
+                aantalPogingen: 1
+```
+
+De postsale-webhook (`POST /api/public/payment/direct/postsale`) is publiek en anoniem; de handtekening (`X-GCS-Signature`, `X-GCS-KeyId`) is de enige
+controle. De tenant volgt uit het hostdomein waarop de webhook binnenkomt en moet gelijk zijn aan de tenant van de `keyId`: alleen de `webhookSleutelId`'s uit het
+eigen tenantbestand gelden, een sleutel van een andere tenant is onbekend en geeft `Request is not valid`. De webhook is een benoemde uitzondering op de CSRF- en
+Origin-regel van de BFF. Een `webhookSleutelId` staat bij een tenant bij hoogstens een profiel en bij hoogstens een tenant: staat hij bij twee tenants (een gekopieerd
+sleutelpaar), dan weigert de applicatie het opstarten, met de OIN's maar zonder sleutel of geheim in de melding (ADR 0021 besluit 5).
+
+De handtekening van uitgaande verzoeken (`gcs-v1-hmac`) volgt de Worldline-SDK: methode, content-type, datum (`Tue, 03 Nov 2026 10:00:00 GMT`), de
+`X-GCS-*`-headers van het verzoek, en het pad met de gedecodeerde query. Een `Date` die een module zelf meegeeft, wordt vervangen.
+
+Eisen aan de omgeving (ook als acceptatiecriterium voor de ingress in #191):
+
+- **De ingress overschrijft of verwijdert zowel `Forwarded` als `X-Forwarded-Host`** die de client meestuurt.
+  Gangbare ingress-controllers overschrijven alleen `X-Forwarded-Host` en laten een `Forwarded` van de client staan.
+  De runtime geeft 404 als beide headers er zijn en een andere host noemen, en bij een `Forwarded` zonder `host=`,
+  maar dat is een vangnet en geen vervanging.
+- **`server.forward-headers-strategy` staat op `none`** (de app levert dat zo mee). Spring Boot zet de eigen
+  forwarded-verwerking op Kubernetes aan als de waarde ontbreekt; die volgt de headers van elk adres. De runtime
+  start niet met `native`, met `framework`, met een `ForwardedHeaderTransformer`, of op Kubernetes zonder expliciete
+  waarde (`ForwardedHeadersGuard`). `NL_PORTAL_TRUSTED_PROXIES` weigert een blok dat alle adressen vertrouwt (`/0`).
+- **Domeinen staan als ASCII**: een internationale domeinnaam staat als A-label (`xn--...`) in het tenantbestand;
+  een host met Unicode-tekens matcht nooit en krijgt 404.
+- **De managementpoort is alleen intern bereikbaar** (Service en NetworkPolicy, #191); hij luistert op alle interfaces.
+- Er is geen `base.yaml` én `base.yml` tegelijk: dat weigert het opstarten.
+
+Het JSON-schema staat in `backend/schema/tenant.schema.json` en wordt uit de Kotlin-typen gegenereerd
+(`mise run backend:tenant-schema`). De validator draait bij opstarten en als CLI voor CI:
+`mise run backend:tenant-validator` bouwt `backend/core/build/libs/nl-portal-tenant-validator.jar`, en
+`java -jar nl-portal-tenant-validator.jar <map>` geeft exitcode 0 bij een geldige map.
+
 ## Controles
 
 - **In CI:** elk tenantbestand wordt tegen een schema gevalideerd (onder andere gequote OIN's), domeinen en

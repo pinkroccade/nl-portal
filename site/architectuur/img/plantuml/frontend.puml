@@ -12,18 +12,18 @@ note as frontend_rules
   package-boundaries: een package importeert een ander alleen via zijn publieke API, nooit via een intern pad (actief)
   import/no-cycle: geen cyclische imports tussen packages (voorgesteld, niet actief)
 end note
-api ..> authentication #orange : gat (1)
+api ..> authentication #orange : gat (2)
 app ..> api #orange : gat (1)
-app ..> authentication #orange : gat (2)
+app ..> authentication #orange : gat (1)
 app ..> localization #orange : gat (5)
 app ..> user_interface #orange : gat (7)
 app_dev ..> api #orange : gat (3)
-app_dev ..> authentication #orange : gat (2)
+app_dev ..> authentication #orange : gat (1)
 app_dev ..> localization #orange : gat (7)
 app_dev ..> user_interface #orange : gat (11)
 user_interface ..> api #orange : gat (55)
-user_interface ..> authentication #orange : gat (5)
-user_interface ..> localization #orange : gat (18)
+user_interface ..> authentication #orange : gat (6)
+user_interface ..> localization #orange : gat (19)
 legend right
   oranje gestippeld: de richting van deze import wordt door geen regel bewaakt; het getal is het aantal imports
   rood gestippeld: onderdeel van een cyclus, ook niet bewaakt

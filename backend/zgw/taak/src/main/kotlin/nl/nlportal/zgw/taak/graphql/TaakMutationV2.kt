@@ -16,7 +16,7 @@
 package nl.nlportal.zgw.taak.graphql
 
 import java.util.UUID
-import nl.nlportal.commonground.authentication.CommonGroundAuthentication
+import nl.nlportal.portal.authentication.domain.PortalAuthentication
 import nl.nlportal.zgw.taak.domain.TaakV2
 import nl.nlportal.zgw.taak.service.TaakService
 import org.springframework.graphql.data.method.annotation.Argument
@@ -29,7 +29,7 @@ class TaakMutationV2(
 ) {
     @MutationMapping
     suspend fun submitTaakV2(
-        authentication: CommonGroundAuthentication,
+        authentication: PortalAuthentication,
         @Argument id: UUID,
         @Argument submission: Any,
     ): TaakV2 =

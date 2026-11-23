@@ -28,6 +28,7 @@ dependencies {
     implementation("org.springframework.data:spring-data-commons")
 
     testImplementation(project(":zgw:common-ground-authentication-test"))
+    testImplementation(testFixtures(project(":core")))
     testImplementation(TestDependencies.springBootTest)
     testImplementation(TestDependencies.springBootTestWebClient)
     testImplementation(TestDependencies.springGraphQLTest)

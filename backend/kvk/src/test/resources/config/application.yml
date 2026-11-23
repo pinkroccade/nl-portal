@@ -6,9 +6,6 @@ nl-portal:
     config:
         kvk:
             enabled: true
-            properties:
-                url: #filled in test
-                apiKey: "some-api-key"
 
 spring:
     security:

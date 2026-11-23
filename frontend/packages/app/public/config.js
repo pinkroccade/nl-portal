@@ -13,12 +13,9 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-window.OIDC_URL = "http://localhost:8082/auth";
-window.OIDC_REALM = "nlportal";
-window.OIDC_CLIENT_ID = "nl-portal";
-window.OIDC_REDIRECT_URI = "http://localhost:3000/keycloak/callback";
-window.OIDC_POST_LOGOUT_REDIRECT_URI = "http://localhost:3000";
-window.OIDC_AUTO_IDLE_SESSION_LOGOUT = "true";
-window.OIDC_IDLE_TIMEOUT_MINUTES = "15";
-window.GRAPHQL_URI = "http://localhost:8080/graphql";
-window.REST_URI = "http://localhost:8080/api";
+window.AUTO_IDLE_SESSION_LOGOUT = "true";
+// De sessie-inactiviteitstijd volgt uit de tenant (sessie-endpoint); leeg laat de backend bepalen.
+window.IDLE_TIMEOUT_MINUTES = "";
+// Same-origin: de backend staat achter hetzelfde domein als de frontend (BFF, ADR 0022).
+window.GRAPHQL_URI = "/graphql";
+window.REST_URI = "/api";

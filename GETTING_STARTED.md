@@ -13,14 +13,22 @@ lokale omgeving met willekeurige secrets, vanaf de repo-root:
 mise run dev:setup
 ```
 
-Dit rendert de templates onder `docker-compose/templates/` (de Keycloak-realms en de seed-gegevens van Open Zaak,
-Objects, Open Notificaties, Open Klant en Open Product) naar het gitignored `docker-compose/.generated/`. Alle
-secrets komen in `docker-compose/.env`: het Keycloak-client-secret, de JWT-secrets en API-tokens tussen de
+Dit rendert de templates onder `docker-compose/templates/` (de seed-gegevens van Open Zaak, Objects, Open Notificaties,
+Open Klant en Open Product) naar het gitignored `docker-compose/.generated/` en genereert per tenant het Keycloak-realm
+(uit `keycloak/realm-template/` en `docker-compose/imports/tenants`, geladen door keycloak-config-cli) met een sleutelpaar
+voor `private_key_jwt` (de private sleutel komt in `docker-compose/.generated/tenants/<oin>/clientsleutel.jwk.json`, alleen leesbaar voor
+jou; `dev:setup` zet je uid en gid als `LOCAL_UID`/`LOCAL_GID` in `docker-compose/.env`, zodat de backend-container hem als dezelfde
+gebruiker leest). Bouw eerst het eigen Keycloak-image: `mise run keycloak:image`. Alle
+secrets komen in `docker-compose/.env`: het Redis-wachtwoord voor de sessies, de JWT-secrets en API-tokens tussen de
 componenten, de databasewachtwoorden, de Django-`SECRET_KEY`'s, de beheerderswachtwoorden en het RabbitMQ-wachtwoord.
 Ook `backend/app/.env.properties` en `backend/app-dev/.env.properties` worden gegenereerd. Zonder deze stap weigert
 `docker compose` te starten. Draaide de stack al, start hem dan opnieuw met lege databases:
-`docker compose down -v && docker compose up -d`. De testgebruikers (`burger`, `bedrijf`) staan met een
-wachtwoordhash in de realm-template.
+`docker compose down -v && docker compose up -d`. De testgebruiker `burger` staat, alleen in het ontwikkelrealm, met een
+wachtwoordhash in het realm-template (`keycloak/realm-template/demo-gebruikers.json`).
+
+Inloggen werkt via de backend (BFF): de browser krijgt alleen een sessiecookie. Open de demo-tenant op
+`http://debosrand.localhost:3000` (of `http://localhost:3000`; beide domeinen horen bij de demo-tenant in
+`docker-compose/imports/tenants/`) en log in als `burger`. De host bepaalt de tenant, dus open het portaal altijd via een domein uit het tenantbestand.
 
 ## 1. Remote — evaluate the released product
 
@@ -70,7 +78,7 @@ inner loop: the backend dev app enables every module with GraphQL introspection 
 full schema and is the recommended target for `pnpm --filter @nl-portal/nl-portal-api codegen`.
 
 ```shell
-# backend dev app: configured from its own application.yml (only the Keycloak secret comes from dev:setup)
+# backend dev app: configured from its own application.yml (only the Redis password comes from dev:setup; Redis runs in the compose stack)
 cd backend && ./gradlew :app-dev:bootRun
 
 # frontend dev app on :3000: libraries in watch plus the dev app's vite dev server
@@ -95,7 +103,7 @@ cd backend && ./gradlew :app:bootRun
 cd frontend && pnpm app:dev
 ```
 
-Backend GraphQL is at http://localhost:8080/graphql, frontend at http://localhost:3000. For the
+Backend GraphQL is at http://localhost:8080/graphql, frontend at http://localhost:3000 (its dev server proxies `/graphql`, `/api`, `/oauth2`, `/login` and `/logout` to the backend and keeps the `Host` header, so log in at `http://debosrand.localhost:3000`). For the
 full workflow, `bootRun` configuration (`.env.properties`), GraphQL codegen and the Windows
 `RUN_MODE` caveats see:
 

@@ -13,9 +13,16 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-export { default as OidcContext } from "./context/OidcContext";
-export * from "./context/OidcContext";
-export { default as OidcCallbackPage } from "./pages/OidcCallbackPage";
+export {
+  default as SessionContext,
+  SessionProvider,
+  useSession,
+} from "./session/SessionContext";
+export type {
+  SessionContextInterface,
+  SessionProviderProps,
+} from "./session/SessionContext";
+export * from "./session/sessie";
 export { default as ProtectedApp } from "./components/ProtectedApp";
 export { default as useLogout } from "./hooks/useLogout";
 export * from "./utils/format-url-trailing-slash";

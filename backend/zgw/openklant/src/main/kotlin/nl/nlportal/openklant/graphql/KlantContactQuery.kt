@@ -16,7 +16,7 @@
 package nl.nlportal.openklant.graphql
 
 import java.util.UUID
-import nl.nlportal.commonground.authentication.CommonGroundAuthentication
+import nl.nlportal.portal.authentication.domain.PortalAuthentication
 import nl.nlportal.openklant.client.domain.OpenKlant2Klantcontact
 import nl.nlportal.openklant.graphql.domain.OnderwerpObjectIndentificatorType
 import nl.nlportal.openklant.service.OpenKlant2Service
@@ -30,7 +30,7 @@ class KlantContactQuery(
 ) {
     @QueryMapping
     suspend fun getUserKlantContacten(
-        authentication: CommonGroundAuthentication,
+        authentication: PortalAuthentication,
         @Argument identificatorType: OnderwerpObjectIndentificatorType? = null,
         @Argument identificatorId: UUID? = null,
     ): List<OpenKlant2Klantcontact> =

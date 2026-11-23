@@ -1,0 +1,13 @@
+{{- $f := .Values.frontend -}}
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "nl-portal.componentName" (dict "ctx" . "component" "frontend") }}
+  labels:
+    {{- include "nl-portal.labels" (dict "ctx" . "component" "frontend") | nindent 4 }}
+data:
+  AUTO_IDLE_SESSION_LOGOUT: {{ $f.autoIdleSessionLogout | toString | quote }}
+  GRAPHQL_URI: {{ $f.graphqlUri | quote }}
+  IDLE_TIMEOUT_MINUTES: {{ $f.idleTimeoutMinutes | toString | quote }}
+  NL_PORTAL_BACKEND_UPSTREAM: {{ printf "%s:%v" (include "nl-portal.componentName" (dict "ctx" . "component" "backend")) .Values.backend.service.port | quote }}
+  REST_URI: {{ $f.restUri | quote }}

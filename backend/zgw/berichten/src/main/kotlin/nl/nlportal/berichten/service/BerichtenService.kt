@@ -17,10 +17,11 @@ package nl.nlportal.berichten.service
 
 import io.github.oshai.kotlinlogging.KotlinLogging
 import kotlinx.coroutines.flow.Flow
-import nl.nlportal.berichten.autoconfigure.BerichtenConfiguration.BerichtenConfigurationProperties
+import nl.nlportal.berichten.configuratie.BerichtenConfiguratie
+import nl.nlportal.core.tenancy.TenantDirectory
 import nl.nlportal.berichten.domain.Bericht
 import nl.nlportal.berichten.graphql.BerichtenPage
-import nl.nlportal.commonground.authentication.CommonGroundAuthentication
+import nl.nlportal.portal.authentication.domain.PortalAuthentication
 import nl.nlportal.core.util.ZgwUrls.extractId
 import nl.nlportal.zgw.objectenapi.domain.Comparator
 import nl.nlportal.zgw.objectenapi.domain.Comparator.EQUAL_TO
@@ -42,14 +43,14 @@ import nl.nlportal.documentenapi.service.DocumentenApiService
 class BerichtenService(
     private val objectenApiService: ObjectenApiService,
     private val documentenApiService: DocumentenApiService,
-    private val berichtenConfigurationProperties: BerichtenConfigurationProperties,
+    private val directory: TenantDirectory,
 ) {
-    suspend fun getUnopenedBerichtenCount(authentication: CommonGroundAuthentication): Int {
+    suspend fun getUnopenedBerichtenCount(authentication: PortalAuthentication): Int {
         val searchParameters =
             listOf(
                 ObjectSearchParameter("geopend", STRING_CONTAINS, "false"),
-                ObjectSearchParameter("identificatie__type", EQUAL_TO, authentication.userType),
-                ObjectSearchParameter("identificatie__value", EQUAL_TO, authentication.userId),
+                ObjectSearchParameter("identificatie__type", EQUAL_TO, authentication.identiteit.vertegenwoordigde.soort.code),
+                ObjectSearchParameter("identificatie__value", EQUAL_TO, authentication.identiteit.vertegenwoordigde.identificatie),
                 ObjectSearchParameter("publicatiedatum", LOWER_THAN_OR_EQUAL_TO, LocalDate.now().toString()),
             )
         val results = getBerichten(1, 1, searchParameters)
@@ -58,14 +59,14 @@ class BerichtenService(
     }
 
     suspend fun getBericht(
-        authentication: CommonGroundAuthentication,
+        authentication: PortalAuthentication,
         id: UUID,
     ): Bericht? {
-        val objectsApiBericht = objectenApiService.getObjectById<Bericht>(id.toString()) ?: return null
+        val objectsApiBericht = eigenBericht(id) ?: return null
 
         val bericht = objectsApiBericht.record.data.copy(id = id)
 
-        if (bericht.identificatie.value != authentication.userId) {
+        if (bericht.identificatie.value != authentication.identiteit.vertegenwoordigde.identificatie) {
             throw ResponseStatusException(HttpStatus.UNAUTHORIZED, "User is not authorized for this Bericht")
         }
 
@@ -76,31 +77,30 @@ class BerichtenService(
 
         val updateRequest = UpdateObjectsApiObjectRequest.fromObjectsApiObject(objectsApiBericht)
         updateRequest.record.data.geopend = true
-        updateRequest.record.correctedBy = authentication.userId
+        updateRequest.record.correctedBy = authentication.identiteit.vertegenwoordigde.identificatie
         updateRequest.record.correctionFor = objectsApiBericht.record.index.toString()
         val updatedObjectsApiBericht = objectenApiService.updateObject(objectsApiBericht.uuid, updateRequest)
         return updatedObjectsApiBericht?.record?.data?.copy(id = id)
     }
 
     suspend fun getBerichtDocumentContent(
-        authentication: CommonGroundAuthentication,
+        authentication: PortalAuthentication,
         berichtId: UUID,
         documentId: UUID,
     ): Pair<Document, Flow<DataBuffer>>? {
-        val objectsApiBericht =
-            objectenApiService.getObjectById<Bericht>(berichtId.toString()) ?: return null
+        val objectsApiBericht = eigenBericht(berichtId) ?: return null
         val bericht = objectsApiBericht.record.data
 
-        if (bericht.identificatie.value != authentication.userId) {
+        if (bericht.identificatie.value != authentication.identiteit.vertegenwoordigde.identificatie) {
             logger.debug {
-                "Access denied to document $documentId on bericht $berichtId for user ${authentication.userId}"
+                "Access denied to document $documentId on bericht $berichtId for subject ${authentication.identiteit.gebruiker.subject}"
             }
             throw ResponseStatusException(HttpStatus.UNAUTHORIZED, "Access denied")
         }
 
         if (!bericht.geopend) {
             logger.debug {
-                "Access denied to document $documentId on bericht $berichtId for user ${authentication.userId}"
+                "Access denied to document $documentId on bericht $berichtId for subject ${authentication.identiteit.gebruiker.subject}"
             }
             throw ResponseStatusException(HttpStatus.FORBIDDEN, "Access denied")
         }
@@ -109,7 +109,7 @@ class BerichtenService(
             bericht.bijlages.firstOrNull { extractId(it) == documentId }
                 ?: run {
                     logger.debug {
-                        "Access denied to document $documentId on bericht $berichtId for user ${authentication.userId}"
+                        "Access denied to document $documentId on bericht $berichtId for subject ${authentication.identiteit.gebruiker.subject}"
                     }
                     throw ResponseStatusException(HttpStatus.UNAUTHORIZED, "Access denied")
                 }
@@ -117,6 +117,21 @@ class BerichtenService(
         val document = documentenApiService.getDocument(bijlageUrl)
         val content = documentenApiService.getDocumentContentStreaming(bijlageUrl)
         return document to content
+    }
+
+    /**
+     * Haalt het object op en geeft het alleen terug als het van het Berichten-objecttype van de eigen tenant is. Zo faalt het
+     * gesloten zonder `modules.berichten` en leest of herschrijft een inwoner nooit een object van een andere tenant of een ander
+     * objecttype op een gedeelde Objecten API; zo'n object geldt als niet gevonden.
+     */
+    private suspend fun eigenBericht(id: UUID): ObjectsApiObject<Bericht>? {
+        val berichtObjectTypeUrl = directory.module<BerichtenConfiguratie>().berichtObjectTypeUrl
+        val objectsApiBericht = objectenApiService.getObjectById<Bericht>(id.toString())
+        if (objectsApiBericht.type != berichtObjectTypeUrl) {
+            logger.debug { "Object $id is geen bericht van de eigen tenant" }
+            return null
+        }
+        return objectsApiBericht
     }
 
     suspend fun getDocumenten(
@@ -132,7 +147,7 @@ class BerichtenService(
         )
 
     suspend fun getBerichtenPage(
-        authentication: CommonGroundAuthentication,
+        authentication: PortalAuthentication,
         pageNumber: Int,
         pageSize: Int,
         onderwerp: String?,
@@ -141,8 +156,8 @@ class BerichtenService(
         val filterPublicationDate = LocalDate.now().plusDays(1)
         val searchParameters =
             mutableListOf(
-                ObjectSearchParameter("identificatie__type", EQUAL_TO, authentication.userType),
-                ObjectSearchParameter("identificatie__value", EQUAL_TO, authentication.userId),
+                ObjectSearchParameter("identificatie__type", EQUAL_TO, authentication.identiteit.vertegenwoordigde.soort.code),
+                ObjectSearchParameter("identificatie__value", EQUAL_TO, authentication.identiteit.vertegenwoordigde.identificatie),
                 ObjectSearchParameter("publicatiedatum", LOWER_THAN_OR_EQUAL_TO, filterPublicationDate.toString()),
             )
 
@@ -167,7 +182,7 @@ class BerichtenService(
     ) = objectenApiService
         .getObjects<Bericht>(
             objectSearchParameters = searchParameters,
-            objectTypeUrl = berichtenConfigurationProperties.berichtObjectTypeUrl,
+            objectTypeUrl = directory.module<BerichtenConfiguratie>().berichtObjectTypeUrl,
             pageNumber = pageNumber,
             pageSize = pageSize,
         )

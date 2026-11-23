@@ -21,22 +21,24 @@ import nl.nlportal.core.security.config.SecurityHeadersConfig
 import org.springframework.boot.autoconfigure.AutoConfiguration
 import org.springframework.boot.context.properties.EnableConfigurationProperties
 import org.springframework.context.annotation.Bean
-import org.springframework.core.convert.converter.Converter
 import org.springframework.http.HttpMethod
-import org.springframework.security.authentication.AbstractAuthenticationToken
 import org.springframework.security.config.Customizer.withDefaults
 import org.springframework.security.config.annotation.method.configuration.EnableReactiveMethodSecurity
 import org.springframework.security.config.annotation.web.reactive.EnableWebFluxSecurity
 import org.springframework.security.config.web.server.ServerHttpSecurity
-import org.springframework.security.oauth2.jwt.Jwt
 import org.springframework.security.web.server.SecurityWebFilterChain
 import org.springframework.security.web.server.header.ReferrerPolicyServerHttpHeadersWriter
 import org.springframework.security.web.server.header.XFrameOptionsServerHttpHeadersWriter
 import org.springframework.web.cors.reactive.CorsWebFilter
 import org.springframework.web.cors.reactive.UrlBasedCorsConfigurationSource
-import reactor.core.publisher.Mono
 import java.time.Duration
 
+/**
+ * De gemeenschappelijke beveiligingsketen: headers, CORS en de paden die zonder sessie bereikbaar zijn. Het
+ * authenticatiepad is er niet in vastgelegd: dat levert de authenticatiemodule als [HttpSecurityConfigurer] (de BFF,
+ * ADR 0022). Er is geen resource-server en geen Bearer-pad; zonder BFF is alles buiten de uitzonderingen onbereikbaar
+ * (fail-closed).
+ */
 @AutoConfiguration
 @EnableWebFluxSecurity
 @EnableReactiveMethodSecurity
@@ -45,7 +47,6 @@ class OauthSecurityAutoConfiguration {
     @Bean
     fun springSecurityWebFilterChain(
         http: ServerHttpSecurity,
-        converter: Converter<Jwt, out Mono<out AbstractAuthenticationToken>>?,
         corsPathConfiguration: CorsPathConfiguration,
         securityConfigurers: List<HttpSecurityConfigurer>,
         securityHeadersConfig: SecurityHeadersConfig,
@@ -54,7 +55,6 @@ class OauthSecurityAutoConfiguration {
         securityConfigurers.forEach { it.configure(http) }
 
         return http
-            .csrf { it.disable() }
             .headers { h ->
                 h.frameOptions {
                     XFrameOptionsServerHttpHeadersWriter.Mode.SAMEORIGIN
@@ -89,10 +89,6 @@ class OauthSecurityAutoConfiguration {
                         }
                     }
                 it.anyExchange().authenticated()
-            }.oauth2ResourceServer {
-                it.jwt { t ->
-                    t.jwtAuthenticationConverter(converter)
-                }
             }.build()
     }
 

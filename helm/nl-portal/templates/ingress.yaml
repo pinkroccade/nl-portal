@@ -1,0 +1,45 @@
+{{- if .Values.ingress.enabled }}
+{{- $backend := dict "ctx" . "component" "backend" -}}
+{{- $frontend := dict "ctx" . "component" "frontend" -}}
+{{- $backendPaths := list "/graphql" "/api" "/oauth2" "/login" "/logout" -}}
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: {{ include "nl-portal.fullname" . }}
+  labels:
+    {{- include "nl-portal.labels" (dict "ctx" . "component" "frontend") | nindent 4 }}
+  {{- with .Values.ingress.annotations }}
+  annotations:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+spec:
+  {{- with .Values.ingress.className }}
+  ingressClassName: {{ . }}
+  {{- end }}
+  {{- with .Values.ingress.tls }}
+  tls:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+  rules:
+    {{- range .Values.ingress.hosts }}
+    - host: {{ . | quote }}
+      http:
+        paths:
+          {{- range $backendPaths }}
+          - path: {{ . }}
+            pathType: Prefix
+            backend:
+              service:
+                name: {{ include "nl-portal.componentName" $backend }}
+                port:
+                  name: http
+          {{- end }}
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: {{ include "nl-portal.componentName" $frontend }}
+                port:
+                  name: http
+    {{- end }}
+{{- end }}

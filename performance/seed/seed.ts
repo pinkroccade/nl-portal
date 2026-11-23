@@ -33,7 +33,7 @@ export function laadConfig(env: Env) {
     },
     wachtwoord: env.PERF_SEED_PASSWORD ?? env.PERF_PASSWORD ?? "perf-wachtwoord",
     keycloak: {
-      url: zonderSlash(env.PERF_KEYCLOAK_URL ?? "http://localhost:8082/auth"),
+      url: zonderSlash(env.PERF_KEYCLOAK_URL ?? "http://localhost:8082"),
       realm: env.PERF_REALM ?? "nlportal",
       adminGebruiker: env.PERF_KEYCLOAK_ADMIN ?? "admin",
       adminWachtwoord: verplicht(env, "PERF_KEYCLOAK_ADMIN_PASSWORD", "KEYCLOAK_ADMIN_PASSWORD"),

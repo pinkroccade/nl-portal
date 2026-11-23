@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-import { AnchorHTMLAttributes, ReactNode, use, useEffect } from "react";
+import { AnchorHTMLAttributes, ReactNode, useEffect } from "react";
 import { StylesProvider } from "@gemeente-denhaag/stylesprovider";
 import {
   Page as PageWrapper,
@@ -29,7 +29,6 @@ import { Outlet } from "react-router";
 import PageMetaData from "./PageMetaData";
 import { Paths } from "../interfaces/paths";
 import FormIoUploader from "./formio/FormIoUploader";
-import { OidcContext } from "@nl-portal/nl-portal-authentication";
 import "@utrecht/document-css";
 import { Formio } from "@formio/js";
 import ProtectedEval from "@formio/protected-eval";
@@ -71,8 +70,6 @@ const Layout = ({
   customFooter,
   footerData,
 }: LayoutComponentProps) => {
-  const { oidcToken } = use(OidcContext);
-
   useEffect(() => {
     // Register FormIo protected eval plugin
     const protectedEval = ProtectedEval as FormioPlugin;
@@ -100,10 +97,6 @@ const Layout = ({
       datagrid: nlPortalDataGrid,
     };
   }, []);
-
-  useEffect(() => {
-    FormIoUploader.setOidcToken(oidcToken);
-  }, [oidcToken]);
 
   return (
     <StylesProvider className={styles.layout}>

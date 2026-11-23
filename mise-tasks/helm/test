@@ -1,0 +1,6 @@
+#!/usr/bin/env bash
+#MISE description="Draai de unittests van de Helm-chart nl-portal (helm-unittest: secrets, modules, management-poort, securityContext, Ingress, labels, tenants)"
+set -euo pipefail
+
+cd "$(dirname "$0")/../.."
+untt helm/nl-portal

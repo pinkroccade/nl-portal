@@ -1,0 +1,29 @@
+{
+  "users": [
+    {
+      "username": "burger",
+      "firstName": "Merel",
+      "lastName": "Kooyman",
+      "emailVerified": false,
+      "attributes": {
+        "bsn": [
+          "999993847"
+        ],
+        "inlogmiddel": [
+          "test"
+        ],
+        "acr": [
+          "Basis"
+        ]
+      },
+      "enabled": true,
+      "credentials": [
+        {
+          "type": "password",
+          "secretData": "{\"value\":\"A+kZDRBDbzI9bkTgr6SS3Vcsd664rDFYZxHO0hvL0IGrQwTCyy1nsiU+L+82QXRWJRVE8UaabJzDhrhVMS2+RQ==\",\"salt\":\"qOmvvc3URomYEwsmk6Qs4w==\",\"additionalParameters\":{}}",
+          "credentialData": "{\"hashIterations\":210000,\"algorithm\":\"pbkdf2-sha512\",\"additionalParameters\":{}}"
+        }
+      ]
+    }
+  ]
+}

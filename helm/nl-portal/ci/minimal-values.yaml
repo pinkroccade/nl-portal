@@ -1,0 +1,12 @@
+backend:
+  existingSecret: nl-portal-backend
+  keycloakBrokerUrl: https://login.example.nl
+  redis:
+    host: redis.example.svc
+tenancy:
+  tenants:
+    base.yaml: |
+      omgevingstype: test
+  keys:
+    - oin: "00000099000000000001"
+      existingSecret: nl-portal-key-00000099000000000001

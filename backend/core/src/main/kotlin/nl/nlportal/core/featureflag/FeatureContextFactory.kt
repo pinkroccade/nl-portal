@@ -23,7 +23,6 @@ import org.apache.commons.codec.digest.HmacUtils
 import org.springframework.security.authentication.AnonymousAuthenticationToken
 import org.springframework.security.core.Authentication
 import org.springframework.security.core.context.ReactiveSecurityContextHolder
-import org.springframework.security.oauth2.server.resource.authentication.JwtAuthenticationToken
 import reactor.core.publisher.Mono
 
 /**
@@ -57,7 +56,7 @@ class FeatureContextFactory(
 
     private fun opaqueUserId(user: Authentication?): String? {
         val secret = properties.userIdSecret?.takeIf { it.isNotBlank() } ?: return null
-        val subject = (user as? JwtAuthenticationToken)?.token?.subject ?: return null
+        val subject = (user as? UserTypeAware)?.subject ?: return null
         return HmacUtils(HmacAlgorithms.HMAC_SHA_256, secret).hmacHex(subject)
     }
 

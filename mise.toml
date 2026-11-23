@@ -1,16 +1,19 @@
 [tools]
 # Keep in sync with frontend/package.json's "packageManager" field.
-pnpm = "11.28.11"
+pnpm = "11.28.13"
 # javaVersion in backend/gradle.properties is leading; `mise run java:check-version` (CI) fails on a mismatch.
 java = "temurin-25"
-syft = "1.57.0"
-grype = "0.121.2"
+syft = "1.57.2"
+grype = "0.122.1"
 gitleaks = "8.30.1"
-k6 = "2.3.0"
+k6 = "2.4.0"
 # Controleert .github/workflows (syntax, expressies, acties); `mise run workflows:lint`.
-actionlint = "1.7.11"
+actionlint = "1.7.12"
 # actionlint controleert de `run:`-scripts met shellcheck als dat beschikbaar is; vastgepind zodat lokaal en CI hetzelfde zien.
 shellcheck = "0.11.0"
+helm = "3.22.1"
+kubeconform = "0.8.0"
+"github:helm-unittest/helm-unittest" = "1.2.1"
 
 # Taken heten <domein>:<actie>. De aggregaten zonder prefix (build, test, lint, arch-check) roepen via
 # `depends` de domeintaken aan. Taken van meer dan een regel staan als bestand onder mise-tasks/.
@@ -22,16 +25,16 @@ shellcheck = "0.11.0"
 # --- Aggregaten ---
 
 [tasks.build]
-description = "Bouw backend en frontend"
-depends = ["backend:build", "frontend:build"]
+description = "Bouw backend, frontend en de Keycloak-provider"
+depends = ["backend:build", "frontend:build", "keycloak:build"]
 
 [tasks.test]
-description = "Draai de unit-tests van backend, frontend en scripts (integratietests: backend:integration-test)"
-depends = ["backend:test", "frontend:test", "scripts:test", "perf:test"]
+description = "Draai de unit-tests van backend, frontend, Keycloak-provider, scripts en Helm-chart (integratietests: backend:integration-test, keycloak:integration-test)"
+depends = ["backend:test", "frontend:test", "keycloak:test", "scripts:test", "perf:test", "helm:test"]
 
 [tasks.lint]
-description = "Lint, typecheck en formatteringscontrole van backend en frontend"
-depends = ["backend:lint", "frontend:lint", "frontend:typecheck", "frontend:prettier", "perf:check", "workflows:lint", "mise:check-shell"]
+description = "Lint, typecheck en formatteringscontrole van backend en frontend, plus de controles van workflows, mise-taken en Keycloak-versie"
+depends = ["backend:lint", "frontend:lint", "frontend:typecheck", "frontend:prettier", "perf:check", "workflows:lint", "mise:check-shell", "keycloak:check-version", "helm:lint", "copyright:check"]
 
 [tasks.arch-check]
 description = "Bewaak de architectuurregels (backend: ArchUnit; frontend: package-boundaries valt onder frontend:lint)"
@@ -123,6 +126,44 @@ shell = "bash -c"
 run = "./gradlew :core:pitest"
 
 # backend:pitest-changed staat in mise-tasks/backend/pitest-changed
+
+[tasks."backend:tenant-schema"]
+description = "Genereer backend/schema/tenant.schema.json uit de Kotlin-typen van het tenantbestand en van alle modules (commit het resultaat)"
+dir = "backend"
+shell = "bash -c"
+run = "./gradlew :app:generateTenantSchema"
+
+[tasks."backend:tenant-validator"]
+description = "Bouw de tenantvalidator als CLI-jar (backend/core/build/libs/nl-portal-tenant-validator.jar); gebruik: java -jar <jar> <map met tenantbestanden>"
+dir = "backend"
+shell = "bash -c"
+run = "./gradlew :core:tenantValidatorJar"
+
+# --- Keycloak (eigen image met de NL Portal-provider, zie keycloak/README.md) ---
+
+[tasks."keycloak:build"]
+description = "Bouw de Keycloak-provider (keycloak/provider/build/libs/nlportal-keycloak-provider.jar), gecompileerd tegen keycloakVersion"
+dir = "keycloak/provider"
+shell = "bash -c"
+run = "../../backend/gradlew jar"
+
+[tasks."keycloak:test"]
+description = "Draai de unit-tests van de Keycloak-provider (mappers; mislukt ook als de Keycloak-API verandert)"
+dir = "keycloak/provider"
+shell = "bash -c"
+run = "../../backend/gradlew test"
+
+[tasks."keycloak:check-version"]
+description = "Faal als keycloak/Dockerfile een andere Keycloak-versie heeft dan keycloakVersion in keycloak/provider/gradle.properties, of niet op digest staat"
+run = "node scripts/check-keycloak-version.mjs"
+
+[tasks."keycloak:verify-dependencies"]
+description = "Genereer keycloak/provider/gradle/verification-metadata.xml opnieuw; draai na elke wijziging van een Keycloak- of testdependency en commit het resultaat"
+dir = "keycloak/provider"
+shell = "bash -c"
+run = "../../backend/gradlew --write-verification-metadata sha256 test"
+
+# keycloak:image en keycloak:integration-test staan in mise-tasks/keycloak/
 
 # --- Frontend ---
 
@@ -229,7 +270,7 @@ description = "Draai de tests van de repo-scripts (scripts/*.test.mjs)"
 run = 'node --test "scripts/**/*.test.mjs"'
 
 [tasks."dev:setup"]
-description = "Genereer de lokale dev-omgeving met willekeurige secrets (Keycloak-realms, docker-compose/.env, backend/app/.env.properties); opnieuw draaien geeft een verse omgeving"
+description = "Genereer de lokale dev-omgeving: willekeurige secrets (docker-compose/.env, backend/app/.env.properties, seed-gegevens) en per tenant het Keycloak-realm uit het realm-template met een sleutelpaar voor private_key_jwt; opnieuw draaien geeft een verse omgeving"
 run = "node scripts/dev-setup.mjs"
 
 [tasks."docs:install"]
@@ -285,6 +326,10 @@ run = "npx --yes likec4@1.60.0 export png site/likec4 --output site/architectuur
 description = "Faal als een inline mise-taak bash-syntaxis gebruikt zonder shell = \"bash -c\" (faalt onder Windows)"
 run = "node scripts/check-mise-shell.mjs"
 
+[tasks."copyright:check"]
+description = "Faal als een nieuw bronbestand de PinkRoccade-kop mist of een bestaande kop (Ritense, jaartal incluis) is gewijzigd, t.o.v. origin/main of COPYRIGHT_BASE_REF (ADR 0015)"
+run = "node scripts/check-copyright-headers.mjs"
+
 [tasks."java:check-version"]
 description = "Faal als mise, Dockerfile, README of workflows een andere Java-versie noemen dan javaVersion in backend/gradle.properties"
 run = "node scripts/check-java-version.mjs"
@@ -335,6 +380,16 @@ run = "gitleaks detect --source . --no-banner --no-git --config .gitleaks.toml"
 [tasks."security:secrets-scan-history"]
 description = "Scan de git-historie van HEAD op secrets; bestaande bevindingen staan in .gitleaks-baseline.json, alleen nieuwe laten falen"
 run = "gitleaks git --no-banner --config .gitleaks.toml --baseline-path .gitleaks-baseline.json --redact --log-opts=HEAD"
+
+[tasks."sbom:keycloak-image"]
+description = "Genereer een CycloneDX-SBOM van het eigen Keycloak-image (keycloak/sbom.cyclonedx.json); bouwt het image eerst"
+depends = ["keycloak:image"]
+run = "syft docker:nl-portal-keycloak:dev -o cyclonedx-json=keycloak/sbom.cyclonedx.json"
+
+[tasks."security:keycloak-vuln-scan"]
+description = "Genereer de SBOM van het eigen Keycloak-image en scan die op bekende kwetsbaarheden (faalt op high/critical waarvoor een fix bestaat; uitzonderingen met reden en herzieningsdatum staan in keycloak/.grype.yaml)"
+depends = ["sbom:keycloak-image"]
+run = "grype sbom:keycloak/sbom.cyclonedx.json --config keycloak/.grype.yaml --fail-on high --only-fixed"
 
 [tasks."security:frontend-vuln-scan"]
 description = "Genereer de frontend-SBOM en scan die op bekende kwetsbaarheden (faalt op high/critical)"

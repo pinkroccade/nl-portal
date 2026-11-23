@@ -1,0 +1,120 @@
+# Fictieve demo-tenant Gemeente De Bosrand. Het OIN is fictief en moet tussen aanhalingstekens staan.
+oin: "00000099000000000001"
+naam: Gemeente De Bosrand
+domeinen:
+    - debosrand.localhost
+    - localhost
+thema:
+    titel: Mijn De Bosrand
+authenticatie:
+    issuer: http://localhost:8082/realms/nlportal
+    # Relatief aan de sleutelmap (nl-portal.sleutelmap), in de map met de OIN van deze tenant; `mise run dev:setup` maakt het sleutelpaar
+    # (docker-compose/.generated/tenants).
+    sleutelBestand: 00000099000000000001/clientsleutel.jwk.json
+koppelingen:
+    # De Documenten API: elke documenten-API is een eigen koppeling; modules.documenten-api noemt ze bij naam.
+    documenten-api:
+        url: http://localhost:8001/documenten/api/v1
+        leverancier: Open Zaak
+        auth:
+            type: zgw-jwt
+            clientId: nl-portal
+            # Het geheim komt uit de omgeving: NL_PORTAL_GEHEIMEN_00000099000000000001_DOCUMENTEN_API_SECRET (zie compose.localhost-*.yaml).
+            secret: 00000099000000000001.documenten-api-secret
+    documenten-dummydoc:
+        url: http://localhost:8002/documenten/api/v1
+        auth:
+            type: zgw-jwt
+            clientId: docdoc
+            secret: 00000099000000000001.documenten-dummydoc-secret
+    brp:
+        url: http://localhost:5010/haalcentraal/api/brp
+        leverancier: Haal Centraal BRP-mock
+        auth:
+            # Geen sleutel: de mocks vragen er geen; in productie authenticeert de cloud gateway.
+            type: geen
+    brp-bewoning:
+        url: http://localhost:5011/haalcentraal/api/bewoning
+        leverancier: Haal Centraal Bewoning-mock
+        auth:
+            # Geen sleutel: de mocks vragen er geen; in productie authenticeert de cloud gateway.
+            type: geen
+    # Handelsregister (KvK, optioneel): haal de commentaartekens weg, zet het geheim in backend.env en zet NLPORTAL_CONFIG_KVK_ENABLED=true.
+    # kvk:
+    #     url: https://api.kvk.nl/api/v1
+    #     leverancier: KvK
+    #     auth:
+    #         type: api-key
+    #         headerNaam: X-API-KEY
+    #         waarde: 00000099000000000001.kvk-sleutel
+    zakenapi:
+        url: http://localhost:8001
+        auth:
+            type: zgw-jwt
+            clientId: nl-portal
+            secret: 00000099000000000001.zaken-secret
+    catalogiapi:
+        url: http://localhost:8001
+        auth:
+            type: zgw-jwt
+            clientId: nl-portal
+            secret: 00000099000000000001.catalogiapi-secret
+    # De Objecten API (Open Object) kent alleen "Authorization: Token <token>": een api-key-header, waarvan het geheim "Token <token>" is.
+    objectenapi:
+        url: http://localhost:8010
+        auth:
+            type: api-key
+            headerNaam: Authorization
+            waarde: 00000099000000000001.objectenapi-token
+    # Betalen via Worldline Direct (optioneel): haal de commentaartekens weg, ook bij modules hieronder, en zet de geheimen in backend.env.
+    # payment-direct:
+    #     url: https://payment.preprod.direct.worldline-solutions.com
+    #     auth:
+    #         type: gcs-v1-hmac
+    #         clientId: <API-sleutel-ID van de provider>
+    #         secret: 00000099000000000001.payment-direct-api-geheim
+    # Verificatie van digitale adressen (e-mail, telefoon). De compose-stack draait geen verificatiedienst: de koppeling wijst naar de
+    # poort waar een eigen dienst of mock kan draaien. De geheimen (NL_PORTAL_GEHEIMEN_<OIN>_VERIFICATIE_SECRET en _VERIFICATIE_APIKEY) staan in
+    # compose.localhost-*.yaml; alleen met NLPORTAL_CONFIG_VERIFICATIE_ENABLED=true gebruikt de backend ze.
+    verificatie:
+        url: http://localhost:9009
+        leverancier: Verificatiedienst
+        auth:
+            type: zgw-jwt
+            clientId: nl-portal
+            secret: 00000099000000000001.verificatie-secret
+modules:
+    documenten-api:
+        standaardDocumentApi: documenten-api
+        documentApis:
+            documenten-api:
+                rsin: "051845623"
+                documentTypeUrl: http://localhost:8001/catalogi/api/v1/informatieobjecttypen/36e40d95-e411-4884-b08f-e5864ec8167f
+            documenten-dummydoc:
+                rsin: "051845623"
+        # toegestaneMimeTypes: [application/pdf, image/png, image/jpeg]
+        vertrouwelijkheidsaanduidingWitlijst: [openbaar, beperkt_openbaar, intern, zaakvertrouwelijk, vertrouwelijk, confidentieel, geheim, zeer_geheim]
+        statusWitlijst: [ter_vaststelling, in_bewerking, definitief, gearchiveerd]
+    brp:
+        # Doelbinding BRP per gemeente; leeg of weglaten geeft de standaardvelden en alle woonplaatsen.
+        toegestaneWoonplaatsenBewoning: []
+    zakenapi:
+        nnpKvkQueryIdentificatoren: false
+    taak:
+        # Het objecttype waarin de taken van deze gemeente staan (Open Object); de taken lopen via de koppeling objectenapi.
+        objectTypeUrl: http://localhost:8010/api/v2/objecttypes/b4a617af-6969-45e8-9afd-d51e170716d5
+    berichten:
+        berichtObjectTypeUrl: http://localhost:8010/api/v2/objecttypes/78731088-430f-49fd-9a4c-80ddd42ded28
+    # payment-direct:
+    #     webhookUrl: https://<domein van de tenant>/api/public/payment/direct/postsale
+    #     profielen:
+    #         belastingzaken:
+    #             pspId: <PSP-ID>
+    #             returnUrl: https://<domein van de tenant>
+    #             webhookSleutelId: <sleutel-ID van de webhook>
+    #             webhookGeheim: 00000099000000000001.payment-direct-webhook-geheim
+    verificatie:
+        apiKey: 00000099000000000001.verificatie-apikey
+        templateIdTelefoonnummer: template-sms
+        templateIdEmail: template-mail
+        typenMetVerificatie: [EMAIL, TELEFOONNUMMER]

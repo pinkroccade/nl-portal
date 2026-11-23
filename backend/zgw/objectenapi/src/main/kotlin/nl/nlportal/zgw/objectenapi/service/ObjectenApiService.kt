@@ -15,53 +15,35 @@
  */
 package nl.nlportal.zgw.objectenapi.service
 
-import nl.nlportal.zgw.objectenapi.autoconfiguration.ObjectsApiClientConfig.ObjectsApiClientConfigProperties
 import nl.nlportal.zgw.objectenapi.client.ObjectsApiClient
 import nl.nlportal.zgw.objectenapi.domain.CreateObjectsApiObjectRequest
 import nl.nlportal.zgw.objectenapi.domain.ObjectSearchParameter
 import nl.nlportal.zgw.objectenapi.domain.ObjectsApiObject
 import nl.nlportal.zgw.objectenapi.domain.ResultPage
 import nl.nlportal.zgw.objectenapi.domain.UpdateObjectsApiObjectRequest
-import java.net.URI
 import java.util.UUID
 
 class ObjectenApiService(
     val objectsApiClient: ObjectsApiClient,
-    val objectsApiClientConfig: ObjectsApiClientConfigProperties,
 ) {
     suspend inline fun <reified T> getObjects(
         objectSearchParameters: List<ObjectSearchParameter>,
         objectTypeUrl: String,
         pageNumber: Int,
         pageSize: Int,
-    ): ResultPage<ObjectsApiObject<T>> =
-        objectsApiClient.getObjects(
-            objectSearchParameters = objectSearchParameters,
-            objectTypeUrl = objectTypeUrl,
-            page = pageNumber,
-            pageSize = pageSize,
-        )
+    ): ResultPage<ObjectsApiObject<T>> = objectsApiClient.getObjects(objectSearchParameters, objectTypeUrl, pageNumber, pageSize)
 
-    suspend inline fun <reified T> getObjectById(objectId: String): ObjectsApiObject<T>? = objectsApiClient.getObjectById(objectId)
+    suspend inline fun <reified T> getObjectById(objectId: String): ObjectsApiObject<T> = objectsApiClient.getObjectById(objectId)
 
     suspend inline fun <reified T> updateObject(
         objectUuid: UUID,
         objectsApiObject: UpdateObjectsApiObjectRequest<T>,
-    ): ObjectsApiObject<T>? = objectsApiClient.updateObject(objectUuid, objectsApiObject)
+    ): ObjectsApiObject<T> = objectsApiClient.updateObject(objectUuid, objectsApiObject)
 
-    suspend inline fun <reified T> getObjectByUrl(url: String): ObjectsApiObject<T>? {
-        val requestedObjectenApiHost = URI.create(url).host
-        val configuredObjectenApiHost = objectsApiClientConfig.url.host
-        if (!requestedObjectenApiHost.equals(configuredObjectenApiHost)) {
-            throw IllegalArgumentException("Configured Objects API hostname does not match the requested object")
-        }
-        return objectsApiClient.getObjectByUrl(url)
-    }
+    /** Een object-URL komt uit het antwoord van een andere bron: de koppeling volgt hem alleen onder zijn eigen basis-URL (host-binding). */
+    suspend inline fun <reified T> getObjectByUrl(url: String): ObjectsApiObject<T> = objectsApiClient.getObjectByUrl(url)
 
-    suspend inline fun <reified T> createObject(createObjectsApiObjectRequest: CreateObjectsApiObjectRequest<T>): ObjectsApiObject<T> =
-        objectsApiClient.createObject(
-            createObjectsApiObjectRequest,
-        )
+    suspend inline fun <reified T> createObject(createObjectsApiObjectRequest: CreateObjectsApiObjectRequest<T>): ObjectsApiObject<T> = objectsApiClient.createObject(createObjectsApiObjectRequest)
 
     suspend fun deleteObjectById(objectId: UUID) {
         objectsApiClient.deleteObjectById(objectId)

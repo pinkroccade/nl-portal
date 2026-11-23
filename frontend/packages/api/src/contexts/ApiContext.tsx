@@ -13,24 +13,18 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-import {
-  createContext,
-  useCallback,
-  useContext,
-  useEffect,
-  useState,
-} from "react";
+import { createContext, useContext, useMemo, useState } from "react";
 import {
   ApolloClient,
-  ApolloLink,
   HttpLink,
   InMemoryCache,
   InMemoryCacheConfig,
 } from "@apollo/client";
 import { ApolloProvider } from "@apollo/client/react";
 import {
+  csrfHeaders,
   formatUrlTrailingSlash,
-  OidcContext,
+  SessionContext,
 } from "@nl-portal/nl-portal-authentication";
 import React from "react";
 import { defaultInMemoryCacheOptions } from "../constants/apollo-cache";
@@ -38,6 +32,22 @@ import { defaultInMemoryCacheOptions } from "../constants/apollo-cache";
 interface ContextProps {
   restUri: string;
 }
+
+/** GraphQL meldt een verlopen sessie met HTTP 200 en `errors[].extensions.code === "UNAUTHENTICATED"`. */
+const isOngeauthenticeerd = async (response: Response): Promise<boolean> => {
+  try {
+    const body = (await response.clone().json()) as {
+      errors?: { extensions?: { code?: string } }[];
+    };
+    return (
+      body.errors?.some(
+        (fout) => fout.extensions?.code === "UNAUTHENTICATED",
+      ) ?? false
+    );
+  } catch {
+    return false;
+  }
+};
 
 const ApiContext = createContext({} as ContextProps);
 
@@ -56,36 +66,50 @@ export const ApiProvider = ({
 }: Props) => {
   const formattedGraphqlUri = formatUrlTrailingSlash(graphqlUri, false);
   const formattedRestUri = formatUrlTrailingSlash(restUri, false);
-  const { oidcToken } = useContext(OidcContext);
+  const { markeerVerlopen } = useContext(SessionContext);
 
-  const getLink = useCallback(
-    (oidcToken: string) =>
-      new ApolloLink((operation, forward) => {
-        operation.setContext({
-          headers: {
-            authorization: `Bearer ${oidcToken}`,
-          },
-        });
-        return forward(operation);
-      }).concat(new HttpLink({ uri: formattedGraphqlUri })),
-    [formattedGraphqlUri],
+  // Same-origin met het sessiecookie; elke aanroep stuurt het CSRF-token mee. Een 401 betekent dat de sessie is verlopen:
+  // de sessie-provider toont dan een melding en een weg terug naar inloggen.
+  const link = useMemo(
+    () =>
+      new HttpLink({
+        uri: formattedGraphqlUri,
+        credentials: "same-origin",
+        fetch: async (input, init) => {
+          const response = await fetch(input, {
+            ...init,
+            headers: {
+              ...(init?.headers as Record<string, string>),
+              ...csrfHeaders({
+                url:
+                  typeof input === "string" || input instanceof URL
+                    ? input
+                    : input.url,
+                method:
+                  init?.method ??
+                  (typeof input === "object" && "method" in input
+                    ? input.method
+                    : undefined),
+              }),
+            },
+          });
+          if (response.status === 401) markeerVerlopen?.();
+          else if (await isOngeauthenticeerd(response)) markeerVerlopen?.();
+          return response;
+        },
+      }),
+    [formattedGraphqlUri, markeerVerlopen],
   );
 
   const [client] = useState(
     () =>
       new ApolloClient({
         cache: new InMemoryCache(inMemoryCacheOptions),
-        link: getLink(oidcToken),
+        link,
       }),
   );
 
-  useEffect(() => {
-    client.setLink(getLink(oidcToken));
-  }, [oidcToken, client, getLink]);
-
   sessionStorage.setItem("REST_URI", formattedRestUri);
-
-  if (!oidcToken) return null;
 
   return (
     <ApiContext.Provider value={{ restUri: formattedRestUri }}>

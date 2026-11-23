@@ -9,3 +9,4 @@ generated/
 lerna.json
 pnpm-lock.yaml
 CONTRIBUTING.md
+frontend/sbom.cyclonedx.json

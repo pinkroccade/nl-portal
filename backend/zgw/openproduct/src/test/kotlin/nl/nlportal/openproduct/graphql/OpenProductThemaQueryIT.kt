@@ -23,8 +23,6 @@ import nl.nlportal.commonground.authentication.WithBurgerUser
 import nl.nlportal.openproduct.TestHelper
 import nl.nlportal.openproduct.TestHelper.readFileAsString
 import nl.nlportal.openproduct.autoconfigure.OpenProductModuleConfiguration
-import nl.nlportal.zakenapi.client.ZakenApiConfig
-import nl.nlportal.zgw.objectenapi.autoconfiguration.ObjectsApiClientConfig
 import okhttp3.mockwebserver.Dispatcher
 import okhttp3.mockwebserver.MockResponse
 import okhttp3.mockwebserver.MockWebServer
@@ -50,8 +48,6 @@ import org.springframework.test.context.DynamicPropertySource
 class OpenProductThemaQueryIT(
     @Autowired private val httpGraphQlTester: HttpGraphQlTester,
     @Autowired private val openProductModuleConfiguration: OpenProductModuleConfiguration,
-    @Autowired private val objectsApiClientConfig: ObjectsApiClientConfig,
-    @Autowired private val zakenApiConfig: ZakenApiConfig,
 ) {
     companion object {
         @JvmStatic
@@ -65,15 +61,13 @@ class OpenProductThemaQueryIT(
         fun properties(propsRegistry: DynamicPropertyRegistry) {
             propsRegistry.add("nl-portal.config.openproduct.properties.product-type-api-url") { url }
             propsRegistry.add("nl-portal.config.openproduct.properties.product-api-url") { url }
-            propsRegistry.add("nl-portal.config.zakenapi.properties.url") { url }
-            propsRegistry.add("nl-portal.config.objectenapi.properties.url") { url }
         }
 
         @JvmStatic
         @BeforeAll
         fun beforeAll() {
             server = MockWebServer()
-            server?.start()
+            server?.start(9000)
             url = server?.url("/").toString()
         }
 
@@ -90,8 +84,6 @@ class OpenProductThemaQueryIT(
         url = server?.url("/").toString()
         openProductModuleConfiguration.properties.productTypeApiUrl = URI(url)
         openProductModuleConfiguration.properties.productApiUrl = URI(url)
-        objectsApiClientConfig.properties.url = URI(url)
-        zakenApiConfig.properties.url = url
     }
 
     @Test
@@ -116,7 +108,7 @@ class OpenProductThemaQueryIT(
 
     @Test
     @WithBedrijfUser(
-        kvkNummer = "569312863",
+        kvkNummer = "56931286",
         machtigingsDienst = "0781d1a1-0644-44fd-802e-96f6b588b472",
     )
     fun `get themas voor bedrijf met machtingsdienst`() =
@@ -318,7 +310,7 @@ class OpenProductThemaQueryIT(
                             }
 
                             "GET /api/v2/objects" -> {
-                                if (queryParams.any { it.contains("identificatie__value__exact__569312863") }) {
+                                if (queryParams.any { it.contains("identificatie__value__exact__56931286") }) {
                                     TestHelper.mockResponseFromFile("/config/data/get-taken.json")
                                 } else {
                                     MockResponse().setResponseCode(404)

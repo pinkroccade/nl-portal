@@ -33,6 +33,7 @@ dependencies {
     implementation(Dependencies.kotlinCoroutinesReactor)
     implementation("org.springframework.data:spring-data-commons")
 
+    testImplementation(testFixtures(project(":core")))
     testImplementation(TestDependencies.kotlinTest)
     testImplementation(TestDependencies.junitJupiterTest)
     testImplementation(TestDependencies.springBootTest)
@@ -41,6 +42,7 @@ dependencies {
     testImplementation(TestDependencies.springGraphQLTest)
     testImplementation(TestDependencies.springSecurityTest)
 
+    testImplementation(testFixtures(project(":core")))
     testImplementation(project(":zgw:common-ground-authentication-test"))
     testImplementation(TestDependencies.kotlinCoroutines)
     testImplementation(TestDependencies.mockitoKotlin)

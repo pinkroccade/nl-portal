@@ -17,17 +17,26 @@ package nl.nlportal.portal.authentication.domain
 
 import nl.nlportal.core.featureflag.UserTypeAware
 import org.springframework.security.core.GrantedAuthority
-import org.springframework.security.oauth2.jwt.Jwt
-import org.springframework.security.oauth2.server.resource.authentication.JwtAuthenticationToken
+import org.springframework.security.authentication.AbstractAuthenticationToken
 
-open class PortalAuthentication(
-    jwt: Jwt,
+/**
+ * De authenticatie van een ingelogde gebruiker, zoals de BFF hem uit de sessie opbouwt. De enige leesroute naar de
+ * identiteit is [identiteit]. Er is geen token: modules krijgen nooit een token te zien ([getCredentials] is leeg).
+ */
+class PortalAuthentication(
+    val identiteit: Identiteit,
     authorities: Collection<GrantedAuthority>,
-    override val userType: String,
-    val userId: String,
-) : JwtAuthenticationToken(jwt, authorities),
+) : AbstractAuthenticationToken(authorities),
     UserTypeAware {
-    open fun getUserRepresentation() = "Portal"
-}
+    init {
+        super.setAuthenticated(true)
+    }
 
-const val SUB_KEY = "sub"
+    override val userType: String get() = identiteit.vertegenwoordigde.soort.code
+
+    override val subject: String get() = identiteit.gebruiker.subject
+
+    override fun getCredentials(): Any? = null
+
+    override fun getPrincipal(): Any = identiteit.gebruiker.subject
+}

@@ -17,11 +17,11 @@ package nl.nlportal.zakenapi.client
 
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.test.runTest
-import nl.nlportal.catalogiapi.client.CatalogiApiConfig.CatalogiApiConfigProperties
 import nl.nlportal.commonground.authentication.JwtBuilder
 import nl.nlportal.core.modulestatus.ModuleState
+import nl.nlportal.catalogiapi.client.CatalogiApiClient
 import nl.nlportal.core.modulestatus.ModuleStatusRegistry
-import nl.nlportal.zakenapi.client.ZakenApiConfig.ZakenApiConfigProperties
+import nl.nlportal.core.testing.TestTenants
 import nl.nlportal.zakenapi.client.request.ObjectType
 import okhttp3.mockwebserver.MockResponse
 import okhttp3.mockwebserver.MockWebServer
@@ -30,17 +30,13 @@ import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertNotNull
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
-import org.springframework.web.reactive.function.client.WebClient
 import org.springframework.web.server.ResponseStatusException
 import java.util.UUID
 import kotlin.test.assertFailsWith
 
 @ExperimentalCoroutinesApi
 class ZakenApiClientTest {
-    lateinit var zakenApiConfigProperties: ZakenApiConfigProperties
-    lateinit var catalogiApiConfigProperties: CatalogiApiConfigProperties
     lateinit var host: String
-    lateinit var client: WebClient
     lateinit var mockServer: MockWebServer
     lateinit var zakenApiClient: ZakenApiClient
     val moduleStatus = ModuleStatusRegistry()
@@ -51,24 +47,22 @@ class ZakenApiClientTest {
         mockServer.start()
 
         host = "http://${mockServer.hostName}:${mockServer.port}"
-        client = WebClient.builder().baseUrl(host).build()
-
-        zakenApiConfigProperties =
-            ZakenApiConfigProperties().apply {
-                url = host
-                clientId = "gzac"
-                secret = "12345678123456781234567812345678"
-            }
-
-        catalogiApiConfigProperties =
-            CatalogiApiConfigProperties(
-                host,
-                "gzac",
-                "12345678123456781234567812345678",
-            )
-
-        zakenApiClient = ZakenApiClient(zakenApiConfigProperties, catalogiApiConfigProperties, WebClient.builder(), moduleStatus)
+        zakenApiClient = bouwClient()
     }
+
+    /** De Zaken API van tenant Bosrand: koppeling met ZGW-JWT naar de nepserver en de modulegegevens uit het tenantbestand. */
+    private fun bouwClient(configuratie: ZakenApiConfiguratie = ZakenApiConfiguratie()): ZakenApiClient {
+        val tenant =
+            TestTenants.tenant(
+                koppelingen = mapOf("zakenapi" to TestTenants.zgwKoppeling(host, "gzac", "zaken-secret")),
+                modules = mapOf("zakenapi" to configuratie),
+            )
+        val register = TestTenants.register(tenant)
+        return ZakenApiClient(register, TestTenants.directory(tenant), CatalogiApiClient(register), moduleStatus)
+    }
+
+    /** Draait [blok] als tenant Bosrand, zoals de tenantresolutie dat voor een request doet. */
+    private fun tenantTest(blok: suspend () -> Unit) = runTest { TestTenants.alsTenant { blok() } }
 
     @AfterEach
     internal fun tearDown() {
@@ -76,15 +70,16 @@ class ZakenApiClientTest {
     }
 
     @Test
-    fun `zaak url - generated correctly`() {
-        val value = zakenApiClient.getZaakUrl(UUID.fromString("2941048a-7290-4a78-8c4e-14feaec137dc"))
+    fun `zaak url - generated correctly`() =
+        tenantTest {
+            val value = zakenApiClient.getZaakUrl(UUID.fromString("2941048a-7290-4a78-8c4e-14feaec137dc"))
 
-        assertEquals("$host/zaken/api/v1/zaken/2941048a-7290-4a78-8c4e-14feaec137dc", value)
-    }
+            assertEquals("$host/zaken/api/v1/zaken/2941048a-7290-4a78-8c4e-14feaec137dc", value)
+        }
 
     @Test
     fun `zaken search - succesvol antwoord zet de modulestatus op UP`() =
-        runTest {
+        tenantTest {
             mockServer.enqueue(emptyZakenResponse())
 
             zakenApiClient.zaken().search().retrieve()
@@ -94,7 +89,7 @@ class ZakenApiClientTest {
 
     @Test
     fun `zaken search - een 503 zet de modulestatus op DEGRADED`() =
-        runTest {
+        tenantTest {
             mockServer.enqueue(MockResponse().setResponseCode(503))
 
             runCatching { zakenApiClient.zaken().search().retrieve() }
@@ -106,7 +101,7 @@ class ZakenApiClientTest {
     fun `zaken search - errors`() {
         mockServer.enqueue(MockResponse().setResponseCode(404))
 
-        return runTest {
+        return tenantTest {
             assertFailsWith<ResponseStatusException> {
                 zakenApiClient.zaken().search().retrieve()
             }
@@ -117,7 +112,7 @@ class ZakenApiClientTest {
     fun `zaken search - verify headers`() {
         mockServer.enqueue(emptyZakenResponse())
 
-        return runTest {
+        return tenantTest {
             zakenApiClient.zaken().search().retrieve()
 
             val request = mockServer.takeRequest()
@@ -132,14 +127,13 @@ class ZakenApiClientTest {
     fun `zaken search - verify query parameters`() {
         mockServer.enqueue(emptyZakenResponse())
 
-        return runTest {
+        return tenantTest {
             zakenApiClient
                 .zaken()
                 .search()
                 .ofZaakType("https://localhost:1000/type")
                 .withBsn("BSN")
                 .withKvk("KVK")
-                .withUid("UID")
                 .retrieve()
 
             val request = mockServer.takeRequest()
@@ -151,10 +145,6 @@ class ZakenApiClientTest {
                 "KVK",
                 request.requestUrl?.queryParameter("rol__betrokkeneIdentificatie__nietNatuurlijkPersoon__annIdentificatie"),
             )
-            assertEquals(
-                "UID",
-                request.requestUrl?.queryParameter("rol__betrokkeneIdentificatie__natuurlijkPersoon__anpIdentificatie"),
-            )
             assertEquals("https://localhost:1000/type", request.requestUrl?.queryParameter("zaaktype"))
         }
     }
@@ -163,11 +153,11 @@ class ZakenApiClientTest {
     fun `zaken search - verify query parameters for burger authentication`() {
         mockServer.enqueue(emptyZakenResponse())
 
-        return runTest {
+        return tenantTest {
             zakenApiClient
                 .zaken()
                 .search()
-                .withAuthentication(JwtBuilder().aanvragerBsn("123").buildBurgerAuthentication())
+                .withAuthentication(JwtBuilder().vertegenwoordigdeBsn("123").buildAuthentication())
                 .retrieve()
 
             val request = mockServer.takeRequest()
@@ -182,11 +172,11 @@ class ZakenApiClientTest {
     fun `zaken search - verify query parameters for bedrijf authentication`() {
         mockServer.enqueue(emptyZakenResponse())
 
-        return runTest {
+        return tenantTest {
             zakenApiClient
                 .zaken()
                 .search()
-                .withAuthentication(JwtBuilder().aanvragerKvk("123").buildBedrijfAuthentication())
+                .withAuthentication(JwtBuilder().vertegenwoordigdeKvk("123").buildAuthentication())
                 .retrieve()
 
             val request = mockServer.takeRequest()
@@ -194,6 +184,41 @@ class ZakenApiClientTest {
                 "123",
                 request.requestUrl?.queryParameter("rol__betrokkeneIdentificatie__nietNatuurlijkPersoon__annIdentificatie"),
             )
+        }
+    }
+
+    @Test
+    fun `zaken search - a bedrijf with a vestiging is searched by vestiging`() {
+        mockServer.enqueue(emptyZakenResponse())
+
+        return tenantTest {
+            zakenApiClient
+                .zaken()
+                .search()
+                .withAuthentication(JwtBuilder().vestigingsNummerKvk("123", "000012345678").buildAuthentication())
+                .retrieve()
+
+            val url = mockServer.takeRequest().requestUrl
+            assertEquals("000012345678", url?.queryParameter("rol__betrokkeneIdentificatie__vestiging__vestigingsNummer"))
+            assertEquals("123", url?.queryParameter("rol__betrokkeneIdentificatie__vestiging__kvkNummer"))
+        }
+    }
+
+    @Test
+    fun `zaken search - a bedrijf with a vestiging is searched as niet-natuurlijk persoon when configured so`() {
+        zakenApiClient = bouwClient(ZakenApiConfiguratie(nnpKvkQueryIdentificatoren = true))
+        mockServer.enqueue(emptyZakenResponse())
+
+        return tenantTest {
+            zakenApiClient
+                .zaken()
+                .search()
+                .withAuthentication(JwtBuilder().vestigingsNummerKvk("123", "000012345678").buildAuthentication())
+                .retrieve()
+
+            val url = mockServer.takeRequest().requestUrl
+            assertEquals("000012345678", url?.queryParameter("rol__betrokkeneIdentificatie__nietNatuurlijkPersoon__vestigingsNummer"))
+            assertEquals("123", url?.queryParameter("rol__betrokkeneIdentificatie__nietNatuurlijkPersoon__kvkNummer"))
         }
     }
 
@@ -210,7 +235,7 @@ class ZakenApiClientTest {
             ),
         ).forEach { mockServer.enqueue(it) }
 
-        return runTest {
+        return tenantTest {
             val response = zakenApiClient.zaken().search().retrieveAll()
 
             assertEquals(2, response.size)
@@ -227,7 +252,7 @@ class ZakenApiClientTest {
             ),
         )
 
-        runTest {
+        tenantTest {
             val response =
                 zakenApiClient.zaken().get(UUID.fromString("2941048a-7290-4a78-8c4e-14feaec137dc")).retrieve()
 
@@ -266,7 +291,7 @@ class ZakenApiClientTest {
                 ).addHeader("Content-Type", "application/json; charset=utf-8"),
         )
 
-        return runTest {
+        return tenantTest {
             val response =
                 zakenApiClient
                     .zaakInformatieobjecten()
@@ -315,7 +340,7 @@ class ZakenApiClientTest {
             ),
         ).forEach { mockServer.enqueue(it) }
 
-        return runTest {
+        return tenantTest {
             val response =
                 zakenApiClient
                     .zaakObjecten()
@@ -362,7 +387,7 @@ class ZakenApiClientTest {
             ),
         ).forEach { mockServer.enqueue(it) }
 
-        return runTest {
+        return tenantTest {
             val response =
                 zakenApiClient
                     .zaakRollen()
@@ -370,7 +395,6 @@ class ZakenApiClientTest {
                     .forZaak("http://localhost/zaak")
                     .withBsn("BSN")
                     .withKvk("KVK")
-                    .withUid("UID")
                     .retrieveAll()
 
             assertEquals(2, response.size)
@@ -387,11 +411,7 @@ class ZakenApiClientTest {
                 "KVK",
                 request.requestUrl?.queryParameter("betrokkeneIdentificatie__nietNatuurlijkPersoon__annIdentificatie"),
             )
-            assertEquals(
-                "UID",
-                request.requestUrl?.queryParameter("betrokkeneIdentificatie__natuurlijkPersoon__anpIdentificatie"),
-            )
-            assertEquals(4, request.requestUrl?.queryParameterNames?.size)
+            assertEquals(3, request.requestUrl?.queryParameterNames?.size)
             assertEquals(true, request.path?.startsWith("/zaken/api/v1/rollen"))
         }
     }
@@ -426,7 +446,7 @@ class ZakenApiClientTest {
             mockServer.enqueue(it)
         }
 
-        return runTest {
+        return tenantTest {
             val response =
                 zakenApiClient
                     .zaakStatussen()

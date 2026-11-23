@@ -83,7 +83,7 @@ De standaard browserflow begint met de *Cookie*-authenticator. Wie al een SSO-se
 
 ### 4.3 Token exchange
 
-De standard token exchange (V2) wisselt een token uit "for a new token issued to the client that triggered the token exchange request. Both clients must be in the same realm" (`token-exchange.adoc`). De bestaande inrichting uit [Standard token exchange](../../hosting-en-configuratie/keycloak-token-exchange.md) blijft per realm dus gelijk: `nl-portal` + `nl-portal-m2m`, de `aanvrager`-scope en de audience mappers. Alleen vermenigvuldigd met 50.
+De standard token exchange (V2) wisselt een token uit "for a new token issued to the client that triggered the token exchange request. Both clients must be in the same realm" (`token-exchange.adoc`). De bestaande inrichting uit Standard token exchange (pagina vervallen met #506) blijft per realm dus gelijk: `nl-portal` + `nl-portal-m2m`, de `aanvrager`-scope en de audience mappers. Alleen vermenigvuldigd met 50.
 
 - **50 m2m-secrets** in ESO is beheerbaar, maar ASVS 10.4.16 (L3) vraagt om sterke clientauthenticatie. Overweeg `private_key_jwt` (*Signed JWT*) met één backend-sleutelpaar. Elk realm vertrouwt dan dezelfde publieke sleutel of JWKS-URL van de backend, en er hoeft geen gedeeld geheim per realm te bestaan. Niet uitgeprobeerd.
 - In opties 2 en 3 kan één gedeelde m2m-client tokens van alle tenants omwisselen. Dat is geen scheiding.
@@ -121,7 +121,7 @@ Hostname v2 kent naast de serverbrede `hostname` ook een **"Realm configuration 
 
 - Draai de private broker als **aparte Keycloak-instantie** (eigen database, hostnaam en sleutels), niet als realm in de publieke instantie. Dan zijn issuer en JWKS gegarandeerd anders.
 - De backend accepteert alleen issuers uit de tenant-allowlist (§4.4). Een token van de private broker faalt dan al op `iss`, nog vóór de handtekening.
-- Borg het met een test: elke geconfigureerde issuer moet beginnen met de basis-URL van de publieke broker van die omgeving. Zet ook de audience-validatie aan (`nl-portal-m2m`, zie [Audience validatie](../../hosting-en-configuratie/keycloak.md#audience-validatie)).
+- Borg het met een test: elke geconfigureerde issuer moet beginnen met de basis-URL van de publieke broker van die omgeving. Zet ook de audience-validatie aan (`nl-portal-m2m`, zie Audience validatie (sectie vervallen met #506)).
 - Netwerk: de portal-runtime hoeft de private broker niet te bereiken. Een egress-NetworkPolicy maakt het onmogelijk dat de backend er per ongeluk JWKS of tokens ophaalt.
 - Federeer de publieke broker niet naar de private, en ook niet omgekeerd voor portaalrealms.
 

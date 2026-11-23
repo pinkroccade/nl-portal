@@ -1,0 +1,11 @@
+# Foutcodes die de browser te zien krijgt (GraphQL extensions.code, REST code). Zie FoutcodesTest.
+# Een code verwijderen of hernoemen breekt de frontend: overleg eerst, werk daarna deze lijst bewust bij.
+graphql: KOPPELING_FOUT
+graphql: MODULE_NIET_GECONFIGUREERD
+graphql: MODULE_NOT_AVAILABLE
+graphql: TENANT_ONTBREEKT
+graphql: UNAUTHENTICATED
+rest: KOPPELING_FOUT
+rest: MIME_TYPE_NIET_TOEGESTAAN
+rest: MODULE_NIET_GECONFIGUREERD
+rest: TENANT_ONTBREEKT
