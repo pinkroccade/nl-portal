@@ -247,6 +247,7 @@ class CallbackTest : BffTestBasis() {
                 Arguments.of("iss van de realm van een andere tenant", TokenSpec(extra = mapOf("iss" to BffTestOmgeving.wijdeveld.issuer)), Reden.PROTOCOL),
                 Arguments.of("iss van een onbekende realm", TokenSpec(extra = mapOf("iss" to "https://onbekend.example/realms/x")), Reden.PROTOCOL),
                 Arguments.of("aud van een andere client", TokenSpec(extra = mapOf("aud" to listOf("andere-client"))), Reden.PROTOCOL),
+                Arguments.of("een ID-token dat al verlopen is (exp in het verleden)", TokenSpec(geldigheid = Duration.ofHours(-1)), Reden.PROTOCOL),
                 Arguments.of("aud met een andere client erbij en een azp van die client", TokenSpec(extra = mapOf("aud" to listOf("nl-portal-backend", "andere-client"), "azp" to "andere-client")), Reden.PROTOCOL),
             )
 
