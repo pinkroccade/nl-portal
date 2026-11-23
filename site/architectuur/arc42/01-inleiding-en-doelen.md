@@ -18,19 +18,23 @@ kan het vrij gebruiken en verbeteren. Dat motto is architecturaal relevant: het 
 configureerbaarheid, standaarden (ZGW API's) in plaats van maatwerkkoppelingen, en het scheiden van
 data (bij de bron) en applicatielogica (in NL Portal).
 
-## 1.2 Kwaliteitsdoelen (voorstel)
+## 1.2 Kwaliteitsdoelen
 
-Afgeleid uit de Common Ground-principes, het EUPL-licentiemodel en de huidige CI/beveiligingsopzet.
-**Dit is een voorstel voor hoofdstuk 10's kwaliteitsboom, geen vastgestelde lijst — valideer met de
-productverantwoordelijke(n):**
+De kwaliteitsdoelen zijn vastgelegd als toetsbare principes in het
+[principeregister](../principes.md) ([ADR 0023](../../development/adr/0023-architectuurprincipes-en-toetsing.md)).
+Elk principe heeft een normatieve bron en een toetsing; `mise run compliance:check` dwingt dat af. De tabel
+hieronder koppelt de kwaliteitsdoelen aan de principes die ze uitwerken.
 
-| # | Kwaliteit | Waarom dit prioriteit heeft |
-|---|---|---|
-| 1 | **Vertrouwd / beveiligd** | Verwerkt BRP-gegevens en overheids-identiteit (DigiD/eHerkenning); één van de vijf Common Ground-principes is expliciet "vertrouwd". |
-| 2 | **Herbruikbaarheid / portabiliteit** | "340 keer hergebruiken" vereist dat het platform generiek blijft en niet vastgroeit aan één gemeente se databron. |
-| 3 | **Interoperabiliteit** | Moet werken tegen de ZGW-API-standaard en tegen meerdere implementaties daarvan (Open Zaak, OpenKlant, ...), niet tegen één specifieke leverancier. |
-| 4 | **Onderhoudbaarheid** | Open source met een bredere contributor-basis dan één team; lage instapdrempel voor nieuwe bijdragers is een expliciet doel (zie `CONTRIBUTING.md`). |
-| 5 | **Testbaarheid** | Backend- en frontend-CI draaien verplicht tests; zie hoofdstuk 10 voor concrete scenario's. |
+| # | Kwaliteit | Waarom dit prioriteit heeft | Principes |
+|---|---|---|---|
+| 1 | **Vertrouwd / beveiligd** | Verwerkt BRP-gegevens en overheidsidentiteit (DigiD/eHerkenning); een van de vijf Common Ground-principes is expliciet "vertrouwd". | P-01 t/m P-07 |
+| 2 | **Herbruikbaarheid / portabiliteit** | "340 keer hergebruiken" vereist dat het platform generiek blijft en niet vastgroeit aan de databron van één gemeente. | P-07, P-08, P-12 |
+| 3 | **Interoperabiliteit** | Moet werken tegen de ZGW-API-standaard en tegen meerdere implementaties daarvan (Open Zaak, OpenKlant, ...), niet tegen één specifieke leverancier. | P-09, P-10, P-12 |
+| 4 | **Onderhoudbaarheid** | Open source met een bredere contributorbasis dan één team; een lage instapdrempel voor nieuwe bijdragers is een expliciet doel (zie `CONTRIBUTING.md`). | P-08, P-13, P-14, P-15 |
+| 5 | **Toegankelijkheid** | Wettelijk verplicht voor overheidswebsites; een burger die de portal niet kan gebruiken, wordt uitgesloten van zijn eigen zaken. | P-11 |
+| 6 | **Testbaarheid** | Backend- en frontend-CI draaien verplicht tests; zie hoofdstuk 10 voor concrete scenario's. | P-13, P-15 |
+
+Toegankelijkheid is als zesde doel opgenomen (P-11).
 
 ## 1.3 Stakeholders
 

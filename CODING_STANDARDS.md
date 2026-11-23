@@ -35,3 +35,53 @@ overnemen; ontstaat er een controle voor, dan verhuist de regel daarheen.
 
 - `Closes #n` alleen als de acceptatiecriteria gehaald zijn. Is er iets open gebleven, dan staat `Refs #n` in de
   body en zegt de PR wat nog moet.
+
+## Reviewpunten bij de architectuurprincipes
+
+Reviewpunten bij de [architectuurprincipes](site/architectuur/principes.md). Elk punt toetst het deel van een
+principe dat geen controle kan zien; noem in de review het principe-ID als een wijziging het raakt.
+
+### Security by design
+
+- (P-01, P-02) Een wijziging aan authenticatie, autorisatie of gegevensverwerking noemt de ASVS-eisen die ze
+  raakt, en een nieuwe eis die we uitvoeren krijgt een rij in de traceerbaarheidsmatrix. Een token of geheim dat
+  naar de browser gaat, vraagt een ADR. OAuth-code volgt het NL GOV Assurance profile for OAuth 2.0; RFC 9700
+  geldt alleen waar het profiel niets specifiekers zegt.
+- (P-03) Een geheim staat ook niet in een image of een flag-systeem; de secret-scan ziet alleen de repository.
+
+### Privacy en dataminimalisatie
+
+- (P-05, P-06) Elk nieuw persoonsgegeven in een response, log, trace, flagcontext of cache heeft een doel dat de
+  PR noemt. BSN, KVK-nummer en naam staan nooit in logs of telemetrie, en niets wordt persistent opgeslagen dat
+  bij een bronregistratie hoort.
+
+### Least functionality
+
+- (P-07) Een nieuwe module of koppeling staat voor een tenant pas aan via een fail-closed permission-flag,
+  heeft geen client of geheim zonder dat recht en haalt geen afhankelijkheid binnen die de kern meesleept.
+
+### Open standaarden
+
+- (P-09, P-10) Een keuze voor een protocol, formaat of interface noemt de standaarden van de
+  pas-toe-of-leg-uitlijst die erop van toepassing zijn (niet de hele lijst), of legt in een ADR uit waarom een
+  standaard niet wordt toegepast. Een nieuwere IETF- of W3C-standaard die nog niet op de lijst staat, mag met
+  uitleg die beide noemt. Een nieuw REST-endpoint volgt de NLGov REST API Design Rules.
+
+### Toegankelijkheid
+
+- (P-11) Een nieuw of gewijzigd component is met het toetsenbord te bedienen, heeft voldoende contrast en een
+  logische focusvolgorde, en gebruikt semantische HTML; de PR zegt hoe dat is nagegaan.
+
+### Common Ground en GEMMA
+
+- (P-12) Een nieuwe module of container heeft een plek in het LikeC4-model en in het 5-lagenmodel, en de PR
+  noemt het GEMMA-bouwblok waar hij bij hoort.
+
+### Structuur
+
+- (P-14) Een nieuwe map of module noemt zijn doel in zijn naam of een README, en overlapt niet met een bestaande.
+
+### Proportionele controles
+
+- (P-15) Een nieuwe controle (test, lintregel, CI-stap, scan) noemt het principe dat hij bewaakt en staat in
+  verhouding tot wat hij bewaakt; past er geen principe bij, dan hoort hij er niet of ontbreekt het principe.

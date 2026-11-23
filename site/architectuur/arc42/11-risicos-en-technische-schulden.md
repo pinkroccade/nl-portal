@@ -27,8 +27,9 @@ waarom deze review is uitgevoerd):
 - **SBOM-generatie is backend-only en release-only** (zie hoofdstuk 8.6): een kwetsbaarheid die
   alleen in een snapshot-/dev-afhankelijkheid zit, of alleen in de frontend, is niet zichtbaar in het
   huidige SBOM-proces. Wordt uitgewerkt in deliverable 5.
-- **Geen BIO-toetsing aangetroffen** in de repository (zie hoofdstuk 2.3) — open vraag, geen
-  vastgesteld risico, maar wel een follow-up waard gezien de verwerking van BRP-gegevens.
+- **BIO2 is randvoorwaarde, maar nog niet per control getoetst** (zie hoofdstuk 2.3 en het
+  [principeregister](../principes.md)): de principes noemen de controls die ze dragen; de toetsing per
+  control volgt in de analyse van epic [#530](https://github.com/pinkroccade/nl-portal/issues/530).
 - **Geen productie-topologiedocument in déze repository** (zie hoofdstuk 7.4) — bemoeilijkt het
   inschatten van operationele risico's (schaalbaarheid, failover) vanuit dit document alleen.
 

@@ -305,7 +305,7 @@ run = "node scripts/generate-capabilities-docs.mjs"
 # fixtures:check staat in mise-tasks/fixtures/check (laadt de demo-fixtures op een schone compose-stack)
 
 [tasks."compliance:check"]
-description = "Faal als een bron-ID onbekend is of een normatieve bron geen check of afwijkingsbesluit heeft (site/compliance/normatieve-bronnen.md)"
+description = "Faal op een onbekend bron- of principe-ID, een bron zonder check, afwijkingsbesluit of getoetst principe, of een principe zonder bron of toetsing (normatieve-bronnen.md, principes.md)"
 run = "node scripts/check-compliance.mjs"
 
 [tasks."likec4:validate"]
