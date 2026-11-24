@@ -136,6 +136,8 @@ The chart is published as a signed OCI artifact: `oci://ghcr.io/pinkroccade/char
 
 1. Bump `version` in `Chart.yaml` (SemVer, independent of `appVersion`; a breaking values change is a major bump). Set `appVersion` to an
    app release whose images exist on ghcr.
-2. Merge to `main`, then push the tag `chart-nl-portal-<version>` on that commit.
-3. The workflow `publish-helm-chart.yml` checks that the tag equals `version`, that the images of `appVersion` exist, runs `helm:lint` and
-   `helm:test`, pushes the chart and signs it with cosign (keyless, GitHub OIDC).
+2. Merge to `main`. A merge that changes `version` triggers `publish-helm-chart.yml`; nothing to tag by hand. (The app release also tags
+   `chart-nl-portal-<version>` after its images exist, which starts the same workflow.)
+3. The workflow checks that the images of `appVersion` exist, runs `helm:lint` and `helm:test`, pushes the chart, signs it with cosign
+   (keyless, GitHub OIDC), and creates the tag `chart-nl-portal-<version>` and a GitHub Release with the changelog and the
+   `cosign verify` command. Without a version bump, or when the version is already in the registry, nothing is published.

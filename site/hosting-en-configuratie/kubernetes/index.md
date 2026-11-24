@@ -27,7 +27,7 @@ De chart staat als OCI-artifact op ghcr, naast de images, en is gesigneerd met c
 | Chart | `oci://ghcr.io/pinkroccade/charts/nl-portal` |
 | Images | `ghcr.io/pinkroccade/nl-portal-backend` en `ghcr.io/pinkroccade/nl-portal-frontend` |
 
-De chart heeft een eigen SemVer, los van de app-versie. Een release is een tag `chart-nl-portal-X.Y.Z`; `appVersion` in de chart is de standaard
+De chart heeft een eigen SemVer, los van de app-versie. Een release is een versiebump van de chart op `main`; die levert de tag `chart-nl-portal-X.Y.Z`, het gesigneerde artifact en een GitHub Release op; `appVersion` in de chart is de standaard
 image-tag. Pin altijd een chartversie, zodat een sync nooit onbedoeld een andere chart uitrolt:
 
 ```shell
