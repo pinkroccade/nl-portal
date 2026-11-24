@@ -76,6 +76,10 @@ legt vast *dat* en *hoe* beslissingen worden vastgelegd.
   Principeregister in TOGAF-vorm met per principe een bron en een toetsing, afgedwongen door
   `compliance:check`; een bron telt ook als gedekt via een getoetst principe.
 
+- [`0024-eigen-inlogpagina-en-afdwinging-van-inlogmiddelen.md`](../../development/adr/0024-eigen-inlogpagina-en-afdwinging-van-inlogmiddelen.md) — **geaccepteerd** (2026-11-25, nog niet gebouwd; #485).
+  Eigen inlogpagina `/inloggen`; Keycloak altijd ID-broker met een realm per gemeente en vaste IdP-aliassen; een uitgeschakeld
+  inlogmiddel is geweigerd in realm, backend (session-note `identity_provider`) en baseline, de frontend is alleen UX.
+
 ## Overige kandidaten
 
 Nog niet als ADR vastgelegd:

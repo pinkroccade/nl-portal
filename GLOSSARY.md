@@ -20,8 +20,10 @@ staat; voeg een nieuwe term toe zodra een module ernaar vernoemd wordt (zie de
 - **Gemachtigde** — een gebruiker die op grond van een machtiging of van de wet bevoegd is namens een
   vertegenwoordigde te handelen. _Vermijd_: volmachthouder, proxy.
 - **Inlogmiddel** — de manier waarop een gebruiker zich bij NL Portal identificeert, zoals DigiD,
-  eHerkenning of een wallet. Per tenant in- of uitgeschakeld; een uitgeschakeld inlogmiddel kan niet
-  worden gebruikt. _Vermijd_: IdP, loginmethode.
+  DigiD Machtigen, Yivi, gebruikersnaam en wachtwoord (alleen buiten productie) en later eHerkenning of eIDAS.
+  Per tenant in- of uitgeschakeld; een uitgeschakeld inlogmiddel kan niet worden gebruikt. _Vermijd_: IdP, loginmethode.
+- **IdP-alias** — de vaste naam waaronder een inlogmiddel bij de ID-broker bekendstaat. Voor alle tenants gelijk,
+  zodat een inlogmiddel overal dezelfde naam heeft.
 - **Betrouwbaarheidsniveau** — de mate van zekerheid over de identiteit van de gebruiker die een
   inlogmiddel biedt (bijvoorbeeld DigiD Substantieel of Hoog). Een tenant legt een minimum vast.
   _Vermijd_: LoA (alleen als afkorting naast de term).
@@ -103,7 +105,8 @@ staat; voeg een nieuwe term toe zodra een module ernaar vernoemd wordt (zie de
 - **Tenantbestand** — de niet-geheime inrichting van één tenant in één omgeving: domeinen, koppelingen,
   thema en cel, met verwijzingen naar geheimen. Onderdeel van de omgevingsconfiguratie van die tenant.
 - **Publieke ID-broker** — de Keycloak waarmee burgers en organisaties inloggen; federeert naar DigiD,
-  wallets en (alleen in acceptatie) lokale accounts.
+  wallets en (alleen in acceptatie) lokale accounts. Elke gemeente heeft er een eigen realm, genoemd naar de
+  gemeente en niet naar een applicatie.
 - **Private ID-broker** — de Keycloak voor beheertoegang; federeert naar de Entra ID van Pink of van
   de gemeente. Nooit bedoeld voor burgers of organisaties.
 
