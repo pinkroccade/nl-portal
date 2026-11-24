@@ -19,3 +19,10 @@ maintainers:
     url: https://github.com/pinkroccade/nl-portal
 annotations:
   category: Government
+  # Verwijzing van chart naar images (Artifact Hub). `mise run release:cut-rc` houdt de tags gelijk aan appVersion;
+  # de images verwijzen terug via het OCI-label nl.nlportal.chart.
+  artifacthub.io/images: |
+    - name: backend
+      image: ghcr.io/pinkroccade/nl-portal-backend:0.1.0
+    - name: frontend
+      image: ghcr.io/pinkroccade/nl-portal-frontend:0.1.0

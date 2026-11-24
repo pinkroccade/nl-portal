@@ -3,7 +3,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { execFileSync } from "node:child_process";
-import { mkdtempSync, readFileSync, writeFileSync, rmSync } from "node:fs";
+import { mkdtempSync, mkdirSync, readFileSync, writeFileSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -185,6 +185,38 @@ test("release:cut-rc --version weigert een ongeldige versie of een bestaande rc-
     git(dir, ["branch", "rc/1.1.0"]);
     assert.throws(() => runScript(dir, ["--version", "1.1.0"]), /bestaat al/);
     assert.equal(git(dir, ["rev-parse", "--abbrev-ref", "HEAD"]), "main");
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
+});
+
+const CHART = `name: nl-portal
+version: 0.3.1
+appVersion: "1.0.0"
+annotations:
+  artifacthub.io/images: |
+    - name: backend
+      image: ghcr.io/pinkroccade/nl-portal-backend:1.0.0
+`;
+
+test("release:cut-rc werkt de Helm-chart bij: appVersion, image-annotatie en minimaal een minor", () => {
+  const dir = initRepo();
+  try {
+    mkdirSync(join(dir, "helm/nl-portal"), { recursive: true });
+    commit(dir, "helm/nl-portal/Chart.yaml", CHART, "chore: chart");
+    commit(dir, "a.txt", "a", "feat(x): add thing");
+
+    const output = runScript(dir);
+    assert.match(output, /chart 0\.3\.1 -> 0\.4\.0/);
+    const chart = readFileSync(join(dir, "helm/nl-portal/Chart.yaml"), "utf8");
+    assert.match(chart, /^version: 0\.4\.0$/m);
+    assert.match(chart, /^appVersion: "1\.1\.0"$/m);
+    assert.match(chart, /nl-portal-backend:1\.1\.0$/m);
+    assert.deepEqual(git(dir, ["show", "--name-only", "--format=", "HEAD"]).split("\n").sort(), [
+      "CHANGELOG.md",
+      "helm/nl-portal/Chart.yaml",
+      "version.txt",
+    ]);
   } finally {
     rmSync(dir, { recursive: true, force: true });
   }

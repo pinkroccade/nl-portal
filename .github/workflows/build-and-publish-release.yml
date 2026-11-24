@@ -37,6 +37,17 @@ jobs:
                     echo "minor=${version%.*}" >> "$GITHUB_OUTPUT"
                     echo "major=${version%%.*}" >> "$GITHUB_OUTPUT"
                     echo "::notice::Release version ${version}"
+            -   name: Pre-flight - chart moet bij deze release horen
+                env:
+                    VERSION: ${{ steps.v.outputs.version }}
+                run: |
+                    app_version=$(sed -n 's/^appVersion: *//p' helm/nl-portal/Chart.yaml | tr -d '"')
+                    chart_version=$(sed -n 's/^version: *//p' helm/nl-portal/Chart.yaml | tr -d '"')
+                    if [ "${app_version}" != "${VERSION}" ]; then
+                      echo "::error::helm/nl-portal/Chart.yaml heeft appVersion ${app_version}, maar de release is ${VERSION}. Cut de rc met mise run release:cut-rc (die werkt de chart bij)."
+                      exit 1
+                    fi
+                    echo "::notice::Chart nl-portal ${chart_version} (appVersion ${app_version}) wordt na de images getagd."
             -   name: Pre-flight - release line must fast-forward
                 env:
                     MAJOR: ${{ steps.v.outputs.major }}
@@ -95,6 +106,7 @@ jobs:
                 ghcr.io/pinkroccade/nl-portal-backend:latest
             labels: |
                 nl.nlportal.sbom=https://github.com/${{ github.repository }}/releases/download/${{ needs.prepare.outputs.version }}/nl-portal-backend-${{ needs.prepare.outputs.version }}.image.sbom.cyclonedx.json
+                nl.nlportal.chart=oci://ghcr.io/pinkroccade/charts/nl-portal
         secrets: inherit
 
     image-fe:
@@ -112,6 +124,7 @@ jobs:
                 ghcr.io/pinkroccade/nl-portal-frontend:latest
             labels: |
                 nl.nlportal.sbom=https://github.com/${{ github.repository }}/releases/download/${{ needs.prepare.outputs.version }}/nl-portal-frontend-${{ needs.prepare.outputs.version }}.image.sbom.cyclonedx.json
+                nl.nlportal.chart=oci://ghcr.io/pinkroccade/charts/nl-portal
         secrets: inherit
 
     create-release:
@@ -147,6 +160,19 @@ jobs:
                     else
                       git tag "${VERSION}" "${GITHUB_SHA}"
                       git push origin "refs/tags/${VERSION}"
+                    fi
+            -   name: Tag the Helm chart (start de publicatie van de chart)
+                # Pas hier, na de images en de release-tag: publish-helm-chart.yml controleert dat de images van
+                # appVersion bestaan. De push met het App-token start die workflow; die ondertekent en publiceert.
+                run: |
+                    chart_version=$(sed -n 's/^version: *//p' helm/nl-portal/Chart.yaml | tr -d '"')
+                    tag="chart-nl-portal-${chart_version}"
+                    if git ls-remote --exit-code --tags origin "refs/tags/${tag}" > /dev/null 2>&1; then
+                      echo "::notice::Tag ${tag} already exists - skipping."
+                    else
+                      git tag "${tag}" "${GITHUB_SHA}"
+                      git push origin "refs/tags/${tag}"
+                      echo "::notice::Tag ${tag} gepusht; publish-helm-chart.yml publiceert de chart."
                     fi
             -   name: Create the GitHub release
                 env:
