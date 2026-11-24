@@ -24,7 +24,7 @@ Bij properties waarvan alleen het voorste deel een koppelteken heeft — zoals `
 ### Deployen met Helm (Kubernetes)
 
 Voor Kubernetes bestaat een eigen Helm-chart, `nl-portal`, in de map `helm/nl-portal` van de monorepo (epic [#191](https://github.com/pinkroccade/nl-portal/issues/191)).
-Installatie, secrets, tenantbestanden en upgraden staan op [Deployen op Kubernetes met Helm](./kubernetes-helm.md).
+Een tutorial, how-to's (installeren, secrets, modules, upgraden), de referentie en de uitleg staan in de sectie [Deployen op Kubernetes met Helm](./kubernetes/index.md).
 
 ### Backend: module-configuratie
 

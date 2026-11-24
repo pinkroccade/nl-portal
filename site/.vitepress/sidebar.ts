@@ -41,7 +41,7 @@ function link(file: string): string {
 }
 
 /** Pages directly in `dir` (index first), then sub-directories as collapsed groups. */
-function dirItems(dir: string): SidebarItem[] {
+function dirItems(dir: string, exclude: string[] = []): SidebarItem[] {
   const abs = join(SITE_ROOT, dir);
   const entries = readdirSync(abs).sort((a, b) => a.localeCompare(b, "en", { numeric: true }));
   const pages = entries.filter((e) => e.endsWith(".md") && statSync(join(abs, e)).isFile());
@@ -50,7 +50,7 @@ function dirItems(dir: string): SidebarItem[] {
     text: p === "index.md" ? "Overzicht" : pageTitle(join(abs, p)),
     link: link(join(abs, p)),
   }));
-  for (const sub of entries.filter((e) => statSync(join(abs, e)).isDirectory() && e !== "img")) {
+  for (const sub of entries.filter((e) => statSync(join(abs, e)).isDirectory() && e !== "img" && !exclude.includes(e))) {
     const children = dirItems(`${dir}/${sub}`);
     if (children.length > 0) items.push({ text: sub, collapsed: true, items: children });
   }
@@ -58,6 +58,24 @@ function dirItems(dir: string): SidebarItem[] {
 }
 
 const page = (dir: string, file: string): SidebarItem => ({ text: pageTitle(join(SITE_ROOT, dir, file)), link: link(join(SITE_ROOT, dir, file)) });
+
+/** Kubernetes-sectie: index, dan tutorial, how-to's, referentie en uitleg, op bestandsvoorvoegsel. */
+function kubernetesItems(): SidebarItem[] {
+  const dir = "hosting-en-configuratie/kubernetes";
+  const files = readdirSync(join(SITE_ROOT, dir)).filter((f) => f.endsWith(".md") && f !== "index.md").sort((a, b) => a.localeCompare(b, "en"));
+  const group = (text: string, prefix: string): SidebarItem => ({
+    text,
+    collapsed: false,
+    items: files.filter((f) => f.startsWith(prefix)).map((f) => page(dir, f)),
+  });
+  return [
+    { text: "Overzicht", link: "/hosting-en-configuratie/kubernetes/" },
+    group("Tutorial", "tutorial-"),
+    group("How-to's", "how-to-"),
+    group("Referentie", "referentie-"),
+    group("Uitleg", "uitleg-"),
+  ];
+}
 
 export const sidebar: Record<string, SidebarItem[]> = {
   "/architectuur/": [
@@ -78,7 +96,16 @@ export const sidebar: Record<string, SidebarItem[]> = {
     { text: "arc42", collapsed: true, items: dirItems("architectuur/arc42") },
   ],
   "/gebruik-en-inrichting/": [{ text: "Gebruik & inrichting", items: dirItems("gebruik-en-inrichting") }],
-  "/hosting-en-configuratie/": [{ text: "Hosting & configuratie", items: dirItems("hosting-en-configuratie") }],
+  "/hosting-en-configuratie/": [
+    {
+      text: "Hosting & configuratie",
+      items: [
+        ...dirItems("hosting-en-configuratie", ["kubernetes"]),
+        // Kubernetes: de pagina's staan per Diátaxis-type bij elkaar (de titel van elke pagina toont het type).
+        { text: "Kubernetes (Helm)", collapsed: false, items: kubernetesItems() },
+      ],
+    },
+  ],
   "/development/": [
     {
       text: "Development",

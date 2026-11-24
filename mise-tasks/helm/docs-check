@@ -1,0 +1,13 @@
+#!/usr/bin/env bash
+#MISE description="Faal als helm/nl-portal/README.md afwijkt van wat helm-docs uit values.yaml genereert (schrijft niets weg)"
+set -euo pipefail
+
+cd "$(dirname "$0")/../../helm/nl-portal"
+# --dry-run print het resultaat in plaats van README.md te overschrijven; de loginformatie gaat naar stderr.
+expected="$(helm-docs --chart-search-root . --template-files README.md.gotmpl --dry-run 2>/dev/null)"
+if [ "$expected" != "$(cat README.md)" ]; then
+    echo "helm/nl-portal/README.md is niet actueel met values.yaml of README.md.gotmpl. Draai 'mise run helm:docs' en commit het resultaat." >&2
+    diff <(printf '%s\n' "$expected") README.md | head -40 >&2 || true
+    exit 1
+fi
+echo "helm/nl-portal/README.md is actueel."

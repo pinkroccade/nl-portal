@@ -131,16 +131,18 @@ jobs:
                 uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6.5.0
                 with:
                     node-version: "24"
-            -   name: Set up mise (helm, kubeconform, helm-unittest, kube-linter)
+            -   name: Set up mise (helm, helm-docs, kubeconform, helm-unittest, kube-linter)
                 uses: jdx/mise-action@924e7c586e33d7d4bae9c14e26c5d22e2beb6e78 # v5.3.0
                 with:
-                    install_args: "helm kubeconform github:helm-unittest/helm-unittest kube-linter"
+                    install_args: "helm aqua:norwoodj/helm-docs kubeconform github:helm-unittest/helm-unittest kube-linter"
             -   name: Lint the chart (helm lint, kubeconform)
                 run: mise run helm:lint
             -   name: Check the chart against best practices (kube-linter)
                 run: mise run helm:kube-linter
             -   name: Check that the chart renders every key of the app config reference
                 run: mise run helm:sync-check
+            -   name: Check that the chart README is generated from values.yaml (helm-docs)
+                run: mise run helm:docs-check
             -   name: Unit tests of the chart
                 run: mise run helm:test
 
@@ -253,8 +255,36 @@ jobs:
             -   name: Lint de workflows
                 run: mise run workflows:lint
 
+    # Een chartwijziging raakt ook de changelog of de Kubernetes-docs; label docs-not-needed is de bewuste uitzondering.
+    # Het label wordt live gelezen: na het zetten van het label volstaat een herstart van deze job.
+    chart-docs-touched:
+        needs: changes
+        if: ${{ needs.changes.outputs.helm == 'true' }}
+        runs-on: ubuntu-latest
+        steps:
+            -   uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+                with:
+                    fetch-depth: 0
+            -   name: Set up mise
+                uses: jdx/mise-action@924e7c586e33d7d4bae9c14e26c5d22e2beb6e78 # v5.3.0
+                with:
+                    install: false
+            -   name: Check that the chart change touches the changelog or the docs
+                env:
+                    GH_TOKEN: ${{ github.token }}
+                    REPO: ${{ github.repository }}
+                    PR_NUMBER: ${{ github.event.pull_request.number }}
+                    DOCS_BASE_REF: origin/${{ github.base_ref }}
+                run: |
+                    DOCS_NOT_NEEDED=false
+                    if gh pr view "${PR_NUMBER}" --repo "${REPO}" --json labels --jq '.labels[].name' | grep -qx docs-not-needed; then
+                      DOCS_NOT_NEEDED=true
+                    fi
+                    export DOCS_NOT_NEEDED
+                    mise run helm:docs-touched
+
     ci-required:
-        needs: [changes, validate, test-scripts, java-version-consistent, mise-shell-consistent, copyright-headers, capabilities-docs-fresh, compliance-register-consistent, docs-site, workflows-lint, helm-chart]
+        needs: [changes, validate, test-scripts, java-version-consistent, mise-shell-consistent, copyright-headers, capabilities-docs-fresh, compliance-register-consistent, docs-site, workflows-lint, helm-chart, chart-docs-touched]
         if: always()
         runs-on: ubuntu-latest
         steps:
@@ -270,6 +300,7 @@ jobs:
                     DOCS_SITE_RESULT: ${{ needs.docs-site.result }}
                     WORKFLOWS_LINT_RESULT: ${{ needs.workflows-lint.result }}
                     HELM_CHART_RESULT: ${{ needs.helm-chart.result }}
+                    CHART_DOCS_RESULT: ${{ needs.chart-docs-touched.result }}
                 run: |
                     echo "::notice::validate result = ${VALIDATE_RESULT}"
                     echo "::notice::test-scripts result = ${SCRIPTS_RESULT}"
@@ -281,6 +312,7 @@ jobs:
                     echo "::notice::docs-site result = ${DOCS_SITE_RESULT}"
                     echo "::notice::workflows-lint result = ${WORKFLOWS_LINT_RESULT}"
                     echo "::notice::helm-chart result = ${HELM_CHART_RESULT}"
+                    echo "::notice::chart-docs-touched result = ${CHART_DOCS_RESULT}"
                     if [ "${VALIDATE_RESULT}" = "failure" ] || [ "${VALIDATE_RESULT}" = "cancelled" ]; then
                       exit 1
                     fi
@@ -309,6 +341,9 @@ jobs:
                       exit 1
                     fi
                     if [ "${HELM_CHART_RESULT}" = "failure" ] || [ "${HELM_CHART_RESULT}" = "cancelled" ]; then
+                      exit 1
+                    fi
+                    if [ "${CHART_DOCS_RESULT}" = "failure" ] || [ "${CHART_DOCS_RESULT}" = "cancelled" ]; then
                       exit 1
                     fi
 

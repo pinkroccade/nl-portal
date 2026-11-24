@@ -1,0 +1,141 @@
+# nl-portal
+
+Helm chart for NL Portal Pink Edition: the backend and the frontend as separate Deployments and Services.
+
+The chart contains only what the application needs to run. It is meant as a child chart of a base chart (Argo CD, ingress,
+NetworkPolicy and ExternalSecret live there); a plain `helm install` works as a reference.
+
+## What the chart creates
+
+| Resource | When |
+|---|---|
+| Deployment and Service `<release>-nl-portal-backend` | always |
+| Deployment and Service `<release>-nl-portal-frontend` | always |
+| ConfigMap `<release>-nl-portal-backend` (non-secret environment), `...-frontend` | always |
+| ConfigMap `<release>-nl-portal-tenants` (tenant files) | when `tenancy.tenants` is set |
+| ConfigMap `<release>-nl-portal-flags` (feature flags, flagd JSON) | when `backend.featureFlags` is set |
+| ServiceAccount | `serviceAccount.create` |
+| Ingress | `ingress.enabled` (default off) |
+
+The chart creates **no** Secret, NetworkPolicy, PodDisruptionBudget, HorizontalPodAutoscaler, ExternalSecret, ServiceMonitor
+or Argo CD resource, and bundles no subcharts. With `nameOverride` the names follow `<release>-<nameOverride>-<component>`;
+`fullnameOverride` gives `<fullnameOverride>-backend` and `-frontend`. Every resource carries the Kubernetes recommended
+labels (`app.kubernetes.io/name`, `instance`, `version`, `component`, `part-of`, `managed-by`) and `helm.sh/chart`.
+
+## Prerequisites (not part of the chart)
+
+- **Redis** for the sessions of the BFF (ADR 0022). Use an ACL user, no persistence, and TLS (`backend.redis.ssl`, default on).
+  The backend is stateless in the sense of ADR 0013 (no database, no persistent state), but not free of state: the sessions
+  live in Redis. Without a reachable Redis nobody can log in.
+- **Keycloak** (own image with the mappers) with a realm per tenant and a `private_key_jwt` client; see `site/hosting-en-configuratie/keycloak.md`.
+- The **sources** of the enabled modules (Open Zaak, Open Object, OpenKlant, OpenProduct, Haal Centraal, ClamAV).
+- A **Secret** per component with the keys below, for example filled by External Secrets Operator.
+- The **tenant files** and a **client key** per tenant (see below).
+
+## Multi-tenant
+
+NL Portal is multi-tenant: one release can carry one or more tenants. The tenant follows from the `Host` header; the
+Ingress and the nginx of the frontend pass `Host` on unchanged.
+
+- `tenancy.tenants` holds the tenant files by file name (`base.yaml` and `<oin>.yaml`); they contain secret *names*, never
+  secrets. Use `tenancy.existingConfigMap` to bring your own ConfigMap.
+- `tenancy.keys` lists the client key per tenant: a Secret per OIN, mounted at `/etc/nl-portal/sleutels/<oin>/clientsleutel.jwk.json`
+  (`nl-portal.sleutelmap`). The tenant file refers to it with `authenticatie.sleutelBestand: <oin>/clientsleutel.jwk.json`.
+- The secrets that tenant files refer to (`<oin>.zaken-secret`) are environment variables `NL_PORTAL_GEHEIMEN_<OIN>_<NAME>`
+  in the backend Secret (see below).
+
+## Secret keys
+
+The chart takes one existing Secret per component. The Secret is mounted as environment variables; the keys below are fixed
+and documented, and each key name can be overridden under `backend.secretKeys`.
+
+### Backend (`backend.existingSecret`, required)
+
+| Key (default name) | Needed when | Meaning |
+|---|---|---|
+| `REDIS_PASSWORD` | always | Password of the Redis ACL user |
+| `REDIS_USERNAME` | optional | ACL user; overrides `backend.redis.username` |
+| `REDIS_SSL` | optional | `true` or `false`; overrides `backend.redis.ssl` |
+| `NLPORTAL_BEHEER_WACHTWOORDHASH` | `backend.beheer.enabled` | Password hash of the management user, with prefix (`{bcrypt}$2a$...`) |
+| `NLPORTAL_CONFIG_BESLUITENAPI_PROPERTIES_SECRET` | `modules.besluitenapi.enabled` | Client secret of the Besluiten API |
+| `NLPORTAL_CONFIG_OPENKLANT2_PROPERTIES_TOKEN` | `modules.openklant2.enabled` | API token of OpenKlant 2 |
+| `NLPORTAL_CONFIG_OPENPRODUCT_PROPERTIES_TOKEN` | `modules.openproduct.enabled` | API token of OpenProduct |
+| `NL_PORTAL_GEHEIMEN_<OIN>_<NAME>` | per tenant file | The secrets the tenant file refers to, for example `NL_PORTAL_GEHEIMEN_00000099000000000001_ZAKEN_SECRET`, `..._CATALOGIAPI_SECRET`, `..._OBJECTENAPI_TOKEN` (value `Token <token>`), `..._DOCUMENTEN_API_SECRET`, `..._VERIFICATIE_SECRET` |
+
+The `NL_PORTAL_GEHEIMEN_*` keys depend on the tenants, so the whole Secret is exposed to the backend container as environment.
+The other keys are referenced one by one: a missing key stops the pod (`CreateContainerConfigError`) instead of failing at runtime.
+The chart cannot read the Secret (no `lookup`); it fails at render time on a missing `backend.existingSecret`. After a rotation
+the pods only pick up the new value on restart: bump `backend.secretVersion` or use a secret reloader via `backend.podAnnotations`.
+
+### Frontend
+
+The frontend needs no secrets: its configuration (`GRAPHQL_URI`, `REST_URI`, `AUTO_IDLE_SESSION_LOGOUT`, `IDLE_TIMEOUT_MINUTES`)
+is public. Use `frontend.extraEnv` for anything else.
+
+## Ports, probes and the actuator
+
+| Port | Container | In the Service |
+|---|---|---|
+| backend `http` 8080 | yes | yes (`backend.service.port`) |
+| backend `management` 8091 (`backend.management.port`, `MANAGEMENT_SERVER_PORT`) | yes | **never** |
+| frontend `http` 8081 | yes | yes (Service port 80) |
+
+The probes use the health groups on the management port (`/actuator/health/liveness` and `/readiness`, plus a startup probe).
+Do not publish the management port through an Ingress. The frontend nginx proxies `/graphql`, `/api`, `/oauth2`, `/login` and
+`/logout` to the backend Service (`NL_PORTAL_BACKEND_UPSTREAM`, set by the chart).
+
+## Pod Security
+
+Both pods meet Pod Security "restricted" by default: `runAsNonRoot` with a numeric uid (1001 and 101), `readOnlyRootFilesystem`,
+`allowPrivilegeEscalation: false`, all capabilities dropped and `seccompProfile: RuntimeDefault`. Writable paths are emptyDirs:
+`/tmp` on both, plus `/etc/nginx/conf.d` on the frontend (the rendered nginx configuration). The ServiceAccount token is not mounted.
+
+## Modules
+
+Every module is off by default. A module needs its tenant configuration (`koppelingen` and `modules` in the tenant file); the
+chart holds the switch and the non-secret settings that are still environment configuration. Render fails on a missing dependency:
+
+| Module | Needs |
+|---|---|
+| `taak`, `formulieren`, `product`, `prefill` | `objectenapi` |
+| `berichten` | `objectenapi`, `documentenapis` |
+| `zakenapi` | `catalogiapi` |
+
+`berichten` is switched on with the flag `ops.berichten.enabled` in `backend.featureFlags` and `modules.berichten` in the tenant
+file; `backend.modules.berichten.enabled` only declares the intent so the dependency check runs.
+
+## Values
+
+Validated by `values.schema.json`: unknown keys and wrong types fail the render. The chart uses only `global.imageRegistry` and
+`global.imagePullSecrets`; it ignores other globals from a parent chart. Use `backend.extraEnv` and `frontend.extraEnv` (EnvVar objects) for what is not modelled yet.
+The table is generated from the comments in `values.yaml` by helm-docs (`mise run helm:docs`); do not edit it by hand.
+
+<!-- #region values -->
+{{ template "chart.valuesTable" . }}
+<!-- #endregion values -->
+
+## Ingress
+
+Off by default. When enabled, per host: `/graphql`, `/api`, `/oauth2`, `/login` and `/logout` go to the backend Service,
+everything else to the frontend Service. The `Host` header is passed on unchanged.
+
+## Restarts on change
+
+Pods restart on a change of the environment ConfigMap, the tenant files, the feature flags (checksum annotations) and on a new
+`backend.secretVersion`. The chart renders deterministically: no `lookup`, `rand*`, `now` or hooks.
+
+## Tests
+
+From the repository root: `mise run helm:lint` (`helm lint --strict` and kubeconform per scenario in `ci/`) and `mise run helm:test`
+(helm-unittest suites in `tests/`). `mise run helm:docs` regenerates this README from `values.yaml`; `mise run helm:docs-check` (part of `mise run lint`) fails when it is stale.
+The user documentation (tutorial, how-tos, reference) lives in `site/hosting-en-configuratie/kubernetes/`.
+
+## Releasing
+
+The chart is published as a signed OCI artifact: `oci://ghcr.io/pinkroccade/charts/nl-portal`. To release:
+
+1. Bump `version` in `Chart.yaml` (SemVer, independent of `appVersion`; a breaking values change is a major bump). Set `appVersion` to an
+   app release whose images exist on ghcr.
+2. Merge to `main`, then push the tag `chart-nl-portal-<version>` on that commit.
+3. The workflow `publish-helm-chart.yml` checks that the tag equals `version`, that the images of `appVersion` exist, runs `helm:lint` and
+   `helm:test`, pushes the chart and signs it with cosign (keyless, GitHub OIDC).

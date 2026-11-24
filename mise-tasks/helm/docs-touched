@@ -1,0 +1,36 @@
+#!/usr/bin/env bash
+#MISE description="Faal als een PR de chart wijzigt zonder CHANGELOG of docs te raken (bestandenlijst op stdin of via git diff tegen DOCS_BASE_REF); DOCS_NOT_NEEDED=true is de bewuste uitzondering"
+set -euo pipefail
+
+cd "$(dirname "$0")/../.."
+
+if [ -t 0 ]; then
+    : "${DOCS_BASE_REF:?Zet DOCS_BASE_REF (bijvoorbeeld origin/main) of geef de gewijzigde bestanden op stdin}"
+    files="$(git diff --name-only "$DOCS_BASE_REF"...HEAD)"
+else
+    files="$(cat)"
+fi
+
+# Een wijziging van de chart die gebruikers raakt. Tests, CI-scenario's en de gegenereerde README tellen niet mee:
+# de README volgt uit values.yaml, en tests en scenario's veranderen het gedrag niet.
+chart_changed="$(printf '%s\n' "$files" | grep -E '^helm/nl-portal/' | grep -Ev '^helm/nl-portal/(tests/|ci/|README\.md$)' || true)"
+if [ -z "$chart_changed" ]; then
+    echo "De chart is niet (gebruikersrelevant) gewijzigd; niets te controleren."
+    exit 0
+fi
+
+if printf '%s\n' "$files" | grep -Eq '^(helm/nl-portal/CHANGELOG\.md|site/hosting-en-configuratie/kubernetes[^/]*(/|\.md))'; then
+    echo "De chartwijziging raakt de CHANGELOG of de Kubernetes-docs."
+    exit 0
+fi
+
+if [ "${DOCS_NOT_NEEDED:-false}" = "true" ]; then
+    echo "Label docs-not-needed staat op de PR: docs en changelog zijn bewust niet bijgewerkt."
+    exit 0
+fi
+
+echo "Deze PR wijzigt de chart (helm/nl-portal) maar raakt geen changelog of Kubernetes-docs:" >&2
+printf '  %s\n' $chart_changed >&2
+echo "Voeg een regel toe aan helm/nl-portal/CHANGELOG.md of werk site/hosting-en-configuratie/kubernetes/ bij." >&2
+echo "Hoeft dit niet, zet dan het label docs-not-needed op de PR en draai de check opnieuw." >&2
+exit 1

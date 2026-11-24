@@ -108,58 +108,166 @@ file; `backend.modules.berichten.enabled` only declares the intent so the depend
 
 Validated by `values.schema.json`: unknown keys and wrong types fail the render. The chart uses only `global.imageRegistry` and
 `global.imagePullSecrets`; it ignores other globals from a parent chart. Use `backend.extraEnv` and `frontend.extraEnv` (EnvVar objects) for what is not modelled yet.
+The table is generated from the comments in `values.yaml` by helm-docs (`mise run helm:docs`); do not edit it by hand.
 
-| Key | Default | Description |
-|---|---|---|
-| `global.imageRegistry` | `""` | Replaces the registry of every image |
-| `global.imagePullSecrets` | `[]` | Pull secrets for every pod (name or `{name: ...}`) |
-| `nameOverride` / `fullnameOverride` | `""` | Override the chart name or the whole base name |
-| `serviceAccount.create` / `name` / `annotations` | `false` / `""` / `{}` | Optional ServiceAccount |
-| `serviceAccount.automountServiceAccountToken` | `false` | The pods need no API access |
-| `tenancy.tenants` | `{}` | Tenant files by file name; required unless `existingConfigMap` is set |
-| `tenancy.existingConfigMap` | `""` | Existing ConfigMap with the tenant files |
-| `tenancy.keys` | `[]` | Client key per tenant: `{oin, existingSecret, key}`; at least one |
-| `tenancy.keysDefaultMode` | `288` (0440) | File mode of the key files |
-| `backend.replicaCount` | `1` | Replicas |
-| `backend.image.registry` / `repository` / `tag` / `digest` / `pullPolicy` | `ghcr.io` / `pinkroccade/nl-portal-backend` / appVersion / `""` / `IfNotPresent` | Image; a digest replaces the tag |
-| `backend.existingSecret` | `""` | **Required.** Secret with the keys above |
-| `backend.secretKeys.*` | env var names | Key names in the Secret |
-| `backend.secretVersion` | `""` | Bump to restart the pods after a secret rotation |
-| `backend.logLevel` | `INFO` | `LOGLEVEL` |
-| `backend.javaOpts` | `-XX:MaxRAMPercentage=75.0` | `JAVA_TOOL_OPTIONS` |
-| `backend.keycloakBrokerUrl` | `""` | **Required.** `KEYCLOAK_BROKER_URL`: public base URL of Keycloak |
-| `backend.trustedProxies` | `[]` | `NL_PORTAL_TRUSTED_PROXIES` (CIDR blocks of the ingress controller) |
-| `backend.redis.host` / `port` / `ssl` / `username` | `""` / `6379` / `true` / `""` | Redis for the sessions; host required |
-| `backend.management.port` | `8091` | Actuator port, never in the Service |
-| `backend.beheer.enabled` / `username` | `false` / `beheer` | Basic auth for `/actuator/modulestatus` |
-| `backend.cors.allowedOrigins` / `allowedMethods` / `allowedHeaders` | `[]` / common methods / `["*"]` | Cross-origin access; empty means none |
-| `backend.featureFlags` | `{}` | flagd JSON (as YAML) mounted as a file |
-| `backend.frontendProperties` | `{}` | `NLPORTAL_FRONTEND_PROPERTIES_<NAME>` by camelCase name |
-| `backend.modules.<module>.enabled` | `false` | `zakenapi`, `catalogiapi`, `documentenapis`, `objectenapi`, `besluitenapi`, `openklant2`, `openproduct`, `haalcentraalBrp`, `kvk`, `verificatie`, `clamav`, `taak`, `berichten`, `formulieren`, `product`, `prefill`, `dmn` |
-| `backend.modules.besluitenapi.url` / `clientId` | `""` | Required when enabled |
-| `backend.modules.openklant2.contactgegevensApiUrl` / `klantinteractiesApiUrl` | `""` | Required when enabled |
-| `backend.modules.openproduct.productApiUrl` / `productTypeApiUrl` | `""` | Required when enabled |
-| `backend.modules.clamav.hostname` / `port` | `""` / `3310` | Hostname required when enabled |
-| `backend.modules.formulieren.formDefinitionObjectTypeUrl` | `""` | Optional validation of form definitions |
-| `backend.modules.product.*TypeUrl` | `""` | The four object type URLs; required when enabled |
-| `backend.modules.prefill.typeUrl`, `backend.modules.dmn.url` | `""` | Required when enabled |
-| `backend.extraEnv` / `extraVolumes` / `extraVolumeMounts` | `[]` | Escape hatches |
-| `backend.service.type` / `port` / `annotations` | `ClusterIP` / `8080` / `{}` | Service |
-| `backend.probes.startup` / `liveness` / `readiness` | see `values.yaml` | Timing of the probes |
-| `backend.resources` | requests 250m / 768Mi, limits 1 / 1Gi | Resources |
-| `backend.podSecurityContext` / `containerSecurityContext` | restricted | Security context |
-| `backend.podAnnotations` / `podLabels` / `nodeSelector` / `tolerations` / `affinity` / `topologySpreadConstraints` / `priorityClassName` | empty | Scheduling and metadata |
-| `backend.terminationGracePeriodSeconds` / `revisionHistoryLimit` | `30` / `3` | Deployment settings |
-| `frontend.replicaCount` | `1` | Replicas |
-| `frontend.image.*` | `ghcr.io/pinkroccade/nl-portal-frontend` | Image, as for the backend |
-| `frontend.graphqlUri` / `restUri` | `/graphql` / `/api` | `GRAPHQL_URI` and `REST_URI` of the SPA |
-| `frontend.autoIdleSessionLogout` / `idleTimeoutMinutes` | `true` / `""` | Idle logout of the SPA |
-| `frontend.extraEnv` | `[]` | Extra environment |
-| `frontend.service.type` / `port` / `annotations` | `ClusterIP` / `80` / `{}` | Service |
-| `frontend.probes`, `resources`, `podSecurityContext`, `containerSecurityContext`, scheduling | see `values.yaml` | As for the backend (resources 50m / 64Mi, limits 200m / 128Mi) |
-| `ingress.enabled` | `false` | Create an Ingress |
-| `ingress.className` / `annotations` / `tls` | `""` / `{}` / `[]` | Ingress settings |
-| `ingress.hosts` | `[]` | Tenant domains; required when enabled |
+<!-- #region values -->
+| Key | Type | Default | Description |
+|-----|------|---------|-------------|
+| backend.affinity | object | `{}` |  |
+| backend.beheer.enabled | bool | `false` |  |
+| backend.beheer.username | string | `"beheer"` |  |
+| backend.containerSecurityContext.allowPrivilegeEscalation | bool | `false` |  |
+| backend.containerSecurityContext.capabilities.drop[0] | string | `"ALL"` |  |
+| backend.containerSecurityContext.readOnlyRootFilesystem | bool | `true` |  |
+| backend.cors.allowedHeaders[0] | string | `"*"` |  |
+| backend.cors.allowedMethods[0] | string | `"GET"` |  |
+| backend.cors.allowedMethods[1] | string | `"POST"` |  |
+| backend.cors.allowedMethods[2] | string | `"PUT"` |  |
+| backend.cors.allowedMethods[3] | string | `"DELETE"` |  |
+| backend.cors.allowedMethods[4] | string | `"OPTIONS"` |  |
+| backend.cors.allowedOrigins | list | `[]` | Origins allowed cross-origin (NLPORTAL_SECURITY_CORS_0_*). Empty: no cross-origin requests (default, right for the BFF). |
+| backend.existingSecret | string | `""` | Name of an existing Secret with the keys of `secretKeys` (and the tenant secrets `NL_PORTAL_GEHEIMEN_<OIN>_<NAME>`). Required. |
+| backend.extraEnv | list | `[]` | Extra environment variables for what the chart does not model yet (EnvVar objects). |
+| backend.extraVolumeMounts | list | `[]` |  |
+| backend.extraVolumes | list | `[]` |  |
+| backend.featureFlags | object | `{}` | Feature flags in flagd format; rendered into a ConfigMap and mounted (NLPORTAL_FEATUREFLAGS_FILE). Empty: the defaults compiled into the image apply (all off). |
+| backend.frontendProperties | object | `{}` | Frontend properties served via GET /api/public/frontend (`NLPORTAL_FRONTEND_PROPERTIES_<NAME>`), by camelCase name. |
+| backend.image.digest | string | `""` | When set, the digest replaces the tag. |
+| backend.image.pullPolicy | string | `"IfNotPresent"` |  |
+| backend.image.registry | string | `"ghcr.io"` |  |
+| backend.image.repository | string | `"pinkroccade/nl-portal-backend"` |  |
+| backend.image.tag | string | `""` | Defaults to the chart appVersion. |
+| backend.javaOpts | string | `"-XX:MaxRAMPercentage=75.0"` | JAVA_TOOL_OPTIONS. |
+| backend.keycloakBrokerUrl | string | `""` | Public base URL of Keycloak (KEYCLOAK_BROKER_URL); the issuer of every tenant must fall under it. Required. |
+| backend.logLevel | string | `"INFO"` | LOGLEVEL of the root logger. |
+| backend.management.port | int | `8091` |  |
+| backend.modules.berichten.enabled | bool | `false` |  |
+| backend.modules.besluitenapi.clientId | string | `""` |  |
+| backend.modules.besluitenapi.enabled | bool | `false` |  |
+| backend.modules.besluitenapi.url | string | `""` |  |
+| backend.modules.catalogiapi.enabled | bool | `false` |  |
+| backend.modules.clamav.enabled | bool | `false` |  |
+| backend.modules.clamav.hostname | string | `""` |  |
+| backend.modules.clamav.port | int | `3310` |  |
+| backend.modules.dmn.enabled | bool | `false` |  |
+| backend.modules.dmn.url | string | `""` |  |
+| backend.modules.documentenapis.enabled | bool | `false` |  |
+| backend.modules.formulieren.enabled | bool | `false` |  |
+| backend.modules.formulieren.formDefinitionObjectTypeUrl | string | `""` |  |
+| backend.modules.haalcentraalBrp.enabled | bool | `false` |  |
+| backend.modules.kvk.enabled | bool | `false` |  |
+| backend.modules.objectenapi.enabled | bool | `false` |  |
+| backend.modules.openklant2.contactgegevensApiUrl | string | `""` |  |
+| backend.modules.openklant2.enabled | bool | `false` |  |
+| backend.modules.openklant2.klantinteractiesApiUrl | string | `""` |  |
+| backend.modules.openproduct.enabled | bool | `false` |  |
+| backend.modules.openproduct.productApiUrl | string | `""` |  |
+| backend.modules.openproduct.productTypeApiUrl | string | `""` |  |
+| backend.modules.prefill.enabled | bool | `false` |  |
+| backend.modules.prefill.typeUrl | string | `""` |  |
+| backend.modules.product.enabled | bool | `false` |  |
+| backend.modules.product.productDetailsTypeUrl | string | `""` |  |
+| backend.modules.product.productInstantieTypeUrl | string | `""` |  |
+| backend.modules.product.productTypeUrl | string | `""` |  |
+| backend.modules.product.productVerbruiksobjectTypeUrl | string | `""` |  |
+| backend.modules.taak.enabled | bool | `false` |  |
+| backend.modules.verificatie.enabled | bool | `false` |  |
+| backend.modules.zakenapi.enabled | bool | `false` |  |
+| backend.nodeSelector | object | `{}` |  |
+| backend.podAnnotations | object | `{}` |  |
+| backend.podLabels | object | `{}` |  |
+| backend.podSecurityContext.fsGroup | int | `1001` |  |
+| backend.podSecurityContext.runAsGroup | int | `1001` |  |
+| backend.podSecurityContext.runAsNonRoot | bool | `true` |  |
+| backend.podSecurityContext.runAsUser | int | `1001` |  |
+| backend.podSecurityContext.seccompProfile.type | string | `"RuntimeDefault"` |  |
+| backend.priorityClassName | string | `""` |  |
+| backend.probes.liveness.failureThreshold | int | `3` |  |
+| backend.probes.liveness.periodSeconds | int | `10` |  |
+| backend.probes.liveness.timeoutSeconds | int | `3` |  |
+| backend.probes.readiness.failureThreshold | int | `3` |  |
+| backend.probes.readiness.periodSeconds | int | `10` |  |
+| backend.probes.readiness.timeoutSeconds | int | `3` |  |
+| backend.probes.startup.failureThreshold | int | `36` |  |
+| backend.probes.startup.periodSeconds | int | `5` |  |
+| backend.redis.host | string | `""` | Required. |
+| backend.redis.port | int | `6379` |  |
+| backend.redis.ssl | bool | `true` | TLS to Redis (REDIS_SSL). |
+| backend.redis.username | string | `""` | ACL user; empty for the default user. |
+| backend.replicaCount | int | `1` | Number of replicas; the backend keeps no persistent state (sessions live in Redis). |
+| backend.resources.limits.cpu | string | `"1"` |  |
+| backend.resources.limits.memory | string | `"1Gi"` |  |
+| backend.resources.requests.cpu | string | `"250m"` |  |
+| backend.resources.requests.memory | string | `"768Mi"` |  |
+| backend.revisionHistoryLimit | int | `3` |  |
+| backend.secretKeys | object | `{"beheerPasswordHash":"NLPORTAL_BEHEER_WACHTWOORDHASH","besluitenapiSecret":"NLPORTAL_CONFIG_BESLUITENAPI_PROPERTIES_SECRET","openklant2Token":"NLPORTAL_CONFIG_OPENKLANT2_PROPERTIES_TOKEN","openproductToken":"NLPORTAL_CONFIG_OPENPRODUCT_PROPERTIES_TOKEN","redisPassword":"REDIS_PASSWORD","redisSsl":"REDIS_SSL","redisUsername":"REDIS_USERNAME"}` | Key names in the existing Secret, by purpose. The defaults are the environment variable names; override a key name when your secret store uses another one. |
+| backend.secretVersion | string | `""` | Changes the pod template (and so restarts the pods) when you bump it. Use it after rotating a value in the Secret, or use a secret reloader via podAnnotations. |
+| backend.service.annotations | object | `{}` |  |
+| backend.service.port | int | `8080` |  |
+| backend.service.type | string | `"ClusterIP"` |  |
+| backend.terminationGracePeriodSeconds | int | `30` |  |
+| backend.tolerations | list | `[]` |  |
+| backend.topologySpreadConstraints | list | `[]` |  |
+| backend.trustedProxies | list | `[]` | IP addresses or CIDR blocks of the ingress controller (NL_PORTAL_TRUSTED_PROXIES); only from these addresses are Forwarded and X-Forwarded-Host honoured. Leave empty when the Host header is enough. |
+| frontend.affinity | object | `{}` |  |
+| frontend.autoIdleSessionLogout | bool | `true` | AUTO_IDLE_SESSION_LOGOUT. |
+| frontend.containerSecurityContext.allowPrivilegeEscalation | bool | `false` |  |
+| frontend.containerSecurityContext.capabilities.drop[0] | string | `"ALL"` |  |
+| frontend.containerSecurityContext.readOnlyRootFilesystem | bool | `true` |  |
+| frontend.extraEnv | list | `[]` |  |
+| frontend.graphqlUri | string | `"/graphql"` | GRAPHQL_URI and REST_URI of the SPA: same-origin paths, nginx proxies them to the backend. |
+| frontend.idleTimeoutMinutes | string | `""` | IDLE_TIMEOUT_MINUTES; empty follows the tenant file. |
+| frontend.image.digest | string | `""` |  |
+| frontend.image.pullPolicy | string | `"IfNotPresent"` |  |
+| frontend.image.registry | string | `"ghcr.io"` |  |
+| frontend.image.repository | string | `"pinkroccade/nl-portal-frontend"` |  |
+| frontend.image.tag | string | `""` |  |
+| frontend.nodeSelector | object | `{}` |  |
+| frontend.podAnnotations | object | `{}` |  |
+| frontend.podLabels | object | `{}` |  |
+| frontend.podSecurityContext.fsGroup | int | `101` |  |
+| frontend.podSecurityContext.runAsGroup | int | `101` |  |
+| frontend.podSecurityContext.runAsNonRoot | bool | `true` |  |
+| frontend.podSecurityContext.runAsUser | int | `101` |  |
+| frontend.podSecurityContext.seccompProfile.type | string | `"RuntimeDefault"` |  |
+| frontend.priorityClassName | string | `""` |  |
+| frontend.probes.liveness.failureThreshold | int | `3` |  |
+| frontend.probes.liveness.periodSeconds | int | `10` |  |
+| frontend.probes.liveness.timeoutSeconds | int | `2` |  |
+| frontend.probes.readiness.failureThreshold | int | `3` |  |
+| frontend.probes.readiness.periodSeconds | int | `10` |  |
+| frontend.probes.readiness.timeoutSeconds | int | `2` |  |
+| frontend.replicaCount | int | `1` |  |
+| frontend.resources.limits.cpu | string | `"200m"` |  |
+| frontend.resources.limits.memory | string | `"128Mi"` |  |
+| frontend.resources.requests.cpu | string | `"50m"` |  |
+| frontend.resources.requests.memory | string | `"64Mi"` |  |
+| frontend.restUri | string | `"/api"` |  |
+| frontend.revisionHistoryLimit | int | `3` |  |
+| frontend.service.annotations | object | `{}` |  |
+| frontend.service.port | int | `80` |  |
+| frontend.service.type | string | `"ClusterIP"` |  |
+| frontend.terminationGracePeriodSeconds | int | `30` |  |
+| frontend.tolerations | list | `[]` |  |
+| frontend.topologySpreadConstraints | list | `[]` |  |
+| fullnameOverride | string | `""` | Overrides the whole resource base name (services become `<fullnameOverride>-backend` and `-frontend`). |
+| global.imagePullSecrets | list | `[]` | Pull secrets for every pod; a name or {name: ...}. |
+| global.imageRegistry | string | `""` | Replaces the registry of every image (registry mirror). |
+| ingress.annotations | object | `{}` |  |
+| ingress.className | string | `""` |  |
+| ingress.enabled | bool | `false` |  |
+| ingress.hosts | list | `[]` | Hosts (the tenant domains). Required when enabled. |
+| ingress.tls | list | `[]` |  |
+| nameOverride | string | `""` | Overrides the chart name in resource names and labels. |
+| serviceAccount.annotations | object | `{}` |  |
+| serviceAccount.automountServiceAccountToken | bool | `false` | The pods need no Kubernetes API access. |
+| serviceAccount.create | bool | `false` | Creates a ServiceAccount; otherwise `name` (or "default") is used. |
+| serviceAccount.name | string | `""` |  |
+| tenancy.existingConfigMap | string | `""` | Name of an existing ConfigMap with the tenant files; replaces `tenants`. |
+| tenancy.keys | list | `[]` | Client key per tenant (private_key_jwt towards Keycloak): a Secret per OIN, mounted as `<sleutelmap>/<oin>/<key>`. |
+| tenancy.keysDefaultMode | int | `288` | File mode of the mounted key files (octal, readable by the pod fsGroup). |
+| tenancy.tenants | object | `{}` | Tenant files by file name (`base.yaml` and `<oin>.yaml`), rendered into a ConfigMap. Contains no secrets, only secret names. |
+<!-- #endregion values -->
 
 ## Ingress
 
@@ -174,7 +282,8 @@ Pods restart on a change of the environment ConfigMap, the tenant files, the fea
 ## Tests
 
 From the repository root: `mise run helm:lint` (`helm lint --strict` and kubeconform per scenario in `ci/`) and `mise run helm:test`
-(helm-unittest suites in `tests/`).
+(helm-unittest suites in `tests/`). `mise run helm:docs` regenerates this README from `values.yaml`; `mise run helm:docs-check` (part of `mise run lint`) fails when it is stale.
+The user documentation (tutorial, how-tos, reference) lives in `site/hosting-en-configuratie/kubernetes/`.
 
 ## Releasing
 
