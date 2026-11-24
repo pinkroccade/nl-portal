@@ -23,7 +23,12 @@ alternatief serieus is overwogen.
 - [ADR 0023: architectuurprincipes en toetsing](./0023-architectuurprincipes-en-toetsing.md): principeregister
   in TOGAF-vorm, elk principe met een bron en een toetsing; wacht op beoordeling door de architect.
 
-## Recent geaccepteerd (2026-11-21)
+## Recent geaccepteerd
+
+- [ADR 0024: eigen inlogpagina en afdwinging van inlogmiddelen](./0024-eigen-inlogpagina-en-afdwinging-van-inlogmiddelen.md):
+  eigen pagina `/inloggen`, Keycloak als ID-broker met een realm per gemeente, en afdwinging in lagen (2026-11-25, epic #485).
+
+## Eerder geaccepteerd (2026-11-21)
 
 - [ADR 0022: backend-for-frontend als authenticatiepatroon](./0022-backend-for-frontend-als-authenticatiepatroon.md):
   de backend is per tenant de vertrouwelijke OIDC-client; tokens blijven op de server.
