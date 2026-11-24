@@ -31,9 +31,8 @@ test("de sleutels in values.yaml zijn camelCase", () => {
   assert.deepEqual(slecht, []);
 });
 
-test("het schema kent de twee ondersteunde globals en laat andere waarden van een parent-chart toe", () => {
+test("het schema kent de twee ondersteunde globals en negeert onbekende", () => {
   const schema = JSON.parse(read("values.schema.json"));
   assert.deepEqual(Object.keys(schema.properties.global.properties).sort(), ["imagePullSecrets", "imageRegistry"]);
-  // Onbekende globale waarden van een parent-chart worden genegeerd (#589).
-  assert.equal(schema.properties.global.additionalProperties, true);
+  assert.equal(schema.properties.global.additionalProperties, true); // een parent-chart mag eigen globals zetten (#589)
 });

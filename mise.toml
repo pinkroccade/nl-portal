@@ -40,7 +40,7 @@ depends = ["backend:test", "frontend:test", "keycloak:test", "scripts:test", "pe
 
 [tasks.lint]
 description = "Lint, typecheck en formatteringscontrole van backend en frontend, plus de controles van workflows, mise-taken en Keycloak-versie"
-depends = ["backend:lint", "frontend:lint", "frontend:typecheck", "frontend:prettier", "perf:check", "workflows:lint", "mise:check-shell", "keycloak:check-version", "helm:lint", "helm:kube-linter", "helm:sync-check", "helm:docs-check", "copyright:check"]
+depends = ["backend:lint", "frontend:lint", "frontend:typecheck", "frontend:prettier", "perf:check", "workflows:lint", "mise:check-shell", "keycloak:check-version", "helm:lint", "helm:kube-linter", "helm:sync-check", "helm:docs-check", "helm:secret-tabel-check", "copyright:check"]
 
 [tasks.arch-check]
 description = "Bewaak de architectuurregels (backend: ArchUnit; frontend: package-boundaries valt onder frontend:lint)"

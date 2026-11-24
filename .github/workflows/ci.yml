@@ -50,6 +50,8 @@ jobs:
                             - 'scripts/check-helm-sync*'
                             - 'scripts/manifest-diff*'
                             - 'scripts/lib/manifest-diff*'
+                            - 'scripts/secret-tabel*'
+                            - 'site/hosting-en-configuratie/kubernetes/referentie-secret-keys.md'
                             # De sync-check vergelijkt de chart met de config-referentie van de app (#194): een PR die alleen
                             # een app-property toevoegt, moet hem dus ook draaien.
                             - 'docker-compose/imports/backend.env'
@@ -151,6 +153,8 @@ jobs:
                 run: mise run helm:sync-check
             -   name: Check that the chart README is generated from values.yaml (helm-docs)
                 run: mise run helm:docs-check
+            -   name: Check that the secret keys table in the docs is generated from the chart schema
+                run: mise run helm:secret-tabel-check
             -   name: Unit tests of the chart
                 run: mise run helm:test
 
