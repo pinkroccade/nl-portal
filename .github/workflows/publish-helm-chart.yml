@@ -56,7 +56,10 @@ jobs:
                 env:
                     GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
                     ACTOR: ${{ github.actor }}
-                run: echo "${GITHUB_TOKEN}" | mise exec -- helm registry login ghcr.io --username "${ACTOR}" --password-stdin
+                run: |
+                    echo "${GITHUB_TOKEN}" | mise exec -- helm registry login ghcr.io --username "${ACTOR}" --password-stdin
+                    # cosign leest de inloggegevens van helm niet; zonder eigen login faalt de upload van de handtekening.
+                    echo "${GITHUB_TOKEN}" | cosign login ghcr.io --username "${ACTOR}" --password-stdin
             -   name: De images van appVersion moeten bestaan
                 env:
                     APP_VERSION: ${{ steps.v.outputs.appVersion }}
