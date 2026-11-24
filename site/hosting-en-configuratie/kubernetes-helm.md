@@ -7,7 +7,44 @@ Hij is bedoeld als child-chart in een base-chart die de cluster-instellingen (Ar
 `helm install` werkt ook, als referentie. De volledige parameterreferentie en de tabel met secret-keys staan in de
 [chart-README](https://github.com/pinkroccade/nl-portal/blob/main/helm/nl-portal/README.md).
 
-> De chart wordt nog niet als OCI-artifact gepubliceerd. Tot die tijd installeer je hem vanuit een checkout van de repository.
+## De chart ophalen
+
+De chart staat als OCI-artifact op ghcr, naast de images, en is gesigneerd met cosign:
+
+| Wat | Locatie |
+|---|---|
+| Chart | `oci://ghcr.io/pinkroccade/charts/nl-portal` |
+| Images | `ghcr.io/pinkroccade/nl-portal-backend` en `ghcr.io/pinkroccade/nl-portal-frontend` |
+
+De chart heeft een eigen SemVer, los van de app-versie. Een release is een tag `chart-nl-portal-X.Y.Z`; `appVersion` in de chart is de standaard
+image-tag. Pin altijd een chartversie, zodat een sync nooit onbedoeld een andere chart uitrolt:
+
+```shell
+helm pull oci://ghcr.io/pinkroccade/charts/nl-portal --version 0.1.0
+helm install nl-portal oci://ghcr.io/pinkroccade/charts/nl-portal --version 0.1.0 -n nl-portal -f values.yaml
+```
+
+Controleer de handtekening voor je de chart gebruikt:
+
+```shell
+cosign verify ghcr.io/pinkroccade/charts/nl-portal:0.1.0 \
+  --certificate-identity-regexp '^https://github.com/pinkroccade/nl-portal/.github/workflows/publish-helm-chart.yml@refs/tags/chart-nl-portal-' \
+  --certificate-oidc-issuer https://token.actions.githubusercontent.com
+```
+
+### Via Harbor (eigen registry)
+
+Draai je in een cluster dat alleen uit Harbor haalt, kopieer dan chart en images naar een Harbor-project, met behoud van de handtekeningen
+(`crane copy` en `cosign copy` nemen de digest mee):
+
+```shell
+crane copy ghcr.io/pinkroccade/charts/nl-portal:0.1.0 harbor.example.nl/nl-portal/charts/nl-portal:0.1.0
+crane copy ghcr.io/pinkroccade/nl-portal-backend:0.1.0 harbor.example.nl/nl-portal/nl-portal-backend:0.1.0
+crane copy ghcr.io/pinkroccade/nl-portal-frontend:0.1.0 harbor.example.nl/nl-portal/nl-portal-frontend:0.1.0
+```
+
+Wijs de chart daarna naar Harbor met `global.imageRegistry` en `global.imagePullSecrets` (zie de [chart-README](https://github.com/pinkroccade/nl-portal/blob/main/helm/nl-portal/README.md)).
+Een Harbor-proxy-cache naar `ghcr.io` kan ook; dan hoef je niet te kopiëren.
 
 ## Vereisten
 
