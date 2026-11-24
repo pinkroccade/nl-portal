@@ -84,6 +84,14 @@ Bouwt backend en frontend uit deze werkboom met een debugger op poort 8000; comb
 Wie de apps buiten Docker draait (`./gradlew :app-dev:bootRun`, `pnpm dev`), start de diensten zonder app-containers met
 `mise run dev:diensten`; `dev:setup` schrijft daarvoor een tenantbestand met localhost-adressen naar `.generated/tenants-host`.
 
+## Smoke-poort (CI)
+
+`mise run smoke:images` bouwt backend, frontend en Keycloak als `nl-portal-*:smoke` (in CI uit de stage-bundels van de run met
+`SMOKE_BUILD_MODE=ci`); `mise run smoke:stack` start deze compose ermee onder projectnaam `nlp-smoke`, wacht op health en draait
+de login van `burger` op De Bosrand met een GraphQL-verzoek erachteraan. De images zijn in te stellen met
+`NL_PORTAL_BACKEND_IMAGE`, `NL_PORTAL_FRONTEND_IMAGE` en `NL_PORTAL_KEYCLOAK_IMAGE`. De poorten zijn vast: stop een draaiende
+quickstart eerst. In CI: `.github/workflows/_smoke-stack.yml` (#524).
+
 ## Configuratie
 
 | Wat | Waar |

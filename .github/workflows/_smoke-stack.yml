@@ -1,0 +1,60 @@
+name: _smoke-stack
+
+# Smoke-poort van de build-once-workflow (ADR 0019, #524 deel 1): bouwt de drie images uit de stage-bundels van deze run (geen
+# tweede compilatie van backend en frontend), start de quickstart-compose ermee en draait de BFF-login als burger met GraphQL 200.
+# De aanroeper draait eerst _stage-be en _stage-fe (artefacten backend-stage en frontend-stage); faalt deze job, dan promoveert
+# de workflow niet.
+on:
+    workflow_call:
+        inputs:
+            nodeVersion:
+                type: string
+                default: "24"
+
+permissions:
+    contents: read
+
+jobs:
+    smoke:
+        runs-on: ubuntu-latest
+        timeout-minutes: 25
+        steps:
+            -   uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+                with:
+                    persist-credentials: false
+            -   name: Download backend stage bundle
+                uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+                with:
+                    name: backend-stage
+                    path: backend
+            -   name: Download frontend stage bundle
+                uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+                with:
+                    name: frontend-stage
+                    path: frontend
+            -   name: Restore stage bundles
+                run: |
+                    tar -xf backend/backend-stage.tar -C backend && rm backend/backend-stage.tar
+                    tar -xf frontend/frontend-stage.tar -C frontend && rm frontend/frontend-stage.tar
+            -   name: Set up Node.js ${{ inputs.nodeVersion }}
+                uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6.5.0
+                with:
+                    node-version: ${{ inputs.nodeVersion }}
+            -   name: Set up mise (java uit mise.toml, voor de Keycloak-provider)
+                uses: jdx/mise-action@924e7c586e33d7d4bae9c14e26c5d22e2beb6e78 # v5.3.0
+                with:
+                    install_args: "java"
+            -   name: Set up Gradle
+                uses: gradle/actions/setup-gradle@8da46b539cd8fe6ab27ca75128919a18d757604c # v6.4.1
+            -   name: Build the images from the stage bundles
+                env:
+                    SMOKE_BUILD_MODE: ci
+                run: |
+                    start=$SECONDS
+                    mise run smoke:images
+                    echo "::notice::smoke:images duurde $((SECONDS - start))s"
+            -   name: Start the stack and run the smoke check
+                run: |
+                    start=$SECONDS
+                    mise run smoke:stack
+                    echo "::notice::smoke:stack duurde $((SECONDS - start))s"

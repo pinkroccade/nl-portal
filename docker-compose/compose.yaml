@@ -14,7 +14,7 @@ networks:
 services:
 
     nl-portal-frontend:
-        image: nl-portal-frontend:dev
+        image: ${NL_PORTAL_FRONTEND_IMAGE:-nl-portal-frontend:dev}
         build: ../frontend
         pull_policy: never
         container_name: nl-portal-frontend
@@ -28,7 +28,7 @@ services:
             - "127.0.0.1:${FRONTEND_PORT:-3000}:8081"
 
     nl-portal-backend:
-        image: nl-portal-backend:dev
+        image: ${NL_PORTAL_BACKEND_IMAGE:-nl-portal-backend:dev}
         build: ../backend
         pull_policy: never
         container_name: nl-portal-backend
@@ -101,7 +101,7 @@ services:
             - "127.0.0.1:${KEYCLOAK_PORT:-8082}:8082"
         depends_on:
             - nl-portal-keycloak-database
-        image: nl-portal-keycloak:dev
+        image: ${NL_PORTAL_KEYCLOAK_IMAGE:-nl-portal-keycloak:dev}
         pull_policy: never
         environment:
             KC_DB_URL: jdbc:postgresql://nl-portal-keycloak-database/keycloak

@@ -1,0 +1,39 @@
+name: Smoke
+
+# Spike van #524 deel 1: staat los van ci.yml (nog geen onderdeel van ci-required) en bewijst de keten stage -> images -> stack ->
+# login. De build-once-workflow (#606) roept _smoke-stack.yml na _stage-be en _stage-fe aan in plaats van deze trigger.
+on:
+    pull_request:
+        branches:
+            - main
+        paths:
+            - ".github/workflows/smoke.yml"
+            - ".github/workflows/_smoke-stack.yml"
+            - "mise-tasks/smoke/**"
+            - "keycloak/**"
+            - "docker-compose/**"
+    workflow_dispatch:
+
+concurrency:
+    group: smoke-${{ github.workflow }}-${{ github.ref }}
+    cancel-in-progress: true
+
+permissions:
+    contents: read
+
+jobs:
+    stage-be:
+        uses: ./.github/workflows/_stage-be.yml
+        with:
+            version: 0.0.0-smoke
+            runTests: false
+
+    stage-fe:
+        uses: ./.github/workflows/_stage-fe.yml
+        with:
+            version: 0.0.0-smoke
+            runTests: false
+
+    smoke:
+        needs: [stage-be, stage-fe]
+        uses: ./.github/workflows/_smoke-stack.yml
