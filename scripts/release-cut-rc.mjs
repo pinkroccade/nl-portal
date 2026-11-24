@@ -22,6 +22,9 @@ import {
   renderSection,
   insertSection,
 } from "./lib/changelog.mjs";
+import { updateChartForRelease } from "./lib/helm-chart.mjs";
+
+const CHART_PATH = "helm/nl-portal/Chart.yaml";
 
 const RECORD_SEP = "\x1e";
 const FIELD_SEP = "\x1f";
@@ -108,6 +111,10 @@ function readFileAtRef(ref, path) {
   return tryGit(["show", `${ref}:${path}`]);
 }
 
+function readChartVersion(text) {
+  return /^version: *"?([^"\s]+)/m.exec(text)[1];
+}
+
 const SEMVER = /^\d+\.\d+\.\d+$/;
 
 // Returns the forced version, or null when --version is absent. Throws on a missing or malformed value.
@@ -152,15 +159,26 @@ function main() {
   if (tryGit(["rev-parse", "--verify", "--quiet", `refs/heads/${branch}`])) {
     throw new Error(`De branch ${branch} bestaat al.`);
   }
+  // De chart krijgt bij elke release een eigen, hogere versie met appVersion = de nieuwe appversie.
+  const existingChart = readFileAtRef(baseRef, CHART_PATH);
+  const chart = existingChart ? updateChartForRelease(existingChart, nextVersion) : null;
+
   git(["switch", "-c", branch, baseRef]);
 
   writeFileSync("version.txt", `${nextVersion}\n`);
   writeFileSync("CHANGELOG.md", newChangelog);
 
-  git(["add", "version.txt", "CHANGELOG.md"]);
+  const files = ["version.txt", "CHANGELOG.md"];
+  if (chart) {
+    writeFileSync(CHART_PATH, chart.text);
+    files.push(CHART_PATH);
+  }
+
+  git(["add", ...files]);
   git(["commit", "-m", `chore(release): ${nextVersion}`]);
 
   console.log(`Cut ${branch} (${currentVersion} -> ${nextVersion}, bump: ${bump}).`);
+  if (chart) console.log(`Chart nl-portal: appVersion ${nextVersion}, chart ${readChartVersion(existingChart)} -> ${chart.chartVersion}.`);
   console.log("");
   console.log(section.trimEnd());
   console.log("");
