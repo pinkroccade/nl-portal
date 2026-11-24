@@ -2,7 +2,7 @@
 
 ## Status
 
-Voorgesteld. Vervangt het branchmodel (`rc/*`, `release/<major>.x`) uit `CONTRIBUTING.md` en de
+Geaccepteerd (2026-11-25). De bouw loopt via epic #604. Vervangt het branchmodel (`rc/*`, `release/<major>.x`) uit `CONTRIBUTING.md` en de
 rc-stap uit [ADR 0004](./0004-changelog-release-proces.md); de changelog-afleiding uit
 Conventional Commits van ADR 0004 blijft.
 
@@ -53,7 +53,14 @@ ArgoCD. De pijplijn publiceert dus een artefact dat altijd uitrolbaar moet zijn.
   noodrem.
 - **De tag staat op de geteste commit; de changelog-commit volgt daarna.** De tag bevat zijn eigen
   changelog-sectie dus niet.
-- **Nog te bouwen:** smoke-test, build-once- en promotie-workflow (vervangt snapshot, rc en
+- **Nog te bouwen** (epic #604): smoke-test, build-once- en promotie-workflow (vervangt snapshot, rc en
   release), versie uit tags en changelog-bot, opruimen van branchmodel en docs, metrics-poort.
+  - #524 deel 1: smoke-poort op de compose-stack.
+  - #606: build-once, één build per commit op `main`.
+  - #607: promotie op digest (retaggen, signeren, GitHub Release).
+  - #608: versie uit tags en changelog-bot.
+  - #609: opruimen van branchmodel, `version.txt` en docs.
+  - #610: Helm-chart.
+  - Later, nog zonder ticket: de metrics-poort (punt 8), zodra de metrics-tickets leveren.
 - **Afgewezen:** het huidige rc-model behouden (dubbele build, zware release) en `latest` laten
   meebewegen met elke `main`-build (geen audit, geen rollback).
