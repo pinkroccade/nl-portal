@@ -23,6 +23,7 @@ jobs:
             mise: ${{ steps.filter.outputs.mise }}
             workflows: ${{ steps.filter.outputs.workflows }}
             docs: ${{ steps.filter.outputs.docs }}
+            helm: ${{ steps.filter.outputs.helm }}
             docsOnly: ${{ steps.filter.outputs.backend == 'false' && steps.filter.outputs.frontend == 'false' && steps.filter.outputs.scripts == 'false' && steps.filter.outputs.workflows == 'false' && steps.filter.outputs.docs == 'true' }}
         steps:
             -   uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -42,6 +43,8 @@ jobs:
                             - 'mise.toml'
                         workflows:
                             - '.github/workflows/**'
+                        helm:
+                            - 'helm/**'
                         docs:
                             - 'docs/**'
                             - 'site/**'
@@ -220,8 +223,36 @@ jobs:
             -   name: Lint de workflows
                 run: mise run workflows:lint
 
+    # Een chartwijziging raakt ook de changelog of de Kubernetes-docs; label docs-not-needed is de bewuste uitzondering.
+    # Het label wordt live gelezen: na het zetten van het label volstaat een herstart van deze job.
+    chart-docs-touched:
+        needs: changes
+        if: ${{ needs.changes.outputs.helm == 'true' }}
+        runs-on: ubuntu-latest
+        steps:
+            -   uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+                with:
+                    fetch-depth: 0
+            -   name: Set up mise
+                uses: jdx/mise-action@924e7c586e33d7d4bae9c14e26c5d22e2beb6e78 # v5.3.0
+                with:
+                    install: false
+            -   name: Check that the chart change touches the changelog or the docs
+                env:
+                    GH_TOKEN: ${{ github.token }}
+                    REPO: ${{ github.repository }}
+                    PR_NUMBER: ${{ github.event.pull_request.number }}
+                    DOCS_BASE_REF: origin/${{ github.base_ref }}
+                run: |
+                    DOCS_NOT_NEEDED=false
+                    if gh pr view "${PR_NUMBER}" --repo "${REPO}" --json labels --jq '.labels[].name' | grep -qx docs-not-needed; then
+                      DOCS_NOT_NEEDED=true
+                    fi
+                    export DOCS_NOT_NEEDED
+                    mise run helm:docs-touched
+
     ci-required:
-        needs: [changes, validate, test-scripts, java-version-consistent, mise-shell-consistent, copyright-headers, capabilities-docs-fresh, compliance-register-consistent, docs-site, workflows-lint]
+        needs: [changes, validate, test-scripts, java-version-consistent, mise-shell-consistent, copyright-headers, capabilities-docs-fresh, compliance-register-consistent, docs-site, workflows-lint, chart-docs-touched]
         if: always()
         runs-on: ubuntu-latest
         steps:
@@ -236,6 +267,7 @@ jobs:
                     COMPLIANCE_RESULT: ${{ needs.compliance-register-consistent.result }}
                     DOCS_SITE_RESULT: ${{ needs.docs-site.result }}
                     WORKFLOWS_LINT_RESULT: ${{ needs.workflows-lint.result }}
+                    CHART_DOCS_RESULT: ${{ needs.chart-docs-touched.result }}
                 run: |
                     echo "::notice::validate result = ${VALIDATE_RESULT}"
                     echo "::notice::test-scripts result = ${SCRIPTS_RESULT}"
@@ -246,6 +278,7 @@ jobs:
                     echo "::notice::compliance-register-consistent result = ${COMPLIANCE_RESULT}"
                     echo "::notice::docs-site result = ${DOCS_SITE_RESULT}"
                     echo "::notice::workflows-lint result = ${WORKFLOWS_LINT_RESULT}"
+                    echo "::notice::chart-docs-touched result = ${CHART_DOCS_RESULT}"
                     if [ "${VALIDATE_RESULT}" = "failure" ] || [ "${VALIDATE_RESULT}" = "cancelled" ]; then
                       exit 1
                     fi
@@ -271,6 +304,9 @@ jobs:
                       exit 1
                     fi
                     if [ "${WORKFLOWS_LINT_RESULT}" = "failure" ] || [ "${WORKFLOWS_LINT_RESULT}" = "cancelled" ]; then
+                      exit 1
+                    fi
+                    if [ "${CHART_DOCS_RESULT}" = "failure" ] || [ "${CHART_DOCS_RESULT}" = "cancelled" ]; then
                       exit 1
                     fi
 

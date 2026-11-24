@@ -10,7 +10,7 @@ global:
 
 # -- Overrides the chart name in resource names and labels.
 nameOverride: ""
-# -- Overrides the whole resource base name (services become <fullnameOverride>-backend and -frontend).
+# -- Overrides the whole resource base name (services become `<fullnameOverride>-backend` and `-frontend`).
 fullnameOverride: ""
 
 serviceAccount:
@@ -24,11 +24,11 @@ serviceAccount:
 # Tenant files and client keys. NL Portal is multi-tenant: one release can carry one or more tenants, the tenant follows
 # from the Host header (Ingress and frontend proxy pass it on unchanged).
 tenancy:
-  # -- Tenant files by file name (base.yaml and <oin>.yaml), rendered into a ConfigMap. Contains no secrets, only secret names.
+  # -- Tenant files by file name (`base.yaml` and `<oin>.yaml`), rendered into a ConfigMap. Contains no secrets, only secret names.
   tenants: {}
   # -- Name of an existing ConfigMap with the tenant files; replaces `tenants`.
   existingConfigMap: ""
-  # -- Client key per tenant (private_key_jwt towards Keycloak): a Secret per OIN, mounted as <sleutelmap>/<oin>/<key>.
+  # -- Client key per tenant (private_key_jwt towards Keycloak): a Secret per OIN, mounted as `<sleutelmap>/<oin>/<key>`.
   keys: []
   # keys:
   #   - oin: "00000099000000000001"
@@ -49,7 +49,7 @@ backend:
     digest: ""
     pullPolicy: IfNotPresent
 
-  # -- Name of an existing Secret with the keys of `secretKeys` (and the tenant secrets NL_PORTAL_GEHEIMEN_<OIN>_<NAME>). Required.
+  # -- Name of an existing Secret with the keys of `secretKeys` (and the tenant secrets `NL_PORTAL_GEHEIMEN_<OIN>_<NAME>`). Required.
   existingSecret: ""
   # -- Key names in the existing Secret, by purpose. The defaults are the environment variable names; override a key name
   # when your secret store uses another one.
@@ -112,7 +112,7 @@ backend:
   #       variants: {on: true, off: false}
   #       defaultVariant: "on"
 
-  # -- Frontend properties served via GET /api/public/frontend (NLPORTAL_FRONTEND_PROPERTIES_<NAME>), by camelCase name.
+  # -- Frontend properties served via GET /api/public/frontend (`NLPORTAL_FRONTEND_PROPERTIES_<NAME>`), by camelCase name.
   frontendProperties: {}
   # frontendProperties:
   #   messageCountPollingInterval: 30000

@@ -1,0 +1,6 @@
+#!/usr/bin/env bash
+#MISE description="Genereer helm/nl-portal/README.md uit README.md.gotmpl en de commentaren in values.yaml (helm-docs); commit het resultaat zelf"
+set -euo pipefail
+
+cd "$(dirname "$0")/../../helm/nl-portal"
+helm-docs --chart-search-root . --template-files README.md.gotmpl

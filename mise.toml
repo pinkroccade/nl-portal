@@ -12,6 +12,8 @@ actionlint = "1.7.12"
 # actionlint controleert de `run:`-scripts met shellcheck als dat beschikbaar is; vastgepind zodat lokaal en CI hetzelfde zien.
 shellcheck = "0.11.0"
 helm = "3.22.1"
+# Genereert de values-tabel in helm/nl-portal/README.md; `mise run helm:docs` schrijft, `helm:docs-check` controleert.
+"aqua:norwoodj/helm-docs" = "1.14.2"
 kubeconform = "0.8.0"
 "github:helm-unittest/helm-unittest" = "1.2.1"
 
@@ -34,7 +36,7 @@ depends = ["backend:test", "frontend:test", "keycloak:test", "scripts:test", "pe
 
 [tasks.lint]
 description = "Lint, typecheck en formatteringscontrole van backend en frontend, plus de controles van workflows, mise-taken en Keycloak-versie"
-depends = ["backend:lint", "frontend:lint", "frontend:typecheck", "frontend:prettier", "perf:check", "workflows:lint", "mise:check-shell", "keycloak:check-version", "helm:lint", "copyright:check"]
+depends = ["backend:lint", "frontend:lint", "frontend:typecheck", "frontend:prettier", "perf:check", "workflows:lint", "mise:check-shell", "keycloak:check-version", "helm:lint", "helm:docs-check", "copyright:check"]
 
 [tasks.arch-check]
 description = "Bewaak de architectuurregels (backend: ArchUnit; frontend: package-boundaries valt onder frontend:lint)"

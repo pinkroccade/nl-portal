@@ -14,7 +14,7 @@ Alle code en informatie is opensource en kan gevonden worden in deze GitHub-repo
 | Onderdeel                                                                         | Beschrijving                                                                                                    |
 | --------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------- |
 | Deze repository                                                                   | De monorepo: backend (`backend/`), frontend (`frontend/`), docker-compose demo (`docker-compose/`) en docs.    |
-| Helm Charts                                                                       | Eigen chart `nl-portal` als OCI-artifact op ghcr; zie [Deployen op Kubernetes met Helm](./kubernetes-helm.md).   |
+| Helm Charts                                                                       | Eigen chart `nl-portal` als OCI-artifact op ghcr; zie [Deployen op Kubernetes met Helm](./kubernetes/index.md).   |
 
 Voor de meeste implementaties gebruik je de gepubliceerde images (zie Route 1). Voor maatwerk dienen de app-directories (`backend/app`, `frontend/packages/app`) als startpunt.
 
