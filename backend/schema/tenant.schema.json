@@ -52,7 +52,7 @@
       "type" : "array",
       "items" : {
         "type" : "string",
-        "enum" : [ "digid", "eherkenning", "wallet", "test" ]
+        "enum" : [ "digid", "digid-machtigen", "yivi", "eherkenning", "gebruikersnaam" ]
       },
       "minItems" : 1
     },

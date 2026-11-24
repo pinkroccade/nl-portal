@@ -64,7 +64,7 @@ internal class JwtBuilderTest {
                 .buildAuthentication()
 
         assertEquals(
-            Gebruiker("https://andere.example.nl/realms/x", "sub-42", Inlogmiddel.TEST, Betrouwbaarheidsniveau.BASIS),
+            Gebruiker("https://andere.example.nl/realms/x", "sub-42", Inlogmiddel.GEBRUIKERSNAAM, Betrouwbaarheidsniveau.BASIS),
             authentication.identiteit.gebruiker,
         )
     }

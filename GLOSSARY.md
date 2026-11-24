@@ -6,7 +6,7 @@ staat; voeg een nieuwe term toe zodra een module ernaar vernoemd wordt (zie de
 `improve-codebase-architecture`- en `domain-modeling`-skills).
 
 - **Burger** — een natuurlijk persoon die als klant een verzoek indient of heeft ingediend en inzicht
-  krijgt via NL Portal; geïdentificeerd met zijn BSN en inloggend met DigiD of een wallet.
+  krijgt via NL Portal; geïdentificeerd met zijn BSN en inloggend met DigiD of een wallet (zoals Yivi).
   _Vermijd_: inwoner (als rol), aanvrager.
 - **Bedrijf** — een onderneming, stichting, vereniging of andere niet-natuurlijke partij die als klant
   diensten afneemt; geïdentificeerd met een KvK-nummer (eventueel met vestigingsnummer) en inloggend met

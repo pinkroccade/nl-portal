@@ -53,7 +53,7 @@ class TenantWebFilterTest {
         omgevingstype = Omgevingstype.TEST,
         domeinen = domeinen.toList(),
         thema = Thema(titel = "t"),
-        inlogmiddelen = setOf(Inlogmiddel.TEST),
+        inlogmiddelen = setOf(Inlogmiddel.GEBRUIKERSNAAM),
         authenticatie = Authenticatie("https://login.example/realms/${oin.value}", "/k.jwk"),
         minimumNiveau = Betrouwbaarheidsniveau.SUBSTANTIEEL,
         sessie = Sessie(),

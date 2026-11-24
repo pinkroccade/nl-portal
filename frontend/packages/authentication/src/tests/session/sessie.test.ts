@@ -128,9 +128,9 @@ describe("loginUrl en veiligReturnPad", () => {
       "evil",
     ]) {
       expect(veiligReturnPad(slecht)).toBeUndefined();
-      expect(loginUrl("/oauth2/authorization/1", "test", slecht)).toBe(
-        "/oauth2/authorization/1?inlogmiddel=test",
-      );
+      expect(
+        loginUrl("/oauth2/authorization/1", "gebruikersnaam", slecht),
+      ).toBe("/oauth2/authorization/1?inlogmiddel=gebruikersnaam");
     }
   });
 });

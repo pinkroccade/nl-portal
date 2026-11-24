@@ -163,8 +163,8 @@ overslaan.**
 ### Realm-template (#505)
 
 Eén template voor alle tenants: `realm-template/realm.json` (de basis) plus een fragment per inlogmiddel
-(`realm-template/inlogmiddel/<naam>.json`: `digid`, `wallet`; het testinlogmiddel heeft geen fragment). Alleen in ontwikkeling komen
-`realm-template/demo-gebruikers.json` (demo-gebruikers met vaste wachtwoordhash, bij het testinlogmiddel) en `realm-template/tussenfase/spa.json`
+(`realm-template/inlogmiddel/<naam>.json`: `digid`, `wallet`; gebruikersnaam en wachtwoord heeft geen fragment). Alleen in ontwikkeling komen
+`realm-template/demo-gebruikers.json` (demo-gebruikers met vaste wachtwoordhash, bij gebruikersnaam en wachtwoord) en `realm-template/tussenfase/spa.json`
 (de SPA-client `nl-portal`, tot #506) erbij. `scripts/lib/realm.mjs` vult het met de waarden uit het
 tenantbestand (`docker-compose/imports/tenants`) en voegt alleen de fragmenten van de ingeschakelde inlogmiddelen toe;
 `mise run dev:setup` genereert zo per tenant `docker-compose/.generated/keycloak/<oin>.json` plus een sleutelpaar voor
@@ -178,10 +178,10 @@ back-channel-logout-URL zolang het endpoint ontbreekt (T24 #523 zet hem terug), 
 scope `acr` van `nl-portal-backend` af; per koppeling een mapper voor elke notitie die een client-mapper leest;
 SAML met `validateSignature`, `wantAssertionsSigned` en een vastgepind `signingCertificate`, minimumniveau als
 `authnContextClassRef`; wallet met code-flow, PKCE S256, clientauthenticatie en TLS; geen identiteitskoppeling; SSO-tijden niet
-langer dan het portaal; buiten ontwikkeling alleen `https`-koppelingen. Het testinlogmiddel (de standaard
+langer dan het portaal; buiten ontwikkeling alleen `https`-koppelingen. Gebruikersnaam en wachtwoord (de standaard
 browserflow; demo-gebruikers alleen in ontwikkeling) bestaat alleen als de tenant het kent; de generator weigert het in productie, en een realm
 zonder testinlogmiddel heeft de flow `alleen-koppelingen` en geen gebruikers. De mappers die claims uit gebruikersattributen
-schrijven (`test-inlogmiddel`, `test-acr`, `test-bsn`, fragment `inlogmiddel/test.json`) zitten alleen in een realm met het testinlogmiddel, en
+schrijven (`test-inlogmiddel`, `test-acr`, `test-bsn`, fragment `inlogmiddel/gebruikersnaam.json`) zitten alleen in een realm met gebruikersnaam en wachtwoord, en
 buiten ontwikkeling is `unmanagedAttributePolicy` `ADMIN_VIEW`, zodat niemand een attribuut kan zetten dat een claim wordt. Buiten ontwikkeling staat er geen SPA-client, geen
 directe grant (ROPC), geen wildcard-redirect en geen `offline_access`; offline sessies zijn begrensd op 8 uur en refresh-tokens roteren.
 `nl-portal-backend` krijgt alleen de scope `basic`, geen `profile` of `email`: de gebruikersnaam van een gebrokerde gebruiker is `<alias>.<UUID>`

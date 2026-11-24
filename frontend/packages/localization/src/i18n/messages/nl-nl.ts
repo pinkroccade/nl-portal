@@ -334,9 +334,11 @@ export const NL_NL_MESSAGES: Messages = {
     "auth.login.fout":
       "We kunnen nu niet nagaan of u bent ingelogd. Probeer het later opnieuw.",
     "auth.login.button.digid": "Inloggen met DigiD",
-    "auth.login.button.wallet": "Inloggen met uw wallet",
+    "auth.login.button.digid-machtigen": "Inloggen als gemachtigde met DigiD",
+    "auth.login.button.yivi": "Inloggen met Yivi",
     "auth.login.button.eherkenning": "Inloggen met eHerkenning",
-    "auth.login.button.test": "Inloggen met testgebruiker",
+    "auth.login.button.gebruikersnaam":
+      "Inloggen met gebruikersnaam en wachtwoord",
     "form.submit": "Verstuur",
     "form.cancel": "Annuleren",
     "form.success.title": "Gelukt",

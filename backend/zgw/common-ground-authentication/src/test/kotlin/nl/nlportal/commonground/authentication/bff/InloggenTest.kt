@@ -137,14 +137,14 @@ class InloggenTest : BffTestBasis() {
         val browser = Browser(bosrand)
 
         assertThat(String(get(browser, BffNamen.SESSIEPAD).responseBody!!))
-            .isEqualTo("{\"ingelogd\":false,\"loginPad\":\"/oauth2/authorization/${bosrand.oin}\",\"inlogmiddelen\":[\"digid\",\"test\"]}")
+            .isEqualTo("{\"ingelogd\":false,\"loginPad\":\"/oauth2/authorization/${bosrand.oin}\",\"inlogmiddelen\":[\"digid\",\"gebruikersnaam\"]}")
         assertThat(get(browser, "/api/test/wie").status.value()).isEqualTo(401)
     }
 
     @Test
-    fun `het testinlogmiddel is een gewoon inlogmiddel met niveau Basis`() {
-        val spec = TokenSpec(inlogmiddel = "test", acr = "Basis", actingSubjectId = "999993847")
-        val inlog = log(bosrand, spec, startQuery = "inlogmiddel=test")
+    fun `gebruikersnaam en wachtwoord is een gewoon inlogmiddel met niveau Basis`() {
+        val spec = TokenSpec(inlogmiddel = "gebruikersnaam", acr = "Basis", actingSubjectId = "999993847")
+        val inlog = log(bosrand, spec, startQuery = "inlogmiddel=gebruikersnaam")
 
         slaagt(inlog)
         assertThat(
@@ -228,7 +228,7 @@ class InloggenTest : BffTestBasis() {
     fun `inloggen met een uitgeschakeld inlogmiddel wordt bij de start geweigerd`() {
         val browser = Browser(wijdeveld)
 
-        val start = get(browser, "${BffNamen.INLOGPAD}${wijdeveld.oin}?inlogmiddel=test")
+        val start = get(browser, "${BffNamen.INLOGPAD}${wijdeveld.oin}?inlogmiddel=gebruikersnaam")
 
         assertThat(start.status.value()).isEqualTo(400)
         assertThat(BffTestOmgeving.gebeurtenissen.map { it.type }).containsExactly(GebeurtenisType.LOGIN_START_GEWEIGERD)

@@ -2,7 +2,7 @@
 // per tenant oplevert in een echte Keycloak (eigen image, met de mappers van #527)? Dezelfde kcc-versie en -instellingen als
 // de compose-stack (`docker-compose/compose.yaml`, service nl-portal-keycloak-config).
 //
-// Drie realms: `nlportal` uit een ontwikkeltenant (testinlogmiddel), `acceptatie` uit een tenant met DigiD en wallet zonder
+// Drie realms: `nlportal` uit een ontwikkeltenant (testinlogmiddel), `acceptatie` uit een tenant met DigiD en Yivi zonder
 // testinlogmiddel en `samllogin` uit een ontwikkeltenant met DigiD (gesimuleerd via SAML, zodat een echte SAML-login door het
 // gegenereerde realm loopt). Er is alleen nog de client `nl-portal-backend`: geen SPA-client, geen m2m-client, geen token exchange.
 // Wat de echte Keycloak toevoegt boven de statische realmtest (scripts/lib/realm.test.mjs):
@@ -37,7 +37,7 @@ function kccInstellingenUitCompose() {
   return uit;
 }
 const NETWERK = "nlp-keycloak-it_default";
-const WALLET_SECRET = "wallet-testgeheim";
+const YIVI_SECRET = "yivi-testgeheim";
 const DOCKER = process.env.DOCKER_BIN ?? "docker";
 
 const OIN_DEV = "00000099000000000001";
@@ -45,7 +45,7 @@ const OIN_ACC = "00000099000000000002";
 const OIN_SAML = "00000099000000000003";
 // De ontwikkeltenant is het demo-tenantbestand uit het repo (zoals `dev:setup` het leest).
 const [DEV] = leesTenantbestanden(join(repoRoot, "docker-compose", "imports", "tenants"));
-const ACC = { oin: OIN_ACC, naam: "Gemeente Het Wijde Veld", omgevingstype: "acceptatie", domeinen: ["mijn.hetwijdeveld.example"], thema: { titel: "Mijn Het Wijde Veld" }, inlogmiddelen: ["digid", "wallet"], minimumNiveau: "midden" };
+const ACC = { oin: OIN_ACC, naam: "Gemeente Het Wijde Veld", omgevingstype: "acceptatie", domeinen: ["mijn.hetwijdeveld.example"], thema: { titel: "Mijn Het Wijde Veld" }, inlogmiddelen: ["digid", "yivi"], minimumNiveau: "midden" };
 
 const SAML = { oin: OIN_SAML, naam: "Gemeente Samlogin", omgevingstype: "ontwikkeling", domeinen: ["saml.localhost"], thema: { titel: "Samlogin" }, inlogmiddelen: ["digid"], minimumNiveau: "midden" };
 const SAML_REDIRECT = `http://saml.localhost:3000/login/oauth2/code/${OIN_SAML}`;
@@ -66,7 +66,7 @@ function kcc(realms) {
         "run", "--rm", "--network", NETWERK, "-v", `${map}:/config:ro`,
         "-e", "KEYCLOAK_URL=http://keycloak:18080", "-e", "KEYCLOAK_USER=admin", "-e", "KEYCLOAK_PASSWORD=admin",
         "-e", "IMPORT_FILES_LOCATIONS=/config/*.json", ...kccInstellingenUitCompose(),
-        "-e", `KEYCLOAK_WALLET_CLIENT_SECRET=${WALLET_SECRET}`,
+        "-e", `KEYCLOAK_YIVI_CLIENT_SECRET=${YIVI_SECRET}`,
         KCC_IMAGE,
       ],
       { encoding: "utf8" },
@@ -98,7 +98,7 @@ before(async () => {
   realmDev = genereerRealm({ tenant: DEV, realm: "nlportal", brokerUrl: KC, clientSleutels: [sleutel.publiek] });
   const idp = {
     digid: { singleSignOnServiceUrl: "https://digid.example/sso", idpEntityId: "https://digid.example/idp", signingCertificate: await digidCertificaat() },
-    wallet: { authorizationUrl: "https://wallet.example/auth", tokenUrl: "https://wallet.example/token", jwksUrl: "https://wallet.example/jwks", issuer: "https://wallet.example", clientId: "nl-portal" },
+    yivi: { authorizationUrl: "https://wallet.example/auth", tokenUrl: "https://wallet.example/token", jwksUrl: "https://wallet.example/jwks", issuer: "https://wallet.example", clientId: "nl-portal" },
   };
   realmAcc = genereerRealm({ tenant: ACC, realm: "acceptatie", brokerUrl: "https://login.example", clientSleutels: [sleutel.publiek], idp });
   // De DigiD-simulator kent een SAML-client per realm van de broker: een kopie van die van realm `portal` voor `samllogin`.
@@ -178,9 +178,9 @@ describe("keycloak-config-cli laadt het realm-template", () => {
     assert.equal((await rep("nlportal")).browserFlow, "browser");
   });
 
-  it("de koppelingen van het acceptatierealm: DigiD en wallet met alle mappers van het eigen image", async () => {
+  it("de koppelingen van het acceptatierealm: DigiD en Yivi met alle mappers van het eigen image", async () => {
     const idps = await rep("acceptatie", "/identity-provider/instances");
-    assert.deepEqual(idps.map((i) => i.alias).sort(), ["digid", "wallet"]);
+    assert.deepEqual(idps.map((i) => i.alias).sort(), ["digid", "yivi"]);
     const digid = idps.find((i) => i.alias === "digid");
     assert.equal(digid.config.validateSignature, "true");
     assert.equal(digid.config.wantAssertionsSigned, "true");
@@ -190,10 +190,10 @@ describe("keycloak-config-cli laadt het realm-template", () => {
     assert.deepEqual(mappers.map((m) => m.identityProviderMapper).filter((m) => m.startsWith("nlportal-")).sort(), [
       "nlportal-saml-attribute-note-mapper", "nlportal-saml-attribute-note-mapper", "nlportal-saml-authncontext-note-mapper",
     ]);
-    const walletMappers = await rep("acceptatie", "/identity-provider/instances/wallet/mappers");
+    const walletMappers = await rep("acceptatie", "/identity-provider/instances/yivi/mappers");
     assert.equal(walletMappers.filter((m) => m.identityProviderMapper === "nlportal-oidc-claim-note-mapper").length, 3);
-    const wallet = idps.find((i) => i.alias === "wallet");
-    assert.notEqual(wallet.config.clientSecret, WALLET_SECRET, "Keycloak toont het geheim nooit terug");
+    const wallet = idps.find((i) => i.alias === "yivi");
+    assert.notEqual(wallet.config.clientSecret, YIVI_SECRET, "Keycloak toont het geheim nooit terug");
   });
 
   it("een tweede run is idempotent en herstelt drift (IMPORT_CACHE_ENABLED=false)", async () => {
@@ -329,14 +329,14 @@ describe("login met het testinlogmiddel en geen token exchange meer", () => {
     return { status: r.status, body: await r.json() };
   }
 
-  it("burger logt in met nl-portal-backend (private_key_jwt PS256, PKCE, prompt=login) en de mappers geven acr=Basis, inlogmiddel=test en acting_subject_id", async () => {
+  it("burger logt in met nl-portal-backend (private_key_jwt PS256, PKCE, prompt=login) en de mappers geven acr=Basis, inlogmiddel=gebruikersnaam en acting_subject_id", async () => {
     const { status, body } = await wissel(await burgerLogin({ prompt: "login" }));
     assert.equal(status, 200, JSON.stringify(body));
     const id = decodeJwt(body.id_token);
     assert.equal(id.iss, `${KC}/realms/nlportal`);
     assert.equal(id.azp, CLIENT);
     assert.equal(id.acr, "Basis");
-    assert.equal(id.inlogmiddel, "test");
+    assert.equal(id.inlogmiddel, "gebruikersnaam");
     assert.equal(id.acting_subject_id, undefined, "het BSN staat niet in het ID-token (id_token_hint gaat de browser in)");
     assert.equal((await userinfo(body.access_token, "nlportal")).acting_subject_id, "999993847", "het BSN staat in userinfo");
     assert.ok(id.auth_time, "auth_time ontbreekt");

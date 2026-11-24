@@ -45,7 +45,7 @@ class TenantValidatorCliTest {
 
     @Test
     fun `een geldige map geeft exitcode 0`() {
-        schrijf("base.yaml", "omgevingstype: test\ninlogmiddelen: [test]\n")
+        schrijf("base.yaml", "omgevingstype: test\ninlogmiddelen: [gebruikersnaam]\n")
         schrijf("00000099000000000001.yaml", "oin: \"00000099000000000001\"\nnaam: N\ndomeinen: [a.example]\nthema:\n  titel: T\nauthenticatie:\n  issuer: https://login.example/realms/k1\n  sleutelBestand: /run/secrets/00000099000000000001/k0.jwk\n")
         val uitvoer = Uitvoer()
 
@@ -71,7 +71,7 @@ class TenantValidatorCliTest {
 
     @Test
     fun `de optie meerdere-tenants staat een tweede tenant toe`() {
-        schrijf("base.yaml", "omgevingstype: test\ninlogmiddelen: [test]\n")
+        schrijf("base.yaml", "omgevingstype: test\ninlogmiddelen: [gebruikersnaam]\n")
         schrijf("00000099000000000001.yaml", "oin: \"00000099000000000001\"\nnaam: N\ndomeinen: [a.example]\nthema:\n  titel: T\nauthenticatie:\n  issuer: https://login.example/realms/k3\n  sleutelBestand: /run/secrets/00000099000000000001/k2.jwk\n")
         schrijf("00000099000000000002.yaml", "oin: \"00000099000000000002\"\nnaam: N\ndomeinen: [b.example]\nthema:\n  titel: T\nauthenticatie:\n  issuer: https://login.example/realms/k4\n  sleutelBestand: /run/secrets/00000099000000000002/k3.jwk\n")
 

@@ -70,11 +70,11 @@ class TenantFileLoaderTest {
     @Test
     fun `het tenantbestand overschrijft de gedeelde basis`() {
         schrijf("base.yaml", basis)
-        schrijf("$bosrand.yaml", tenant(extra = "inlogmiddelen: [wallet]\nminimumNiveau: hoog\nsessie:\n  inactiviteit: PT10M"))
+        schrijf("$bosrand.yaml", tenant(extra = "inlogmiddelen: [yivi]\nminimumNiveau: hoog\nsessie:\n  inactiviteit: PT10M"))
 
         val tenant = laad().tenants.single()
 
-        assertThat(tenant.inlogmiddelen).containsExactly(Inlogmiddel.WALLET)
+        assertThat(tenant.inlogmiddelen).containsExactly(Inlogmiddel.YIVI)
         assertThat(tenant.minimumNiveau).isEqualTo(Betrouwbaarheidsniveau.HOOG)
         assertThat(tenant.sessie.inactiviteit).isEqualTo(Duration.ofMinutes(10))
         assertThat(tenant.sessie.absoluut).isEqualTo(Duration.ofHours(8))
@@ -133,11 +133,54 @@ class TenantFileLoaderTest {
     }
 
     @Test
-    fun `een testinlogmiddel in een productieomgeving weigert het opstarten`() {
-        schrijf("base.yaml", "omgevingstype: productie\ninlogmiddelen: [digid, test]")
+    fun `alle inlogmiddelen van het register zijn in een acceptatieomgeving te kiezen met hun IdP-alias`() {
+        schrijf("base.yaml", "omgevingstype: acceptatie\ninlogmiddelen: [digid, digid-machtigen, yivi, gebruikersnaam]")
         schrijf("$bosrand.yaml", tenant())
 
-        assertThat(codes(laad())).containsExactly(Code.TESTINLOGMIDDEL_IN_PRODUCTIE)
+        val result = laad()
+
+        assertThat(result.violations).isEmpty()
+        assertThat(result.tenants.single().inlogmiddelen)
+            .containsExactlyInAnyOrder(Inlogmiddel.DIGID, Inlogmiddel.DIGID_MACHTIGEN, Inlogmiddel.YIVI, Inlogmiddel.GEBRUIKERSNAAM)
+    }
+
+    @Test
+    fun `een inlogmiddel dat niet in het register staat weigert het opstarten`() {
+        for (onbekend in listOf("wallet", "test", "eidas-low")) {
+            schrijf("base.yaml", "omgevingstype: acceptatie\ninlogmiddelen: [digid, $onbekend]")
+            schrijf("$bosrand.yaml", tenant())
+
+            assertThat(laad().violations).describedAs(onbekend).isNotEmpty()
+        }
+    }
+
+    @Test
+    fun `gebruikersnaam en wachtwoord in een productieomgeving weigert het opstarten`() {
+        schrijf("base.yaml", "omgevingstype: productie\ninlogmiddelen: [digid, gebruikersnaam]")
+        schrijf("$bosrand.yaml", tenant())
+
+        assertThat(codes(laad())).containsExactly(Code.GEBRUIKERSNAAM_IN_PRODUCTIE)
+    }
+
+    @Test
+    fun `met DigiD of DigiD Machtigen aan is de inactiviteit hoogstens 15 minuten en niet uit te zetten`() {
+        for (middel in listOf("digid", "digid-machtigen")) {
+            schrijf("base.yaml", "omgevingstype: acceptatie\ninlogmiddelen: [$middel]")
+            for (extra in listOf("sessie:\n  inactiviteit: PT16M", "sessie:\n  inactiviteit: PT0S", "sessie:\n  inactiviteit: -PT1M")) {
+                schrijf("$bosrand.yaml", tenant(extra = extra))
+                assertThat(codes(laad())).describedAs("$middel $extra").containsExactly(Code.SESSIETIJD_BUITEN_GRENZEN)
+            }
+            schrijf("$bosrand.yaml", tenant(extra = "sessie:\n  inactiviteit: PT15M"))
+            assertThat(laad().violations).describedAs(middel).isEmpty()
+        }
+    }
+
+    @Test
+    fun `een testinlogmiddel in een productieomgeving weigert het opstarten`() {
+        schrijf("base.yaml", "omgevingstype: productie\ninlogmiddelen: [digid, gebruikersnaam]")
+        schrijf("$bosrand.yaml", tenant())
+
+        assertThat(codes(laad())).containsExactly(Code.GEBRUIKERSNAAM_IN_PRODUCTIE)
     }
 
     @Test
@@ -174,7 +217,7 @@ class TenantFileLoaderTest {
 
     @Test
     fun `een testinlogmiddel in een ontwikkelomgeving mag`() {
-        schrijf("base.yaml", "omgevingstype: ontwikkeling\ninlogmiddelen: [test]")
+        schrijf("base.yaml", "omgevingstype: ontwikkeling\ninlogmiddelen: [gebruikersnaam]")
         schrijf("$bosrand.yaml", tenant())
 
         assertThat(laad().violations).isEmpty()
@@ -285,7 +328,7 @@ class TenantFileLoaderTest {
 
     @Test
     fun `http voor de issuer mag alleen in een ontwikkelomgeving`() {
-        schrijf("base.yaml", "omgevingstype: ontwikkeling\ninlogmiddelen: [test]")
+        schrijf("base.yaml", "omgevingstype: ontwikkeling\ninlogmiddelen: [gebruikersnaam]")
         schrijf("$bosrand.yaml", tenant(authenticatie = "authenticatie:\n  issuer: http://keycloak.localhost:8082/realms/x\n  sleutelBestand: /run/secrets/$bosrand/k.jwk\n  interneBasisUrl: http://keycloak:8080/realms/x\n"))
 
         assertThat(laad().violations).isEmpty()

@@ -55,11 +55,12 @@ enum class Inlogmiddel(
     @get:JsonValue override val waarde: String,
 ) : TenantbestandWaarde {
     DIGID("digid"),
+    DIGID_MACHTIGEN("digid-machtigen"),
+    YIVI("yivi"),
     EHERKENNING("eherkenning"),
-    WALLET("wallet"),
 
-    /** Alleen voor omgevingen die geen productie zijn. */
-    TEST("test"),
+    /** Lokale gebruikersnaam en wachtwoord van Keycloak; alleen voor omgevingen die geen productie zijn. */
+    GEBRUIKERSNAAM("gebruikersnaam"),
 }
 
 /** Volgorde is de rangorde: een hoger niveau is betrouwbaarder. */

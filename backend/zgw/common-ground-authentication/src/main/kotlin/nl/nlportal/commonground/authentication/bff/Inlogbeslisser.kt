@@ -42,7 +42,7 @@ sealed interface Inlogbeslissing {
  * handtekening, `iss`, `aud`, `exp` en `nonce`; hier volgen de eisen van NL Portal:
  *
  *  - inlogmiddel uit een claim die een IdP-mapper zet (nooit uit de hint), en het middel staat aan voor de tenant;
- *  - wallet en eHerkenning worden geweigerd (wallet tot #529; eHerkenning is nog niet gebouwd);
+ *  - yivi, digid-machtigen en eHerkenning worden geweigerd (yivi tot #529; eHerkenning is nog niet gebouwd);
  *  - geen BSN-claim (`acting_subject_id`) in het ID-token: die hoort alleen in de userinfo, anders weigert de login;
  *  - geen vertegenwoordiging (`legal_subject_id`) en geen KvK-identiteit zolang machtigen en eHerkenning uit staan;
  *  - betrouwbaarheidsniveau uit `acr` via de volgordetabel van het inlogmiddel, minstens het minimum van de tenant; een
@@ -108,7 +108,7 @@ class Inlogbeslisser {
         val waarde = claim as? String ?: return null
         val nummer =
             when (middel) {
-                Inlogmiddel.TEST -> waarde
+                Inlogmiddel.GEBRUIKERSNAAM -> waarde
                 else -> waarde.takeIf { it.startsWith(BSN_SECTORPREFIX) }?.removePrefix(BSN_SECTORPREFIX)
             } ?: return null
         return nummer.takeIf { geldigBsn(it) }
@@ -127,14 +127,14 @@ class Inlogbeslisser {
         /** Keycloak mag `auth_time` iets eerder zetten dan ons begin van de login (klokverschil). */
         val AUTH_TIME_MARGE: Duration = Duration.ofSeconds(60)
 
-        private val ONDERSTEUND = setOf(Inlogmiddel.DIGID, Inlogmiddel.TEST)
+        private val ONDERSTEUND = setOf(Inlogmiddel.DIGID, Inlogmiddel.GEBRUIKERSNAAM)
 
         private const val SAML = "urn:oasis:names:tc:SAML:2.0:ac:classes:"
         private const val EIDAS = "http://eidas.europa.eu/LoA/" // NOSONAR: eIDAS-LoA-identifier (URI-naam), geen netwerkverbinding
 
         /**
          * De volgordetabel per inlogmiddel: Basis < Midden < Substantieel < Hoog. DigiD stuurt zijn vier URN's als
-         * `AuthnContextClassRef`, de wallet de eIDAS-URI's, het testinlogmiddel altijd `Basis`. Een waarde die er niet in
+         * `AuthnContextClassRef`, yivi de eIDAS-URI's, gebruikersnaam en wachtwoord altijd `Basis`. Een waarde die er niet in
          * staat is onbekend en wordt geweigerd.
          */
         internal val NIVEAUS: Map<Inlogmiddel, Map<String, Betrouwbaarheidsniveau>> =
@@ -146,14 +146,15 @@ class Inlogbeslisser {
                         "${SAML}Smartcard" to Betrouwbaarheidsniveau.SUBSTANTIEEL,
                         "${SAML}SmartcardPKI" to Betrouwbaarheidsniveau.HOOG,
                     ),
-                Inlogmiddel.WALLET to
+                Inlogmiddel.YIVI to
                     mapOf(
                         "${EIDAS}low" to Betrouwbaarheidsniveau.BASIS,
                         "${EIDAS}substantial" to Betrouwbaarheidsniveau.SUBSTANTIEEL,
                         "${EIDAS}high" to Betrouwbaarheidsniveau.HOOG,
                     ),
+                Inlogmiddel.DIGID_MACHTIGEN to emptyMap(),
                 Inlogmiddel.EHERKENNING to emptyMap(),
-                Inlogmiddel.TEST to mapOf("Basis" to Betrouwbaarheidsniveau.BASIS),
+                Inlogmiddel.GEBRUIKERSNAAM to mapOf("Basis" to Betrouwbaarheidsniveau.BASIS),
             )
 
         /** Negen cijfers met de elfproef: 9x1 + 8x2 + ... + 2x8 - 1x9 is deelbaar door 11 (en niet nul). */

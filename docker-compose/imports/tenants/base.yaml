@@ -2,6 +2,6 @@
 # Validatie: mise run backend:tenant-validator, daarna java -jar backend/core/build/libs/nl-portal-tenant-validator.jar docker-compose/imports/tenants
 # JSON-schema: backend/schema/tenant.schema.json
 omgevingstype: ontwikkeling
-inlogmiddelen: [test]
-# Het testinlogmiddel levert altijd niveau basis; het standaardminimum (substantieel) weigert dan elke demo-login (niveau_te_laag).
+inlogmiddelen: [gebruikersnaam]
+# Gebruikersnaam en wachtwoord levert altijd niveau basis; het standaardminimum (substantieel) weigert dan elke demo-login (niveau_te_laag).
 minimumNiveau: basis

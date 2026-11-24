@@ -44,7 +44,7 @@ class ZakenApiTenantConfiguratieTest {
         Files.writeString(
             dir.resolve("$bosrand.yaml"),
             "oin: \"$bosrand\"\nnaam: Gemeente\ndomeinen: [bosrand.example]\nthema:\n  titel: De Bosrand\n$authenticatie" +
-                "omgevingstype: test\ninlogmiddelen: [test]\n$extra\n",
+                "omgevingstype: test\ninlogmiddelen: [gebruikersnaam]\n$extra\n",
         )
         return TenantFileLoader(modules = modules).load(dir)
     }
