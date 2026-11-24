@@ -38,8 +38,18 @@ export function applyBump(version, bump) {
 
 const CATEGORY_BY_TYPE = { feat: "Added", fix: "Fixed", refactor: "Changed", perf: "Changed" };
 
+// GitHub leest `@woord` in release-notes als vermelding van een gebruiker (bijvoorbeeld `@AutoConfiguration`);
+// zet het in backticks, tenzij het er al in staat.
+function escapeMentions(text) {
+  return text
+    .split(/(`[^`]*`)/)
+    .map((part) => (part.startsWith("`") ? part : part.replace(/(?<![\w`])@[A-Za-z0-9][\w./-]*/g, (m) => `\`${m}\``)))
+    .join("");
+}
+
 function formatEntry({ scope, description, hash }) {
-  const text = scope ? `**${scope}**: ${description}` : description;
+  const safe = escapeMentions(description);
+  const text = scope ? `**${scope}**: ${safe}` : safe;
   return hash ? `${text} (\`${hash}\`)` : text;
 }
 
