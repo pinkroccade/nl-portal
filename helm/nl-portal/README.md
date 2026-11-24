@@ -106,8 +106,8 @@ file; `backend.modules.berichten.enabled` only declares the intent so the depend
 
 ## Values
 
-Validated by `values.schema.json`: unknown keys and wrong types fail the render. Only `global.imageRegistry` and
-`global.imagePullSecrets` are supported globals. Use `backend.extraEnv` and `frontend.extraEnv` (EnvVar objects) for what is not modelled yet.
+Validated by `values.schema.json`: unknown keys and wrong types fail the render. The chart uses only `global.imageRegistry` and
+`global.imagePullSecrets`; it ignores other globals from a parent chart. Use `backend.extraEnv` and `frontend.extraEnv` (EnvVar objects) for what is not modelled yet.
 
 | Key | Default | Description |
 |---|---|---|
