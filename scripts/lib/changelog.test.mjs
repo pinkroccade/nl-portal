@@ -249,3 +249,13 @@ test("extractSection: last section in the file (no trailing heading) runs to EOF
   const content = "# Changelog\n\n## [1.0.0] - 2026-10-22\n\n### Added\n\n- first release\n";
   assert.equal(extractSection(content, "1.0.0"), "### Added\n\n- first release\n");
 });
+
+test("categorize: @-vermelding in een beschrijving komt in backticks, zodat GitHub geen gebruiker vermeldt", () => {
+  const commits = [
+    { type: "fix", scope: "", description: "used the @AutoConfiguration option and @foo/bar", hash: "abc1234", breaking: false },
+    { type: "fix", scope: "", description: "keeps `@Already` quoted", hash: "def5678", breaking: false },
+  ];
+  const sections = categorize(commits);
+  assert.equal(sections.Fixed[0], "used the `@AutoConfiguration` option and `@foo/bar` (`abc1234`)");
+  assert.equal(sections.Fixed[1], "keeps `@Already` quoted (`def5678`)");
+});
