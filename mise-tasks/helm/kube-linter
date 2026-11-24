@@ -1,0 +1,11 @@
+#!/usr/bin/env bash
+#MISE description="Controleer de gerenderde Helm-chart nl-portal op best practices met kube-linter (config: helm/kube-linter.yaml), per scenario in helm/nl-portal/ci"
+set -euo pipefail
+
+cd "$(dirname "$0")/../.."
+CHART=helm/nl-portal
+
+for values in "$CHART"/ci/*-values.yaml; do
+    echo "== $values"
+    helm template lint-test "$CHART" -f "$values" | kube-linter lint --config helm/kube-linter.yaml -
+done
