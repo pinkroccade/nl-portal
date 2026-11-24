@@ -37,8 +37,8 @@ Start the supporting services from the monorepo's [`docker-compose/`](../docker-
 stack, then run the app:
 
 ```shell
-cd ../docker-compose && docker compose --profile zgw up -d
-cd ../backend && ./gradlew :app:bootRun
+mise run dev:diensten   # Keycloak en ZGW-componenten in compose, zonder app-containers
+./gradlew :app:bootRun
 ```
 
 See [app/README.md](./app/README.md) for configuration details.

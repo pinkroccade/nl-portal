@@ -1,0 +1,18 @@
+# Dev-variant: backend en frontend gebouwd uit de sources van deze werkboom, met een debugger op de backend.
+#
+#   docker compose -f compose.yaml -f compose.dev.yaml up -d --build
+#
+# Combineert met de demo: -f compose.yaml -f compose.demo.yaml -f compose.dev.yaml.
+
+services:
+    nl-portal-backend:
+        image: nl-portal-backend:dev
+        build: ../backend
+        environment:
+            JAVA_TOOL_OPTIONS: -agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=*:8000
+        ports:
+            - "127.0.0.1:${JDWP_PORT:-8000}:8000"
+
+    nl-portal-frontend:
+        image: nl-portal-frontend:dev
+        build: ../frontend

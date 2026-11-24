@@ -1,0 +1,25 @@
+# Voorbeeld: NL Portal tegen een eigen URL, hier een MockServer die de BRP Personen API nabootst.
+#
+#   docker compose up -d                       (in deze map; start de portal eerst, die maakt het netwerk aan)
+#   koppelingen.brp.url in imports/tenants/00000099000000000001.yaml: http://nl-portal-mockserver:1080/haalcentraal/api/brp
+#   docker compose restart nl-portal-backend   (in docker-compose/, zodat de backend het tenantbestand opnieuw leest)
+#
+# De verwachtingen staan in expectations.json; pas ze aan of voeg eigen API's toe.
+# Dashboard: http://localhost:1080/mockserver/dashboard
+name: nl-portal-mockserver
+
+networks:
+    default:
+        name: ${NL_PORTAL_NETWORK:-nl-portal}
+        external: true
+
+services:
+    nl-portal-mockserver:
+        image: mockserver/mockserver:5.15.0
+        container_name: nl-portal-mockserver
+        environment:
+            MOCKSERVER_INITIALIZATION_JSON_PATH: /config/expectations.json
+        volumes:
+            - ./expectations.json:/config/expectations.json:ro
+        ports:
+            - "127.0.0.1:${MOCKSERVER_PORT:-1080}:1080"

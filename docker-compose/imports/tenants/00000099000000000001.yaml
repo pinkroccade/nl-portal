@@ -7,34 +7,37 @@ domeinen:
 thema:
     titel: Mijn De Bosrand
 authenticatie:
+    # De publieke issuer: zo ziet de browser de realm (poort 8082 is de standaard).
     issuer: http://localhost:8082/realms/nlportal
+    # De backend haalt token en sleutels via het compose-netwerk; de issuer in het token blijft de publieke (KC_HOSTNAME van Keycloak).
+    interneBasisUrl: http://nl-portal-keycloak:8082/realms/nlportal
     # Relatief aan de sleutelmap (nl-portal.sleutelmap), in de map met de OIN van deze tenant; `mise run dev:setup` maakt het sleutelpaar
     # (docker-compose/.generated/tenants).
     sleutelBestand: 00000099000000000001/clientsleutel.jwk.json
 koppelingen:
     # De Documenten API: elke documenten-API is een eigen koppeling; modules.documenten-api noemt ze bij naam.
     documenten-api:
-        url: http://localhost:8001/documenten/api/v1
+        url: http://nl-portal-openzaak:8001/documenten/api/v1
         leverancier: Open Zaak
         auth:
             type: zgw-jwt
             clientId: nl-portal
-            # Het geheim komt uit de omgeving: NL_PORTAL_GEHEIMEN_00000099000000000001_DOCUMENTEN_API_SECRET (zie compose.localhost-*.yaml).
+            # Het geheim komt uit de omgeving: NL_PORTAL_GEHEIMEN_00000099000000000001_DOCUMENTEN_API_SECRET (zie compose.yaml).
             secret: 00000099000000000001.documenten-api-secret
     documenten-dummydoc:
-        url: http://localhost:8002/documenten/api/v1
+        url: http://nl-portal-dummydoc:8002/documenten/api/v1
         auth:
             type: zgw-jwt
             clientId: docdoc
             secret: 00000099000000000001.documenten-dummydoc-secret
     brp:
-        url: http://localhost:5010/haalcentraal/api/brp
+        url: http://nl-portal-haalcentraal-personen:5010/haalcentraal/api/brp
         leverancier: Haal Centraal BRP-mock
         auth:
             # Geen sleutel: de mocks vragen er geen; in productie authenticeert de cloud gateway.
             type: geen
     brp-bewoning:
-        url: http://localhost:5011/haalcentraal/api/bewoning
+        url: http://nl-portal-haalcentraal-bewoningen:5011/haalcentraal/api/bewoning
         leverancier: Haal Centraal Bewoning-mock
         auth:
             # Geen sleutel: de mocks vragen er geen; in productie authenticeert de cloud gateway.
@@ -48,20 +51,20 @@ koppelingen:
     #         headerNaam: X-API-KEY
     #         waarde: 00000099000000000001.kvk-sleutel
     zakenapi:
-        url: http://localhost:8001
+        url: http://nl-portal-openzaak:8001
         auth:
             type: zgw-jwt
             clientId: nl-portal
             secret: 00000099000000000001.zaken-secret
     catalogiapi:
-        url: http://localhost:8001
+        url: http://nl-portal-openzaak:8001
         auth:
             type: zgw-jwt
             clientId: nl-portal
             secret: 00000099000000000001.catalogiapi-secret
     # De Objecten API (Open Object) kent alleen "Authorization: Token <token>": een api-key-header, waarvan het geheim "Token <token>" is.
     objectenapi:
-        url: http://localhost:8010
+        url: http://nl-portal-open-object:8010
         auth:
             type: api-key
             headerNaam: Authorization
@@ -75,9 +78,9 @@ koppelingen:
     #         secret: 00000099000000000001.payment-direct-api-geheim
     # Verificatie van digitale adressen (e-mail, telefoon). De compose-stack draait geen verificatiedienst: de koppeling wijst naar de
     # poort waar een eigen dienst of mock kan draaien. De geheimen (NL_PORTAL_GEHEIMEN_<OIN>_VERIFICATIE_SECRET en _VERIFICATIE_APIKEY) staan in
-    # compose.localhost-*.yaml; alleen met NLPORTAL_CONFIG_VERIFICATIE_ENABLED=true gebruikt de backend ze.
+    # compose.yaml; alleen met NLPORTAL_CONFIG_VERIFICATIE_ENABLED=true gebruikt de backend ze.
     verificatie:
-        url: http://localhost:9009
+        url: http://nl-portal-verificatie:9009
         leverancier: Verificatiedienst
         auth:
             type: zgw-jwt
@@ -89,7 +92,7 @@ modules:
         documentApis:
             documenten-api:
                 rsin: "051845623"
-                documentTypeUrl: http://localhost:8001/catalogi/api/v1/informatieobjecttypen/36e40d95-e411-4884-b08f-e5864ec8167f
+                documentTypeUrl: http://nl-portal-openzaak:8001/catalogi/api/v1/informatieobjecttypen/36e40d95-e411-4884-b08f-e5864ec8167f
             documenten-dummydoc:
                 rsin: "051845623"
         # toegestaneMimeTypes: [application/pdf, image/png, image/jpeg]
@@ -102,9 +105,9 @@ modules:
         nnpKvkQueryIdentificatoren: false
     taak:
         # Het objecttype waarin de taken van deze gemeente staan (Open Object); de taken lopen via de koppeling objectenapi.
-        objectTypeUrl: http://localhost:8010/api/v2/objecttypes/b4a617af-6969-45e8-9afd-d51e170716d5
+        objectTypeUrl: http://nl-portal-open-object:8010/api/v2/objecttypes/b4a617af-6969-45e8-9afd-d51e170716d5
     berichten:
-        berichtObjectTypeUrl: http://localhost:8010/api/v2/objecttypes/78731088-430f-49fd-9a4c-80ddd42ded28
+        berichtObjectTypeUrl: http://nl-portal-open-object:8010/api/v2/objecttypes/78731088-430f-49fd-9a4c-80ddd42ded28
     # payment-direct:
     #     webhookUrl: https://<domein van de tenant>/api/public/payment/direct/postsale
     #     profielen:

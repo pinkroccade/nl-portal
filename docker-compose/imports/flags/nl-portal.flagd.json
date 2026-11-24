@@ -7,7 +7,7 @@
         "on": true,
         "off": false
       },
-      "defaultVariant": "on"
+      "defaultVariant": "off"
     },
     "ops.documentenapis.enabled": {
       "state": "ENABLED",
@@ -15,7 +15,7 @@
         "on": true,
         "off": false
       },
-      "defaultVariant": "on"
+      "defaultVariant": "off"
     },
     "ops.frontend.message-count": {
       "state": "ENABLED",
@@ -23,7 +23,7 @@
         "on": true,
         "off": false
       },
-      "defaultVariant": "on"
+      "defaultVariant": "off"
     },
     "ops.frontend.cases-partial-search": {
       "state": "ENABLED",
@@ -55,7 +55,7 @@
         "on": true,
         "off": false
       },
-      "defaultVariant": "on"
+      "defaultVariant": "off"
     },
     "ops.frontend.cases-contact-moments": {
       "state": "ENABLED",

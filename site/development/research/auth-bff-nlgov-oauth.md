@@ -17,7 +17,7 @@ Geraadpleegd op: 2026-11-21. Bouwt voort op [ASVS 5.0.0 level 3 voor token-excha
 
 | Component | Versie | Waar |
 |---|---|---|
-| Keycloak | `quay.io/keycloak/keycloak:26.3` | `docker-compose/docker-compose.yaml` (alleen demo/dev; de productieversie staat niet in de repo) |
+| Keycloak | `quay.io/keycloak/keycloak:26.3` | `docker-compose/compose.yaml` (alleen demo/dev; de productieversie staat niet in de repo) |
 | Spring Boot | 4.1.2 | `backend/gradle.properties` (`springBootVersion`) |
 | Spring Security | 7.1.2 | `backend/gradle/verification-metadata.xml` (`spring-security-config` e.a.) |
 | Spring Session BOM | 4.1.1 | idem (alleen BOM; Spring Session wordt nu niet gebruikt) |

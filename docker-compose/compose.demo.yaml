@@ -1,0 +1,29 @@
+# Demo (niveau 2): de standaardopzet plus Open Zaak, Open Object en Open Notificaties met demo-fixtures, en de modules voor
+# zaken en taken aan. De burger ziet zaken en taken.
+#
+#   docker compose -f compose.yaml -f compose.demo.yaml up -d
+#
+# De services hieronder horen in compose.yaml bij de profielen openzaak en objecten; hier starten ze altijd. De koppelingen
+# (Open Zaak, Open Object) staan in het tenantbestand imports/tenants/.
+
+x-altijd: &altijd
+    profiles: !reset []
+
+services:
+    nl-portal-openzaak: *altijd
+    nl-portal-openzaak-import: *altijd
+    nl-portal-openzaak-database: *altijd
+    nl-portal-open-object: *altijd
+    nl-portal-open-object-celery: *altijd
+    nl-portal-open-object-database: *altijd
+    nl-portal-open-object-import: *altijd
+    nl-portal-open-notificaties: *altijd
+    nl-portal-open-notificaties-import: *altijd
+    nl-portal-open-notificaties-celery: *altijd
+    nl-portal-open-notificaties-database: *altijd
+    nl-portal-open-notificaties-rabbitmq: *altijd
+    nl-portal-redis: *altijd
+
+    nl-portal-backend:
+        environment:
+            NLPORTAL_FEATUREFLAGS_FILE: /etc/nl-portal/flags/nl-portal.demo.flagd.json

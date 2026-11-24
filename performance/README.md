@@ -23,7 +23,7 @@ k6 staat in `mise.toml`; de scripts zijn TypeScript en draaien direct onder k6 (
 
 ## Seed-data en perf-client
 
-`mise run perf:seed` vult de draaiende stack (profiel `zgw`, Keycloak, Open Zaak en Objecten API) met een vast volume:
+`mise run perf:seed` vult de draaiende stack (demo: Keycloak, Open Zaak en Objecten API) met een vast volume:
 
 - testgebruikers `burger-001`, `burger-002`, ... in Keycloak, elk met een eigen BSN (elfproef, buiten de BSN's van de demodata) en een gedeeld wachtwoord;
 - per gebruiker zaken (met rol, status en documenten) in Open Zaak en taken (Taak V2) in de Objecten API;

@@ -2,17 +2,20 @@
 
 ## 7.1 Lokale ontwikkeling
 
-`docker-compose/` draait de ondersteunende diensten (Keycloak, Open Zaak-suite, Haal Centraal,
-ClamAV, databases) via profielen (`zgw`, `haalcentraal`, `clamav`, `config`); `RUN_MODE` kiest
-onafhankelijk hoe de NL Portal-app zelf draait:
+`docker-compose/` start de portal op dezelfde manier als bij livegang: elke service een eigen hostname op
+een benoemd netwerk (`nl-portal`) en eigen poorten op `127.0.0.1`.
 
-| RUN_MODE | Wat draait waar |
+| Opzet | Wat draait er |
 |---|---|
-| `sources` (default) | Geen app-container; backend via `./gradlew :app-dev:bootRun`, frontend via `pnpm dev` — snelste innerloop |
-| `local` | Backend + frontend gebouwd uit deze monorepo-sources, als container | 
-| `remote` | Gepubliceerde images van GHCR (`ghcr.io/pinkroccade/nl-portal-backend`, `...-frontend`); tag via `NL_PORTAL_IMAGE_TAG` |
+| `compose.yaml` | Frontend, backend, Keycloak (realm `de-bosrand`) en de module Haal Centraal BRP Personen; gepubliceerde images van GHCR |
+| Profielen | `brp-mock`, `bewoning`, `openzaak`, `objecten`, `openklant`, `openproduct`, `clamav`: elk los op te starten |
+| `compose.demo.yaml` | Plus Open Zaak, Open Object en Open Notificaties met demo-fixtures en de ZGW-modules aan |
+| `compose.dev.yaml` | Backend en frontend gebouwd uit de sources, met debugger |
 
-Zie [`docker-compose/README.md`](https://github.com/pinkroccade/nl-portal/blob/main/docker-compose/README.md) voor de volledige service-/poorttabel.
+De browser haalt tokens bij Keycloak via `localhost`; de backend bereikt Keycloak via het netwerk
+(`KEYCLOAK_TOKEN_URI`, `JWKS_URI`) en controleert de issuer. Zie
+[`docker-compose/README.md`](https://github.com/pinkroccade/nl-portal/blob/main/docker-compose/README.md) voor
+poorten en profielen.
 
 ## 7.2 Build en packaging
 

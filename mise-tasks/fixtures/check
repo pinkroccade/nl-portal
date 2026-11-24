@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-#MISE description="Laad de demo-fixtures op een schone compose-stack (profiel zgw) en faal als een import-sidecar faalt (zie site/development/demo-fixtures.md)"
+#MISE description="Laad de demo-fixtures op een schone compose-stack (profielen openzaak, objecten, openklant en openproduct) en faal als een import-sidecar faalt (zie site/development/demo-fixtures.md)"
 set -uo pipefail
 
 cd "$(dirname "$0")/../../docker-compose"
@@ -14,11 +14,10 @@ if docker ps -a --format '{{.Names}}' | grep -qx 'nl-portal-openzaak'; then
   exit 2
 fi
 
-# Compose eist een KEYCLOAK_DB_PASSWORD bij het inlezen; Keycloak start hier niet, dus een wegwerpwaarde volstaat
+# Compose eist bij het inlezen de secrets van Keycloak en de backend; die starten hier niet, dus wegwerpwaarden volstaan
 # en .env/dev:setup blijven onaangeroerd.
-export KEYCLOAK_DB_PASSWORD="fixtures-check"
-export RUN_MODE=sources
-compose() { docker compose -p "$PROJECT" --profile zgw "$@"; }
+export KEYCLOAK_DB_PASSWORD="fixtures-check" KEYCLOAK_ADMIN_PASSWORD="fixtures-check" REDIS_PASSWORD="fixtures-check" BACKEND_BEHEER_PASSWORD="fixtures-check"
+compose() { NL_PORTAL_NETWORK="$PROJECT" docker compose -p "$PROJECT" --profile openzaak --profile objecten --profile openklant --profile openproduct "$@"; }
 
 cleanup() { compose down -v --remove-orphans >/dev/null 2>&1; }
 trap cleanup EXIT

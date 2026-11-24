@@ -47,11 +47,11 @@ own equivalent is tracked in [epic #191](https://github.com/pinkroccade/nl-porta
 
 ## Running NL Portal
 
-Three ways, by purpose - see [GETTING_STARTED.md](./GETTING_STARTED.md) for the commands:
+Three ways, by purpose - see [docker-compose/README.md](./docker-compose/README.md) for the commands:
 
-- **Remote** - run the published images to evaluate the product (no build).
-- **Local** - build and run your changes as they'd ship.
-- **From sources** - run the backend/frontend from your IDE for fast development.
+- **Published images** - `docker compose up -d`, or the demo with cases and tasks (no build).
+- **Dev variant** - build and run your changes as they'd ship (`compose.dev.yaml`).
+- **From sources** - `mise run dev:diensten` for Keycloak and the ZGW components, backend and frontend from your IDE.
 
 For deployment, see [Hosting & configuratie](./site/hosting-en-configuratie/index.md) (see [epic #191](https://github.com/pinkroccade/nl-portal/issues/191) for the helm-charts follow-up).
 

@@ -1,0 +1,56 @@
+[
+  {
+    "httpRequest": {
+      "method": "POST",
+      "path": "/haalcentraal/api/brp/personen",
+      "body": {
+        "type": "JSON",
+        "json": { "burgerservicenummer": ["999993847"] },
+        "matchType": "ONLY_MATCHING_FIELDS"
+      }
+    },
+    "httpResponse": {
+      "statusCode": 200,
+      "headers": { "Content-Type": ["application/json"] },
+      "body": {
+        "type": "RaadpleegMetBurgerservicenummer",
+        "personen": [
+          {
+            "burgerservicenummer": "999993847",
+            "geslacht": { "code": "V", "omschrijving": "vrouw" },
+            "leeftijd": 42,
+            "naam": {
+              "voornamen": "Mock",
+              "geslachtsnaam": "Bosrand",
+              "voorletters": "M.",
+              "volledigeNaam": "Mock Bosrand"
+            },
+            "geboorte": {
+              "datum": { "type": "Datum", "datum": "1983-05-01", "langFormaat": "1 mei 1983" },
+              "plaats": { "code": "0599", "omschrijving": "Rotterdam" },
+              "land": { "code": "6030", "omschrijving": "Nederland" }
+            },
+            "verblijfplaats": {
+              "type": "Adres",
+              "verblijfadres": {
+                "officieleStraatnaam": "Mockstraat",
+                "korteStraatnaam": "Mockstraat",
+                "huisnummer": 1,
+                "postcode": "1234AB",
+                "woonplaats": "De Bosrand"
+              }
+            }
+          }
+        ]
+      }
+    }
+  },
+  {
+    "httpRequest": { "method": "POST", "path": "/haalcentraal/api/brp/personen" },
+    "httpResponse": {
+      "statusCode": 200,
+      "headers": { "Content-Type": ["application/json"] },
+      "body": { "type": "RaadpleegMetBurgerservicenummer", "personen": [] }
+    }
+  }
+]

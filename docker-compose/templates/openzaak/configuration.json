@@ -142,7 +142,7 @@
         "uuid": "220bdf5e-4c05-4b2f-8e96-8c19162c3456",
         "slug": "nrc",
         "api_type": "nrc",
-        "api_root": "http://localhost:8012/notificaties/api/v1/",
+        "api_root": "http://nl-portal-open-notificaties:8012/notificaties/api/v1/",
         "api_connection_check_path": "",
         "auth_type": "zgw",
         "client_id": "openzaak",

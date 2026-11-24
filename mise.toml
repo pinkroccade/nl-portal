@@ -279,6 +279,14 @@ run = 'node --test "scripts/**/*.test.mjs"'
 description = "Genereer de lokale dev-omgeving: willekeurige secrets (docker-compose/.env, backend/app/.env.properties, seed-gegevens) en per tenant het Keycloak-realm uit het realm-template met een sleutelpaar voor private_key_jwt; opnieuw draaien geeft een verse omgeving"
 run = "node scripts/dev-setup.mjs"
 
+[tasks."dev:diensten"]
+description = "Start Keycloak, de BRP-mock en de ZGW-componenten met demo-fixtures in compose, zonder backend en frontend: die draai je zelf (./gradlew :app-dev:bootRun, pnpm dev)"
+dir = "docker-compose"
+# Eigen projectnaam en netwerk (CODING_STANDARDS.md, "Een gedeelde omgeving"): --scale ...=0 raakt zo nooit een
+# draaiende quickstart. De containernamen zijn vast, dus naast een quickstart starten geeft een duidelijke fout.
+env = { NL_PORTAL_NETWORK = "nl-portal-diensten" }
+run = "docker compose -p nl-portal-diensten --profile brp-mock --profile openzaak --profile objecten --profile openklant --profile openproduct up -d --pull never --scale nl-portal-backend=0 --scale nl-portal-frontend=0"
+
 [tasks."docs:install"]
 description = "Installeer de dependencies van de docs-site"
 dir = "site"
@@ -443,19 +451,19 @@ run = "node scripts/release-cut-rc.mjs"
 # duidelijke fout in plaats van een stack die onder je vandaan wordt vervangen.
 
 [tasks."perf:stack-up"]
-description = "Start de compose-stack met de perf-overlay zonder tracing (baseline; RUN_MODE standaard local)"
+description = "Start de compose-stack (demo) met de perf-overlay zonder tracing (baseline; backend en frontend uit de sources)"
 dir = "docker-compose"
 shell = "bash -c"
-run = 'RUN_MODE="${RUN_MODE:-local}" docker compose -p nl-portal-perf -f docker-compose.yaml -f compose.perf.yaml --profile zgw --profile haalcentraal up -d --build'
+run = 'NL_PORTAL_NETWORK=nl-portal-perf docker compose -p nl-portal-perf -f compose.yaml -f compose.demo.yaml -f compose.perf.yaml up -d --build'
 
 [tasks."perf:stack-up-tracing"]
-description = "Start de compose-stack met de perf-overlay, OTel-agent en Tempo (100% tracing, diagnose; RUN_MODE standaard local)"
+description = "Start de compose-stack (demo) met de perf-overlay, OTel-agent en Tempo (100% tracing, diagnose)"
 dir = "docker-compose"
 shell = "bash -c"
-run = 'RUN_MODE="${RUN_MODE:-local}" PERF_JAVA_AGENT=true PERF_OTEL_SDK_DISABLED=false COMPOSE_PROFILES=zgw,haalcentraal,tracing docker compose -p nl-portal-perf -f docker-compose.yaml -f compose.perf.yaml up -d --build'
+run = 'NL_PORTAL_NETWORK=nl-portal-perf PERF_JAVA_AGENT=true PERF_OTEL_SDK_DISABLED=false COMPOSE_PROFILES=tracing docker compose -p nl-portal-perf -f compose.yaml -f compose.demo.yaml -f compose.perf.yaml up -d --build'
 
 [tasks."perf:stack-down"]
 description = "Stop de perf-stack en verwijder de volumes"
 dir = "docker-compose"
 shell = "bash -c"
-run = 'RUN_MODE="${RUN_MODE:-local}" COMPOSE_PROFILES=zgw,haalcentraal,tracing docker compose -p nl-portal-perf -f docker-compose.yaml -f compose.perf.yaml down -v'
+run = 'NL_PORTAL_NETWORK=nl-portal-perf COMPOSE_PROFILES=tracing docker compose -p nl-portal-perf -f compose.yaml -f compose.demo.yaml -f compose.perf.yaml down -v'

@@ -1,9 +1,20 @@
-# Overlay voor performancetesten (zie site/development/adr/0018-performancetesten-met-k6-en-otel-agent-in-overlay.md).\n#\n# Gebruik naast docker-compose.yaml, met RUN_MODE=local of RUN_MODE=remote (de overlay past de\n# portal-backend aan, die in RUN_MODE=sources niet in compose draait):\n#\n#   Baseline (zonder tracing):\n#     docker compose -f docker-compose.yaml -f compose.perf.yaml --profile zgw up -d\n#   Diagnose (100% tracing naar Tempo):\n#     PERF_JAVA_AGENT=true PERF_OTEL_SDK_DISABLED=false \n#       COMPOSE_PROFILES=zgw,tracing docker compose -f docker-compose.yaml -f compose.perf.yaml up -d\n#\n# `mise run perf:stack-up` en `mise run perf:stack-up-tracing` doen dit voor je.\n#\n# De OpenTelemetry Java-agent wordt alleen hier toegevoegd, via een volume: het release-artefact\n# (de backend-image) bevat geen tracing-dependency. Zonder die variabelen (en zonder profiel `tracing`) staat tracing uit en\n# gedraagt de stack zich als de gewone stack, zodat baselineruns niet door de agent worden vertekend.
+# Overlay voor performancetesten (zie site/development/adr/0018-performancetesten-met-k6-en-otel-agent-in-overlay.md).
+#
+# Gebruik naast compose.yaml en compose.demo.yaml; de overlay bouwt backend en frontend uit de sources en
+# zet de BRP-mock aan met data per seed-gebruiker:
+#
+#   Baseline (zonder tracing):
+#     docker compose -f compose.yaml -f compose.demo.yaml -f compose.perf.yaml up -d --build
+#   Diagnose (100% tracing naar Tempo):
+#     PERF_JAVA_AGENT=true PERF_OTEL_SDK_DISABLED=false COMPOSE_PROFILES=tracing \
+#       docker compose -f compose.yaml -f compose.demo.yaml -f compose.perf.yaml up -d --build
+#
+# `mise run perf:stack-up` en `mise run perf:stack-up-tracing` doen dit voor je.
+#
+# De OpenTelemetry Java-agent wordt alleen hier toegevoegd, via een volume: het release-artefact
+# (de backend-image) bevat geen tracing-dependency. Zonder die variabelen (en zonder profiel `tracing`) staat tracing uit en
+# gedraagt de stack zich als de gewone stack, zodat baselineruns niet door de agent worden vertekend.
 services:
-    localhost:
-        ports:
-            - "3200:3200" # Tempo query API (trace opvragen via /api/traces/<id>)
-
     # Eenmalig: kopieert de OTel Java-agent naar een gedeeld volume, zodat de backend-image ongewijzigd blijft.
     otel-javaagent:
         image: ghcr.io/open-telemetry/opentelemetry-operator/autoinstrumentation-java:2.20.1
@@ -19,7 +30,6 @@ services:
         container_name: nl-portal-tempo
         profiles:
             - tracing
-        network_mode: "service:localhost"
         command: ["-config.file=/etc/tempo/tempo.yaml"]
         volumes:
             - ./imports/tempo/tempo.yaml:/etc/tempo/tempo.yaml:ro
@@ -27,12 +37,17 @@ services:
               target: /var/tempo
               tmpfs:
                   mode: 01777
+        ports:
+            - "127.0.0.1:3200:3200" # Tempo query API (trace opvragen via /api/traces/<id>)
 
     nl-portal-backend:
+        image: nl-portal-backend:perf
+        build: ../backend
         # De backend heeft Keycloak nodig bij het opstarten en stopt zonder dat; compose start hem niet opnieuw.
         # Op een trage (CI-)runner kan hij daardoor eenmalig mislukken, dus herstart hem een paar keer.
         restart: on-failure:5
         environment:
+            NLPORTAL_CONFIG_HAALCENTRAALBRP_PROPERTIES_BRPAPIURL: http://nl-portal-haalcentraal-personen:5010/haalcentraal/api/brp/
             # Leeg zonder tracing: dan wordt geen agent geladen.
             JAVA_TOOL_OPTIONS: ${PERF_JAVA_AGENT:+-javaagent:/otel/javaagent.jar}
             OTEL_SDK_DISABLED: "${PERF_OTEL_SDK_DISABLED:-true}"
@@ -41,7 +56,7 @@ services:
             OTEL_METRICS_EXPORTER: none
             OTEL_LOGS_EXPORTER: none
             OTEL_EXPORTER_OTLP_PROTOCOL: http/protobuf
-            OTEL_EXPORTER_OTLP_ENDPOINT: http://localhost:4318
+            OTEL_EXPORTER_OTLP_ENDPOINT: http://nl-portal-tempo:4318
             OTEL_PROPAGATORS: tracecontext,baggage
         volumes:
             - otel-agent:/otel:ro
@@ -50,36 +65,30 @@ services:
                 condition: service_completed_successfully
                 required: false
 
+    nl-portal-frontend:
+        image: nl-portal-frontend:perf
+        build: ../frontend
+
     # OpenZaak en Objecten hebben OTel al ingebouwd (in de basis staat OTEL_SDK_DISABLED=true).
     nl-portal-openzaak:
         environment:
             - OTEL_SDK_DISABLED=${PERF_OTEL_SDK_DISABLED:-true}
             - OTEL_SERVICE_NAME=open-zaak
-            - OTEL_EXPORTER_OTLP_ENDPOINT=http://localhost:4317
+            - OTEL_EXPORTER_OTLP_ENDPOINT=http://nl-portal-tempo:4317
             - OTEL_EXPORTER_OTLP_PROTOCOL=grpc
-        # De bestandsopslag is hier een named volume in plaats van de bind mount uit docker-compose.yaml. Die bind mount is op
-        # een Linux-runner van de runner-gebruiker, waardoor de container er geen map in mag aanmaken (PermissionError bij het
-        # seeden), en elke seed liet nieuwe bestanden in de werkboom achter. Een named volume neemt de rechten van de image
-        # over en verdwijnt met `perf:stack-down`.
-        volumes:
-            - openzaak-private-media:/app/private-media
-
-    nl-portal-openzaak-import:
-        volumes:
-            - openzaak-private-media:/app/private-media
 
     nl-portal-open-object:
         environment:
             - OTEL_SDK_DISABLED=${PERF_OTEL_SDK_DISABLED:-true}
-            - OTEL_EXPORTER_OTLP_ENDPOINT=http://localhost:4317
+            - OTEL_EXPORTER_OTLP_ENDPOINT=http://nl-portal-tempo:4317
             - OTEL_EXPORTER_OTLP_PROTOCOL=grpc
 
     # De seed-gebruikers (burger-001.., BSN's vanaf 900000000) staan niet in de demodata van de BRP-mock.
     # Dit bestand (gegenereerd met `mise run perf:brp-data`) vervangt de mock-data door een persoon per seed-gebruiker.
     nl-portal-haalcentraal-personen:
+        profiles: !reset []
         volumes:
             - ./imports/haalcentraal-perf/test-data.json:/app/Data/test-data.json:ro
 
 volumes:
     otel-agent:
-    openzaak-private-media:
