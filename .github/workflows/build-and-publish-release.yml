@@ -9,8 +9,6 @@ concurrency:
 
 permissions:
     contents: read
-    packages: write
-    id-token: write
 
 jobs:
     prepare:
@@ -22,6 +20,7 @@ jobs:
         steps:
             -   uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
                 with:
+                    persist-credentials: false
                     fetch-depth: 0
             -   name: Guard branch
                 run: |
@@ -95,6 +94,10 @@ jobs:
         needs: [prepare, stage-be, gate]
         if: github.repository_owner == 'pinkroccade'
         uses: ./.github/workflows/_build-app-image.yml
+        permissions:
+            contents: read
+            packages: write # image naar ghcr pushen
+            id-token: write # keyless cosign-handtekening
         with:
             stack: backend
             push: true
@@ -107,12 +110,15 @@ jobs:
             labels: |
                 nl.nlportal.sbom=https://github.com/${{ github.repository }}/releases/download/${{ needs.prepare.outputs.version }}/nl-portal-backend-${{ needs.prepare.outputs.version }}.image.sbom.cyclonedx.json
                 nl.nlportal.chart=oci://ghcr.io/pinkroccade/charts/nl-portal
-        secrets: inherit
 
     image-fe:
         needs: [prepare, stage-fe, gate]
         if: github.repository_owner == 'pinkroccade'
         uses: ./.github/workflows/_build-app-image.yml
+        permissions:
+            contents: read
+            packages: write # image naar ghcr pushen
+            id-token: write # keyless cosign-handtekening
         with:
             stack: frontend
             push: true
@@ -125,7 +131,6 @@ jobs:
             labels: |
                 nl.nlportal.sbom=https://github.com/${{ github.repository }}/releases/download/${{ needs.prepare.outputs.version }}/nl-portal-frontend-${{ needs.prepare.outputs.version }}.image.sbom.cyclonedx.json
                 nl.nlportal.chart=oci://ghcr.io/pinkroccade/charts/nl-portal
-        secrets: inherit
 
     create-release:
         needs: [prepare, stage-be, image-be, image-fe]
@@ -140,6 +145,7 @@ jobs:
                 with:
                     client-id: ${{ secrets.NL_PORTAL_APP_CLIENT_ID }}
                     private-key: ${{ secrets.NL_PORTAL_APP_PRIVATE_KEY }}
+                    permission-contents: write # branches en tags pushen; rest van de App-rechten is niet nodig
             -   uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
                 with:
                     token: ${{ steps.token.outputs.token }}

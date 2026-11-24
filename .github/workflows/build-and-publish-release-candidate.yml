@@ -14,8 +14,6 @@ concurrency:
 
 permissions:
     contents: read
-    packages: write
-    id-token: write
 
 jobs:
     prepare:
@@ -24,6 +22,8 @@ jobs:
             version: ${{ steps.v.outputs.version }}
         steps:
             -   uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+                with:
+                    persist-credentials: false
             -   name: Guard branch
                 run: |
                     case "${GITHUB_REF_NAME}" in
@@ -56,23 +56,29 @@ jobs:
         needs: [prepare, stage-be]
         if: github.repository_owner == 'pinkroccade'
         uses: ./.github/workflows/_build-app-image.yml
+        permissions:
+            contents: read
+            packages: write # image naar ghcr pushen
+            id-token: write # keyless cosign-handtekening
         with:
             stack: backend
             push: true
             primaryTag: ghcr.io/pinkroccade/nl-portal-backend:${{ needs.prepare.outputs.version }}
             tags: |
                 ghcr.io/pinkroccade/nl-portal-backend:${{ needs.prepare.outputs.version }}
-        secrets: inherit
 
     image-fe:
         needs: [prepare, stage-fe]
         if: github.repository_owner == 'pinkroccade'
         uses: ./.github/workflows/_build-app-image.yml
+        permissions:
+            contents: read
+            packages: write # image naar ghcr pushen
+            id-token: write # keyless cosign-handtekening
         with:
             stack: frontend
             push: true
             primaryTag: ghcr.io/pinkroccade/nl-portal-frontend:${{ needs.prepare.outputs.version }}
             tags: |
                 ghcr.io/pinkroccade/nl-portal-frontend:${{ needs.prepare.outputs.version }}
-        secrets: inherit
 

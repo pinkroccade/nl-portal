@@ -103,7 +103,7 @@ and pnpm. The aggregates cover backend and frontend at once:
 
 - `mise run build` compiles and assembles everything.
 - `mise run test` runs the unit tests of backend, frontend and scripts.
-- `mise run lint` runs ktlint/Spotless, ESLint, Stylelint, the typecheck, Prettier, actionlint on the
+- `mise run lint` runs ktlint/Spotless, ESLint, Stylelint, the typecheck, Prettier, actionlint and zizmor (config and exceptions in `.github/zizmor.yml`) on the
   GitHub workflows and a check that inline mise tasks with bash syntax set `shell = "bash -c"`.
 - `mise run arch-check` checks the ArchUnit layer rules.
 

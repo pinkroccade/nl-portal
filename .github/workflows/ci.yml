@@ -27,6 +27,8 @@ jobs:
             docsOnly: ${{ steps.filter.outputs.backend == 'false' && steps.filter.outputs.frontend == 'false' && steps.filter.outputs.scripts == 'false' && steps.filter.outputs.helm == 'false' && steps.filter.outputs.workflows == 'false' && steps.filter.outputs.docs == 'true' }}
         steps:
             -   uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+                with:
+                    persist-credentials: false
             -   uses: dorny/paths-filter@ceb8a2b8f2d89434be7ff52d3de7ec3738c5cc9d # v4.0.3
                 id: filter
                 with:
@@ -112,6 +114,8 @@ jobs:
         runs-on: ubuntu-latest
         steps:
             -   uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+                with:
+                    persist-credentials: false
             -   name: Set up Node.js
                 uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6.5.0
                 with:
@@ -129,6 +133,8 @@ jobs:
         runs-on: ubuntu-latest
         steps:
             -   uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+                with:
+                    persist-credentials: false
             -   name: Set up Node.js
                 uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6.5.0
                 with:
@@ -154,6 +160,8 @@ jobs:
         runs-on: ubuntu-latest
         steps:
             -   uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+                with:
+                    persist-credentials: false
             -   name: Set up Node.js
                 uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6.5.0
                 with:
@@ -171,6 +179,8 @@ jobs:
         runs-on: ubuntu-latest
         steps:
             -   uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+                with:
+                    persist-credentials: false
             -   name: Set up Node.js
                 uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6.5.0
                 with:
@@ -189,6 +199,7 @@ jobs:
         steps:
             -   uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
                 with:
+                    persist-credentials: false
                     fetch-depth: 0
             -   name: Set up Node.js
                 uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6.5.0
@@ -209,6 +220,8 @@ jobs:
         runs-on: ubuntu-latest
         steps:
             -   uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+                with:
+                    persist-credentials: false
             -   name: Set up Node.js
                 uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6.5.0
                 with:
@@ -226,6 +239,8 @@ jobs:
         runs-on: ubuntu-latest
         steps:
             -   uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+                with:
+                    persist-credentials: false
             -   name: Set up mise
                 uses: jdx/mise-action@924e7c586e33d7d4bae9c14e26c5d22e2beb6e78 # v5.3.0
             -   name: Regenerate capability docs and fail on diff
@@ -239,6 +254,8 @@ jobs:
         runs-on: ubuntu-latest
         steps:
             -   uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+                with:
+                    persist-credentials: false
             -   name: Set up mise
                 uses: jdx/mise-action@924e7c586e33d7d4bae9c14e26c5d22e2beb6e78 # v5.3.0
             -   name: Build docs site (navigation tests, dead-link and anchor check)
@@ -250,6 +267,8 @@ jobs:
         runs-on: ubuntu-latest
         steps:
             -   uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+                with:
+                    persist-credentials: false
             -   name: Set up mise (alleen actionlint, zizmor en shellcheck)
                 uses: jdx/mise-action@924e7c586e33d7d4bae9c14e26c5d22e2beb6e78 # v5.3.0
                 with:
@@ -270,10 +289,7 @@ jobs:
             -   uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
                 with:
                     persist-credentials: false
-            -   name: Fetch the base branch
-                env:
-                    BASE_REF: ${{ github.base_ref }}
-                run: git fetch --depth=1 origin "${BASE_REF}"
+                    fetch-depth: 0 # origin/<basisbranch> moet beschikbaar zijn voor helm:manifest-diff
             -   name: Set up mise (helm)
                 uses: jdx/mise-action@924e7c586e33d7d4bae9c14e26c5d22e2beb6e78 # v5.3.0
                 with:
@@ -308,6 +324,7 @@ jobs:
         steps:
             -   uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
                 with:
+                    persist-credentials: false
                     fetch-depth: 0
             -   name: Set up mise
                 uses: jdx/mise-action@924e7c586e33d7d4bae9c14e26c5d22e2beb6e78 # v5.3.0
