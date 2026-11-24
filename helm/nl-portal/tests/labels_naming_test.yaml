@@ -118,10 +118,9 @@ tests:
       - equal:
           path: spec.template.spec.serviceAccountName
           value: rel-portaal
-  - it: een andere globale waarde dan imageRegistry en imagePullSecrets wordt geweigerd
+  - it: andere globale waarden van een parent-chart worden genegeerd
     template: deployment-backend.yaml
     set:
       global.storageClass: fast
     asserts:
-      - failedTemplate:
-          errorPattern: "global"
+      - notFailedTemplate: {}
