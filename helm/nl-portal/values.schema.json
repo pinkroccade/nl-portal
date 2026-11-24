@@ -149,14 +149,28 @@
           "type": "object",
           "additionalProperties": false,
           "properties": {
-            "redisPassword": { "type": "string", "minLength": 1 },
-            "redisUsername": { "type": "string", "minLength": 1 },
-            "redisSsl": { "type": "string", "minLength": 1 },
-            "beheerPasswordHash": { "type": "string", "minLength": 1 },
-            "besluitenapiSecret": { "type": "string", "minLength": 1 },
-            "openklant2Token": { "type": "string", "minLength": 1 },
-            "openproductToken": { "type": "string", "minLength": 1 }
-          }
+            "redisPassword": { "type": "string", "minLength": 1,
+              "x-secret": { "nodig": "altijd", "betekenis": "Wachtwoord van de Redis ACL-gebruiker" } },
+            "redisUsername": { "type": "string", "minLength": 1,
+              "x-secret": { "nodig": "optioneel", "betekenis": "ACL-gebruiker; overschrijft `backend.redis.username`" } },
+            "redisSsl": { "type": "string", "minLength": 1,
+              "x-secret": { "nodig": "optioneel", "betekenis": "`true` of `false`; overschrijft `backend.redis.ssl`" } },
+            "beheerPasswordHash": { "type": "string", "minLength": 1,
+              "x-secret": { "nodig": "`backend.beheer.enabled`", "betekenis": "Wachtwoordhash van de beheergebruiker, met prefix (`{bcrypt}$2a$...`)" } },
+            "besluitenapiSecret": { "type": "string", "minLength": 1,
+              "x-secret": { "nodig": "`modules.besluitenapi.enabled`", "betekenis": "Client-secret van de Besluiten API" } },
+            "openklant2Token": { "type": "string", "minLength": 1,
+              "x-secret": { "nodig": "`modules.openklant2.enabled`", "betekenis": "API-token van OpenKlant 2" } },
+            "openproductToken": { "type": "string", "minLength": 1,
+              "x-secret": { "nodig": "`modules.openproduct.enabled`", "betekenis": "API-token van OpenProduct" } }
+          },
+          "x-extraRijen": [
+            {
+              "key": "NL_PORTAL_GEHEIMEN_<OIN>_<NAAM>",
+              "nodig": "per tenantbestand",
+              "betekenis": "De geheimen waar het tenantbestand naar verwijst, bijvoorbeeld `NL_PORTAL_GEHEIMEN_00000099000000000001_ZAKEN_SECRET`, `..._CATALOGIAPI_SECRET`, `..._OBJECTENAPI_TOKEN` (waarde `Token <token>`), `..._DOCUMENTEN_API_SECRET`, `..._VERIFICATIE_SECRET`"
+            }
+          ]
         },
         "secretVersion": { "type": "string" },
         "logLevel": { "enum": ["TRACE", "DEBUG", "INFO", "WARN", "ERROR", "OFF"] },
