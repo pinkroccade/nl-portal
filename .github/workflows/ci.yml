@@ -46,6 +46,8 @@ jobs:
                             - 'mise.toml'
                             - 'mise-tasks/helm/**'
                             - 'scripts/check-helm-sync*'
+                            - 'scripts/manifest-diff*'
+                            - 'scripts/lib/manifest-diff*'
                             # De sync-check vergelijkt de chart met de config-referentie van de app (#194): een PR die alleen
                             # een app-property toevoegt, moet hem dus ook draaien.
                             - 'docker-compose/imports/backend.env'
@@ -248,12 +250,54 @@ jobs:
         runs-on: ubuntu-latest
         steps:
             -   uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-            -   name: Set up mise (alleen actionlint en shellcheck)
+            -   name: Set up mise (alleen actionlint, zizmor en shellcheck)
                 uses: jdx/mise-action@924e7c586e33d7d4bae9c14e26c5d22e2beb6e78 # v5.3.0
                 with:
-                    install_args: actionlint shellcheck
+                    install_args: actionlint zizmor shellcheck
             -   name: Lint de workflows
                 run: mise run workflows:lint
+
+    # Eén PR-comment met de diff van de gerenderde chart-manifests tegen de basisbranch (#195). Een nieuwe commit werkt
+    # het comment bij (vaste marker) in plaats van er een bij te stapelen. Niet voor forks: hun token kan geen comments
+    # schrijven. Informatief: geen onderdeel van ci-required.
+    helm-manifest-diff:
+        needs: changes
+        if: ${{ needs.changes.outputs.helm == 'true' && github.event.pull_request.head.repo.full_name == github.repository }}
+        runs-on: ubuntu-latest
+        permissions:
+            pull-requests: write
+        steps:
+            -   uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+                with:
+                    persist-credentials: false
+            -   name: Fetch the base branch
+                env:
+                    BASE_REF: ${{ github.base_ref }}
+                run: git fetch --depth=1 origin "${BASE_REF}"
+            -   name: Set up mise (helm)
+                uses: jdx/mise-action@924e7c586e33d7d4bae9c14e26c5d22e2beb6e78 # v5.3.0
+                with:
+                    install_args: helm
+                    cache: false
+            -   name: Render the manifests of main and of the PR
+                env:
+                    BASE_REF: origin/${{ github.base_ref }}
+                run: mise run helm:manifest-diff > body.md
+            -   name: Place or update the PR comment
+                env:
+                    GH_TOKEN: ${{ github.token }}
+                    REPO: ${{ github.repository }}
+                    PR_NUMBER: ${{ github.event.pull_request.number }}
+                run: |
+                    MARKER=$(head -n 1 body.md)
+                    EXISTING=$(gh api --paginate "repos/${REPO}/issues/${PR_NUMBER}/comments" \
+                      --jq ".[] | select(.body | startswith(\"${MARKER}\")) | .id")
+                    EXISTING="${EXISTING%%$'\n'*}"
+                    if [ -n "${EXISTING}" ]; then
+                      gh api -X PATCH "repos/${REPO}/issues/comments/${EXISTING}" -F body=@body.md > /dev/null
+                    else
+                      gh api -X POST "repos/${REPO}/issues/${PR_NUMBER}/comments" -F body=@body.md > /dev/null
+                    fi
 
     # Een chartwijziging raakt ook de changelog of de Kubernetes-docs; label docs-not-needed is de bewuste uitzondering.
     # Het label wordt live gelezen: na het zetten van het label volstaat een herstart van deze job.
