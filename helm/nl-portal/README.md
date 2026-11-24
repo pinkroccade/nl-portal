@@ -175,3 +175,13 @@ Pods restart on a change of the environment ConfigMap, the tenant files, the fea
 
 From the repository root: `mise run helm:lint` (`helm lint --strict` and kubeconform per scenario in `ci/`) and `mise run helm:test`
 (helm-unittest suites in `tests/`).
+
+## Releasing
+
+The chart is published as a signed OCI artifact: `oci://ghcr.io/pinkroccade/charts/nl-portal`. To release:
+
+1. Bump `version` in `Chart.yaml` (SemVer, independent of `appVersion`; a breaking values change is a major bump). Set `appVersion` to an
+   app release whose images exist on ghcr.
+2. Merge to `main`, then push the tag `chart-nl-portal-<version>` on that commit.
+3. The workflow `publish-helm-chart.yml` checks that the tag equals `version`, that the images of `appVersion` exist, runs `helm:lint` and
+   `helm:test`, pushes the chart and signs it with cosign (keyless, GitHub OIDC).

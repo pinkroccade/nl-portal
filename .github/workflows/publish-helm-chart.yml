@@ -1,0 +1,88 @@
+name: Publish Helm Chart
+
+# Publiceert helm/nl-portal als gesigneerd OCI-artifact op ghcr (oci://ghcr.io/pinkroccade/charts/nl-portal).
+# Een chart-release is een tag `chart-nl-portal-X.Y.Z` op een commit van main (of een release/<major>.x-lijn);
+# X.Y.Z moet gelijk zijn aan `version` in helm/nl-portal/Chart.yaml. De app-tags (X.Y.Z) blijven los daarvan.
+
+on:
+    push:
+        tags:
+            - "chart-nl-portal-*"
+
+concurrency:
+    group: helm-chart-${{ github.ref }}
+    cancel-in-progress: false
+
+permissions:
+    contents: read
+    packages: write
+    id-token: write
+
+env:
+    CHART_DIR: helm/nl-portal
+    CHART_REPOSITORY: ghcr.io/pinkroccade/charts
+
+jobs:
+    publish:
+        if: github.repository_owner == 'pinkroccade'
+        runs-on: ubuntu-latest
+        steps:
+            -   uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+            -   name: Tag moet overeenkomen met de chartversie
+                id: v
+                env:
+                    TAG: ${{ github.ref_name }}
+                run: |
+                    version="${TAG#chart-nl-portal-}"
+                    chart_version=$(sed -n 's/^version: *//p' "${CHART_DIR}/Chart.yaml" | tr -d '"')
+                    app_version=$(sed -n 's/^appVersion: *//p' "${CHART_DIR}/Chart.yaml" | tr -d '"')
+                    if [ "${version}" != "${chart_version}" ]; then
+                      echo "::error::Tag ${TAG} wijst naar chartversie ${version}, maar Chart.yaml heeft versie ${chart_version}."
+                      exit 1
+                    fi
+                    echo "version=${version}" >> "$GITHUB_OUTPUT"
+                    echo "appVersion=${app_version}" >> "$GITHUB_OUTPUT"
+            -   name: Set up mise (helm, kubeconform, helm-unittest)
+                uses: jdx/mise-action@924e7c586e33d7d4bae9c14e26c5d22e2beb6e78 # v5.3.0
+                with:
+                    install_args: "helm kubeconform github:helm-unittest/helm-unittest"
+            -   name: Valideer de chart
+                run: |
+                    mise run helm:lint
+                    mise run helm:test
+            -   name: Install Cosign
+                uses: sigstore/cosign-installer@756fe2d284c7292c4e9b62c8a28f1e5629c59532 # v4.1.3
+            -   name: Log in op ghcr
+                env:
+                    GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+                    ACTOR: ${{ github.actor }}
+                run: echo "${GITHUB_TOKEN}" | mise exec -- helm registry login ghcr.io --username "${ACTOR}" --password-stdin
+            -   name: De images van appVersion moeten bestaan
+                env:
+                    APP_VERSION: ${{ steps.v.outputs.appVersion }}
+                run: |
+                    for stack in backend frontend; do
+                      docker buildx imagetools inspect "ghcr.io/pinkroccade/nl-portal-${stack}:${APP_VERSION}" > /dev/null \
+                        || { echo "::error::ghcr.io/pinkroccade/nl-portal-${stack}:${APP_VERSION} bestaat niet; publiceer eerst de app-release."; exit 1; }
+                    done
+            -   name: Package en push
+                id: push
+                env:
+                    VERSION: ${{ steps.v.outputs.version }}
+                run: |
+                    mise exec -- helm package "${CHART_DIR}" --destination dist
+                    mise exec -- helm push "dist/nl-portal-${VERSION}.tgz" "oci://${CHART_REPOSITORY}" 2>&1 | tee push.log
+                    digest=$(sed -n 's/^Digest: *//p' push.log)
+                    [ -n "${digest}" ] || { echo "::error::Geen digest in de uitvoer van helm push."; exit 1; }
+                    echo "digest=${digest}" >> "$GITHUB_OUTPUT"
+            -   name: Onderteken de chart met het GitHub OIDC-token
+                env:
+                    DIGEST: ${{ steps.push.outputs.digest }}
+                run: cosign sign --yes "${CHART_REPOSITORY}/nl-portal@${DIGEST}"
+            -   name: Controleer de handtekening
+                env:
+                    DIGEST: ${{ steps.push.outputs.digest }}
+                run: |
+                    cosign verify "${CHART_REPOSITORY}/nl-portal@${DIGEST}" \
+                       --certificate-identity "https://github.com/${GITHUB_REPOSITORY}/.github/workflows/publish-helm-chart.yml@${GITHUB_REF}" \
+                       --certificate-oidc-issuer https://token.actions.githubusercontent.com
