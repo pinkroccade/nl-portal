@@ -1,0 +1,51 @@
+/* Huisstijlaccent voor de "pink edition": zelfde NL Portal, aparte editie.
+   Kleuren uit het huisstijlhandboek (8.2). */
+:root {
+  --pink-edition: #e2007a;
+  --pink-edition-soft: rgba(226, 0, 122, 0.1);
+  --edition-blue: #004a91;
+  --pink-edition-gradient: linear-gradient(90deg, #53b7ed, #a092e1, #ec6dd4);
+}
+
+/* Lichtroze houdt voldoende contrast op de donkere achtergrond. */
+.dark {
+  --pink-edition: #ec6dd4;
+  --pink-edition-soft: rgba(236, 109, 212, 0.14);
+  --edition-blue: #53b7ed;
+}
+
+.VPHero .name {
+  color: var(--edition-blue);
+  -webkit-text-fill-color: currentColor;
+}
+
+.VPHero .name .edition-tag {
+  display: inline-block;
+  margin-left: 0.25em;
+  padding: 0 0.4em;
+  border: 2px solid var(--pink-edition);
+  border-radius: 0.3em;
+  background: var(--pink-edition-soft);
+  color: var(--pink-edition);
+  -webkit-text-fill-color: var(--pink-edition);
+  font-size: 0.6em;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  vertical-align: middle;
+  white-space: nowrap;
+}
+
+/* Subtiele blue-pink-gradiënt als lijn onder de hero-tekst. */
+.VPHero .tagline::after {
+  content: "";
+  display: block;
+  width: 96px;
+  height: 4px;
+  margin-top: 20px;
+  border-radius: 2px;
+  background: var(--pink-edition-gradient);
+}
+
+.VPHome .VPFeature:hover {
+  border-color: var(--pink-edition);
+}

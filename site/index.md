@@ -1,9 +1,9 @@
 ---
 layout: home
 hero:
-  name: NL Portal
+  name: "NL Portal <span class=\"edition-tag\">pink edition</span>"
   text: Documentatie
-  tagline: Eén bron van waarheid voor architectuur, gebruik, hosting en development.
+  tagline: "Multitenant NL Portal. Open Source inwonerportaal op basis van Common Ground en VNG MijnServices architectuur."
 features:
   - title: Architectuur
     details: Hoe NL Portal is opgebouwd — arc42, LikeC4, patronen en integraties.
