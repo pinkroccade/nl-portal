@@ -1,0 +1,81 @@
+{
+  "_uitleg": "Env-sleutels uit docker-compose/imports/*.env die de chart bewust niet zelf rendert. Elke entry heeft een reden; zie scripts/check-helm-sync.mjs.",
+  "entries": [
+    {
+      "prefix": "NLPORTAL_FRONTEND_PROPERTIES_",
+      "reason": "De chart geeft elke sleutel van backend.frontendProperties door; een vaste lijst per property is er niet."
+    },
+    {
+      "prefix": "NL_PORTAL_GEHEIMEN_",
+      "reason": "Tenantgeheimen (per OIN) komen uit het Secret in backend.existingSecret; de chart maakt geen Secrets."
+    },
+    {
+      "key": "NLPORTAL_CONFIG_DMN_PROPERTIES_CLIENTID",
+      "reason": "Geheim of inloggegeven: komt uit het Secret in backend.existingSecret."
+    },
+    {
+      "key": "NLPORTAL_CONFIG_DMN_PROPERTIES_SECRET",
+      "reason": "Geheim of inloggegeven: komt uit het Secret in backend.existingSecret."
+    },
+    {
+      "key": "NLPORTAL_CONFIG_DMN_PROPERTIES_USERNAME",
+      "reason": "Geheim of inloggegeven: komt uit het Secret in backend.existingSecret."
+    },
+    {
+      "key": "NLPORTAL_CONFIG_DMN_PROPERTIES_PASSWORD",
+      "reason": "Geheim of inloggegeven: komt uit het Secret in backend.existingSecret."
+    },
+    {
+      "key": "NLPORTAL_CONFIG_OPENPRODUCT_PROPERTIES_DMN_CLIENTID",
+      "reason": "Geheim of inloggegeven: komt uit het Secret in backend.existingSecret."
+    },
+    {
+      "key": "NLPORTAL_CONFIG_OPENPRODUCT_PROPERTIES_DMN_SECRET",
+      "reason": "Geheim of inloggegeven: komt uit het Secret in backend.existingSecret."
+    },
+    {
+      "key": "NLPORTAL_CONFIG_OPENPRODUCT_PROPERTIES_DMN_USERNAME",
+      "reason": "Geheim of inloggegeven: komt uit het Secret in backend.existingSecret."
+    },
+    {
+      "key": "NLPORTAL_CONFIG_OPENPRODUCT_PROPERTIES_DMN_PASSWORD",
+      "reason": "Geheim of inloggegeven: komt uit het Secret in backend.existingSecret."
+    },
+    {
+      "key": "NLPORTAL_CONFIG_DMN_PROPERTIES_SSL_ENABLED",
+      "reason": "Niet gemodelleerd in de chart; zet via backend.extraEnv."
+    },
+    {
+      "key": "NLPORTAL_CONFIG_OPENKLANT2_PROPERTIES_DIGITALADRESSENREFERENTIE",
+      "reason": "Niet gemodelleerd in de chart; zet via backend.extraEnv."
+    },
+    {
+      "key": "NLPORTAL_CONFIG_THEME_LOGO",
+      "reason": "Niet gemodelleerd in de chart; zet via backend.extraEnv."
+    },
+    {
+      "key": "NLPORTAL_CONFIG_THEME_STYLE",
+      "reason": "Niet gemodelleerd in de chart; zet via backend.extraEnv."
+    },
+    {
+      "key": "NLPORTAL_SECURITY_ENDPOINTS_UNSECURED",
+      "reason": "Niet gemodelleerd in de chart; zet via backend.extraEnv."
+    },
+    {
+      "key": "NLPORTAL_SECURITY_HEADERS_CONTENTSECURITYPOLICY",
+      "reason": "Niet gemodelleerd in de chart; zet via backend.extraEnv."
+    },
+    {
+      "key": "NLPORTAL_SECURITY_HEADERS_HSTSMAXAGEINDAYS",
+      "reason": "Niet gemodelleerd in de chart; zet via backend.extraEnv."
+    },
+    {
+      "key": "NLPORTAL_AUTHENTICATION_MACHTINGSDIENST_ALLMACHTIGINGUUID",
+      "reason": "Niet gemodelleerd in de chart; zet via backend.extraEnv."
+    },
+    {
+      "key": "NLPORTAL_AUTHENTICATION_MACHTINGSDIENST_RESOURCEURL",
+      "reason": "Niet gemodelleerd in de chart; zet via backend.extraEnv."
+    }
+  ]
+}

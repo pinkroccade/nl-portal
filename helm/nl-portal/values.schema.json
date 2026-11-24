@@ -68,7 +68,7 @@
   "properties": {
     "global": {
       "type": "object",
-      "additionalProperties": false,
+      "additionalProperties": true,
       "properties": {
         "imageRegistry": { "type": "string" },
         "imagePullSecrets": {

@@ -3,7 +3,7 @@ name: nl-portal
 description: NL Portal Pink Edition (backend and frontend) for Kubernetes. Redis, Keycloak and the ZGW sources are prerequisites, not bundled.
 type: application
 # Chart version (SemVer) is independent of appVersion. Bump it on every change to the chart.
-version: 0.1.0
+version: 0.1.1
 # The default image tag of backend and frontend. Override with backend.image.tag / frontend.image.tag.
 appVersion: "0.1.0"
 kubeVersion: ">=1.27.0-0"
@@ -19,3 +19,10 @@ maintainers:
     url: https://github.com/pinkroccade/nl-portal
 annotations:
   category: Government
+  # Verwijzing van chart naar images (Artifact Hub). `mise run release:cut-rc` houdt de tags gelijk aan appVersion;
+  # de images verwijzen terug via het OCI-label nl.nlportal.chart.
+  artifacthub.io/images: |
+    - name: backend
+      image: ghcr.io/pinkroccade/nl-portal-backend:0.1.0
+    - name: frontend
+      image: ghcr.io/pinkroccade/nl-portal-frontend:0.1.0

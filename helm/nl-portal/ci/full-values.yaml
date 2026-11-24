@@ -24,6 +24,15 @@ tenancy:
       key: sleutel.json
 backend:
   replicaCount: 2
+  affinity:
+    podAntiAffinity:
+      preferredDuringSchedulingIgnoredDuringExecution:
+        - weight: 100
+          podAffinityTerm:
+            topologyKey: kubernetes.io/hostname
+            labelSelector:
+              matchLabels:
+                app.kubernetes.io/component: backend
   existingSecret: nl-portal-backend
   secretVersion: "2026-11-22"
   keycloakBrokerUrl: https://login.example.nl
@@ -60,6 +69,20 @@ backend:
     haalcentraalBrp: {enabled: true}
     clamav: {enabled: true, hostname: clamav.example.svc}
     taak: {enabled: true}
+    kvk: {enabled: true}
+    verificatie: {enabled: true}
+    product:
+      enabled: true
+      productTypeUrl: https://objecten.example.nl/api/v2/objecttypes/972e92ce-b964-4ca8-ad4d-ddc43dd7b244
+      productInstantieTypeUrl: https://objecten.example.nl/api/v2/objecttypes/3e852115-277a-4570-873a-9a64be3aeb34
+      productVerbruiksobjectTypeUrl: https://objecten.example.nl/api/v2/objecttypes/3e852115-277a-4570-873a-9a64be3aeb37
+      productDetailsTypeUrl: https://objecten.example.nl/api/v2/objecttypes/3e852115-277a-4570-873a-9a64be3aeb36
+    prefill:
+      enabled: true
+      typeUrl: https://objecten.example.nl/api/v2/objecttypes/3e852115-277a-4570-873a-9a64be3aeb37
+    dmn:
+      enabled: true
+      url: https://dmn.example.nl
     berichten: {enabled: true}
     formulieren:
       enabled: true
@@ -69,6 +92,15 @@ backend:
       value: extra
 frontend:
   replicaCount: 2
+  affinity:
+    podAntiAffinity:
+      preferredDuringSchedulingIgnoredDuringExecution:
+        - weight: 100
+          podAffinityTerm:
+            topologyKey: kubernetes.io/hostname
+            labelSelector:
+              matchLabels:
+                app.kubernetes.io/component: frontend
   idleTimeoutMinutes: 15
 ingress:
   enabled: true

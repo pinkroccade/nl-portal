@@ -1,0 +1,19 @@
+# kube-linter-config voor de gerenderde chart nl-portal (mise run helm:kube-linter, #194). De standaardchecks staan aan
+# (securityContext, resources, probes, latest-tag, serviceaccount, ...), met de conventies uit epic #191 als expliciete
+# aanvulling. Elke uitzondering hieronder heeft een reden. De recommended labels toetst helm-unittest (labels_naming_test).
+checks:
+  doNotAutoAddDefaults: false
+  include:
+    # Probes verwijzen naar een poort die de container echt declareert.
+    - startup-port
+    - liveness-port
+    - readiness-port
+    - no-liveness-probe
+    - no-readiness-probe
+  exclude:
+    # De chart maakt bewust geen Secret; backend.existingSecret komt van de beheerder (ESO, sealed-secrets, ...) en staat niet
+    # in het gerenderde manifest, dus kube-linter kan hem niet vinden.
+    - env-value-from
+    # Wachtwoorden en tokens komen met secretKeyRef uit dat bestaande Secret; volume-mounts van geheimen zijn voor de
+    # backend geen alternatief, omdat Spring de waarden als env-variabelen verwacht.
+    - read-secret-from-env-var

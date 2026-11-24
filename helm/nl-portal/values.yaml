@@ -1,7 +1,7 @@
 # Default values for the nl-portal chart. Documentation: README.md. Validated by values.schema.json.
 # Secrets never go in these values: every component with sensitive configuration points at an existing Secret.
 
-# Only these two globals are supported (contract with a parent chart).
+# The chart uses these two globals; it ignores other globals from a parent chart.
 global:
   # -- Replaces the registry of every image (registry mirror).
   imageRegistry: ""
