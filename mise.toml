@@ -9,6 +9,8 @@ gitleaks = "8.30.1"
 k6 = "2.4.0"
 # Controleert .github/workflows (syntax, expressies, acties); `mise run workflows:lint`.
 actionlint = "1.7.12"
+# Statische analyse van de workflows op beveiligingsproblemen (injectie via expressies, rechten, niet-gepinde acties); onderdeel van `mise run workflows:lint`.
+zizmor = "1.33.0"
 # actionlint controleert de `run:`-scripts met shellcheck als dat beschikbaar is; vastgepind zodat lokaal en CI hetzelfde zien.
 shellcheck = "0.11.0"
 helm = "3.22.1"
@@ -266,8 +268,8 @@ run = "node performance/baseline/omslagpunt.ts"
 # --- Scripts, docs, architectuurmodel, compliance ---
 
 [tasks."workflows:lint"]
-description = "Controleer de GitHub-workflows met actionlint (syntax, expressies, verwijzingen naar acties en secrets)"
-run = "actionlint"
+description = "Controleer de GitHub-workflows met actionlint (syntax, expressies, verwijzingen naar acties en secrets) en zizmor (beveiliging: injectie, rechten, gepinde acties)"
+run = ["actionlint", "zizmor --no-progress --format plain .github/workflows"]
 
 [tasks."scripts:test"]
 description = "Draai de tests van de repo-scripts (scripts/*.test.mjs)"

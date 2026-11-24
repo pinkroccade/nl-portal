@@ -36,6 +36,7 @@ jobs:
             -   name: Checkout
                 uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
                 with:
+                    persist-credentials: false
                     fetch-depth: 0
             -   name: Cache Strix binary
                 id: strix-bin-cache
@@ -83,8 +84,10 @@ jobs:
                 # does not reliably round-trip a digest-only RepoDigest through the cache - on a
                 # cache hit, `docker tag name@digest ...` can then fail with "No such image" even
                 # though the load itself succeeded.
+                env:
+                    CACHE_HIT: ${{ steps.sandbox-image-cache.outputs.cache-hit }}
                 run: |
-                    if [ "${{ steps.sandbox-image-cache.outputs.cache-hit }}" = "true" ]; then
+                    if [ "${CACHE_HIT}" = "true" ]; then
                         docker load -i ~/strix-sandbox-image.tar
                     else
                         docker pull --platform linux/amd64 "${STRIX_SANDBOX_IMAGE%:*}@${STRIX_SANDBOX_DIGEST}"

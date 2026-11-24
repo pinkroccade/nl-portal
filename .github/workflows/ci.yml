@@ -27,6 +27,8 @@ jobs:
             docsOnly: ${{ steps.filter.outputs.backend == 'false' && steps.filter.outputs.frontend == 'false' && steps.filter.outputs.scripts == 'false' && steps.filter.outputs.helm == 'false' && steps.filter.outputs.workflows == 'false' && steps.filter.outputs.docs == 'true' }}
         steps:
             -   uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+                with:
+                    persist-credentials: false
             -   uses: dorny/paths-filter@ceb8a2b8f2d89434be7ff52d3de7ec3738c5cc9d # v4.0.3
                 id: filter
                 with:
@@ -46,6 +48,8 @@ jobs:
                             - 'mise.toml'
                             - 'mise-tasks/helm/**'
                             - 'scripts/check-helm-sync*'
+                            - 'scripts/manifest-diff*'
+                            - 'scripts/lib/manifest-diff*'
                             - 'scripts/secret-tabel*'
                             - 'site/hosting-en-configuratie/kubernetes/referentie-secret-keys.md'
                             # De sync-check vergelijkt de chart met de config-referentie van de app (#194): een PR die alleen
@@ -112,6 +116,8 @@ jobs:
         runs-on: ubuntu-latest
         steps:
             -   uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+                with:
+                    persist-credentials: false
             -   name: Set up Node.js
                 uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6.5.0
                 with:
@@ -129,6 +135,8 @@ jobs:
         runs-on: ubuntu-latest
         steps:
             -   uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+                with:
+                    persist-credentials: false
             -   name: Set up Node.js
                 uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6.5.0
                 with:
@@ -156,6 +164,8 @@ jobs:
         runs-on: ubuntu-latest
         steps:
             -   uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+                with:
+                    persist-credentials: false
             -   name: Set up Node.js
                 uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6.5.0
                 with:
@@ -173,6 +183,8 @@ jobs:
         runs-on: ubuntu-latest
         steps:
             -   uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+                with:
+                    persist-credentials: false
             -   name: Set up Node.js
                 uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6.5.0
                 with:
@@ -191,6 +203,7 @@ jobs:
         steps:
             -   uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
                 with:
+                    persist-credentials: false
                     fetch-depth: 0
             -   name: Set up Node.js
                 uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6.5.0
@@ -211,6 +224,8 @@ jobs:
         runs-on: ubuntu-latest
         steps:
             -   uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+                with:
+                    persist-credentials: false
             -   name: Set up Node.js
                 uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6.5.0
                 with:
@@ -228,6 +243,8 @@ jobs:
         runs-on: ubuntu-latest
         steps:
             -   uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+                with:
+                    persist-credentials: false
             -   name: Set up mise
                 uses: jdx/mise-action@924e7c586e33d7d4bae9c14e26c5d22e2beb6e78 # v5.3.0
             -   name: Regenerate capability docs and fail on diff
@@ -241,6 +258,8 @@ jobs:
         runs-on: ubuntu-latest
         steps:
             -   uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+                with:
+                    persist-credentials: false
             -   name: Set up mise
                 uses: jdx/mise-action@924e7c586e33d7d4bae9c14e26c5d22e2beb6e78 # v5.3.0
             -   name: Build docs site (navigation tests, dead-link and anchor check)
@@ -252,12 +271,53 @@ jobs:
         runs-on: ubuntu-latest
         steps:
             -   uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-            -   name: Set up mise (alleen actionlint en shellcheck)
+                with:
+                    persist-credentials: false
+            -   name: Set up mise (alleen actionlint, zizmor en shellcheck)
                 uses: jdx/mise-action@924e7c586e33d7d4bae9c14e26c5d22e2beb6e78 # v5.3.0
                 with:
-                    install_args: actionlint shellcheck
+                    install_args: actionlint zizmor shellcheck
             -   name: Lint de workflows
                 run: mise run workflows:lint
+
+    # Eén PR-comment met de diff van de gerenderde chart-manifests tegen de basisbranch (#195). Een nieuwe commit werkt
+    # het comment bij (vaste marker) in plaats van er een bij te stapelen. Niet voor forks: hun token kan geen comments
+    # schrijven. Informatief: geen onderdeel van ci-required.
+    helm-manifest-diff:
+        needs: changes
+        if: ${{ needs.changes.outputs.helm == 'true' && github.event.pull_request.head.repo.full_name == github.repository }}
+        runs-on: ubuntu-latest
+        permissions:
+            pull-requests: write
+        steps:
+            -   uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+                with:
+                    persist-credentials: false
+                    fetch-depth: 0 # origin/<basisbranch> moet beschikbaar zijn voor helm:manifest-diff
+            -   name: Set up mise (helm)
+                uses: jdx/mise-action@924e7c586e33d7d4bae9c14e26c5d22e2beb6e78 # v5.3.0
+                with:
+                    install_args: helm
+                    cache: false
+            -   name: Render the manifests of main and of the PR
+                env:
+                    BASE_REF: origin/${{ github.base_ref }}
+                run: mise run helm:manifest-diff > body.md
+            -   name: Place or update the PR comment
+                env:
+                    GH_TOKEN: ${{ github.token }}
+                    REPO: ${{ github.repository }}
+                    PR_NUMBER: ${{ github.event.pull_request.number }}
+                run: |
+                    MARKER=$(head -n 1 body.md)
+                    EXISTING=$(gh api --paginate "repos/${REPO}/issues/${PR_NUMBER}/comments" \
+                      --jq ".[] | select(.body | startswith(\"${MARKER}\")) | .id")
+                    EXISTING="${EXISTING%%$'\n'*}"
+                    if [ -n "${EXISTING}" ]; then
+                      gh api -X PATCH "repos/${REPO}/issues/comments/${EXISTING}" -F body=@body.md > /dev/null
+                    else
+                      gh api -X POST "repos/${REPO}/issues/${PR_NUMBER}/comments" -F body=@body.md > /dev/null
+                    fi
 
     # Een chartwijziging raakt ook de changelog of de Kubernetes-docs; label docs-not-needed is de bewuste uitzondering.
     # Het label wordt live gelezen: na het zetten van het label volstaat een herstart van deze job.
@@ -268,6 +328,7 @@ jobs:
         steps:
             -   uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
                 with:
+                    persist-credentials: false
                     fetch-depth: 0
             -   name: Set up mise
                 uses: jdx/mise-action@924e7c586e33d7d4bae9c14e26c5d22e2beb6e78 # v5.3.0

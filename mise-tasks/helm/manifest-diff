@@ -1,0 +1,39 @@
+#!/usr/bin/env bash
+#MISE description="Render de chart (elk scenario in helm/nl-portal/ci; de kale standaard-values renderen niet, het schema eist waarden) van BASE_REF (standaard origin/main) en van de werkboom, en schrijf het diff-comment naar stdout (marker voor bijwerken in de PR)"
+set -euo pipefail
+
+cd "$(dirname "$0")/../.."
+BASE_REF="${BASE_REF:-origin/main}"
+OUT="$(mktemp -d)"
+trap 'rm -rf "$OUT"' EXIT
+mkdir -p "$OUT/base" "$OUT/head" "$OUT/basechart"
+
+# De chart van de basis staat los van de werkboom uitgepakt, zodat beide kanten met dezelfde Helm renderen.
+git archive "$BASE_REF" helm/nl-portal | tar -x -C "$OUT/basechart"
+
+render() { # <chart-map> <values-bestand of leeg> <uitvoer>
+    if [ -n "$2" ]; then
+        helm template nl-portal "$1" -f "$2" > "$3"
+    else
+        helm template nl-portal "$1" > "$3"
+    fi
+}
+
+scenarios=()
+for values in helm/nl-portal/ci/*.yaml; do
+    scenarios+=("$(basename "$values" .yaml):$values")
+done
+
+for entry in "${scenarios[@]}"; do
+    name="${entry%%:*}"
+    values="${entry#*:}"
+    render helm/nl-portal "$values" "$OUT/head/$name.yaml"
+    base_values=""
+    # Een scenario dat op main niet bestaat blijft zonder base-bestand; het diff-script telt dat als toevoeging.
+    if [ -z "$values" ] || [ -f "$OUT/basechart/$values" ]; then
+        [ -z "$values" ] || base_values="$OUT/basechart/$values"
+        render "$OUT/basechart/helm/nl-portal" "$base_values" "$OUT/base/$name.yaml"
+    fi
+done
+
+node scripts/manifest-diff.mjs "$OUT"

@@ -83,7 +83,7 @@ From the repo root:
 ```shell
 mise run build                    # compile and assemble backend and frontend
 mise run test                     # unit tests of backend, frontend and scripts, ArchUnit included; no integration tests (those need Docker)
-mise run lint                     # ktlint/Spotless, ESLint, Stylelint, typecheck, Prettier, actionlint (workflows), bash-syntaxis in mise-taken
+mise run lint                     # ktlint/Spotless, ESLint, Stylelint, typecheck, Prettier, actionlint and zizmor (workflows), bash-syntaxis in mise-taken
 mise run backend:pitest-changed   # only when backend/core changed: CI's 80% mutation gate
 ```
 

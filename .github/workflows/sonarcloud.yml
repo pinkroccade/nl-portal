@@ -10,7 +10,6 @@ on:
 permissions:
     contents: read
     pull-requests: read
-    issues: write
 
 concurrency:
     group: sonarcloud-${{ github.ref }}
@@ -28,6 +27,8 @@ jobs:
             frontend: ${{ steps.filter.outputs.frontend }}
         steps:
             -   uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+                with:
+                    persist-credentials: false
             -   uses: dorny/paths-filter@ceb8a2b8f2d89434be7ff52d3de7ec3738c5cc9d # v4.0.3
                 id: filter
                 with:
@@ -47,6 +48,7 @@ jobs:
         steps:
             -   uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
                 with:
+                    persist-credentials: false
                     fetch-depth: 0
             -   name: Set up mise (java uit mise.toml)
                 uses: jdx/mise-action@924e7c586e33d7d4bae9c14e26c5d22e2beb6e78 # v5.3.0
@@ -75,6 +77,7 @@ jobs:
         steps:
             -   uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
                 with:
+                    persist-credentials: false
                     fetch-depth: 0
             -   name: Set up Node.js
                 uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6.5.0
@@ -108,9 +111,15 @@ jobs:
         # eerstvolgende push naar main alsnog naar boven (zie site/development/workflows/periodic-checks.md).
         if: always() && github.event_name == 'push'
         runs-on: ubuntu-latest
+        permissions:
+            contents: read
+            pull-requests: read
+            issues: write # escaleert bevindingen als issue
         steps:
             -   name: Checkout
                 uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+                with:
+                    persist-credentials: false
             -   name: Set up Node.js
                 uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6.5.0
                 with:

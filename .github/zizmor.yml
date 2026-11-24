@@ -1,0 +1,19 @@
+# Configuratie voor zizmor (mise run workflows:lint). Elke uitzondering hier heeft een reden; nieuwe bevindingen breken de lint.
+rules:
+  artipacked:
+    ignore:
+      # Deze twee checkouts pushen daarna met het App-token (branches en tags); de opgeslagen credentials zijn
+      # daarvoor nodig. Het token is beperkt tot contents: write en bestaat alleen in deze job.
+      - release-cut.yml
+      - build-and-publish-release.yml
+  dangerous-triggers:
+    ignore:
+      # workflow_run is hier bewust: de workflow leest alleen het artifact `strix-scan-report` van onze eigen,
+      # handmatig gestarte Strix-run (ADR 0008/0009) en voert geen code uit die uit dat artifact komt; hij
+      # aggregeert alleen aantallen en opent een PR, die een mens reviewt voordat er iets op main komt.
+      - publish-security-status.yml
+  self-repository:
+    # De aanbeveling is `$/.github/workflows/x.yml` in plaats van `./.github/workflows/x.yml`. Dat is lokale
+    # stijl zonder beveiligingsgevolg (beide verwijzen naar dezelfde commit); we houden `./` aan omdat actionlint en
+    # de GitHub-documentatie die vorm kennen.
+    disable: true
