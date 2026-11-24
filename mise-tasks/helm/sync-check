@@ -1,0 +1,7 @@
+#!/usr/bin/env bash
+#MISE description="Controleer dat de Helm-chart elke env-sleutel van docker-compose/imports/backend.env en frontend.env rendert (uitzonderingen met reden: helm/sync-allowlist.json)"
+set -euo pipefail
+
+cd "$(dirname "$0")/../.."
+# full-values.yaml zet alle modules en opties aan, zodat de chart elke sleutel kan renderen.
+helm template sync-check helm/nl-portal -f helm/nl-portal/ci/full-values.yaml | node scripts/check-helm-sync.mjs

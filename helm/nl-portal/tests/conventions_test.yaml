@@ -1,0 +1,28 @@
+suite: conventies voor elke resource
+# Een glob in plaats van een lijst: elke YAML-template valt eronder, ook een toekomstige (#194). NOTES.txt rendert geen resource.
+templates:
+  - "templates/*.yaml"
+values:
+  - ../ci/full-values.yaml
+release:
+  name: rel
+tests:
+  - it: elke resource draagt de recommended labels
+    asserts:
+      - isNotEmpty:
+          path: metadata.labels["app.kubernetes.io/name"]
+      - equal:
+          path: metadata.labels["app.kubernetes.io/instance"]
+          value: rel
+      - isNotEmpty:
+          path: metadata.labels["app.kubernetes.io/version"]
+      - equal:
+          path: metadata.labels["app.kubernetes.io/part-of"]
+          value: nl-portal
+      - equal:
+          path: metadata.labels["app.kubernetes.io/managed-by"]
+          value: Helm
+      - isNotEmpty:
+          path: metadata.labels["app.kubernetes.io/component"]
+      - isNotEmpty:
+          path: metadata.labels["helm.sh/chart"]

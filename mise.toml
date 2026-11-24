@@ -13,6 +13,8 @@ actionlint = "1.7.12"
 shellcheck = "0.11.0"
 helm = "3.22.1"
 kubeconform = "0.8.0"
+# Best-practice-controle van de gerenderde Helm-chart; `mise run helm:kube-linter`.
+kube-linter = "0.8.3"
 "github:helm-unittest/helm-unittest" = "1.2.1"
 
 # Taken heten <domein>:<actie>. De aggregaten zonder prefix (build, test, lint, arch-check) roepen via
@@ -34,7 +36,7 @@ depends = ["backend:test", "frontend:test", "keycloak:test", "scripts:test", "pe
 
 [tasks.lint]
 description = "Lint, typecheck en formatteringscontrole van backend en frontend, plus de controles van workflows, mise-taken en Keycloak-versie"
-depends = ["backend:lint", "frontend:lint", "frontend:typecheck", "frontend:prettier", "perf:check", "workflows:lint", "mise:check-shell", "keycloak:check-version", "helm:lint", "copyright:check"]
+depends = ["backend:lint", "frontend:lint", "frontend:typecheck", "frontend:prettier", "perf:check", "workflows:lint", "mise:check-shell", "keycloak:check-version", "helm:lint", "helm:kube-linter", "helm:sync-check", "copyright:check"]
 
 [tasks.arch-check]
 description = "Bewaak de architectuurregels (backend: ArchUnit; frontend: package-boundaries valt onder frontend:lint)"

@@ -21,9 +21,10 @@ jobs:
             frontend: ${{ steps.filter.outputs.frontend }}
             scripts: ${{ steps.filter.outputs.scripts }}
             mise: ${{ steps.filter.outputs.mise }}
+            helm: ${{ steps.filter.outputs.helm }}
             workflows: ${{ steps.filter.outputs.workflows }}
             docs: ${{ steps.filter.outputs.docs }}
-            docsOnly: ${{ steps.filter.outputs.backend == 'false' && steps.filter.outputs.frontend == 'false' && steps.filter.outputs.scripts == 'false' && steps.filter.outputs.workflows == 'false' && steps.filter.outputs.docs == 'true' }}
+            docsOnly: ${{ steps.filter.outputs.backend == 'false' && steps.filter.outputs.frontend == 'false' && steps.filter.outputs.scripts == 'false' && steps.filter.outputs.helm == 'false' && steps.filter.outputs.workflows == 'false' && steps.filter.outputs.docs == 'true' }}
         steps:
             -   uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
             -   uses: dorny/paths-filter@ceb8a2b8f2d89434be7ff52d3de7ec3738c5cc9d # v4.0.3
@@ -40,6 +41,15 @@ jobs:
                             - 'docker-compose/**'
                         mise:
                             - 'mise.toml'
+                        helm:
+                            - 'helm/**'
+                            - 'mise.toml'
+                            - 'mise-tasks/helm/**'
+                            - 'scripts/check-helm-sync*'
+                            # De sync-check vergelijkt de chart met de config-referentie van de app (#194): een PR die alleen
+                            # een app-property toevoegt, moet hem dus ook draaien.
+                            - 'docker-compose/imports/backend.env'
+                            - 'docker-compose/imports/frontend.env'
                         workflows:
                             - '.github/workflows/**'
                         docs:
@@ -110,6 +120,29 @@ jobs:
                     install: false
             -   name: Run scripts tests
                 run: mise run scripts:test
+
+    helm-chart:
+        needs: changes
+        if: ${{ needs.changes.outputs.helm == 'true' }}
+        runs-on: ubuntu-latest
+        steps:
+            -   uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+            -   name: Set up Node.js
+                uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6.5.0
+                with:
+                    node-version: "24"
+            -   name: Set up mise (helm, kubeconform, helm-unittest, kube-linter)
+                uses: jdx/mise-action@924e7c586e33d7d4bae9c14e26c5d22e2beb6e78 # v5.3.0
+                with:
+                    install_args: "helm kubeconform github:helm-unittest/helm-unittest kube-linter"
+            -   name: Lint the chart (helm lint, kubeconform)
+                run: mise run helm:lint
+            -   name: Check the chart against best practices (kube-linter)
+                run: mise run helm:kube-linter
+            -   name: Check that the chart renders every key of the app config reference
+                run: mise run helm:sync-check
+            -   name: Unit tests of the chart
+                run: mise run helm:test
 
     java-version-consistent:
         needs: changes
@@ -221,7 +254,7 @@ jobs:
                 run: mise run workflows:lint
 
     ci-required:
-        needs: [changes, validate, test-scripts, java-version-consistent, mise-shell-consistent, copyright-headers, capabilities-docs-fresh, compliance-register-consistent, docs-site, workflows-lint]
+        needs: [changes, validate, test-scripts, java-version-consistent, mise-shell-consistent, copyright-headers, capabilities-docs-fresh, compliance-register-consistent, docs-site, workflows-lint, helm-chart]
         if: always()
         runs-on: ubuntu-latest
         steps:
@@ -236,6 +269,7 @@ jobs:
                     COMPLIANCE_RESULT: ${{ needs.compliance-register-consistent.result }}
                     DOCS_SITE_RESULT: ${{ needs.docs-site.result }}
                     WORKFLOWS_LINT_RESULT: ${{ needs.workflows-lint.result }}
+                    HELM_CHART_RESULT: ${{ needs.helm-chart.result }}
                 run: |
                     echo "::notice::validate result = ${VALIDATE_RESULT}"
                     echo "::notice::test-scripts result = ${SCRIPTS_RESULT}"
@@ -246,6 +280,7 @@ jobs:
                     echo "::notice::compliance-register-consistent result = ${COMPLIANCE_RESULT}"
                     echo "::notice::docs-site result = ${DOCS_SITE_RESULT}"
                     echo "::notice::workflows-lint result = ${WORKFLOWS_LINT_RESULT}"
+                    echo "::notice::helm-chart result = ${HELM_CHART_RESULT}"
                     if [ "${VALIDATE_RESULT}" = "failure" ] || [ "${VALIDATE_RESULT}" = "cancelled" ]; then
                       exit 1
                     fi
@@ -271,6 +306,9 @@ jobs:
                       exit 1
                     fi
                     if [ "${WORKFLOWS_LINT_RESULT}" = "failure" ] || [ "${WORKFLOWS_LINT_RESULT}" = "cancelled" ]; then
+                      exit 1
+                    fi
+                    if [ "${HELM_CHART_RESULT}" = "failure" ] || [ "${HELM_CHART_RESULT}" = "cancelled" ]; then
                       exit 1
                     fi
 
