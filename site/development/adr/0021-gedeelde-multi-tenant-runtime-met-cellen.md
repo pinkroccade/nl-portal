@@ -56,8 +56,8 @@ Raakt eerdere ADR's:
 - [ADR 0014](./0014-feature-flags-via-openfeature.md) en
   [ADR 0020](./0020-levenscyclus-feature-flags-en-privacy-evaluatiecontext.md): ongewijzigd. Flagwijzigingen
   landen via een rolling update (0014 punt 7); er is dus **geen** uitzondering op "geen hot reload". De
-  evaluatiecontext krijgt de tenant uit de `TenantContext` en de HMAC-sleutel per tenant uit de tenantsecrets
-  (0020 punt 4).
+  evaluatiecontext krijgt de tenant uit de `TenantContext`. Er is geen gebruikers-id en dus geen HMAC-sleutel per
+  tenant (0020 punt 4, #207).
 - [ADR 0002](./0002-zgw-client-consolidation.md): de `zgw-client`-module bestaat nog niet. Het
   per-tenant register landt in `core.koppeling` (de gedeelde `WebClient`-fabriek uit #415), zie besluit 8.
 - [ADR 0018](./0018-performancetesten-met-k6-en-otel-agent-in-overlay.md) en
@@ -329,7 +329,7 @@ gebruikersdocumentatie (zie [Tenantbestand, flag en secret store](../../hosting-
 | Laag | Wat erin staat | Wat er nooit in staat | Wijzigt via |
 |---|---|---|---|
 | **Tenantbestand** (Git) | Domeinen, issuer, API-URL's, thema, cel, *verwijzingen* naar secrets op naam | Secrets, tokens | Pull request, uitrol door de gitops-tooling, rolling restart van de cel |
-| **Flag** (OpenFeature/flagd) | Alleen aan/uit per module, gericht op de tenant (`ops.<module>.enabled`) | URL's, credentials, tenantconfiguratie, beveiligingsbesluiten | Flagbestand; landt via een rolling update van de eigen cel (ADR 0014 punt 7, besluit 5) |
+| **Flag** (OpenFeature/flagd) | Alleen aan/uit per module, gericht op de tenant (`permission.<module>.enabled`) | URL's, credentials, tenantconfiguratie, beveiligingsbesluiten | Flagbestand; landt via een rolling update van de eigen cel (ADR 0014 punt 7, besluit 5) |
 | **Secret store** (via External Secrets Operator) | De secrets zelf: client secrets, API-sleutels, sleutelmateriaal | Niets anders | Rotatie in de store; synchronisatie leidt tot een rolling restart van de cel |
 
 Besluiten:
@@ -343,7 +343,7 @@ Besluiten:
 3. **Modules in twee niveaus.**
    - *Geïnstalleerd* (runtime, bij opstarten): een module bestaat in de runtime als minstens één tenant er
      configuratie voor heeft. Het GraphQL-schema blijft stabiel per release.
-   - *Beschikbaar* (per tenant, per request): de bestaande moduleflag `ops.<module>.enabled` (`ModuleFlag`,
+   - *Beschikbaar* (per tenant, per request): de moduleflag `permission.<module>.enabled` (`ModuleFlag`, nu nog `ops.<module>.enabled`,
      #157), gericht op de tenant via de evaluatiecontext. De `ModuleGate` controleert hem per request en
      houdt rekening met afhankelijkheden tussen modules (`requires`): een module is alleen aan als elke
      vereiste module aan is. Zonder flagdefinitie is de module uit. Een nieuwe tenant heeft alle modules uit
@@ -356,11 +356,11 @@ Besluiten:
      `modulestatus`-endpoint.
    - De `ModuleGate` krijgt nu de `Authentication` van het request. Bij meerdere tenants moet hij de tenant uit
      de `TenantContext` lezen, ook op anonieme paden en de postsale-webhook, waar geen token is.
-   - **Type van de flag.** Een OPS-flag valt volgens ADR 0020 terug op de waarde in het meegeleverde
-     flagd-bestand; een permission-flag is fail-closed. Voor "mag deze tenant deze module gebruiken" is
-     fail-closed het veiligere gedrag. De keuze (OPS zoals de code nu doet, of permission) wordt bij de
-     implementatie gemaakt en in ADR 0020 vastgelegd; zolang de standaard in het meegeleverde bestand uit
-     staat, is het effect gelijk. *(redactie)*
+   - **Type van de flag.** De moduleflag is een permission-flag (besloten 2026-11-21, ADR 0020), ook in
+     [Fowlers indeling](https://martinfowler.com/articles/feature-toggles.html): langlevend en per tenant
+     bepaald wie iets mag gebruiken. Hij is fail-closed: een storing van het flag-systeem zet een module
+     voor een tenant uit en nooit aan. Een OPS-flag valt terug op het meegeleverde flagd-bestand en past
+     hier dus niet. `ops.*` blijft voor operationele schakelaars en noodremmen.
 4. **Module-URL en credentials staan niet in een flag.** ADR 0014 punt 6 sluit secrets in een flag-systeem
    uit en een URL is zonder secret niet bruikbaar. Flags zijn alleen aan/uit.
 5. **Secrets per tenant via ESO**, eigen pad per tenant (bijvoorbeeld `nl-portal/<omgeving>/<oin>/<module>`)
@@ -628,8 +628,8 @@ uitleg die security en compliance moeten bevestigen.
 
 **HSM-backed secret store (open, voorstel nog niet beoordeeld).** ASVS 13.3.1 eist bij L3 een
 hardware-backed secret store en 13.3.3 crypto in een geïsoleerde securitymodule. Of de hosting dat biedt,
-moet devops bevestigen. Voorstel: een HSM-backed store als eis vóór livegang; voor 13.3.3 (in-process HMAC
-voor het pseudonieme gebruikers-id, `private_key_jwt`) een gedocumenteerde afwijking met een plan na
+moet devops bevestigen. Voorstel: een HSM-backed store als eis vóór livegang; voor 13.3.3 (`private_key_jwt`; de in-process HMAC
+voor het gebruikers-id in de flagcontext vervalt, #207) een gedocumenteerde afwijking met een plan na
 livegang.
 
 ## Helm-, Kubernetes- en ESO-inrichting
