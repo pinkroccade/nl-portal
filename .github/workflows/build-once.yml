@@ -9,6 +9,7 @@ name: Build once
 #           -> image-be | image-fe (parallel: bouwen, pushen, ondertekenen, SBOM attesteren)
 #           -> summary (digest per build vindbaar)
 # Een falende poort laat alle volgende jobs vervallen: er wordt dan niets gepusht en er ontstaat geen tag.
+# Alleen een push op main publiceert; een pull_request of dispatch zonder publish=true draait enkel de poorten.
 # Een commit die alleen documentatie raakt, start deze workflow niet (paths-ignore): er is dan niets nieuws om uit te rollen.
 on:
     push:
@@ -18,6 +19,14 @@ on:
             - "site/**"
             - "docs/**"
             - "**/*.md"
+    # Een wijziging aan de pijplijn zelf draait de poorten (zonder te publiceren) op de PR.
+    pull_request:
+        paths:
+            - ".github/workflows/build-once.yml"
+            - ".github/workflows/_stage-*.yml"
+            - ".github/workflows/_smoke-stack.yml"
+            - ".github/workflows/_build-app-image.yml"
+            - "scripts/build-tag.mjs"
     workflow_dispatch:
         inputs:
             publish:
