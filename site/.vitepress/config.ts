@@ -28,6 +28,7 @@ export default defineConfig({
   // Fail the build on any broken internal link or anchor — load-bearing while
   // ~80 files moved from the old docs/ and documentation/ trees into this site.
   ignoreDeadLinks: false,
+  head: [["link", { rel: "icon", type: "image/svg+xml", href: `${process.env.DOCS_BASE ?? "/"}logo-light.svg` }]],
   themeConfig: {
     nav,
     sidebar,

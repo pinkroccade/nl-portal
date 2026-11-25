@@ -15,11 +15,12 @@
  */
 
 // The default theme hides `themeConfig.footer` on any page that has a sidebar, which is every page
-// of the four main sections. Compliance is footer-only (ADR 0006), so render its link on all pages.
+// of the four main sections. Compliance is footer-only (ADR 0006), so render the whole footer (logo, link,
+// copyright) here on all pages and hide the default one in custom.css to avoid a duplicate.
 
 import { h } from "vue";
 import DefaultTheme from "vitepress/theme";
-import type { Theme } from "vitepress";
+import { withBase, type Theme } from "vitepress";
 import { footerComplianceLink } from "../sections";
 import "./custom.css";
 
@@ -28,8 +29,11 @@ export default {
   Layout: () =>
     h(DefaultTheme.Layout, null, {
       "layout-bottom": () =>
-        h("footer", { class: "compliance-footer", style: "text-align:center;padding:16px;font-size:14px" }, [
-          h("a", { href: footerComplianceLink.link }, footerComplianceLink.text),
+        h("footer", { class: "compliance-footer" }, [
+          h("img", { class: "footer-logo footer-logo-light", src: withBase("/logo-light.svg"), alt: "Pink Common Ground" }),
+          h("img", { class: "footer-logo footer-logo-dark", src: withBase("/logo-dark.svg"), alt: "Pink Common Ground" }),
+          h("a", { href: withBase(footerComplianceLink.link) }, footerComplianceLink.text),
+          h("span", { class: "footer-copyright" }, "PinkRoccade"),
         ]),
     }),
 } satisfies Theme;

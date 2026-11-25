@@ -49,3 +49,139 @@
 .VPHome .VPFeature:hover {
   border-color: var(--pink-edition);
 }
+
+/* ---- Pink-huisstijl voor de hele site ---------------------------------
+   Kleuren uit het huisstijlhandboek (8.2). Pink als accent, donkerblauw voor
+   koppen en structuur, lichtgrijs voor rustige vlakken. Zemestro is nog niet
+   ingesloten: het VitePress-lettertype blijft de tijdelijke fallback. */
+:root {
+  --vp-c-brand-1: #e2007a;
+  --vp-c-brand-2: #c40069;
+  --vp-c-brand-3: #e2007a;
+  --vp-c-brand-soft: rgba(226, 0, 122, 0.1);
+  --vp-button-brand-bg: #e2007a;
+  --vp-button-brand-hover-bg: #c40069;
+  --vp-button-brand-active-bg: #a80058;
+  --vp-button-brand-text: #fff;
+  --pink-grey: #a4a6a7;
+  --pink-grey-light: #eeeeee;
+}
+
+.dark {
+  --vp-c-brand-1: #ec6dd4;
+  --vp-c-brand-2: #f08adc;
+  --vp-c-brand-3: #e2007a;
+  --vp-c-brand-soft: rgba(236, 109, 212, 0.16);
+  --vp-button-brand-bg: #e2007a;
+  --vp-button-brand-hover-bg: #ec6dd4;
+  --vp-button-brand-active-bg: #f08adc;
+}
+
+/* Gradiënt-accent onder de navigatiebalk. */
+.VPNav .VPNavBar::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 2px;
+  background: var(--pink-edition-gradient);
+  opacity: 0.7;
+}
+
+
+/* Koppen: h1 pink, tussenkoppen donkerblauw. */
+.vp-doc h1 {
+  color: var(--pink-edition);
+}
+
+.vp-doc h2,
+.vp-doc h3,
+.vp-doc h4 {
+  color: var(--edition-blue);
+}
+
+.vp-doc h2 {
+  border-top-color: var(--pink-grey-light);
+}
+
+.dark .vp-doc h2 {
+  border-top-color: var(--vp-c-divider);
+}
+
+/* Tabellen: donkerblauwe kop, lichtgrijze zebra-rijen. */
+.vp-doc th {
+  background-color: var(--edition-blue);
+  color: #fff;
+}
+
+.dark .vp-doc th {
+  background-color: #0b3b6e;
+}
+
+.vp-doc tr {
+  background-color: transparent;
+}
+
+.vp-doc tr:nth-child(2n) {
+  background-color: var(--pink-grey-light);
+}
+
+.dark .vp-doc tr:nth-child(2n) {
+  background-color: var(--vp-c-bg-soft);
+}
+
+/* Containers: tip lichtblauw, info grijs; warning en danger blijven semantisch. */
+.vp-doc .custom-block.tip {
+  --vp-custom-block-tip-border: #53b7ed;
+  --vp-custom-block-tip-bg: rgba(83, 183, 237, 0.12);
+  --vp-custom-block-tip-text: var(--edition-blue);
+  --vp-custom-block-tip-code-bg: rgba(83, 183, 237, 0.18);
+}
+
+.vp-doc .custom-block.info {
+  --vp-custom-block-info-border: var(--pink-grey);
+  --vp-custom-block-info-bg: var(--pink-grey-light);
+}
+
+.dark .vp-doc .custom-block.info {
+  --vp-custom-block-info-bg: var(--vp-c-bg-soft);
+}
+
+/* Home: zachte gradiëntgloed achter de hero. */
+.VPHome .VPHero {
+  background: radial-gradient(ellipse at 15% 0%, rgba(83, 183, 237, 0.12), transparent 55%),
+    radial-gradient(ellipse at 90% 10%, rgba(236, 109, 212, 0.12), transparent 50%);
+}
+
+/* De standaard VitePress-footer is vervangen door de eigen footer (logo, compliance, copyright). */
+.VPFooter {
+  display: none;
+}
+
+.compliance-footer {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  padding: 32px 16px;
+  font-size: 14px;
+  border-top: 1px solid var(--vp-c-divider);
+}
+
+.compliance-footer .footer-logo {
+  height: 72px;
+}
+
+.compliance-footer .footer-logo-dark,
+.dark .compliance-footer .footer-logo-light {
+  display: none;
+}
+
+.dark .compliance-footer .footer-logo-dark {
+  display: block;
+}
+
+.compliance-footer .footer-copyright {
+  color: var(--vp-c-text-2);
+}
