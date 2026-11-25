@@ -156,12 +156,14 @@ jobs:
                 env:
                     GH_TOKEN: ${{ steps.token.outputs.token }}
                 run: |
-                    existing=$(gh api "repos/${GITHUB_REPOSITORY}/git/ref/tags/${VERSION}" --jq '.object.sha' 2> /dev/null || true)
-                    if [ -z "${existing}" ]; then
+                    # Bij een 404 schrijft gh de foutmelding naar stdout: beoordeel de exitcode, niet de uitvoer.
+                    if existing=$(gh api "repos/${GITHUB_REPOSITORY}/git/ref/tags/${VERSION}" --jq '.object.sha' 2> /dev/null); then
+                      if [ "${existing}" != "${COMMIT}" ]; then
+                        echo "::error::Tag ${VERSION} staat al op ${existing}, niet op ${COMMIT}. x.y.z is onveranderlijk."
+                        exit 1
+                      fi
+                    else
                       gh api "repos/${GITHUB_REPOSITORY}/git/refs" -f "ref=refs/tags/${VERSION}" -f "sha=${COMMIT}" > /dev/null
-                    elif [ "${existing}" != "${COMMIT}" ]; then
-                      echo "::error::Tag ${VERSION} staat al op ${existing}, niet op ${COMMIT}. x.y.z is onveranderlijk."
-                      exit 1
                     fi
             -   name: Retag the existing digests
                 run: |
