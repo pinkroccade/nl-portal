@@ -115,6 +115,13 @@ Docker must be running for those. The PR gate in CI runs `mise run backend:check
 `mise tasks` lists every task with its description. See `backend/README.md`, `frontend/README.md` and
 `docker-compose/README.md` for details.
 
+## Helm-chart
+
+Een PR die `helm/nl-portal` wijzigt, moet `version` in `helm/nl-portal/Chart.yaml` ophogen: `mise run helm:ct-lint` (chart-testing, CI-job
+`helm-chart-version`) faalt anders. `mise run helm:kind-install` (CI-job `helm-chart-install`, vereist Docker) installeert de chart als subchart van een
+dummy-base-chart (`helm/kind-test/dummy-base`) op kind, in een namespace met Pod Security "restricted", en wacht tot backend en frontend ready zijn.
+De tenantbestanden in die dummy-chart moeten passen bij het schema van de image van de `appVersion`. `helm/` heeft codeowners (`.github/CODEOWNERS`).
+
 ## CodeGraph (optional)
 
 CodeGraph indexes the codebase so an AI agent can look up symbols, call paths and callers in one call instead of

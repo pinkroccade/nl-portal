@@ -6,13 +6,15 @@ cd "$(dirname "$0")/../.."
 CLUSTER="${KIND_CLUSTER:-nl-portal-ct}"
 NAMESPACE=nl-portal-ct
 WORK="$(mktemp -d)"
-trap 'rm -rf "$WORK"; [ "${KIND_KEEP:-0}" = 1 ] || kind delete cluster --name "$CLUSTER" >/dev/null 2>&1 || true' EXIT
+CREATED=0
+trap 'rm -rf "$WORK"; { [ "${KIND_KEEP:-0}" = 1 ] || [ "$CREATED" = 0 ]; } || kind delete cluster --name "$CLUSTER" >/dev/null 2>&1 || true' EXIT
 
 # Node-image: vastgepind; Renovate werkt hem bij via de customManager in .github/renovate.json.
 KIND_NODE_IMAGE="${KIND_NODE_IMAGE:-kindest/node:v1.34.0}"
 
 if ! kind get clusters 2>/dev/null | grep -qx "$CLUSTER"; then
     kind create cluster --name "$CLUSTER" --image "$KIND_NODE_IMAGE" --wait 120s
+    CREATED=1
 fi
 kubectl config use-context "kind-$CLUSTER" >/dev/null
 

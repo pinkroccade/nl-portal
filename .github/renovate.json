@@ -28,12 +28,6 @@
     ],
     "packageRules": [
         {
-            "description": "Chart-tooling (helm, kubeconform, helm-unittest, kube-linter, chart-testing, kind, kubectl) en de kind-node-image in een eigen groep, los van de wekelijkse bundel.",
-            "matchPackageNames": ["/^(helm|aqua:helm/chart-testing|kubeconform|kube-linter|github:helm-unittest/helm-unittest|kind|kubectl|kindest/node)$/"],
-            "groupName": "chart-tooling",
-            "groupSlug": "chart-tooling"
-        },
-        {
             "description": "Only allow minor, patch and digest updates; major upgrades are handled manually.",
             "matchUpdateTypes": ["major"],
             "enabled": false
@@ -43,6 +37,12 @@
             "matchUpdateTypes": ["minor", "patch", "digest"],
             "groupName": "all non-major dependencies",
             "groupSlug": "all-minor-patch"
+        },
+        {
+            "description": "Chart-tooling (helm, kubeconform, helm-unittest, kube-linter, chart-testing, kind, kubectl) en de kind-node-image in een eigen groep, los van de wekelijkse bundel.",
+            "matchPackageNames": ["/^(helm|aqua:helm/chart-testing|kubeconform|kube-linter|github:helm-unittest/helm-unittest|kind|kubectl|kindest/node)$/"],
+            "groupName": "chart-tooling",
+            "groupSlug": "chart-tooling"
         },
         {
             "description": "Trusted first-party/design-system scopes: skip the release-age cooldown, mirroring frontend/pnpm-workspace.yaml minimumReleaseAgeExclude.",
