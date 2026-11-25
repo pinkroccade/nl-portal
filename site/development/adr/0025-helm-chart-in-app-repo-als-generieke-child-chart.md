@@ -62,8 +62,6 @@ en welk contract afnemers erop bouwen. De volledige tabel met ontwerpkeuzes en u
   een API; een wijziging daarvan is een breaking change van de chart (SemVer-major).
 - **Elke chartwijziging vraagt een versiebump**; zonder bump publiceert er niets.
 - **Afnemers richten de base-chart zelf in**: routing, NetworkPolicy, PDB, HPA, ServiceMonitor en ExternalSecret zitten niet in de chart.
-- **De chart rendert deterministisch** (geen `lookup`, `rand*`, `now` of hooks) zodat Argo CD geen eeuwige diffs ziet. Een rotatie van een Secret herstart de pods
-  niet vanzelf (`backend.secretVersion` of een reloader).
 
 ## Open punten voor de beproeving
 

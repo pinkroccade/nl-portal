@@ -110,9 +110,9 @@ staat; voeg een nieuwe term toe zodra een module ernaar vernoemd wordt (zie de
 - **Private ID-broker** — de Keycloak voor beheertoegang; federeert naar de Entra ID van Pink of van
   de gemeente. Nooit bedoeld voor burgers of organisaties.
 - **Base-chart** — de Helm-chart van de afnemer (bij Pink: DevOps) die het clusterbeleid regelt, zoals routing, NetworkPolicy en
-  secrets uit Vault, en de NL Portal-chart als dependency opneemt. _Avoid_: parent-chart, umbrella-chart.
-- **Child-chart** — de NL Portal-chart (`helm/nl-portal`): beschrijft alleen de applicatie en laat het clusterbeleid aan de base-chart.
-  _Avoid_: subchart (dat is een meegebundelde afhankelijkheid, die de chart bewust niet heeft).
+  secrets uit Vault, en de NL Portal-chart als dependency opneemt. _Vermijd_: parent-chart, umbrella-chart.
+- **Child-chart** — de NL Portal-chart: beschrijft alleen de applicatie en laat het clusterbeleid aan de base-chart.
+  _Vermijd_: subchart (een meegebundelde afhankelijkheid).
 
 Zie ook `site/architectuur/arc42/12-glossarium.md` voor architectuurspecifieke
 afkortingen (C1/C2/C3, ADR, SBOM, ...), en de `/codebase-design`-skill voor de architectuurvocabulaire
