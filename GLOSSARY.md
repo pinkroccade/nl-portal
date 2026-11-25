@@ -47,6 +47,9 @@ staat; voeg een nieuwe term toe zodra een module ernaar vernoemd wordt (zie de
   `site/architectuur/arc42/04-oplossingsstrategie.md`.
 - **ZGW (Zaakgericht Werken)** — de VNG-API-standaard-familie (Zaken, Catalogi, Documenten, Besluiten,
   Klantinteracties, Objecten) waarop NL Portal's backend-integraties zijn gebouwd.
+- **Zaakbron** — een ZGW-API waaruit NL Portal zaken en besluiten ontsluit. Een tenant heeft één hoofdbron
+  (Open Zaak) en kan meer bronnen hebben, bijvoorbeeld het vergunningsysteem. Zaken en besluiten uit elke
+  bron hebben dezelfde vorm; een zaak is alleen uniek binnen haar bron. _Vermijd_: domeinbron, tweede zaaksysteem.
 - **BRP (Basisregistratie Personen)** — de landelijke persoonsregistratie; ontsloten via Haal Centraal
   BRP.
 - **DigiD / eHerkenning** — respectievelijk de identiteitsvoorziening voor burgers en voor
