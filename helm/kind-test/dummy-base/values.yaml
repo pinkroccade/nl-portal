@@ -1,0 +1,31 @@
+# Alleen de kleinste set waarmee de chart rendert en de pods ready worden (zie de kind-tutorial). De pods draaien met de
+# gepubliceerde images van de appVersion van de chart: het tenantschema hieronder moet dus bij die image passen (bij een appVersion-bump hier meebewegen).
+redis:
+  image: redis:8-alpine
+nl-portal:
+  backend:
+    existingSecret: nl-portal-backend
+    keycloakBrokerUrl: https://login.example.nl
+    redis:
+      host: redis
+      ssl: false
+  tenancy:
+    tenants:
+      base.yaml: |
+        omgevingstype: test
+        inlogmiddelen: [test]
+        minimumNiveau: basis
+      "00000099000000000001.yaml": |
+        oin: "00000099000000000001"
+        naam: Gemeente De Bosrand
+        domeinen:
+          - localhost
+        thema:
+          titel: Mijn De Bosrand
+        authenticatie:
+          issuer: https://login.example.nl/realms/debosrand
+          sleutelBestand: 00000099000000000001/clientsleutel.jwk.json
+    keys:
+      - oin: "00000099000000000001"
+        # Het Secret met de gegenereerde testsleutel maakt `mise run helm:kind-install` aan.
+        existingSecret: nl-portal-sleutel-00000099000000000001

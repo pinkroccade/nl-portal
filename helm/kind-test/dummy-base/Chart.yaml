@@ -1,0 +1,9 @@
+apiVersion: v2
+name: dummy-base
+description: Wegwerp-base-chart voor `mise run helm:kind-install` (ct install op kind). Neemt nl-portal op als subchart, zoals een echte base-chart, en levert wat de chart niet aanmaakt (Redis, het backend-Secret). Wordt niet gepubliceerd.
+type: application
+version: 0.0.0
+dependencies:
+  - name: nl-portal
+    version: ">=0.0.0-0"
+    repository: file://../../nl-portal

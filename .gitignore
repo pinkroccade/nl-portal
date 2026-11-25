@@ -87,3 +87,7 @@ strix_runs/
 
 # k6-summaries van mise run perf:meet
 performance/resultaten/
+
+# Gegenereerd door helm dependency build in de kind-test
+helm/kind-test/dummy-base/charts/
+helm/kind-test/dummy-base/Chart.lock
