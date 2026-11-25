@@ -92,13 +92,12 @@ internal class IdentiteitTest {
     }
 
     @Test
-    fun `the user type and subject of an authentication follow the vertegenwoordigde and the gebruiker`() {
+    fun `the user type of an authentication follows the vertegenwoordigde, and the principal the gebruiker`() {
         val burgerAuthentication = PortalAuthentication(Identiteit(gebruiker, burger), emptyList())
         val bedrijfAuthentication = PortalAuthentication(Identiteit(gebruiker, bedrijf), emptyList())
 
         assertEquals("bsn", burgerAuthentication.userType)
         assertEquals("kvk", bedrijfAuthentication.userType)
-        assertEquals("subject-1", burgerAuthentication.subject)
         assertEquals("subject-1", burgerAuthentication.principal)
     }
 }

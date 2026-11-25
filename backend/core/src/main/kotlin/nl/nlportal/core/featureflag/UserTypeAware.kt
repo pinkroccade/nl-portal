@@ -17,11 +17,8 @@ package nl.nlportal.core.featureflag
 
 /**
  * An authentication that knows which kind of user it represents (`bsn` or `kvk`).
- * The type itself is not personal data, so it may be used for flag targeting. The subject is the identity
- * provider subject; it only leaves as a keyed HMAC (see FeatureContextFactory).
+ * The type itself is not personal data, so it may be used for flag targeting.
  */
 interface UserTypeAware {
     val userType: String
-
-    val subject: String
 }

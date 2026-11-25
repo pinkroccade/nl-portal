@@ -134,7 +134,7 @@ BSN, KVK-nummer en naam komen niet in logs, flagcontext of telemetrie.
 wordt, kan niet lekken.
 
 **Implications:** Een nieuw veld in een response, log of evaluatiecontext heeft een doel. ADR 0020 is het
-precedent: de evaluatiecontext van feature flags bevat alleen een opaque gebruikers-id. De fitness test bewaakt
+precedent: de evaluatiecontext van feature flags bevat alleen tenant, omgeving en gebruikerstype, geen gebruikers-id. De fitness test bewaakt
 die evaluatiecontext; logs en telemetrie zijn een reviewpunt.
 
 **Bron:** `N-AVG-2016`, `N-BIO2-1.3` (ISO/IEC 27002:2022 5.34, 8.15 en 8.11)

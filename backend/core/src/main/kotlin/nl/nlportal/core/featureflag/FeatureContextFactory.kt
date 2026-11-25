@@ -18,8 +18,6 @@ package nl.nlportal.core.featureflag
 import dev.openfeature.sdk.EvaluationContext
 import dev.openfeature.sdk.ImmutableContext
 import dev.openfeature.sdk.Value
-import org.apache.commons.codec.digest.HmacAlgorithms
-import org.apache.commons.codec.digest.HmacUtils
 import org.springframework.security.authentication.AnonymousAuthenticationToken
 import org.springframework.security.core.Authentication
 import org.springframework.security.core.context.ReactiveSecurityContextHolder
@@ -29,8 +27,8 @@ import reactor.core.publisher.Mono
  * Builds the OpenFeature evaluation context for a request. The context is passed explicitly to every
  * evaluation; it is never stored in thread-bound state, which does not survive thread hops in WebFlux.
  *
- * The context never holds personal data: only tenant, environment, user type and an opaque user id,
- * a keyed HMAC of the identity provider subject with a per-tenant secret.
+ * The context never holds personal data and no user id (no targeting key): only tenant, environment and
+ * user type. Flags decide per tenant, not per citizen (ADR 0020).
  */
 class FeatureContextFactory(
     private val properties: FeatureFlagProperties.Context,
@@ -51,13 +49,7 @@ class FeatureContextFactory(
                 properties.environment?.let { put(ENVIRONMENT, Value(it)) }
                 (user as? UserTypeAware)?.let { put(USER_TYPE, Value(it.userType)) }
             }
-        return ImmutableContext(opaqueUserId(user), attributes)
-    }
-
-    private fun opaqueUserId(user: Authentication?): String? {
-        val secret = properties.userIdSecret?.takeIf { it.isNotBlank() } ?: return null
-        val subject = (user as? UserTypeAware)?.subject ?: return null
-        return HmacUtils(HmacAlgorithms.HMAC_SHA_256, secret).hmacHex(subject)
+        return ImmutableContext(attributes)
     }
 
     companion object {

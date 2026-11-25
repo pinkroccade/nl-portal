@@ -61,7 +61,7 @@ legt vast *dat* en *hoe* beslissingen worden vastgelegd.
 
 - [`0020-levenscyclus-feature-flags-en-privacy-evaluatiecontext.md`](../../development/adr/0020-levenscyclus-feature-flags-en-privacy-evaluatiecontext.md) — **geaccepteerd**.
   Aanvulling op ADR 0014: toggle-typen en foutgedrag, naamgeving, eigenaar en vervaldatum, en een
-  evaluatiecontext zonder persoonsgegevens (opaque id of HMAC, nooit BSN of naam).
+  evaluatiecontext zonder persoonsgegevens en zonder gebruikers-id (nooit BSN of naam).
 
 - [`0021-gedeelde-multi-tenant-runtime-met-cellen.md`](../../development/adr/0021-gedeelde-multi-tenant-runtime-met-cellen.md) — **geaccepteerd** (2026-11-21, met aanvullingen; nog niet gebouwd).
   Eén gedeelde multi-tenant runtime met logische tenantscheiding, ingedeeld in cellen (canarycel en
