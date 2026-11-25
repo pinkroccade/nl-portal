@@ -20,6 +20,10 @@ kubeconform = "0.8.0"
 # Best-practice-controle van de gerenderde Helm-chart; `mise run helm:kube-linter`.
 kube-linter = "0.8.3"
 "github:helm-unittest/helm-unittest" = "1.2.1"
+# Versiebump-controle per chart-PR (`mise run helm:ct-lint`) en installatie op kind (`mise run helm:kind-install`).
+"aqua:helm/chart-testing" = "3.14.0"
+kind = "0.33.0"
+kubectl = "1.34.0"
 
 # Taken heten <domein>:<actie>. De aggregaten zonder prefix (build, test, lint, arch-check) roepen via
 # `depends` de domeintaken aan. Taken van meer dan een regel staan als bestand onder mise-tasks/.

@@ -1,0 +1,6 @@
+# Codeowners: GitHub vraagt deze teams automatisch als reviewer. De laatste passende regel wint.
+# Het team `devops` is een child-team van mijngemeente-core en moet schrijfrechten op de repo hebben.
+
+# De Helm-chart en de test-tooling eromheen.
+/helm/ @pinkroccade/devops
+/mise-tasks/helm/ @pinkroccade/devops

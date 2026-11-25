@@ -1,0 +1,15 @@
+# chart-testing (`ct`): gebruikt door `mise run helm:ct-lint` en `mise run helm:kind-install`.
+# Draai vanaf de repo-root; de paden zijn relatief daaraan.
+chart-dirs:
+  - helm
+remote: origin
+target-branch: main
+# Faalt een PR die de chart wijzigt zonder `version` in Chart.yaml op te hogen.
+check-version-increment: true
+# helm lint --strict loopt al in `helm:lint`, en yamllint/yamale/GitHub-lookups hoeven niet mee.
+validate-maintainers: false
+validate-chart-schema: false
+validate-yaml: false
+helm-lint-extra-args: --strict
+# Wachten tot de pods ready zijn; de JVM van de backend start traag op een runner.
+helm-extra-args: --timeout 300s

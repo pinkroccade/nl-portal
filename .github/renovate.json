@@ -16,6 +16,16 @@
         "enabled": true,
         "schedule": ["* 18-23 * * 0"]
     },
+    "customManagers": [
+        {
+            "customType": "regex",
+            "description": "Kind-node-image in mise-tasks/helm/kind-install.",
+            "managerFilePatterns": ["/mise-tasks/helm/kind-install$/"],
+            "matchStrings": ["kindest/node:(?<currentValue>v[^}]+)}"],
+            "depNameTemplate": "kindest/node",
+            "datasourceTemplate": "docker"
+        }
+    ],
     "packageRules": [
         {
             "description": "Only allow minor, patch and digest updates; major upgrades are handled manually.",
@@ -27,6 +37,12 @@
             "matchUpdateTypes": ["minor", "patch", "digest"],
             "groupName": "all non-major dependencies",
             "groupSlug": "all-minor-patch"
+        },
+        {
+            "description": "Chart-tooling (helm, kubeconform, helm-unittest, kube-linter, chart-testing, kind, kubectl) en de kind-node-image in een eigen groep, los van de wekelijkse bundel.",
+            "matchPackageNames": ["/^(helm|aqua:helm/chart-testing|kubeconform|kube-linter|github:helm-unittest/helm-unittest|kind|kubectl|kindest/node)$/"],
+            "groupName": "chart-tooling",
+            "groupSlug": "chart-tooling"
         },
         {
             "description": "Trusted first-party/design-system scopes: skip the release-age cooldown, mirroring frontend/pnpm-workspace.yaml minimumReleaseAgeExclude.",

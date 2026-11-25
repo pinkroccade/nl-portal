@@ -1,0 +1,30 @@
+#!/usr/bin/env bash
+#MISE description="Installeer de chart als subchart van een dummy-base-chart op kind (ct install), in een namespace met Pod Security restricted; bewijst dat backend en frontend ready worden. Vereist Docker; KIND_KEEP=1 laat het cluster staan"
+set -euo pipefail
+
+cd "$(dirname "$0")/../.."
+CLUSTER="${KIND_CLUSTER:-nl-portal-ct}"
+NAMESPACE=nl-portal-ct
+WORK="$(mktemp -d)"
+CREATED=0
+trap 'rm -rf "$WORK"; { [ "${KIND_KEEP:-0}" = 1 ] || [ "$CREATED" = 0 ]; } || kind delete cluster --name "$CLUSTER" >/dev/null 2>&1 || true' EXIT
+
+# Node-image: vastgepind; Renovate werkt hem bij via de customManager in .github/renovate.json.
+KIND_NODE_IMAGE="${KIND_NODE_IMAGE:-kindest/node:v1.34.0}"
+
+if ! kind get clusters 2>/dev/null | grep -qx "$CLUSTER"; then
+    kind create cluster --name "$CLUSTER" --image "$KIND_NODE_IMAGE" --wait 120s
+    CREATED=1
+fi
+kubectl config use-context "kind-$CLUSTER" >/dev/null
+
+kubectl create namespace "$NAMESPACE" --dry-run=client -o yaml | kubectl apply -f -
+kubectl label namespace "$NAMESPACE" pod-security.kubernetes.io/enforce=restricted --overwrite
+
+# Testsleutel voor de tenant: de backend eist een RSA-sleutel van minstens 3072 bit als JWK.
+mise exec -- node -e "const {privateKey}=require('node:crypto').generateKeyPairSync('rsa',{modulusLength:3072});const j=privateKey.export({format:'jwk'});j.kid='ct';j.alg='PS256';j.use='sig';require('node:fs').writeFileSync(process.argv[1],JSON.stringify(j))" "$WORK/clientsleutel.jwk.json"
+kubectl -n "$NAMESPACE" create secret generic nl-portal-sleutel-00000099000000000001 \
+    --from-file=clientsleutel.jwk.json="$WORK/clientsleutel.jwk.json" --dry-run=client -o yaml | kubectl apply -f -
+
+# --namespace: ct maakt zelf geen namespace aan en gebruikt de gelabelde namespace hierboven.
+ct install --config helm/kind-test/ct.yaml --charts helm/kind-test/dummy-base --namespace "$NAMESPACE"

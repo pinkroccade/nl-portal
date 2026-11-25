@@ -158,6 +158,42 @@ jobs:
             -   name: Unit tests of the chart
                 run: mise run helm:test
 
+    helm-chart-version:
+        needs: changes
+        if: ${{ needs.changes.outputs.helm == 'true' }}
+        runs-on: ubuntu-latest
+        steps:
+            -   uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+                with:
+                    persist-credentials: false
+                    fetch-depth: 0 # ct lint vergelijkt met origin/main
+            -   name: Set up mise (helm, chart-testing)
+                uses: jdx/mise-action@924e7c586e33d7d4bae9c14e26c5d22e2beb6e78 # v5.3.0
+                with:
+                    install_args: "helm aqua:helm/chart-testing"
+            -   name: Lint the chart and check the version bump (ct lint)
+                run: mise run helm:ct-lint
+
+    helm-chart-install:
+        needs: changes
+        if: ${{ needs.changes.outputs.helm == 'true' }}
+        runs-on: ubuntu-latest
+        timeout-minutes: 20
+        steps:
+            -   uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+                with:
+                    persist-credentials: false
+            -   name: Set up Node.js
+                uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6.5.0
+                with:
+                    node-version: "24"
+            -   name: Set up mise (helm, chart-testing, kind, kubectl)
+                uses: jdx/mise-action@924e7c586e33d7d4bae9c14e26c5d22e2beb6e78 # v5.3.0
+                with:
+                    install_args: "helm aqua:helm/chart-testing kind kubectl"
+            -   name: Install the chart as a subchart on kind under Pod Security restricted (ct install)
+                run: mise run helm:kind-install
+
     java-version-consistent:
         needs: changes
         if: ${{ needs.changes.outputs.backend == 'true' || needs.changes.outputs.workflows == 'true' || needs.changes.outputs.scripts == 'true' || needs.changes.outputs.docs == 'true' }}
@@ -349,7 +385,7 @@ jobs:
                     mise run helm:docs-touched
 
     ci-required:
-        needs: [changes, validate, test-scripts, java-version-consistent, mise-shell-consistent, copyright-headers, capabilities-docs-fresh, compliance-register-consistent, docs-site, workflows-lint, helm-chart, chart-docs-touched]
+        needs: [changes, validate, test-scripts, java-version-consistent, mise-shell-consistent, copyright-headers, capabilities-docs-fresh, compliance-register-consistent, docs-site, workflows-lint, helm-chart, helm-chart-version, helm-chart-install, chart-docs-touched]
         if: always()
         runs-on: ubuntu-latest
         steps:
@@ -365,6 +401,8 @@ jobs:
                     DOCS_SITE_RESULT: ${{ needs.docs-site.result }}
                     WORKFLOWS_LINT_RESULT: ${{ needs.workflows-lint.result }}
                     HELM_CHART_RESULT: ${{ needs.helm-chart.result }}
+                    HELM_VERSION_RESULT: ${{ needs.helm-chart-version.result }}
+                    HELM_INSTALL_RESULT: ${{ needs.helm-chart-install.result }}
                     CHART_DOCS_RESULT: ${{ needs.chart-docs-touched.result }}
                 run: |
                     echo "::notice::validate result = ${VALIDATE_RESULT}"
@@ -377,6 +415,8 @@ jobs:
                     echo "::notice::docs-site result = ${DOCS_SITE_RESULT}"
                     echo "::notice::workflows-lint result = ${WORKFLOWS_LINT_RESULT}"
                     echo "::notice::helm-chart result = ${HELM_CHART_RESULT}"
+                    echo "::notice::helm-chart-version result = ${HELM_VERSION_RESULT}"
+                    echo "::notice::helm-chart-install result = ${HELM_INSTALL_RESULT}"
                     echo "::notice::chart-docs-touched result = ${CHART_DOCS_RESULT}"
                     if [ "${VALIDATE_RESULT}" = "failure" ] || [ "${VALIDATE_RESULT}" = "cancelled" ]; then
                       exit 1
@@ -406,6 +446,12 @@ jobs:
                       exit 1
                     fi
                     if [ "${HELM_CHART_RESULT}" = "failure" ] || [ "${HELM_CHART_RESULT}" = "cancelled" ]; then
+                      exit 1
+                    fi
+                    if [ "${HELM_VERSION_RESULT}" = "failure" ] || [ "${HELM_VERSION_RESULT}" = "cancelled" ]; then
+                      exit 1
+                    fi
+                    if [ "${HELM_INSTALL_RESULT}" = "failure" ] || [ "${HELM_INSTALL_RESULT}" = "cancelled" ]; then
                       exit 1
                     fi
                     if [ "${CHART_DOCS_RESULT}" = "failure" ] || [ "${CHART_DOCS_RESULT}" = "cancelled" ]; then

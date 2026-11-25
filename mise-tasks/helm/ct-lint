@@ -1,0 +1,8 @@
+#!/usr/bin/env bash
+#MISE description="Draai chart-testing (ct lint) op de chart: faalt als de chart wijzigt zonder versiebump in Chart.yaml t.o.v. origin/main"
+set -euo pipefail
+
+cd "$(dirname "$0")/../.."
+# De versiecontrole vergelijkt met de doelbranch: haal die op als hij lokaal ontbreekt (CI checkt met volledige historie uit).
+git fetch --quiet origin main 2>/dev/null || true
+ct lint --config helm/kind-test/ct.yaml
