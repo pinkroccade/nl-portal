@@ -4,4 +4,3 @@
 # De Helm-chart en de test-tooling eromheen.
 /helm/ @pinkroccade/devops
 /mise-tasks/helm/ @pinkroccade/devops
-/.github/workflows/ci.yml @pinkroccade/devops
