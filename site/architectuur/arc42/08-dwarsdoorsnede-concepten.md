@@ -141,8 +141,9 @@ via een rolling update wordt uitgerold, niet via hot reload; een andere OpenFeat
 - **Typen**: ops (runtime-gedrag), permission (toegang; bij twijfel geweigerd), experiment en release
   (kortlevend). Flagsleutels hebben het formaat `<type>.<module>.<naam>`.
 - **Evaluatiecontext**: `FeatureContextFactory` bouwt per request een context (tenant, omgeving,
-  en gebruikerstype; geen gebruikers-id en geen HMAC) uit de reactive security context. De context wordt expliciet aan elke evaluatie meegegeven, niet
-  thread-gebonden opgeslagen, en bevat nooit persoonsgegevens.
+  en gebruikerstype) uit de reactive security context. De context wordt expliciet aan elke evaluatie
+  meegegeven, niet thread-gebonden opgeslagen, en bevat nooit persoonsgegevens en geen gebruikers-id;
+  een gebruiksgeval voor targeting per burger vraagt een eigen besluit (ADR 0020).
 - **Frontend**: de uitkomst voor de frontend komt via `GET /api/public/frontend`; de browser praat
   nooit met een flag-systeem.
 - **Nu flag-gedreven**: alle frontend-toggles (`ops.frontend.*`), de vrije custom-toggles en de module
