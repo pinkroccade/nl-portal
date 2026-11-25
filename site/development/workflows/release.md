@@ -1,74 +1,57 @@
-# Een release maken
+# How-to: een release maken
 
-> **Overgang naar ADR 0019.** Elke merge op `main` bouwt sinds #606 via `build-once.yml` (zie hieronder). De RC- en releasestappen
-> verderop gelden tot promotie op digest (#607) en het opruimen (#609) ze vervangen.
+*Diátaxis: how-to.* Promoveer een geteste build tot release: tags `x.y.z`, `x.y`, `x` en `latest`, handtekening, SBOM-attestatie en GitHub Release.
+Hoe het in elkaar zit staat in de [uitleg](./release-uitleg.md); alle namen, invoer en tags in de [referentie](./release-referentie.md).
 
-## Build per commit (`build-once.yml`)
+Je bouwt niets: elke merge op `main` heeft al een geteste build opgeleverd. Een release kiest een van die builds.
 
-Elke merge op `main` bouwt backend en frontend één keer en pusht de onveranderlijke tag `<versie>-<sha>` (`<versie>` uit `version.txt`,
-`<sha>` de eerste 12 tekens van de commit). Volgorde en poorten:
+## Voor je begint
 
-1. **Stage (parallel):** backend `gradlew build` (compileren, unit- en integratietests) en frontend build en test.
-2. **Smoke:** `_smoke-stack.yml` bouwt de images uit de stage-bundels van deze run, start de quickstart-compose en draait de BFF-login met GraphQL.
-3. **Images (parallel):** bouwen uit dezelfde stage-bundels, pushen, ondertekenen (cosign, keyless), image-SBOM genereren en attesteren.
-4. **Summary:** de digest per image staat in de job summary van de run en in het artefact `build-digests` (`build-digests.json`).
-
-Een falende poort laat alle volgende jobs vervallen: er wordt niets gepusht en er ontstaat geen tag. De tests en de smoke lopen dus
-vóór de push; de smoke wacht op beide stage-jobs, dat kost de smoke-duur extra bovenop de langzaamste stage.
-
-Een commit die alleen `site/**`, `docs/**` of `*.md` raakt, start de workflow niet (`paths-ignore`): er is niets nieuws om uit te rollen,
-en latere bot-commits op `CHANGELOG.md` (#608) veroorzaken zo geen build. Promoveren op commit (#607) kiest dus de nieuwste
-build, niet per se de nieuwste commit.
-
-Proefrun op een branch: `gh workflow run build-once.yml --ref <branch>` draait alleen de poorten (`publish=false`); met
-`-f publish=true` pusht en ondertekent hij ook.
-
-Een release maak je in twee stappen: een release-candidate (RC) snijden en daarna de release publiceren. De RC wordt gebouwd en
-getest; de release bouwt de images opnieuw (zonder tests) en publiceert ze achter een handmatige goedkeuring. Achtergrond:
-[ADR 0004](../adr/0004-changelog-release-proces.md); het branchmodel staat in `CONTRIBUTING.md`.
-
-Er is geen tag-trigger: een tag pushen doet niets. De tag `x.y.z` wordt door de release-workflow zelf gezet.
+- Je mag `promote.yml` starten en de `release`-environment goedkeuren (of een andere goedkeurder is bereikbaar).
+- `gh` is ingelogd op de repository `pinkroccade/nl-portal`.
 
 ## Stappen
 
-1. **Snijd de RC.** Start vanaf `main` de workflow `release-cut.yml`:
+1. **Controleer de build die je wilt promoveren.** De nieuwste groene build op `main`:
 
    ```shell
-   gh workflow run release-cut.yml --ref main -f version=0.1.0
+   gh run list --workflow build-once.yml --branch main --event push --status success --limit 5
    ```
 
-   Laat `version` leeg om de versie af te leiden uit de Conventional Commits sinds de laatste tag (`feat` geeft minor, `fix`,
-   `refactor` en `perf` patch, een breaking change major). Zet `-f start_rc=false` als je de RC-bouw zelf wilt starten.
-   De workflow maakt `rc/<versie>` met `version.txt` en `CHANGELOG.md`, pusht die en start de RC-bouw.
-2. **Controleer de RC.** `build-and-publish-release-candidate.yml` bouwt `<versie>-RC-1-SNAPSHOT`, draait de unit-tests en
-   publiceert gesigneerde images. Lees de `CHANGELOG.md`-sectie na op de branch; pas die zo nodig aan met een commit op `rc/<versie>`
-   en start de RC opnieuw (`-f rc_number=2`).
-3. **Publiceer de release.**
+   De bovenste regel is de standaardkeuze. Open die run: de job summary toont de build-tag en de digest per image. Staat er geen
+   groene run voor de commit die je zoekt, dan is die commit niet te promoveren.
+2. **Kies de versie.** Lees de vorige release (`gh release list --limit 3`) en bepaal de volgende `x.y.z`. Zolang de versie nog uit
+   `version.txt` komt, geef je haar altijd expliciet mee.
+3. **Start de promotie** vanaf `main`:
 
    ```shell
-   gh workflow run build-and-publish-release.yml --ref rc/<versie>
+   gh workflow run promote.yml --ref main -f version=0.1.0
    ```
 
-   Keur daarna in de Actions-UI de `release`-environment goed. De workflow publiceert de tags `<versie>`, `x.y`, `x` en `latest`
-   (backend en frontend), zet de branch `release/<major>.x` en de tag `<versie>`, maakt de GitHub Release met SBOM's en
-   verwijdert `rc/<versie>`.
+   Een bepaalde build in plaats van de nieuwste: voeg `-f build=<commit-sha of build-tag>` toe.
+4. **Keur de `release`-environment goed.** Open de run (`gh run list --workflow promote.yml --limit 1`), kies Review deployments en keur goed.
+   Pas daarna retagt, ondertekent en publiceert de workflow.
+5. **Controleer het resultaat.** Wacht tot de run groen is (`gh run watch`) en controleer:
 
-## Lokaal snijden
+   ```shell
+   gh release view 0.1.0
+   docker buildx imagetools inspect ghcr.io/pinkroccade/nl-portal-backend:0.1.0 --format '{{.Manifest.Digest}}'
+   cosign verify ghcr.io/pinkroccade/nl-portal-backend:0.1.0 \
+     --certificate-identity https://github.com/pinkroccade/nl-portal/.github/workflows/promote.yml@refs/heads/main \
+     --certificate-oidc-issuer https://token.actions.githubusercontent.com
+   ```
 
-`mise run release:cut-rc -- --version 0.1.0` (of zonder `--version`) doet stap 1 lokaal: het maakt de branch en commit, maar pusht
-niet. Push zelf en start de RC-workflow met `gh workflow run build-and-publish-release-candidate.yml --ref rc/<versie> -f rc_number=1`.
+   De digest moet gelijk zijn aan die in de job summary van de build. Herhaal dit voor `nl-portal-frontend`.
 
-## Let op
+## Een oudere build promoveren
 
-- De release slaat de tests over en vertrouwt op een groene RC van dezelfde commit. Sla de RC niet over.
-- Tags `x.y.z`, `x.y`, `x`, en `latest` en de branch `release/<major>.x` kun je niet terugdraaien. Controleer de RC en de
-  changelog daarom vóór stap 3.
-- Een release-candidate publiceert geen `latest`. Wil je alleen deployable images beproeven, dispatch dan
-  `build-and-publish-snapshot.yml` op een branch: dat geeft één tag `<versie>-<branch>-<tijd>-<sha>-SNAPSHOT` zonder goedkeuring.
-- Het Helm-chart gebruikt `appVersion` (gelijk aan `version.txt`) als standaard image-tag. Die tag bestaat pas na stap 3.
-- De GitHub App (`NL_PORTAL_APP_*`) moet branches mogen pushen; `release-cut.yml` en de release gebruiken dezelfde App.
+Gebruik stap 3 met `-f build=<commit-sha of build-tag>` en de versie die de release moet krijgen. `x.y`, `x` en `latest` schuiven alleen
+vooruit: promoveer je een oudere patch, dan blijven die tags staan en krijgt alleen `x.y.z` (en eventueel `x.y`) de nieuwe digest.
+De GitHub Release krijgt dan ook niet de vlag Latest.
 
-## Uitbreiden
+## Als het misgaat
 
-Deze handmatige stappen zijn de kleine variant. Een volgende stap is de release automatisch laten starten zodra de RC groen is, met
-de goedkeuring als enige handmatige stap.
+- **De run faalt vóór het retaggen** (geen groene build gevonden, handtekening klopt niet): er is niets veranderd. Los de oorzaak op en start opnieuw.
+- **De run faalt halverwege:** start dezelfde promotie opnieuw. Dat is veilig: dezelfde digest krijgt dezelfde tags, en een bestaande Release wordt overgeslagen.
+- **"x.y.z is onveranderlijk":** die versie staat al op een andere digest. Kies een nieuwe versie; een gepubliceerde `x.y.z` is niet te verplaatsen.
+- **Een slechte release terugdraaien** is geen pijplijnstap: zet de uitrol (ArgoCD) terug naar de vorige `x.y.z`. `latest` schuift nooit terug.
