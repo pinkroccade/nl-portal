@@ -20,6 +20,11 @@ release-flag is kortlevend en verbergt onafgemaakt werk; een experiment-flag is 
 Instellingen die nooit veranderen en per tenant verschillen (thema, URL's) zijn geen flags maar tenantconfiguratie.
 Verder vervalt het gebruikers-id uit de evaluatiecontext en daarmee de HMAC en de sleutel per tenant (punt 4).
 
+**Aanvulling 2026-11-26** ([ADR 0026](./0026-least-functionality-in-een-gedeelde-runtime.md), voorgesteld): een
+permission-flag wordt centraal afgedwongen door één gate die standaard weigert (deny by default); een
+module-endpoint zonder registratie bij die gate is onbereikbaar. De fail-closed regel uit beslissing 1 geldt
+daarmee ook voor een vergeten aanroep, niet alleen voor een ontbrekende flag.
+
 ## Context
 
 ADR 0014 kiest OpenFeature met een flagd-bestand als standaard. Zonder afspraken groeit een flagbestand

@@ -83,6 +83,10 @@ legt vast *dat* en *hoe* beslissingen worden vastgelegd.
 - [`0025-helm-chart-in-app-repo-als-generieke-child-chart.md`](../../development/adr/0025-helm-chart-in-app-repo-als-generieke-child-chart.md) — **geaccepteerd** (2026-11-25; epic #191).
   Chart in de app-repo, OCI op ghcr met cosign; geen secrets in de chart (één `existingSecret` per component, gevuld via ESO); contract met de base-chart; eigen SemVer.
 
+- [`0026-least-functionality-in-een-gedeelde-runtime.md`](../../development/adr/0026-least-functionality-in-een-gedeelde-runtime.md) — **voorgesteld** (#532).
+  Least functionality in één image in vier lagen (product, tenant, koppelingen en secrets, dependencies); één centrale
+  gate, deny by default; introspectie uit in productie; removability fitness function; eisen aan #521.
+
 ## Overige kandidaten
 
 Nog niet als ADR vastgelegd:
