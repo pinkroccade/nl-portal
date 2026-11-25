@@ -7,6 +7,10 @@ hot reload) is toegevoegd in #389. De keuze van een productie-provider is
 bewust uitgesteld (spike #147). De afspraken over levenscyclus en privacy van de evaluatiecontext staan
 in [ADR 0020](./0020-levenscyclus-feature-flags-en-privacy-evaluatiecontext.md) (#148).
 
+**Aanvulling 2026-11-26** ([ADR 0026](./0026-least-functionality-in-een-gedeelde-runtime.md), voorgesteld): de
+moduleflag beslist per tenant via één centrale gate, deny by default, in plaats van een `require`-aanroep per
+resolver. Beslissing 5 blijft: de moduleflag is een permission-flag en dus fail-closed.
+
 ## Context
 
 Het gedrag van de backend (welke modules en koppelingen actief zijn) en de frontend-toggles werden

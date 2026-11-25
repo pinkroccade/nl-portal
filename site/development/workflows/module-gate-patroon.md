@@ -5,6 +5,15 @@ eerste module die dit doet (#157, onderdeel van #143) en is het voorbeeld voor d
 flags staat in [ADR 0014](../adr/0014-feature-flags-via-openfeature.md), de regels voor sleutels en context in
 [ADR 0020](../adr/0020-levenscyclus-feature-flags-en-privacy-evaluatiecontext.md).
 
+::: warning Tussenstap
+Dit patroon (een `require`-aanroep per resolver, beans, clients en schema altijd aanwezig) is een tussenstap.
+[ADR 0026](../adr/0026-least-functionality-in-een-gedeelde-runtime.md) (voorgesteld) vraagt één centrale gate per
+tenant, deny by default, met een ArchUnit-regel dat elk module-endpoint bij de gate is geregistreerd. T22
+([#521](https://github.com/pinkroccade/nl-portal/issues/521)) bouwt dat en vervangt dit patroon; de eisen staan in
+de ADR. Tot die tijd geldt wat hieronder staat: vergeet de `require`-aanroep niet, want een vergeten aanroep is een
+open endpoint.
+:::
+
 ## Wat de gate doet
 
 - De beans van de module (service, GraphQL-controller, REST-resource) bestaan altijd, ook als de module uit staat.

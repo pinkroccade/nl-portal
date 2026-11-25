@@ -22,6 +22,9 @@ alternatief serieus is overwogen.
 
 - [ADR 0023: architectuurprincipes en toetsing](./0023-architectuurprincipes-en-toetsing.md): principeregister
   in TOGAF-vorm, elk principe met een bron en een toetsing; wacht op beoordeling door de architect.
+- [ADR 0026: least functionality in een gedeelde runtime](./0026-least-functionality-in-een-gedeelde-runtime.md):
+  vier lagen, één centrale gate (deny by default), introspectie uit, removability fitness function en de
+  eisen aan #521; wacht op beoordeling door de architect.
 
 ## Recent geaccepteerd
 
