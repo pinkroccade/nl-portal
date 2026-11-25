@@ -1,0 +1,12 @@
+#!/usr/bin/env bash
+#MISE description="Bouw de drie images van de smoke-stack (backend, frontend, Keycloak) als nl-portal-*:smoke; SMOKE_BUILD_MODE=ci hergebruikt de build-once-uitvoer (app.jar, packages/app/build), standaard compileert Docker uit de bron"
+set -euo pipefail
+
+# In CI bouwt de workflow de images uit de stage-bundels van de run (BUILD_MODE=ci, geen tweede compilatie); lokaal compileert
+# Docker zelf (BUILD_MODE=local, traag). Het Keycloak-image heeft geen build-modus: de provider-jar komt uit `keycloak:image`.
+cd "$(dirname "$0")/../.."
+MODE="${SMOKE_BUILD_MODE:-local}"
+docker build --build-arg "BUILD_MODE=${MODE}" -t nl-portal-backend:smoke backend
+docker build --build-arg "BUILD_MODE=${MODE}" -t nl-portal-frontend:smoke frontend
+mise run keycloak:image
+docker tag nl-portal-keycloak:dev nl-portal-keycloak:smoke

@@ -1,0 +1,74 @@
+#!/usr/bin/env bash
+#MISE description="Smoke-poort (#524 deel 1): start de quickstart-compose met de smoke-images (smoke:images), wacht op health van Keycloak, Redis, backend en frontend, en draai de BFF-login als burger op De Bosrand met GraphQL 200 (vereist Docker)"
+set -euo pipefail
+
+# Eigen compose-projectnaam en netwerk; de containernamen en poorten (3000, 8080, 8082, 6379) zijn vast, dus stop een draaiende
+# quickstart eerst. De stack gaat na afloop met zijn volumes weg (SMOKE_KEEP=1 laat hem staan). Images: standaard de uitvoer van
+# `mise run smoke:images`; overschrijf met NL_PORTAL_{BACKEND,FRONTEND,KEYCLOAK}_IMAGE om andere (bijvoorbeeld uit een registry) te toetsen.
+ROOT="$(cd "$(dirname "$0")/../.." && pwd)"
+PROJECT="nlp-smoke"
+export NL_PORTAL_NETWORK="$PROJECT"
+export NL_PORTAL_BACKEND_IMAGE="${NL_PORTAL_BACKEND_IMAGE:-nl-portal-backend:smoke}"
+export NL_PORTAL_FRONTEND_IMAGE="${NL_PORTAL_FRONTEND_IMAGE:-nl-portal-frontend:smoke}"
+export NL_PORTAL_KEYCLOAK_IMAGE="${NL_PORTAL_KEYCLOAK_IMAGE:-nl-portal-keycloak:smoke}"
+# De clientsleutel is 0600 van de gebruiker die dev:setup draaide; de backend-container leest hem als diezelfde uid.
+export LOCAL_UID="${LOCAL_UID:-$(id -u)}" LOCAL_GID="${LOCAL_GID:-$(id -g)}"
+COMPOSE=(docker compose -p "$PROJECT")
+START=$SECONDS
+stap() { echo "[smoke +$((SECONDS - START))s] $*"; }
+
+cleanup() {
+  status=$?
+  if [ "$status" -ne 0 ]; then
+    echo "[smoke] mislukt (exit $status); containerstatus en log:" >&2
+    (cd "$ROOT/docker-compose" && "${COMPOSE[@]}" ps -a && "${COMPOSE[@]}" logs --no-color --tail 60) >&2 || true
+  fi
+  if [ -z "${SMOKE_KEEP:-}" ]; then
+    (cd "$ROOT/docker-compose" && "${COMPOSE[@]}" down -v > /dev/null 2>&1) || true
+  fi
+}
+trap cleanup EXIT
+
+for image in "$NL_PORTAL_BACKEND_IMAGE" "$NL_PORTAL_FRONTEND_IMAGE" "$NL_PORTAL_KEYCLOAK_IMAGE"; do
+  docker image inspect "$image" > /dev/null 2>&1 || { echo "Image $image ontbreekt: draai eerst mise run smoke:images" >&2; exit 1; }
+done
+
+if [ ! -f "$ROOT/docker-compose/.env" ] || [ ! -d "$ROOT/docker-compose/.generated/tenants" ]; then
+  (cd "$ROOT" && node scripts/dev-setup.mjs)
+fi
+
+cd "$ROOT/docker-compose"
+"${COMPOSE[@]}" down -v > /dev/null 2>&1 || true
+stap "stack starten"
+"${COMPOSE[@]}" up -d
+
+# Health: Keycloak en Redis hebben een healthcheck; backend en frontend toetsen we via HTTP (het sessie-endpoint van De Bosrand,
+# eerst direct op de backend, dan via de nginx van de frontend).
+wacht_op_health() {
+  local naam="$1" einde=$((SECONDS + 240)) status
+  while [ "$SECONDS" -lt "$einde" ]; do
+    status="$(docker inspect --format '{{.State.Health.Status}}' "$naam" 2> /dev/null || echo onbekend)"
+    [ "$status" = "healthy" ] && { stap "$naam healthy"; return 0; }
+    sleep 2
+  done
+  echo "$naam werd niet healthy (laatste status: $status)" >&2
+  return 1
+}
+wacht_op_http() {
+  local naam="$1" url="$2" einde=$((SECONDS + 240))
+  while [ "$SECONDS" -lt "$einde" ]; do
+    if curl -fsS -H 'Host: debosrand.localhost:3000' "$url" > /dev/null 2>&1; then stap "$naam antwoordt"; return 0; fi
+    sleep 2
+  done
+  echo "$naam antwoordde niet op $url" >&2
+  return 1
+}
+wacht_op_health nl-portal-sessies
+wacht_op_health nl-portal-keycloak
+wacht_op_http nl-portal-backend http://127.0.0.1:8080/api/public/sessie
+wacht_op_http nl-portal-frontend http://127.0.0.1:3000/api/public/sessie
+
+stap "controle: login als burger en GraphQL"
+cd "$ROOT/keycloak/integratietest"
+BFF_ADRES=127.0.0.1:3000 node --test smoke.test.mjs
+stap "klaar"
