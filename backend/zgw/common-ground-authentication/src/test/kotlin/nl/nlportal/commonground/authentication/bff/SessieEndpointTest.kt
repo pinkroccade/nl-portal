@@ -91,7 +91,7 @@ class SessieEndpointTest : BffTestBasis() {
         val (wijd, wijdTekst) = sessieBody(Browser(wijdeveld))
 
         assertThat(bos).containsEntry("ingelogd", false).containsEntry("loginPad", "${BffNamen.INLOGPAD}${bosrand.oin}")
-        assertThat(bos["inlogmiddelen"]).isEqualTo(listOf("digid", "test"))
+        assertThat(bos["inlogmiddelen"]).isEqualTo(listOf("digid", "gebruikersnaam"))
         assertThat(bos.keys).containsExactlyInAnyOrder("ingelogd", "loginPad", "inlogmiddelen")
         assertThat(wijd).containsEntry("loginPad", "${BffNamen.INLOGPAD}${wijdeveld.oin}")
         assertThat(wijd["inlogmiddelen"]).isEqualTo(listOf("digid"))

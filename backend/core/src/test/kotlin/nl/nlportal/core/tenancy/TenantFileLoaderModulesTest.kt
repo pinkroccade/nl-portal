@@ -94,7 +94,7 @@ class TenantFileLoaderModulesTest {
     private val basis = "omgevingstype: acceptatie\ninlogmiddelen: [digid]\n"
 
     /** Voor tests waarin de basis bewust ongeldig is: de tenant levert dan zelf de rest. */
-    private val volledig = "omgevingstype: test\ninlogmiddelen: [test]\n"
+    private val volledig = "omgevingstype: test\ninlogmiddelen: [gebruikersnaam]\n"
 
     private fun laad(
         meerdere: Boolean = false,

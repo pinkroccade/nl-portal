@@ -65,12 +65,20 @@ omgevingstype: ontwikkeling   # productie | acceptatie | test | ontwikkeling (ma
 domeinen: [localhost]
 thema:
     titel: Mijn De Bosrand
-inlogmiddelen: [test]         # digid | eherkenning | wallet | test (test niet in productie)
+inlogmiddelen: [gebruikersnaam]   # digid | digid-machtigen | yivi | eherkenning | gebruikersnaam (gebruikersnaam niet in productie)
 minimumNiveau: substantieel   # basis | midden | substantieel | hoog (standaard substantieel)
 sessie:
     inactiviteit: PT15M       # hoogstens 15 minuten
     absoluut: PT8H            # hoogstens 8 uur
 ```
+
+**Inlogmiddelen.** `inlogmiddelen` is de enige bron voor wat een tenant aanbiedt: de backend staat alleen deze middelen toe bij het
+starten en afronden van een login, en de frontend toont alleen deze middelen. Elke waarde is ook de IdP-alias bij Keycloak, voor alle
+tenants gelijk. `digid-machtigen`, `yivi` en `eherkenning` staan in het register maar de backend weigert een login ermee tot hun eigen ticket (#492, #494); `eidas` volgt met eHerkenning. Een onbekende waarde (bijvoorbeeld `wallet` of `test`, de oude namen van `yivi` en `gebruikersnaam`) weigert het opstarten.
+`gebruikersnaam` (het standaardformulier van Keycloak) is niet toegestaan in productie. Met `digid` of `digid-machtigen` aan geldt
+dezelfde sessiegrens als voor elke tenant: `sessie.inactiviteit` is positief en hoogstens 15 minuten (DigiD-eis T10); een langere of
+nul-waarde weigert het opstarten, en de backend beëindigt de sessie na die tijd. De waarschuwing en uitlog in de browser volgen
+`AUTO_IDLE_SESSION_LOGOUT` van de frontend; zet die niet uit voor een tenant met DigiD.
 
 De tenant volgt uit de host van het request (kleine letters, zonder poort en trailing dot, exact tegen
 `domeinen`). `Forwarded` en `X-Forwarded-Host` tellen alleen van de adressen in `NL_PORTAL_TRUSTED_PROXIES` (de

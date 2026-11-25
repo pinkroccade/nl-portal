@@ -54,7 +54,7 @@ class DirectPaymentTenantConfiguratieTest {
         """.trimIndent()
 
     private fun laad(modulesBlok: String): TenantFileResult {
-        Files.writeString(dir.resolve("base.yaml"), "omgevingstype: test\ninlogmiddelen: [test]\n")
+        Files.writeString(dir.resolve("base.yaml"), "omgevingstype: test\ninlogmiddelen: [gebruikersnaam]\n")
         Files.writeString(
             dir.resolve("$oin.yaml"),
             "oin: \"$oin\"\nnaam: Gemeente\ndomeinen: [bosrand.example]\nthema:\n  titel: De Bosrand\n$authenticatie$koppelingen\nmodules:\n  payment-direct:\n${modulesBlok.prependIndent("    ")}\n",
@@ -204,7 +204,7 @@ class DirectPaymentTenantConfiguratieTest {
         ],
     )
     fun `instellingen per gemeente komen nooit uit de gedeelde basis`(basisWaarde: String) {
-        Files.writeString(dir.resolve("base.yaml"), "omgevingstype: test\ninlogmiddelen: [test]\nmodules:\n  payment-direct:\n    $basisWaarde\n")
+        Files.writeString(dir.resolve("base.yaml"), "omgevingstype: test\ninlogmiddelen: [gebruikersnaam]\nmodules:\n  payment-direct:\n    $basisWaarde\n")
         Files.writeString(dir.resolve("$oin.yaml"), "oin: \"$oin\"\nnaam: Gemeente\ndomeinen: [bosrand.example]\nthema:\n  titel: De Bosrand\n$authenticatie")
 
         val resultaat = TenantFileLoader(modules = modules).load(dir)

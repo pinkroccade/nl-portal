@@ -34,7 +34,7 @@ import java.time.Clock
  *
  *  - het inlogmiddel moet bij de tenant aanstaan (met één ingeschakeld middel mag de parameter ontbreken); een ander
  *    middel is een 400 met securityevent. Dit is alleen gemak: de callback toetst het inlogmiddel opnieuw uit het token;
- *  - `kc_idp_hint` volgt het gekozen middel (het testinlogmiddel heeft geen hint: lokale gebruikersnaam en wachtwoord);
+ *  - `kc_idp_hint` volgt het gekozen middel (het lokale formulier van Keycloak, `gebruikersnaam`, heeft geen hint);
  *  - elke login begint met `prompt=login` en bewaart het beginmoment voor de `auth_time`-controle, zodat Keycloak niet stil
  *    een bestaande sessie teruggeeft;
  *  - het return-pad is alleen een relatief pad binnen het portaal; een ander pad valt weg (geen open redirect).
@@ -77,7 +77,7 @@ class InlogStartResolver(
                         builder
                             .additionalParameters { parameters ->
                                 parameters["prompt"] = "login"
-                                if (middel != Inlogmiddel.TEST) parameters["kc_idp_hint"] = middel.waarde
+                                if (middel != Inlogmiddel.GEBRUIKERSNAAM) parameters["kc_idp_hint"] = middel.waarde
                             }.attributes { attributen ->
                                 attributen[BffNamen.LOGIN_START] = loginStart
                                 returnTo?.let { attributen[BffNamen.RETURN_TO] = it }

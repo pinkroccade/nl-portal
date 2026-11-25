@@ -117,16 +117,21 @@ describe("SessionProvider", () => {
   });
 
   it("toont een knop per inlogmiddel als er meer zijn", async () => {
-    const navigeer = await render(Promise.resolve(anoniem(["digid", "test"])));
+    const navigeer = await render(
+      Promise.resolve(anoniem(["digid", "gebruikersnaam"])),
+    );
 
     const knoppen = Array.from(container.querySelectorAll("button"));
-    expect(knoppen.map((k) => k.textContent)).toEqual(["digid", "test"]);
+    expect(knoppen.map((k) => k.textContent)).toEqual([
+      "digid",
+      "gebruikersnaam",
+    ]);
     expect(navigeer).not.toHaveBeenCalled();
 
     act(() => knoppen[1].click());
 
     expect(navigeer).toHaveBeenCalledWith(
-      "/oauth2/authorization/00000099000000000001?inlogmiddel=test&returnTo=%2Fzaken",
+      "/oauth2/authorization/00000099000000000001?inlogmiddel=gebruikersnaam&returnTo=%2Fzaken",
     );
   });
 

@@ -50,7 +50,7 @@ data class TenantFileViolation(
         DUBBEL_DOMEIN,
         DUBBELE_OIN,
         BESTANDSNAAM_KLOPT_NIET_MET_OIN,
-        TESTINLOGMIDDEL_IN_PRODUCTIE,
+        GEBRUIKERSNAAM_IN_PRODUCTIE,
         MINIMUMNIVEAU_TE_LAAG_IN_PRODUCTIE,
         MEERDERE_BASISBESTANDEN,
         SESSIETIJD_BUITEN_GRENZEN,
@@ -227,8 +227,8 @@ class TenantFileLoader(
     ) {
         if (bestand.inlogmiddelen.isEmpty()) violations += TenantFileViolation(Code.ONGELDIGE_WAARDE, naam, "inlogmiddelen", "Minstens één inlogmiddel is verplicht")
         if (bestand.omgevingstype != Omgevingstype.PRODUCTIE) return
-        if (Inlogmiddel.TEST in bestand.inlogmiddelen) {
-            violations += TenantFileViolation(Code.TESTINLOGMIDDEL_IN_PRODUCTIE, naam, "inlogmiddelen", "Het testinlogmiddel is niet toegestaan in een productieomgeving")
+        if (Inlogmiddel.GEBRUIKERSNAAM in bestand.inlogmiddelen) {
+            violations += TenantFileViolation(Code.GEBRUIKERSNAAM_IN_PRODUCTIE, naam, "inlogmiddelen", "Gebruikersnaam en wachtwoord zijn niet toegestaan in een productieomgeving")
         }
         if (bestand.minimumNiveau < Betrouwbaarheidsniveau.SUBSTANTIEEL) {
             violations += TenantFileViolation(Code.MINIMUMNIVEAU_TE_LAAG_IN_PRODUCTIE, naam, "minimumNiveau", "In een productieomgeving is het minimumniveau minstens substantieel")

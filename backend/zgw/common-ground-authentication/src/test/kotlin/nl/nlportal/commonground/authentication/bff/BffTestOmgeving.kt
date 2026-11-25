@@ -213,8 +213,8 @@ object BffTestOmgeving {
         return TestTenant(naam, Oin(oin), host, sleutel, tokens, definitie)
     }
 
-    /** De Bosrand: DigiD en het testinlogmiddel, minimaal Basis, standaard sessietijden. */
-    val bosrand = tenant("bosrand", "00000099000000000001", "bosrand.test", setOf(Inlogmiddel.DIGID, Inlogmiddel.TEST), Betrouwbaarheidsniveau.BASIS)
+    /** De Bosrand: DigiD en het gebruikersnaam-inlogmiddel, minimaal Basis, standaard sessietijden. */
+    val bosrand = tenant("bosrand", "00000099000000000001", "bosrand.test", setOf(Inlogmiddel.DIGID, Inlogmiddel.GEBRUIKERSNAAM), Betrouwbaarheidsniveau.BASIS)
 
     /** Het Wijde Veld: alleen DigiD, minimaal Substantieel, strengere sessietijden. */
     val wijdeveld =

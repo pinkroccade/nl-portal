@@ -79,7 +79,7 @@ async function vulInlogformulierIn(b, pagina, wachtwoord = WACHTWOORD) {
 
 /** Start de login zoals de SPA (navigatie naar het inlogpad) en geeft de authorization-URL van Keycloak en de loginpagina. */
 async function startLogin(b) {
-  const start = await b.verzoek(`${PUBLIEK}/oauth2/authorization/${OIN}?inlogmiddel=test&returnTo=/`);
+  const start = await b.verzoek(`${PUBLIEK}/oauth2/authorization/${OIN}?inlogmiddel=gebruikersnaam&returnTo=/`);
   assert.equal(start.status, 302, `het inlogpad stuurt door naar Keycloak: ${start.tekst}`);
   const authUrl = new URL(start.headers.location);
   const pagina = await b.volg(authUrl.toString());
@@ -94,7 +94,7 @@ describe("echte login van de BFF tegen Keycloak", () => {
     const b = browser();
     const r = await b.verzoek(`${PUBLIEK}/api/public/sessie`);
     assert.equal(r.status, 200);
-    assert.deepEqual(JSON.parse(r.tekst), { ingelogd: false, loginPad: `/oauth2/authorization/${OIN}`, inlogmiddelen: ["test"] });
+    assert.deepEqual(JSON.parse(r.tekst), { ingelogd: false, loginPad: `/oauth2/authorization/${OIN}`, inlogmiddelen: ["gebruikersnaam"] });
   });
 
   it("logt in met een PS256-clientassertion, PKCE en een vers wachtwoord, en uit bij Keycloak", async () => {
@@ -145,7 +145,7 @@ describe("echte login van de BFF tegen Keycloak", () => {
     const body = JSON.parse(status.tekst);
     assert.equal(body.ingelogd, true);
     assert.equal(body.vertegenwoordigde, "burger");
-    assert.equal(body.inlogmiddel, "test");
+    assert.equal(body.inlogmiddel, "gebruikersnaam");
     assert.equal(body.namensEenAnder, false);
     assert.ok(Date.parse(body.verlooptOp) > Date.now(), "verlooptOp ligt in de toekomst");
     assert.ok(body.inactiviteitSeconden > 0);
@@ -163,7 +163,7 @@ describe("echte login van de BFF tegen Keycloak", () => {
     const claims = decodeJwt(hint);
     assert.equal(claims.iss, `${KEYCLOAK}/realms/${REALM}`);
     assert.equal(claims.acr, "Basis");
-    assert.equal(claims.inlogmiddel, "test");
+    assert.equal(claims.inlogmiddel, "gebruikersnaam");
     assert.equal(claims.acting_subject_id, undefined, "het BSN staat niet in het ID-token: id_token_hint gaat de browser in");
     assert.ok(!eind.toString().includes(BSN), "geen BSN in de logout-redirect");
     // Het ID-token blijft in de Redis-sessie en gaat als `id_token_hint` de browser in: geen identificerende claims. `nl-portal-backend` heeft alleen

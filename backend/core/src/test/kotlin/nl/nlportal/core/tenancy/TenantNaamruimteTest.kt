@@ -55,7 +55,7 @@ class TenantNaamruimteTest {
     private val bosrand = "00000099000000000001"
     private val wijdeVeld = "00000099000000000002"
     private val modules = TenantModules.van(listOf(ProefModule(), ProefGeheimenModule()))
-    private val basis = "omgevingstype: test\ninlogmiddelen: [test]\n"
+    private val basis = "omgevingstype: test\ninlogmiddelen: [gebruikersnaam]\n"
 
     private fun schrijf(
         naam: String,
@@ -375,7 +375,7 @@ private object TenantDefinitionVoorTest {
             omgevingstype = Omgevingstype.TEST,
             domeinen = listOf("a.example"),
             thema = Thema("T"),
-            inlogmiddelen = setOf(Inlogmiddel.TEST),
+            inlogmiddelen = setOf(Inlogmiddel.GEBRUIKERSNAAM),
             authenticatie = Authenticatie("https://login.example/realms/t", "/k.jwk"),
             minimumNiveau = Betrouwbaarheidsniveau.BASIS,
             sessie = Sessie(),

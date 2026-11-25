@@ -33,7 +33,7 @@ class TenancyAutoConfigurationTest {
     private val runner = basis.withPropertyValues("management.server.port=8091", "server.port=8080")
 
     private fun geldigeTenant() {
-        Files.writeString(dir.resolve("base.yaml"), "omgevingstype: test\ninlogmiddelen: [test]\n")
+        Files.writeString(dir.resolve("base.yaml"), "omgevingstype: test\ninlogmiddelen: [gebruikersnaam]\n")
         Files.writeString(
             dir.resolve("00000099000000000001.yaml"),
             "oin: \"00000099000000000001\"\nnaam: N\ndomeinen: [a.example]\nthema:\n  titel: T\nauthenticatie:\n  issuer: https://login.example/realms/k1\n  sleutelBestand: /run/secrets/00000099000000000001/k0.jwk\n",

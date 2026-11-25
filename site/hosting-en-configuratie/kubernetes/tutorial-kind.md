@@ -99,7 +99,7 @@ tenancy:
   tenants:
     base.yaml: |
       omgevingstype: test
-      inlogmiddelen: [test]
+      inlogmiddelen: [gebruikersnaam]
       minimumNiveau: basis
     "00000099000000000001.yaml": |
       oin: "00000099000000000001"

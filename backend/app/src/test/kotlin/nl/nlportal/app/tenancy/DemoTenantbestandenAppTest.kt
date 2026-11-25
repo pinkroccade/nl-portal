@@ -39,12 +39,12 @@ class DemoTenantbestandenAppTest {
     }
 
     @Test
-    fun `de demo-tenant laat het testinlogmiddel toe, dat altijd niveau basis levert`() {
+    fun `de demo-tenant laat het gebruikersnaam-inlogmiddel toe, dat altijd niveau basis levert`() {
         val demo = TenantFileLoader().load(Path.of("../../docker-compose/imports/tenants")).tenants.single()
 
-        assertThat(demo.inlogmiddelen).containsExactly(Inlogmiddel.TEST)
+        assertThat(demo.inlogmiddelen).containsExactly(Inlogmiddel.GEBRUIKERSNAAM)
         assertThat(demo.minimumNiveau)
-            .describedAs("het testinlogmiddel zet acr=Basis; een hoger minimum weigert elke demo-login")
+            .describedAs("het gebruikersnaam-inlogmiddel zet acr=Basis; een hoger minimum weigert elke demo-login")
             .isEqualTo(Betrouwbaarheidsniveau.BASIS)
     }
 
