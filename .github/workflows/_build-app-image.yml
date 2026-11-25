@@ -25,6 +25,10 @@ on:
             platforms:
                 type: string
                 default: "linux/amd64,linux/arm64"
+        outputs:
+            digest:
+                description: "Manifest-digest (sha256:...) van het gepushte image; leeg als push=false."
+                value: ${{ jobs.build.outputs.digest }}
 
 permissions:
     contents: read
@@ -34,6 +38,8 @@ permissions:
 jobs:
     build:
         runs-on: ubuntu-latest
+        outputs:
+            digest: ${{ steps.build-and-push.outputs.digest }}
         steps:
             -   uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
                 with:
@@ -157,3 +163,16 @@ jobs:
                 with:
                     name: ${{ inputs.stack }}-image-sbom
                     path: image-sbom.cyclonedx.json
+            -   name: Report the image digest
+                if: ${{ inputs.push }}
+                env:
+                    STACK: ${{ inputs.stack }}
+                    PRIMARY_TAG: ${{ inputs.primaryTag }}
+                    DIGEST: ${{ steps.build-and-push.outputs.digest }}
+                run: |
+                    {
+                      echo "### Image ${STACK}"
+                      echo ""
+                      echo "- Tag: \`${PRIMARY_TAG}\`"
+                      echo "- Digest: \`${DIGEST}\`"
+                    } >> "${GITHUB_STEP_SUMMARY}"

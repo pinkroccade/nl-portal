@@ -1,0 +1,149 @@
+name: Build once
+
+# ADR 0019, besluit 2 (#606): elke merge op main bouwt backend en frontend één keer, draait de poorten en pusht een onveranderlijke,
+# gesigneerde tag <versie>-<sha>. Promotie (retaggen naar x.y.z en latest, GitHub Release) is #607 en bouwt niet opnieuw.
+#
+# Volgorde en poorten:
+#   prepare -> stage-be | stage-fe (parallel: compileren, unit- en integratietests, SBOM-bundel)
+#           -> smoke (quickstart-compose met de images uit dezelfde stage-bundels, BFF-login en GraphQL)
+#           -> image-be | image-fe (parallel: bouwen, pushen, ondertekenen, SBOM attesteren)
+#           -> summary (digest per build vindbaar)
+# Een falende poort laat alle volgende jobs vervallen: er wordt dan niets gepusht en er ontstaat geen tag.
+# Een commit die alleen documentatie raakt, start deze workflow niet (paths-ignore): er is dan niets nieuws om uit te rollen.
+on:
+    push:
+        branches:
+            - main
+        paths-ignore:
+            - "site/**"
+            - "docs/**"
+            - "**/*.md"
+    workflow_dispatch:
+        inputs:
+            publish:
+                description: "Push en onderteken de images. Standaard false: alleen de poorten draaien (proefrun op een branch)."
+                type: boolean
+                default: false
+
+# Elke main-commit krijgt een eigen build; een lopende build wordt niet afgebroken door een nieuwere merge.
+concurrency:
+    group: build-once-${{ github.ref }}
+    cancel-in-progress: false
+
+permissions:
+    contents: read
+
+jobs:
+    prepare:
+        runs-on: ubuntu-latest
+        outputs:
+            tag: ${{ steps.v.outputs.tag }}
+            publish: ${{ steps.v.outputs.publish }}
+        steps:
+            -   uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+                with:
+                    persist-credentials: false
+            -   name: Set up mise (node uit mise.toml)
+                uses: jdx/mise-action@924e7c586e33d7d4bae9c14e26c5d22e2beb6e78 # v5.3.0
+                with:
+                    install_args: "node"
+            -   name: Compute build tag
+                id: v
+                env:
+                    EVENT: ${{ github.event_name }}
+                    PUBLISH_INPUT: ${{ inputs.publish }}
+                run: |
+                    tag=$(mise exec -- node scripts/build-tag.mjs version.txt "${GITHUB_SHA}")
+                    # Een push op main publiceert altijd; een dispatch alleen met publish=true.
+                    if [ "${EVENT}" = "push" ] || [ "${PUBLISH_INPUT}" = "true" ]; then publish=true; else publish=false; fi
+                    echo "tag=${tag}" >> "${GITHUB_OUTPUT}"
+                    echo "publish=${publish}" >> "${GITHUB_OUTPUT}"
+                    echo "::notice::Build-tag ${tag} (publiceren: ${publish})"
+
+    stage-be:
+        needs: prepare
+        uses: ./.github/workflows/_stage-be.yml
+        with:
+            version: ${{ needs.prepare.outputs.tag }}
+
+    stage-fe:
+        needs: prepare
+        uses: ./.github/workflows/_stage-fe.yml
+        with:
+            version: ${{ needs.prepare.outputs.tag }}
+
+    # Smoke-poort (#524 deel 1): bouwt de images uit de stage-bundels van deze run, dus geen tweede compilatie.
+    smoke:
+        needs: [stage-be, stage-fe]
+        uses: ./.github/workflows/_smoke-stack.yml
+
+    image-be:
+        needs: [prepare, smoke]
+        if: github.repository_owner == 'pinkroccade' && needs.prepare.outputs.publish == 'true'
+        uses: ./.github/workflows/_build-app-image.yml
+        permissions:
+            contents: read
+            packages: write # image naar ghcr pushen
+            id-token: write # keyless cosign-handtekening
+        with:
+            stack: backend
+            push: true
+            primaryTag: ghcr.io/pinkroccade/nl-portal-backend:${{ needs.prepare.outputs.tag }}
+            tags: |
+                ghcr.io/pinkroccade/nl-portal-backend:${{ needs.prepare.outputs.tag }}
+            labels: |
+                org.opencontainers.image.revision=${{ github.sha }}
+                org.opencontainers.image.version=${{ needs.prepare.outputs.tag }}
+
+    image-fe:
+        needs: [prepare, smoke]
+        if: github.repository_owner == 'pinkroccade' && needs.prepare.outputs.publish == 'true'
+        uses: ./.github/workflows/_build-app-image.yml
+        permissions:
+            contents: read
+            packages: write # image naar ghcr pushen
+            id-token: write # keyless cosign-handtekening
+        with:
+            stack: frontend
+            push: true
+            primaryTag: ghcr.io/pinkroccade/nl-portal-frontend:${{ needs.prepare.outputs.tag }}
+            tags: |
+                ghcr.io/pinkroccade/nl-portal-frontend:${{ needs.prepare.outputs.tag }}
+            labels: |
+                org.opencontainers.image.revision=${{ github.sha }}
+                org.opencontainers.image.version=${{ needs.prepare.outputs.tag }}
+
+    # Maakt de digest per build vindbaar: job summary van de run en artefact build-digests (voor promotie, #607, en de dev-uitrol).
+    summary:
+        needs: [prepare, image-be, image-fe]
+        runs-on: ubuntu-latest
+        steps:
+            -   name: Write digests
+                env:
+                    TAG: ${{ needs.prepare.outputs.tag }}
+                    BACKEND_DIGEST: ${{ needs.image-be.outputs.digest }}
+                    FRONTEND_DIGEST: ${{ needs.image-fe.outputs.digest }}
+                run: |
+                    {
+                      echo "## Build ${TAG}"
+                      echo ""
+                      echo "Commit \`${GITHUB_SHA}\`. Alle poorten (tests, smoke, SBOM) waren groen; de images zijn gepusht en ondertekend."
+                      echo ""
+                      echo "| Image | Tag | Digest |"
+                      echo "|---|---|---|"
+                      echo "| backend | \`ghcr.io/pinkroccade/nl-portal-backend:${TAG}\` | \`${BACKEND_DIGEST}\` |"
+                      echo "| frontend | \`ghcr.io/pinkroccade/nl-portal-frontend:${TAG}\` | \`${FRONTEND_DIGEST}\` |"
+                    } >> "${GITHUB_STEP_SUMMARY}"
+                    cat > build-digests.json <<JSON
+                    {
+                      "tag": "${TAG}",
+                      "commit": "${GITHUB_SHA}",
+                      "backend": "ghcr.io/pinkroccade/nl-portal-backend@${BACKEND_DIGEST}",
+                      "frontend": "ghcr.io/pinkroccade/nl-portal-frontend@${FRONTEND_DIGEST}"
+                    }
+                    JSON
+            -   name: Upload digests
+                uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+                with:
+                    name: build-digests
+                    path: build-digests.json

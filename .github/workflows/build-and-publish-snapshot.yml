@@ -3,7 +3,7 @@ name: Build and Publish Snapshot
 on:
     push:
         branches:
-            - main
+            # main bouwt sinds ADR 0019 via build-once.yml; deze workflow blijft tot #609 voor hotfix-branches en handmatige dispatch.
             - "hotfix/*"
     workflow_dispatch:
 
