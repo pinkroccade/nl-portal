@@ -1,7 +1,7 @@
 # Een release maken
 
 > **Overgang naar ADR 0019.** Elke merge op `main` bouwt sinds #606 via `build-once.yml` (zie hieronder). De RC- en releasestappen
-> verderop gelden tot promotie op digest (#607) en het opruimen (#609) ze vervangen.
+> verderop gelden tot het opruimen (#609) ze vervangt. Promotie op digest (`promote.yml`, #607) staat al beschikbaar.
 
 ## Build per commit (`build-once.yml`)
 
@@ -17,11 +17,36 @@ Een falende poort laat alle volgende jobs vervallen: er wordt niets gepusht en e
 vóór de push; de smoke wacht op beide stage-jobs, dat kost de smoke-duur extra bovenop de langzaamste stage.
 
 Een commit die alleen `site/**`, `docs/**` of `*.md` raakt, start de workflow niet (`paths-ignore`): er is niets nieuws om uit te rollen,
-en latere bot-commits op `CHANGELOG.md` (#608) veroorzaken zo geen build. Promoveren op commit (#607) kiest dus de nieuwste
+en latere bot-commits op `CHANGELOG.md` (#608) veroorzaken zo geen build. Promoveren op commit kiest dus de nieuwste
 build, niet per se de nieuwste commit.
 
 Proefrun op een branch: `gh workflow run build-once.yml --ref <branch>` draait alleen de poorten (`publish=false`); met
 `-f publish=true` pusht en ondertekent hij ook.
+
+## Promotie op digest (`promote.yml`)
+
+Een handmatige `workflow_dispatch` vanaf `main`, achter de `release`-environment (goedkeuring). Er wordt niet gebouwd of getest: de
+workflow retagt de digests van een geslaagde `build-once.yml`-run.
+
+```shell
+gh workflow run promote.yml                                  # nieuwste groene build op main
+gh workflow run promote.yml -f build=<commit-of-build-tag>   # een oudere groene build
+gh workflow run promote.yml -f version=1.2.3                 # versie expliciet (anders uit de build-tag)
+```
+
+1. **Kies de build:** de geslaagde push-run van `build-once.yml` op `main` (artefact `build-digests`). Een commit zonder zo'n run is niet te promoveren.
+2. **Controleer:** handtekening en SBOM-attestatie van build-once moeten kloppen (`cosign verify`, `cosign verify-attestation`).
+3. **Retag:** `x.y.z`, `x.y`, `x` en `latest` op dezelfde digest, per image. `x.y.z` is onveranderlijk: een andere digest voor een bestaande
+   versie breekt de promotie. `x.y`, `x` en `latest` schuiven alleen vooruit (`scripts/promote-tags.mjs`): een oudere patch of minor laat
+   ze staan, dus `latest` gaat nooit terug.
+4. **Onderteken en attesteer:** nieuwe cosign-handtekening (identiteit `promote.yml`) en SBOM-attestatie op de digest.
+5. **GitHub Release:** tag `x.y.z` op de gebouwde commit, notes uit `CHANGELOG.md` (of door GitHub gegenereerd zolang de changelog-bot #608 ontbreekt),
+   met de image-SBOM's en, als het artefact niet verlopen is, het backend-SBOM- en licentierapport van de build.
+
+Opnieuw draaien met dezelfde build is veilig. Het artefact `build-digests` verloopt na de bewaartermijn van GitHub-artefacten (standaard 90 dagen);
+een oudere build is dan niet via deze workflow te promoveren.
+
+## Oud model: RC en release
 
 Een release maak je in twee stappen: een release-candidate (RC) snijden en daarna de release publiceren. De RC wordt gebouwd en
 getest; de release bouwt de images opnieuw (zonder tests) en publiceert ze achter een handmatige goedkeuring. Achtergrond:
