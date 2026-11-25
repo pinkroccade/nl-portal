@@ -10,7 +10,7 @@ name: nl-portal-mockserver
 
 networks:
     default:
-        name: ${NL_PORTAL_NETWORK:-nl-portal}
+        name: ${NL_PORTAL_NETWORK:-mijngemeente}
         external: true
 
 services:
