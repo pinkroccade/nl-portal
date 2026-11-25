@@ -26,10 +26,10 @@ const DOMEIN = /^[a-z0-9]([a-z0-9-]*[a-z0-9])?(\.[a-z0-9]([a-z0-9-]*[a-z0-9])?)*
 const MAX_INACTIVITEIT = 15 * 60;
 const MAX_ABSOLUUT = 8 * 60 * 60;
 
-/** Inlogmiddelen met een koppeling naar een externe IdP; `test` heeft een fragment zonder koppeling (de demo-gebruikers komen alleen in ontwikkeling, zie `genereerRealm`). */
-const KOPPELINGEN = { digid: ["singleSignOnServiceUrl", "idpEntityId", "signingCertificate"], wallet: ["authorizationUrl", "tokenUrl", "jwksUrl", "issuer", "clientId"] };
-const URL_VELDEN = { digid: ["singleSignOnServiceUrl", "idpEntityId"], wallet: ["authorizationUrl", "tokenUrl", "jwksUrl", "issuer"] };
-const BEKEND = new Set(["test", ...Object.keys(KOPPELINGEN)]);
+/** Inlogmiddelen met een koppeling naar een externe IdP; `gebruikersnaam` heeft een fragment zonder koppeling (de demo-gebruikers komen alleen in ontwikkeling, zie `genereerRealm`). */
+const KOPPELINGEN = { digid: ["singleSignOnServiceUrl", "idpEntityId", "signingCertificate"], yivi: ["authorizationUrl", "tokenUrl", "jwksUrl", "issuer", "clientId"] };
+const URL_VELDEN = { digid: ["singleSignOnServiceUrl", "idpEntityId"], yivi: ["authorizationUrl", "tokenUrl", "jwksUrl", "issuer"] };
+const BEKEND = new Set(["gebruikersnaam", ...Object.keys(KOPPELINGEN)]);
 
 const leesJson = (pad) => JSON.parse(readFileSync(join(TEMPLATE_MAP, pad), "utf8"));
 
@@ -117,7 +117,7 @@ function controleerKoppeling(naam, gegevens, metTls) {
  * @param {string} p.realm naam van het realm
  * @param {string} p.brokerUrl publieke basis-URL van Keycloak, zonder slash
  * @param {object[]} p.clientSleutels publieke JWK's van `nl-portal-backend` (twee tijdens rotatie)
- * @param {object} p.idp koppelingsgegevens per inlogmiddel (`digid`, `wallet`)
+ * @param {object} p.idp koppelingsgegevens per inlogmiddel (`digid`, `yivi`)
  */
 export function genereerRealm({ tenant, realm, brokerUrl, clientSleutels, idp = {} }) {
   const { oin, naam, omgevingstype, domeinen, inlogmiddelen } = tenant;
@@ -129,7 +129,7 @@ export function genereerRealm({ tenant, realm, brokerUrl, clientSleutels, idp = 
   for (const d of domeinen) if (typeof d !== "string" || !DOMEIN.test(d)) throw new Error(`Ongeldig domein ${JSON.stringify(d)}: alleen een hostnaam in kleine letters`);
   if (!ontwikkeling && !String(brokerUrl).startsWith("https://")) throw new Error("De broker-URL moet https zijn buiten ontwikkeling");
   for (const middel of inlogmiddelen) if (!BEKEND.has(middel)) throw new Error(`Inlogmiddel ${middel} heeft nog geen realm-fragment`);
-  if (productie && inlogmiddelen.includes("test")) throw new Error("Het testinlogmiddel is niet toegestaan in productie");
+  if (productie && inlogmiddelen.includes("gebruikersnaam")) throw new Error("Gebruikersnaam en wachtwoord zijn niet toegestaan in productie");
   controleerClientSleutels(clientSleutels);
   for (const middel of inlogmiddelen.filter((m) => m in KOPPELINGEN)) controleerKoppeling(middel, idp[middel], !ontwikkeling);
 
@@ -151,7 +151,7 @@ export function genereerRealm({ tenant, realm, brokerUrl, clientSleutels, idp = 
     sslRequired: ontwikkeling ? "external" : "all",
     ssoSessionIdleTimeout: inactiviteit,
     ssoSessionMaxLifespan: absoluut,
-    browserFlow: inlogmiddelen.includes("test") ? "browser" : "alleen-koppelingen",
+    browserFlow: inlogmiddelen.includes("gebruikersnaam") ? "browser" : "alleen-koppelingen",
     clientAuthAlg: CLIENT_AUTH_ALG,
     jwks: JSON.stringify({ keys: clientSleutels }),
     redirectUris: origins.map((o) => `${o}/login/oauth2/code/${oin}`),
@@ -165,8 +165,8 @@ export function genereerRealm({ tenant, realm, brokerUrl, clientSleutels, idp = 
   let uit = leesJson("realm.json");
   for (const middel of inlogmiddelen.filter((m) => m in KOPPELINGEN)) uit = voegSamen(uit, leesJson(`inlogmiddel/${middel}.json`));
   // Testinlogmiddel: de mappers die claims uit gebruikersattributen schrijven (B-M1), in elke omgeving waar het middel aan staat behalve productie.
-  if (inlogmiddelen.includes("test")) uit = voegSamen(uit, leesJson("inlogmiddel/test.json"));
+  if (inlogmiddelen.includes("gebruikersnaam")) uit = voegSamen(uit, leesJson("inlogmiddel/gebruikersnaam.json"));
   // Alleen in ontwikkeling: de demo-gebruikers met vaste wachtwoorden (hashes in Git).
-  if (ontwikkeling && inlogmiddelen.includes("test")) uit = voegSamen(uit, leesJson("demo-gebruikers.json"));
+  if (ontwikkeling && inlogmiddelen.includes("gebruikersnaam")) uit = voegSamen(uit, leesJson("demo-gebruikers.json"));
   return vul(uit, context);
 }

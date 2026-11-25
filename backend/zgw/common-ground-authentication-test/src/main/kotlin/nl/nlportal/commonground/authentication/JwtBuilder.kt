@@ -79,7 +79,7 @@ class JwtBuilder {
         val vertegenwoordigde = checkNotNull(vertegenwoordigde) { "vertegenwoordigde needs to be set with either bsn or kvk" }
         return PortalAuthentication(
             Identiteit(
-                gebruiker = Gebruiker(issuer, subject, Inlogmiddel.TEST, Betrouwbaarheidsniveau.BASIS),
+                gebruiker = Gebruiker(issuer, subject, Inlogmiddel.GEBRUIKERSNAAM, Betrouwbaarheidsniveau.BASIS),
                 vertegenwoordigde = vertegenwoordigde,
                 machtigingsdienstUuids = machtigingsdienstUuids,
             ),

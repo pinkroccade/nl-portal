@@ -16,7 +16,7 @@ test("parseTenantYaml leest de vormen uit de tenantbestanden: tekst, gequote tek
     "domeinen:",
     "    - localhost",
     "    - mijn.debosrand.example",
-    "inlogmiddelen: [digid, wallet]",
+    "inlogmiddelen: [digid, yivi]",
     "thema:",
     "    titel: Mijn De Bosrand",
     "sessie:",
@@ -27,7 +27,7 @@ test("parseTenantYaml leest de vormen uit de tenantbestanden: tekst, gequote tek
     oin: "00000099000000000001",
     naam: "Gemeente De Bosrand",
     domeinen: ["localhost", "mijn.debosrand.example"],
-    inlogmiddelen: ["digid", "wallet"],
+    inlogmiddelen: ["digid", "yivi"],
     thema: { titel: "Mijn De Bosrand" },
     sessie: { inactiviteit: "PT10M" },
   });
@@ -48,7 +48,7 @@ function tenantMap(bestanden) {
 
 test("leesTenantbestanden voegt base.yaml samen met het tenantbestand: mappen diep, lijsten vervangen", () => {
   const map = tenantMap({
-    "base.yaml": "omgevingstype: ontwikkeling\ninlogmiddelen: [test]\nthema:\n  titel: Basis\n  logo: basis.svg\n",
+    "base.yaml": "omgevingstype: ontwikkeling\ninlogmiddelen: [gebruikersnaam]\nthema:\n  titel: Basis\n  logo: basis.svg\n",
     "00000099000000000001.yaml": 'oin: "00000099000000000001"\nnaam: De Bosrand\ndomeinen:\n  - localhost\nthema:\n  titel: Mijn De Bosrand\ninlogmiddelen: [digid]\n',
   });
   try {
@@ -82,5 +82,5 @@ test("leesTenantbestanden weigert een bestandsnaam die niet bij het OIN past en 
 
 test("de demo-tenantbestanden van docker-compose zijn leesbaar", () => {
   const tenants = leesTenantbestanden(join(repoRoot, "docker-compose", "imports", "tenants"));
-  assert.deepEqual(tenants.map((t) => [t.oin, t.omgevingstype, t.inlogmiddelen]), [["00000099000000000001", "ontwikkeling", ["test"]]]);
+  assert.deepEqual(tenants.map((t) => [t.oin, t.omgevingstype, t.inlogmiddelen]), [["00000099000000000001", "ontwikkeling", ["gebruikersnaam"]]]);
 });

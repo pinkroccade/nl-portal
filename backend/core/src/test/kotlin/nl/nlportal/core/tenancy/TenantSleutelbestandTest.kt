@@ -53,7 +53,7 @@ class TenantSleutelbestandTest {
         Files.createDirectories(tenants)
         Files.writeString(
             tenants.resolve("$oin.yaml"),
-            "oin: \"$oin\"\nnaam: Gemeente\ndomeinen: [h$oin.example]\nthema:\n  titel: T\nomgevingstype: test\ninlogmiddelen: [test]\n" +
+            "oin: \"$oin\"\nnaam: Gemeente\ndomeinen: [h$oin.example]\nthema:\n  titel: T\nomgevingstype: test\ninlogmiddelen: [gebruikersnaam]\n" +
                 "authenticatie:\n  issuer: https://login.example/realms/$oin\n  sleutelBestand: \"$sleutelBestand\"\n",
         )
     }

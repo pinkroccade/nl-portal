@@ -52,7 +52,7 @@ class InlogbeslisserTest {
     private val beslisser = Inlogbeslisser()
 
     private fun tenant(
-        middelen: Set<Inlogmiddel> = setOf(Inlogmiddel.DIGID, Inlogmiddel.WALLET, Inlogmiddel.EHERKENNING, Inlogmiddel.TEST),
+        middelen: Set<Inlogmiddel> = setOf(Inlogmiddel.DIGID, Inlogmiddel.YIVI, Inlogmiddel.EHERKENNING, Inlogmiddel.GEBRUIKERSNAAM),
         minimum: Betrouwbaarheidsniveau = Betrouwbaarheidsniveau.BASIS,
     ) = TenantDefinition(
         Oin("00000099000000000001"),
@@ -112,11 +112,11 @@ class InlogbeslisserTest {
     }
 
     @Test
-    fun `wallet en eHerkenning worden geweigerd ook als de tenant ze aan heeft staan`() {
+    fun `yivi en eHerkenning worden geweigerd ook als de tenant ze aan heeft staan`() {
         assertThat(
             reden(
                 token {
-                    put("inlogmiddel", "wallet")
+                    put("inlogmiddel", "yivi")
                     put("acr", "http://eidas.europa.eu/LoA/substantial")
                 },
             ),
@@ -128,8 +128,8 @@ class InlogbeslisserTest {
     fun `de volgordetabel van DigiD en de eIDAS-URI's`() {
         val digid = Inlogbeslisser.NIVEAUS.getValue(Inlogmiddel.DIGID)
         assertThat(digid.values).containsExactly(Betrouwbaarheidsniveau.BASIS, Betrouwbaarheidsniveau.MIDDEN, Betrouwbaarheidsniveau.SUBSTANTIEEL, Betrouwbaarheidsniveau.HOOG)
-        assertThat(Inlogbeslisser.NIVEAUS.getValue(Inlogmiddel.WALLET).keys).containsExactly("http://eidas.europa.eu/LoA/low", "http://eidas.europa.eu/LoA/substantial", "http://eidas.europa.eu/LoA/high")
-        assertThat(Inlogbeslisser.NIVEAUS.getValue(Inlogmiddel.TEST)).containsExactly(
+        assertThat(Inlogbeslisser.NIVEAUS.getValue(Inlogmiddel.YIVI).keys).containsExactly("http://eidas.europa.eu/LoA/low", "http://eidas.europa.eu/LoA/substantial", "http://eidas.europa.eu/LoA/high")
+        assertThat(Inlogbeslisser.NIVEAUS.getValue(Inlogmiddel.GEBRUIKERSNAAM)).containsExactly(
             org.assertj.core.api.Assertions
                 .entry("Basis", Betrouwbaarheidsniveau.BASIS),
         )
@@ -231,7 +231,7 @@ class ClientSleutelsTest {
         Omgevingstype.ONTWIKKELING,
         listOf("$oin.test"),
         Thema(titel = "t"),
-        setOf(Inlogmiddel.TEST),
+        setOf(Inlogmiddel.GEBRUIKERSNAAM),
         Authenticatie("https://login.example/realms/$oin", bestand),
         Betrouwbaarheidsniveau.BASIS,
         Sessie(),

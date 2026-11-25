@@ -18,13 +18,13 @@ const REPO = join(dirname(fileURLToPath(import.meta.url)), "..", "..");
 const DEMO_TENANTS = leesTenantbestanden(join(REPO, TENANTS_MAP));
 const [DEV] = DEMO_TENANTS;
 const OTA = { ...DEV, omgevingstype: "test", domeinen: ["mijn.test.example"] };
-const ACC = { oin: OIN, naam: "Gemeente De Bosrand", omgevingstype: "acceptatie", domeinen: ["mijn.debosrand.example"], thema: { titel: "Mijn De Bosrand" }, inlogmiddelen: ["digid", "wallet"], minimumNiveau: "midden" };
+const ACC = { oin: OIN, naam: "Gemeente De Bosrand", omgevingstype: "acceptatie", domeinen: ["mijn.debosrand.example"], thema: { titel: "Mijn De Bosrand" }, inlogmiddelen: ["digid", "yivi"], minimumNiveau: "midden" };
 const PRD = { ...ACC, omgevingstype: "productie", inlogmiddelen: ["digid"], minimumNiveau: "substantieel" };
-const PRD_WALLET = { ...PRD, inlogmiddelen: ["digid", "wallet"] };
+const PRD_WALLET = { ...PRD, inlogmiddelen: ["digid", "yivi"] };
 
 const IDP = {
   digid: { singleSignOnServiceUrl: "https://digid.example/sso", idpEntityId: "https://digid.example/idp", signingCertificate: "MIIBcertificaat" },
-  wallet: { authorizationUrl: "https://wallet.example/auth", tokenUrl: "https://wallet.example/token", jwksUrl: "https://wallet.example/jwks", issuer: "https://wallet.example", clientId: "nl-portal" },
+  yivi: { authorizationUrl: "https://wallet.example/auth", tokenUrl: "https://wallet.example/token", jwksUrl: "https://wallet.example/jwks", issuer: "https://wallet.example", clientId: "nl-portal" },
 };
 const basis = (tenant, extra = {}) => ({
   tenant,
@@ -166,7 +166,7 @@ test("er is geen SPA-client, geen m2m-client en geen token exchange meer, ook ni
 test("de testgebruiker krijgt inlogmiddel test, niveau Basis en zijn BSN op dezelfde claims als de koppelingen", () => {
   const r = realm(DEV);
   const burger = r.users.find((u) => u.username === "burger");
-  assert.deepEqual(burger.attributes, { bsn: ["999993847"], inlogmiddel: ["test"], acr: ["Basis"] });
+  assert.deepEqual(burger.attributes, { bsn: ["999993847"], inlogmiddel: ["gebruikersnaam"], acr: ["Basis"] });
   const mappers = Object.fromEntries(client(r, "nl-portal-backend").protocolMappers.filter((m) => m.name.startsWith("test-")).map((m) => [m.name, m.config]));
   assert.equal(mappers["test-inlogmiddel"]["claim.name"], "inlogmiddel");
   assert.equal(mappers["test-acr"]["claim.name"], "acr");
@@ -215,15 +215,15 @@ for (const [naam, tenant] of Object.entries({ acceptatie: ACC, productie: PRD, "
   });
 }
 
-test("een productie-realm met het testinlogmiddel wordt niet gegenereerd", () => {
-  assert.throws(() => realm({ ...PRD, inlogmiddelen: ["digid", "test"] }), /test.*productie/i);
+test("een productie-realm met gebruikersnaam en wachtwoord wordt niet gegenereerd", () => {
+  assert.throws(() => realm({ ...PRD, inlogmiddelen: ["digid", "gebruikersnaam"] }), /gebruikersnaam.*productie/i);
 });
 
 // --- Koppelingen per ingeschakeld inlogmiddel ---
 
 test("alleen de koppelingen van ingeschakelde inlogmiddelen staan in het realm", () => {
   assert.deepEqual(realm(PRD).identityProviders.map((i) => i.alias), ["digid"]);
-  assert.deepEqual(realm(PRD_WALLET).identityProviders.map((i) => i.alias).sort(), ["digid", "wallet"]);
+  assert.deepEqual(realm(PRD_WALLET).identityProviders.map((i) => i.alias).sort(), ["digid", "yivi"]);
   assert.deepEqual(realm(DEV).identityProviders, []);
 });
 
@@ -261,7 +261,7 @@ test("het minimumniveau van de tenant bepaalt de authnContextClassRef; zonder ni
 });
 
 test("wallet (OIDC): code-flow met clientauthenticatie, PKCE S256, gevalideerde handtekening, geen geheim in het realm", () => {
-  const wallet = realm(PRD_WALLET).identityProviders.find((i) => i.alias === "wallet");
+  const wallet = realm(PRD_WALLET).identityProviders.find((i) => i.alias === "yivi");
   assert.equal(wallet.providerId, "oidc");
   assert.equal(wallet.config.validateSignature, "true");
   assert.equal(wallet.config.useJwksUrl, "true");
@@ -275,7 +275,7 @@ test("wallet (OIDC): code-flow met clientauthenticatie, PKCE S256, gevalideerde 
 test("buiten ontwikkeling weigert de generator elke koppelings-URL zonder TLS", () => {
   const onveilig = { ...IDP, digid: { ...IDP.digid, singleSignOnServiceUrl: "http://digid.example/sso" } };
   assert.throws(() => realm(PRD, { idp: onveilig }), /https/);
-  assert.throws(() => realm(PRD_WALLET, { idp: { ...IDP, wallet: { ...IDP.wallet, tokenUrl: "http://wallet.example/token" } } }), /https/);
+  assert.throws(() => realm(PRD_WALLET, { idp: { ...IDP, yivi: { ...IDP.yivi, tokenUrl: "http://wallet.example/token" } } }), /https/);
 });
 
 // --- Weigeringen ---
@@ -381,7 +381,7 @@ test("de generator weigert een onbekend minimumniveau en, in productie, een nive
 });
 
 test("de generator weigert kcc-substitutie en onbruikbare waarden in tenant- of koppelingsgegevens", () => {
-  assert.throws(() => realm({ ...ACC, naam: "$(env:KEYCLOAK_WALLET_CLIENT_SECRET)" }), /kcc-substitutie/);
+  assert.throws(() => realm({ ...ACC, naam: "$(env:KEYCLOAK_YIVI_CLIENT_SECRET)" }), /kcc-substitutie/);
   assert.throws(() => realm({ ...ACC, naam: "$(file:UTF-8:/pad)" }), /kcc-substitutie/);
   assert.throws(() => realm(ACC, { idp: { ...IDP, digid: { ...IDP.digid, idpEntityId: "https://x.example/$(env:A)" } } }), /kcc-substitutie/);
   for (const domein of ["evil.example/x", "a@b.example", "mijn.example:8443", "", "UPPER CASE", "https://mijn.example"]) {
@@ -413,7 +413,7 @@ for (const [naam, tenant] of Object.entries(ALLE)) {
 }
 
 test("de wallet-mapper voor legal_subject_id leest een sentinel-claim die een wallet nooit levert", () => {
-  const legal = idpMappers(realm(PRD_WALLET), "wallet").find((m) => m.config.note === "legal_subject_id");
+  const legal = idpMappers(realm(PRD_WALLET), "yivi").find((m) => m.config.note === "legal_subject_id");
   assert.equal(legal.config["claim.name"], "nlportal-nooit-legal_subject_id");
 });
 

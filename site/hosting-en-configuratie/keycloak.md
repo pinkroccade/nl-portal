@@ -27,7 +27,7 @@ De mappers zetten de gegevens van het inlogmiddel in het **ID-token** (nooit in 
 | Claim | Betekenis |
 | --- | --- |
 | `acr` | het betrouwbaarheidsniveau van de login; de backend zet het om met de tabel in [arc42 8.1](../architectuur/arc42/08-dwarsdoorsnede-concepten.md) |
-| `inlogmiddel` | `digid`, `eherkenning`, `wallet` of (alleen ontwikkeling) `test` |
+| `inlogmiddel` | `digid`, `digid-machtigen`, `yivi`, `eherkenning` of (niet in productie) `gebruikersnaam` |
 | `acting_subject_id` | het BSN van de ingelogde persoon; negen cijfers met geldige elfproef |
 | `legal_subject_id` | het identificerende nummer van de vertegenwoordigde; geweigerd zolang machtigen voor de tenant uit staat |
 

@@ -72,7 +72,7 @@ export async function vulInlogformulierIn(b, pagina, wachtwoord = WACHTWOORD) {
 
 /** Start de login zoals de SPA (navigatie naar het inlogpad) en geeft de authorization-URL van Keycloak en de loginpagina. */
 export async function startLogin(b) {
-  const start = await b.verzoek(`${PUBLIEK}/oauth2/authorization/${OIN}?inlogmiddel=test&returnTo=/`);
+  const start = await b.verzoek(`${PUBLIEK}/oauth2/authorization/${OIN}?inlogmiddel=gebruikersnaam&returnTo=/`);
   assert.equal(start.status, 302, `het inlogpad stuurt door naar Keycloak: ${start.tekst}`);
   const authUrl = new URL(start.headers.location);
   const pagina = await b.volg(authUrl.toString());

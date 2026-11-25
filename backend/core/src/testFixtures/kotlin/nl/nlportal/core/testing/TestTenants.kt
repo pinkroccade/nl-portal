@@ -77,7 +77,7 @@ object TestTenants {
         omgevingstype = Omgevingstype.TEST,
         domeinen = domeinen,
         thema = Thema(titel = "Test"),
-        inlogmiddelen = setOf(Inlogmiddel.TEST),
+        inlogmiddelen = setOf(Inlogmiddel.GEBRUIKERSNAAM),
         authenticatie = Authenticatie("https://login.example/realms/${oin.value}", "/k-${oin.value}.jwk"),
         minimumNiveau = Betrouwbaarheidsniveau.SUBSTANTIEEL,
         sessie = Sessie(),

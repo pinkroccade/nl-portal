@@ -326,9 +326,11 @@ export const EN_GB_MESSAGES: Messages = {
     "auth.login.fout":
       "We cannot check whether you are logged in right now. Please try again later.",
     "auth.login.button.digid": "Log in with DigiD",
-    "auth.login.button.wallet": "Log in with your wallet",
+    "auth.login.button.digid-machtigen":
+      "Log in as authorised representative with DigiD",
+    "auth.login.button.yivi": "Log in with Yivi",
     "auth.login.button.eherkenning": "Log in with eHerkenning",
-    "auth.login.button.test": "Log in as test user",
+    "auth.login.button.gebruikersnaam": "Log in with username and password",
     "form.cancel": "Cancel",
     "form.submit": "Submit",
     "form.success.title": "Success",

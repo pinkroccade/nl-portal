@@ -49,9 +49,9 @@ dus de backend toetst altijd.
 | DigiD | `...:MobileTwoFactorContract` | Midden |
 | DigiD | `...:Smartcard` | Substantieel |
 | DigiD | `...:SmartcardPKI` | Hoog |
-| Wallet (nog uit) | `http://eidas.europa.eu/LoA/low`, `substantial`, `high` | Basis, Substantieel, Hoog |
+| Yivi (nog uit) | `http://eidas.europa.eu/LoA/low`, `substantial`, `high` | Basis, Substantieel, Hoog |
 | eHerkenning | (nog geen waarden: geweigerd) | n.v.t. |
-| Test (alleen ontwikkeling) | `Basis` | Basis |
+| Gebruikersnaam (niet in productie) | `Basis` | Basis |
 
 **Sessiecookie na de tussenpagina.** De callback antwoordt met een tussenpagina (`meta refresh`) zodat de sessiecookie `Strict` kan blijven. Dat is
 niet in een echte browser getoetst; de Playwright-toets hoort bij T25 (#524).

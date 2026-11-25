@@ -25,6 +25,9 @@ alternatief serieus is overwogen.
 
 ## Recent geaccepteerd
 
+- [ADR 0019: trunk-based continuous delivery](./0019-trunk-based-continuous-delivery.md):
+  `main` als enige lijn, één build per commit, promotie op digest; vervangt de rc-stap uit
+  [ADR 0004](./0004-changelog-release-proces.md) (2026-11-25, epic #604).
 - [ADR 0024: eigen inlogpagina en afdwinging van inlogmiddelen](./0024-eigen-inlogpagina-en-afdwinging-van-inlogmiddelen.md):
   eigen pagina `/inloggen`, Keycloak als ID-broker met een realm per gemeente, en afdwinging in lagen (2026-11-25, epic #485).
 

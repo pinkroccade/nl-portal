@@ -146,7 +146,7 @@ services:
             IMPORT_CACHE_ENABLED: "false"
             IMPORT_VAR_SUBSTITUTION_ENABLED: "true"
             IMPORT_VAR_SUBSTITUTION_UNDEFINED_THROWS_EXCEPTIONS: "true"
-            # Zodra een tenant het inlogmiddel wallet aanzet (#529) hoort hier ook KEYCLOAK_WALLET_CLIENT_SECRET: kcc breekt anders op de
+            # Zodra een tenant het inlogmiddel yivi aanzet hoort hier ook KEYCLOAK_YIVI_CLIENT_SECRET: kcc breekt anders op de
             # ontbrekende variabele (UNDEFINED_THROWS_EXCEPTIONS).
         volumes:
             - ./.generated/keycloak:/config:ro

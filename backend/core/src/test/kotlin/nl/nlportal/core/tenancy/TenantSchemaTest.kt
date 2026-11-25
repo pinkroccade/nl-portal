@@ -42,7 +42,7 @@ class TenantSchemaTest {
     @Test
     fun `opsommingen volgen de enums en domeinen en inlogmiddelen mogen niet leeg zijn`() {
         assertThat(schema["properties"]["omgevingstype"]["enum"].strings()).containsExactly("productie", "acceptatie", "test", "ontwikkeling")
-        assertThat(schema["properties"]["inlogmiddelen"]["items"]["enum"].strings()).contains("digid", "wallet", "test")
+        assertThat(schema["properties"]["inlogmiddelen"]["items"]["enum"].strings()).contains("digid", "digid-machtigen", "yivi", "gebruikersnaam")
         assertThat(schema["properties"]["minimumNiveau"]["enum"].strings()).containsExactly("basis", "midden", "substantieel", "hoog")
         assertThat(schema["properties"]["domeinen"]["minItems"].asInt()).isEqualTo(1)
         assertThat(schema["properties"]["domeinen"]["items"]["pattern"].asString()).isEqualTo(TenantSchemaModel.HOSTNAAM_PATROON)

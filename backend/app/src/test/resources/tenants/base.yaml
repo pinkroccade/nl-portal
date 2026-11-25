@@ -2,4 +2,4 @@
 # Validatie: mise run backend:tenant-validator, daarna java -jar backend/core/build/libs/nl-portal-tenant-validator.jar docker-compose/imports/tenants
 # JSON-schema: backend/schema/tenant.schema.json
 omgevingstype: ontwikkeling
-inlogmiddelen: [test]
+inlogmiddelen: [gebruikersnaam]
