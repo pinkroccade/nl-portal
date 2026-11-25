@@ -12,5 +12,6 @@ nl-portal/koppelingen/<naam>/client-secret   ->  nl-portal.koppelingen.<naam>.cl
 ```
 
 Kopieer `endpoint.example` in `nl-portal/koppelingen/voorbeeld/` naar `endpoint` en pas het aan. Echte
-bestanden zijn gitignored. De propertynamen per koppeling volgen uit
-[#393](https://github.com/pinkroccade/nl-portal/issues/393); tot die er zijn leest niets deze waarden.
+bestanden zijn gitignored. Koppelingen staan in de tenantbestanden (`imports/tenants`); deze map is een extra bron voor
+`nl-portal.koppelingen.*` (modules die nog niet naar het tenantbestand zijn) en voor geheimen onder
+`nl-portal/geheimen/<naam>`. Zie [Lokaal draaien met Compose](../../../site/hosting-en-configuratie/lokaal-draaien-met-compose.md).

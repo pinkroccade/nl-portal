@@ -65,14 +65,14 @@ Elke service publiceert zijn eigen poorten op `127.0.0.1`; `docker compose ps` t
 | 6379 | sessiestore (alleen voor een `bootRun` op de host) | |
 | 8000 | debugger van de backend, alleen dev-variant | `JDWP_PORT` |
 
-Binnen de stack bereiken services elkaar via hun naam op het netwerk `nl-portal` (`NL_PORTAL_NETWORK`), bijvoorbeeld
+Binnen de stack bereiken services elkaar via hun naam op het netwerk `mijngemeente` (`NL_PORTAL_NETWORK`), bijvoorbeeld
 `http://nl-portal-openzaak:8001`. De browser bereikt Keycloak op `localhost:8082`; de backend bereikt het via het
 netwerk (`interneBasisUrl` in het tenantbestand) en valideert de issuer van de tenant, ook als het token intern is opgehaald.
 
 ## Eigen URL's en mocks
 
 Wijs een koppeling naar een eigen API door de `url` in het tenantbestand te wijzigen en de backend te herstarten.
-Een eigen mock sluit als extern netwerk aan op `nl-portal`; zie [voorbeelden/mockserver](voorbeelden/mockserver/compose.yaml).
+Een eigen mock sluit als extern netwerk aan op `mijngemeente`; zie [voorbeelden/mockserver](voorbeelden/mockserver/compose.yaml) en de [beheerpagina](../site/hosting-en-configuratie/lokaal-draaien-met-compose.md).
 
 ## Dev-variant en bootRun
 
