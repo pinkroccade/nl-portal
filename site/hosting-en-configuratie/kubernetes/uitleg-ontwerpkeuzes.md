@@ -2,7 +2,7 @@
 
 *Diátaxis: uitleg.* Welke keuzes zijn gemaakt, en welke alternatieven zijn afgewezen.
 
-De keuzes komen uit epic [#191](https://github.com/pinkroccade/nl-portal/issues/191). Ze worden in een eigen ADR vastgelegd; tot die er is, is de epic de bron.
+De keuzes komen uit epic [#191](https://github.com/pinkroccade/nl-portal/issues/191). De hard-omkeerbare keuzes staan in [ADR 0025](../../development/adr/0025-helm-chart-in-app-repo-als-generieke-child-chart.md); deze pagina geeft de volledige uitleg.
 
 | Keuze | Waarom | Afgewezen alternatief |
 |---|---|---|

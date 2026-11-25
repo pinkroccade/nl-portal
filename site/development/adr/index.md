@@ -25,6 +25,8 @@ alternatief serieus is overwogen.
 
 ## Recent geaccepteerd
 
+- [ADR 0025: Helm-chart in de app-repo als generieke child-chart](./0025-helm-chart-in-app-repo-als-generieke-child-chart.md):
+  chart in de app-repo, OCI op ghcr met cosign, secret-contract met `existingSecret`, contract met de base-chart en eigen SemVer (2026-11-25, epic #191).
 - [ADR 0019: trunk-based continuous delivery](./0019-trunk-based-continuous-delivery.md):
   `main` als enige lijn, één build per commit, promotie op digest; vervangt de rc-stap uit
   [ADR 0004](./0004-changelog-release-proces.md) (2026-11-25, epic #604).
