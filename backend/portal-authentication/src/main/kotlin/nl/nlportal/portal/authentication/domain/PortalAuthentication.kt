@@ -34,8 +34,6 @@ class PortalAuthentication(
 
     override val userType: String get() = identiteit.vertegenwoordigde.soort.code
 
-    override val subject: String get() = identiteit.gebruiker.subject
-
     override fun getCredentials(): Any? = null
 
     override fun getPrincipal(): Any = identiteit.gebruiker.subject

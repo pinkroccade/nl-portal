@@ -34,11 +34,5 @@ class FeatureFlagProperties {
 
         /** The environment, for example `ontwikkel`, `test`, `acceptatie` or `productie`. Omitted when not set. */
         var environment: String? = null
-
-        /**
-         * Secret key of the tenant for the opaque user id (HMAC of the identity provider subject).
-         * Without a secret the context holds no user id. Comes from the environment, never from version control.
-         */
-        var userIdSecret: String? = null
     }
 }

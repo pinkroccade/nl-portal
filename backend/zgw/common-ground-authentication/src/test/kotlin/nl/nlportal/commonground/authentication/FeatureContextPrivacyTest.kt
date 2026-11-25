@@ -20,6 +20,7 @@ import nl.nlportal.core.featureflag.FeatureContextFactory
 import nl.nlportal.core.featureflag.FeatureFlagProperties
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertFalse
+import org.junit.jupiter.api.Assertions.assertNull
 import org.junit.jupiter.api.Test
 
 /** The evaluation context built from the real citizen and company authentications holds no BSN or KVK number. */
@@ -28,7 +29,6 @@ class FeatureContextPrivacyTest {
         FeatureContextFactory(
             FeatureFlagProperties.Context().apply {
                 tenant = "gemeente-a"
-                userIdSecret = "tenant-a-secret"
             },
         )
 
@@ -53,11 +53,14 @@ class FeatureContextPrivacyTest {
     }
 
     @Test
-    fun `the subject of the token is only present as HMAC`() {
+    fun `the context holds no user id and neither the subject nor name`() {
         val context = factory.create(JwtBuilder().vertegenwoordigdeBsn(BSN).buildAuthentication())
 
-        // HMAC-SHA256("tenant-a-secret", subject), computed independently with openssl.
-        assertEquals("65de9070206620f654db1780eeb04a2d7cc1d3273e8a397b7e546d828e3915ec", context.targetingKey)
+        assertNull(context.targetingKey)
+        assertEquals(
+            setOf(FeatureContextFactory.TENANT, FeatureContextFactory.USER_TYPE),
+            context.keySet(),
+        )
         assertNoneOf(context, JwtBuilder.SUBJECT)
     }
 

@@ -22,7 +22,6 @@ import org.junit.jupiter.api.Assertions.assertNull
 import org.junit.jupiter.api.Test
 import org.springframework.security.authentication.AbstractAuthenticationToken
 import org.springframework.security.authentication.AnonymousAuthenticationToken
-import org.springframework.security.authentication.UsernamePasswordAuthenticationToken
 import org.springframework.security.core.authority.SimpleGrantedAuthority
 import org.springframework.security.core.context.ReactiveSecurityContextHolder
 import reactor.core.publisher.Mono
@@ -34,13 +33,12 @@ class FeatureContextFactoryTest {
             FeatureFlagProperties.Context().apply {
                 tenant = "gemeente-a"
                 environment = "test"
-                userIdSecret = "tenant-a-secret"
             },
         )
 
     /** A logged-in citizen as the BFF builds it from the session: a subject and a user type, no token. */
     private class CitizenAuthentication(
-        override val subject: String,
+        private val subject: String,
     ) : AbstractAuthenticationToken(listOf(SimpleGrantedAuthority("ROLE_USER"))),
         UserTypeAware {
         init {
@@ -66,28 +64,12 @@ class FeatureContextFactoryTest {
     }
 
     @Test
-    fun `the user id is a keyed HMAC of the identity provider subject, not a plain hash`() {
+    fun `the context never holds a user id, only tenant, environment and user type`() {
         val context = factory.create(citizen)
 
-        // HMAC-SHA256("tenant-a-secret", SUBJECT), computed independently with openssl.
-        assertEquals("65de9070206620f654db1780eeb04a2d7cc1d3273e8a397b7e546d828e3915ec", context.targetingKey)
-        // SHA-256(SUBJECT): a plain hash can be reversed by brute force over the subject space.
-        assertFalse(context.targetingKey == "db3855a227f2aa115bb78a8818d433bb00815539f05e386e512977355137f6ec")
-    }
-
-    @Test
-    fun `without a configured secret the context holds no user id`() {
-        val context = FeatureContextFactory(FeatureFlagProperties.Context().apply { tenant = "gemeente-a" }).create(citizen)
-
         assertNull(context.targetingKey)
-        assertEquals("gemeente-a", context.getValue("tenant").asString())
-    }
-
-    @Test
-    fun `a blank secret counts as no secret`() {
-        val context = FeatureContextFactory(FeatureFlagProperties.Context().apply { userIdSecret = "  " }).create(citizen)
-
-        assertNull(context.targetingKey)
+        assertEquals(setOf("tenant", "environment", "userType"), context.keySet())
+        assertFalse(allValues(context).any { it.contains(SUBJECT) }, "subject found in evaluation context")
     }
 
     @Test
@@ -100,13 +82,6 @@ class FeatureContextFactoryTest {
             assertNull(context.targetingKey)
             assertNull(context.getValue("userType"))
         }
-    }
-
-    @Test
-    fun `an authentication without a token yields no user id`() {
-        val withoutToken = UsernamePasswordAuthenticationToken.authenticated("c0ffee00", null, emptyList())
-
-        assertNull(factory.create(withoutToken).targetingKey)
     }
 
     @Test
@@ -130,7 +105,7 @@ class FeatureContextFactoryTest {
                 .block()!!
 
         assertEquals("bsn", context.first.getValue("userType").asString())
-        assertEquals(context.first.targetingKey, context.second.targetingKey)
+        assertEquals(context.first.asObjectMap(), context.second.asObjectMap())
     }
 
     @Test
