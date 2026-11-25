@@ -8,8 +8,9 @@ name: nl-portal
 
 networks:
     default:
-        # Benoemd, zodat een eigen compose (bijvoorbeeld een mock) er als extern netwerk op aansluit.
-        name: ${NL_PORTAL_NETWORK:-nl-portal}
+        # Benoemd en gedeeld met het mijngemeente-ecosysteem: een eigen compose (bijvoorbeeld een mock) of een
+        # andere applicatie sluit er als extern netwerk op aan.
+        name: ${NL_PORTAL_NETWORK:-mijngemeente}
 
 services:
 

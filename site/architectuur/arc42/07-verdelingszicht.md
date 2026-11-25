@@ -3,7 +3,7 @@
 ## 7.1 Lokale ontwikkeling
 
 `docker-compose/` start de portal op dezelfde manier als bij livegang: elke service een eigen hostname op
-een benoemd netwerk (`nl-portal`) en eigen poorten op `127.0.0.1`.
+een benoemd netwerk (`mijngemeente`) en eigen poorten op `127.0.0.1`.
 
 | Opzet | Wat draait er |
 |---|---|
