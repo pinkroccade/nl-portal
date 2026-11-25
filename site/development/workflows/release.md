@@ -1,5 +1,28 @@
 # Een release maken
 
+> **Overgang naar ADR 0019.** Elke merge op `main` bouwt sinds #606 via `build-once.yml` (zie hieronder). De RC- en releasestappen
+> verderop gelden tot promotie op digest (#607) en het opruimen (#609) ze vervangen.
+
+## Build per commit (`build-once.yml`)
+
+Elke merge op `main` bouwt backend en frontend één keer en pusht de onveranderlijke tag `<versie>-<sha>` (`<versie>` uit `version.txt`,
+`<sha>` de eerste 12 tekens van de commit). Volgorde en poorten:
+
+1. **Stage (parallel):** backend `gradlew build` (compileren, unit- en integratietests) en frontend build en test.
+2. **Smoke:** `_smoke-stack.yml` bouwt de images uit de stage-bundels van deze run, start de quickstart-compose en draait de BFF-login met GraphQL.
+3. **Images (parallel):** bouwen uit dezelfde stage-bundels, pushen, ondertekenen (cosign, keyless), image-SBOM genereren en attesteren.
+4. **Summary:** de digest per image staat in de job summary van de run en in het artefact `build-digests` (`build-digests.json`).
+
+Een falende poort laat alle volgende jobs vervallen: er wordt niets gepusht en er ontstaat geen tag. De tests en de smoke lopen dus
+vóór de push; de smoke wacht op beide stage-jobs, dat kost de smoke-duur extra bovenop de langzaamste stage.
+
+Een commit die alleen `site/**`, `docs/**` of `*.md` raakt, start de workflow niet (`paths-ignore`): er is niets nieuws om uit te rollen,
+en latere bot-commits op `CHANGELOG.md` (#608) veroorzaken zo geen build. Promoveren op commit (#607) kiest dus de nieuwste
+build, niet per se de nieuwste commit.
+
+Proefrun op een branch: `gh workflow run build-once.yml --ref <branch>` draait alleen de poorten (`publish=false`); met
+`-f publish=true` pusht en ondertekent hij ook.
+
 Een release maak je in twee stappen: een release-candidate (RC) snijden en daarna de release publiceren. De RC wordt gebouwd en
 getest; de release bouwt de images opnieuw (zonder tests) en publiceert ze achter een handmatige goedkeuring. Achtergrond:
 [ADR 0004](../adr/0004-changelog-release-proces.md); het branchmodel staat in `CONTRIBUTING.md`.
