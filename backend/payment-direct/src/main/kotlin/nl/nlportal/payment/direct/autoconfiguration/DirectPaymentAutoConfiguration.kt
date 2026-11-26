@@ -17,10 +17,12 @@ package nl.nlportal.payment.direct.autoconfiguration
 
 import nl.nlportal.core.koppeling.KoppelingAutoConfiguration
 import nl.nlportal.core.koppeling.KoppelingRegister
+import nl.nlportal.core.modulegate.ModuleFlag
 import nl.nlportal.core.tenancy.GeheimenBron
 import nl.nlportal.core.tenancy.TenancyAutoConfiguration
 import nl.nlportal.core.tenancy.TenantDirectory
 import nl.nlportal.core.tenancy.VervallenProperties
+import nl.nlportal.payment.direct.PAYMENT_DIRECT_MODULE
 import nl.nlportal.payment.direct.api.DirectPaymentController
 import nl.nlportal.payment.direct.client.DirectPaymentClient
 import nl.nlportal.payment.direct.configuratie.DirectPaymentTenantConfiguratie
@@ -38,11 +40,15 @@ import org.springframework.context.annotation.Bean
 
 /**
  * De module leest zijn gegevens per tenant uit `modules.payment-direct` en praat alleen via de [KoppelingRegister]; of de module voor
- * een tenant bruikbaar is volgt uit die configuratie (en de permission-flag, T22), niet uit een eigenschap van de applicatie.
+ * een tenant bruikbaar is volgt uit die configuratie (en de permission-flag `permission.payment-direct.enabled`, ADR 0026), niet uit een eigenschap van de applicatie.
  */
 @AutoConfiguration(after = [TenancyAutoConfiguration::class, KoppelingAutoConfiguration::class])
 @ConditionalOnBean(KoppelingRegister::class)
 class DirectPaymentAutoConfiguration {
+    /** Laat de gate, de frontend-modulelijst en de modulematrix de permission-flag van de module kennen. */
+    @Bean
+    fun directPaymentModuleFlag(): ModuleFlag = PAYMENT_DIRECT_MODULE
+
     /** Ook `enabled` is vervallen: de hele oude prefix weigert het opstarten, met een verwijzing naar `modules.payment-direct`. */
     @Bean
     fun directPaymentVervallenProperties() = VervallenProperties(DirectPaymentTenantConfiguratie.NAAM, "nl-portal.config.payment.direct")

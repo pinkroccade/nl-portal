@@ -20,6 +20,7 @@ import io.github.oshai.kotlinlogging.KLogger
 import io.github.oshai.kotlinlogging.KotlinLogging
 import nl.nlportal.commonground.authentication.WithBurgerUser
 import nl.nlportal.payment.direct.TestHelper
+import nl.nlportal.payment.direct.PaymentFlagFile
 import nl.nlportal.payment.direct.PaymentTestConfiguration
 import nl.nlportal.payment.direct.PaymentTestTenants
 import okhttp3.mockwebserver.Dispatcher
@@ -62,6 +63,7 @@ internal class DirectPaymentQueryIT(
         @DynamicPropertySource
         fun properties(propsRegistry: DynamicPropertyRegistry) {
             propsRegistry.add("test.payment.url") { url }
+            PaymentFlagFile.registreer(propsRegistry)
         }
 
         @JvmStatic
