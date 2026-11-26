@@ -32,7 +32,7 @@ import org.springframework.web.bind.annotation.RequestMapping
 import org.springframework.web.bind.annotation.RestController
 import org.springframework.web.server.ResponseStatusException
 
-@ModuleEndpoint("zaken", overgang = true)
+@ModuleEndpoint("zaken")
 @RestController
 @RequestMapping(value = ["/api"])
 class ZaakDocumentResource(

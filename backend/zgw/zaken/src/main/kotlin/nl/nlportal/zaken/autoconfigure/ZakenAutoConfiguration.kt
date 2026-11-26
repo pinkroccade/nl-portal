@@ -17,7 +17,9 @@ package nl.nlportal.zaken.autoconfigure
 
 import nl.nlportal.besluiten.service.BesluitenService
 import nl.nlportal.catalogiapi.service.CatalogiApiService
+import nl.nlportal.core.modulegate.ModuleFlag
 import nl.nlportal.core.security.config.HttpSecurityConfigurer
+import nl.nlportal.zaken.ZAKEN_MODULE
 import nl.nlportal.zaken.graphql.ZaakQuery
 import nl.nlportal.zaken.security.config.ZaakDocumentResourceHttpSecurityConfigurer
 import nl.nlportal.zakenapi.service.ZakenApiService
@@ -30,6 +32,10 @@ import org.springframework.context.annotation.Bean
 @AutoConfiguration
 @ConditionalOnProperty(prefix = "nl-portal.config", name = ["objectenapi.enabled", "catalogiapi.enabled", "zakenapi.enabled"], havingValue = "true")
 class ZakenAutoConfiguration {
+    /** Laat de gate, de frontend-modulelijst en de modulematrix de permission-flag van de module kennen. */
+    @Bean
+    fun zakenModuleFlag(): ModuleFlag = ZAKEN_MODULE
+
     @Bean
     @ConditionalOnMissingBean(ZaakQuery::class)
     fun zaakQuery(
