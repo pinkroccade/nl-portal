@@ -17,19 +17,23 @@ package nl.nlportal.haalcentraalbrp.graphql
 
 import tools.jackson.databind.JsonNode
 import nl.nlportal.commonground.authentication.WithBurgerUser
+import nl.nlportal.core.modulegate.ModuleGate
 import nl.nlportal.core.tenancy.GeheimenBron
 import nl.nlportal.core.tenancy.TenantDirectory
 import nl.nlportal.core.tenancy.TenantKoppelingAuth
 import nl.nlportal.core.tenancy.TenantKoppelingAuthType
+import nl.nlportal.core.testing.ModuleFlagBestand
 import nl.nlportal.core.testing.TestTenants
 import nl.nlportal.core.testing.VasteTenantWebFilter
 import nl.nlportal.haalcentraalbrp.tenant.BrpConfiguratie
+import nl.nlportal.haalcentraalbrp.BRP_MODULE
 import nl.nlportal.haalcentraalbrp.TestHelper
 import okhttp3.mockwebserver.Dispatcher
 import okhttp3.mockwebserver.MockResponse
 import okhttp3.mockwebserver.MockWebServer
 import okhttp3.mockwebserver.RecordedRequest
 import org.junit.jupiter.api.AfterAll
+import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertNull
 import org.junit.jupiter.api.BeforeEach
@@ -43,6 +47,8 @@ import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.boot.test.context.TestConfiguration
 import org.springframework.context.annotation.Bean
 import org.springframework.graphql.test.tester.HttpGraphQlTester
+import org.springframework.test.context.DynamicPropertyRegistry
+import org.springframework.test.context.DynamicPropertySource
 import java.util.concurrent.TimeUnit
 
 @SpringBootTest
@@ -51,6 +57,7 @@ import java.util.concurrent.TimeUnit
 @TestInstance(TestInstance.Lifecycle.PER_METHOD)
 internal class HaalCentraalBrpQueryIT(
     @Autowired private val httpGraphQlTester: HttpGraphQlTester,
+    @Autowired private val moduleGate: ModuleGate,
 ) {
     companion object {
         internal val passThroughHeaders =
@@ -60,6 +67,13 @@ internal class HaalCentraalBrpQueryIT(
                 "x-verwerking" to "test-verwerking",
                 "x-gebruiker" to "test-gebruiker",
             )
+
+        /** Eén flagbestand voor alle testcontexts van deze module (OpenFeature is een JVM-brede singleton). */
+        private val vlaggen = ModuleFlagBestand(listOf(BRP_MODULE))
+
+        @JvmStatic
+        @DynamicPropertySource
+        fun featureFlags(registry: DynamicPropertyRegistry) = vlaggen.registreer(registry)
 
         @JvmStatic
         val server: MockWebServer = MockWebServer().also { it.start() }
@@ -101,6 +115,37 @@ internal class HaalCentraalBrpQueryIT(
 
         @Bean
         fun vasteTenantWebFilter() = VasteTenantWebFilter()
+    }
+
+    @AfterEach
+    internal fun herstelFlag() {
+        vlaggen.herstel(moduleGate)
+    }
+
+    @Test
+    @WithBurgerUser("999993847")
+    fun `getPersoonV2 is niet beschikbaar als de modulevlag uit staat`() {
+        vlaggen.zet(BRP_MODULE, aan = false, gate = moduleGate)
+
+        httpGraphQlTester
+            .document("query { getPersoonV2 { burgerservicenummer } }")
+            .execute()
+            .errors()
+            .expect { it.message == "Module 'haalcentraal-brp' is niet beschikbaar" && it.extensions["code"] == "MODULE_NOT_AVAILABLE" }
+            .verify()
+    }
+
+    @Test
+    @WithBurgerUser("999993847")
+    fun `getPersoonV2 is niet beschikbaar voor een tenant waarvoor de vlag uit staat`() {
+        vlaggen.zet(BRP_MODULE, aan = true, gate = moduleGate, alleenVoor = setOf(TestTenants.WIJDE_VELD))
+
+        httpGraphQlTester
+            .document("query { getPersoonV2 { burgerservicenummer } }")
+            .execute()
+            .errors()
+            .expect { it.extensions["code"] == "MODULE_NOT_AVAILABLE" }
+            .verify()
     }
 
     @BeforeEach

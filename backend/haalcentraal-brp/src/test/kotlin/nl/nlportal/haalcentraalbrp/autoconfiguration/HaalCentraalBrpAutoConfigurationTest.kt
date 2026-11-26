@@ -16,6 +16,8 @@
 package nl.nlportal.haalcentraalbrp.autoconfiguration
 
 import nl.nlportal.core.koppeling.KoppelingRegister
+import nl.nlportal.core.modulegate.ModuleFlag
+import nl.nlportal.haalcentraalbrp.BRP_MODULE
 import nl.nlportal.core.testing.TestTenants
 import nl.nlportal.haalcentraalbrp.service.HaalCentraalBrpService
 import org.assertj.core.api.Assertions.assertThat
@@ -51,6 +53,18 @@ internal class HaalCentraalBrpAutoConfigurationTest {
                 assertThat(vervallen).isEqualTo(VervallenProperties("brp", "nl-portal.config.haalcentraal-brp.properties"))
                 val oudeInstelling = StandardEnvironment().apply { propertySources.addFirst(MapPropertySource("oud", mapOf("nl-portal.config.haalcentraal-brp.properties.api-key" to "x"))) }
                 assertThrows<IllegalStateException> { vervallen.controleer(oudeInstelling) }.also { assertThat(it.message).contains("modules.brp") }
+            }
+    }
+
+    @Test
+    fun `de module maakt zijn permission-flag bekend bij de gate`() {
+        contextRunner
+            .withPropertyValues("nl-portal.config.haalcentraal-brp.enabled=true")
+            .run { context ->
+                assertThat(context.getBean(ModuleFlag::class.java)).isSameAs(BRP_MODULE)
+                assertThat(BRP_MODULE.flag.key).isEqualTo("permission.haalcentraal-brp.enabled")
+                assertThat(BRP_MODULE.koppelingen).containsExactly("brp")
+                assertThat(BRP_MODULE.moduleConfiguratie).isEqualTo("brp")
             }
     }
 

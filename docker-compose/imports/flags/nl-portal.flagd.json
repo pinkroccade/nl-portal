@@ -9,6 +9,14 @@
       },
       "defaultVariant": "off"
     },
+    "permission.haalcentraal-brp.enabled": {
+      "state": "ENABLED",
+      "variants": {
+        "on": true,
+        "off": false
+      },
+      "defaultVariant": "on"
+    },
     "permission.documentenapis.enabled": {
       "state": "ENABLED",
       "variants": {

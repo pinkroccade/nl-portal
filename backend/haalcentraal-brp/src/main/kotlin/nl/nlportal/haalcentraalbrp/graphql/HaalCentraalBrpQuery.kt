@@ -23,7 +23,7 @@ import org.springframework.graphql.data.method.annotation.QueryMapping
 import org.springframework.graphql.data.method.annotation.SchemaMapping
 import org.springframework.stereotype.Controller
 
-@ModuleEndpoint("brp", overgang = true)
+@ModuleEndpoint("haalcentraal-brp")
 @Controller
 class HaalCentraalBrpQuery(
     val haalCentraalBrpService: HaalCentraalBrpService,

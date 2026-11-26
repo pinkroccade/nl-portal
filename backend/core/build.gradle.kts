@@ -71,6 +71,7 @@ dependencies {
     testFixturesApi(Dependencies.springWebFlux)
     testFixturesImplementation(Dependencies.kotlinCoroutinesReactor)
     testFixturesImplementation(Dependencies.kotlinCoroutines)
+    testFixturesImplementation(TestDependencies.springBootTest)
     testImplementation(TestDependencies.springBootTest)
     testImplementation(TestDependencies.springBootTestWebClient)
     testImplementation(TestDependencies.kotlinCoroutines)

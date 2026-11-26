@@ -17,6 +17,8 @@ package nl.nlportal.haalcentraalbrp.autoconfiguration
 
 import nl.nlportal.core.koppeling.KoppelingAutoConfiguration
 import nl.nlportal.core.koppeling.KoppelingRegister
+import nl.nlportal.core.modulegate.ModuleFlag
+import nl.nlportal.haalcentraalbrp.BRP_MODULE
 import nl.nlportal.core.tenancy.TenantDirectory
 import nl.nlportal.core.tenancy.VervallenProperties
 import nl.nlportal.haalcentraalbrp.tenant.BrpTenantConfiguratie
@@ -27,12 +29,17 @@ import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty
 import org.springframework.context.annotation.Bean
 
 /**
- * De BRP-module staat aan met `nl-portal.config.haalcentraal-brp.enabled=true`. De gegevens per tenant staan in het tenantbestand
- * (`modules.brp` en `koppelingen.brp`); deze schakelaar is alleen de keuze of de runtime de module aanbiedt.
+ * De BRP-module staat aan met `nl-portal.config.haalcentraal-brp.enabled=true` (de opstartkeuze, verdwijnt met #162). Per tenant en per request
+ * beslist de centrale gate op de permission-flag `permission.haalcentraal-brp.enabled` en de gegevens in het tenantbestand
+ * (`modules.brp` en `koppelingen.brp`).
  */
 @AutoConfiguration(after = [KoppelingAutoConfiguration::class])
 @ConditionalOnProperty(prefix = "nl-portal.config.haalcentraal-brp", name = ["enabled"], havingValue = "true")
 class HaalCentraalBrpAutoConfiguration {
+    /** Laat de gate, de frontend-modulelijst en de modulematrix de permission-flag van de module kennen. */
+    @Bean
+    fun brpModuleFlag(): ModuleFlag = BRP_MODULE
+
     @Bean
     @ConditionalOnMissingBean(HaalCentraalBrpService::class)
     fun haalCentraalBrpService(
