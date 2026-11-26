@@ -40,4 +40,11 @@ class ModuleGateRegelsTest {
     fun `only modules in the transition list register as transitional`() {
         ModuleGateRegels.production.onlyListedModulesMayBeTransitional().check(classes)
     }
+
+    @Test
+    fun `the transition list only gets shorter`() {
+        org.assertj.core.api.Assertions
+            .assertThat(ModuleGateRegels.OVERGANG)
+            .hasSizeLessThanOrEqualTo(ModuleGateRegels.OVERGANG_MAX)
+    }
 }

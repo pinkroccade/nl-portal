@@ -16,6 +16,7 @@
 package nl.nlportal.core.modulegate
 
 import kotlinx.coroutines.reactor.mono
+import nl.nlportal.core.tenancy.TenantContextMissingException
 import org.springframework.beans.factory.ObjectProvider
 import org.springframework.core.Ordered
 import org.springframework.core.io.buffer.DataBufferFactory
@@ -74,6 +75,9 @@ class ModuleGateWebFilter(
             Weigering(HttpStatus.SERVICE_UNAVAILABLE, "Service Unavailable", e.message)
         } catch (e: EndpointNietGeregistreerdException) {
             Weigering(HttpStatus.NOT_FOUND, "Not Found", e.message)
+        } catch (e: TenantContextMissingException) {
+            // Fail-closed: zonder tenant bestaat het endpoint niet.
+            Weigering(HttpStatus.NOT_FOUND, "Not Found", "Endpoint is niet beschikbaar")
         }
 
     private fun antwoord(

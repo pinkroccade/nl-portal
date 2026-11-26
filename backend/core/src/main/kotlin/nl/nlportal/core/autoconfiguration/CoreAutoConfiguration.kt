@@ -78,11 +78,17 @@ class CoreAutoConfiguration {
     @Bean
     fun moduleFlagZonderConfiguratieWaarschuwing(gate: ModuleGate) =
         SmartInitializingSingleton {
-            runCatching { gate.flagZonderConfiguratie() }.getOrDefault(emptyList()).forEach {
-                io.github.oshai.kotlinlogging.KotlinLogging
-                    .logger {}
-                    .warn { "Tenant ${it.oin}: de flag van module '${it.module}' staat aan, maar de configuratie ontbreekt; de module staat uit" }
-            }
+            runCatching { gate.flagZonderConfiguratie() }
+                .onFailure {
+                    io.github.oshai.kotlinlogging.KotlinLogging
+                        .logger {}
+                        .warn { "De modulematrix is bij het opstarten niet te bepalen: ${it::class.simpleName}" }
+                }.getOrDefault(emptyList())
+                .forEach {
+                    io.github.oshai.kotlinlogging.KotlinLogging
+                        .logger {}
+                        .warn { "Tenant ${it.oin}: de flag van module '${it.module}' staat aan, maar de configuratie ontbreekt; de module staat uit" }
+                }
         }
 
     /** The REST side of the central module gate: deny by default, module off means 503. */

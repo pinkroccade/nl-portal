@@ -24,7 +24,7 @@ import com.tngtech.archunit.lang.SimpleConditionEvent
 import com.tngtech.archunit.lang.syntax.ArchRuleDefinition.classes
 
 /**
- * De regels van de centrale modulegate (T22, #521, ADR 0026): deny by default, en geen gate per resolver.
+ * De regels van de centrale modulegate (T22, #521, ADR 0026; principe P-07 least functionality): deny by default, en geen gate per resolver.
  *
  * Elke GraphQL-controller en REST-resource draagt `@ModuleEndpoint`: zonder registratie weigert de gate het endpoint, en deze regel
  * laat de build falen voordat dat in een request gebeurt. Een endpoint dat `@ModuleEndpoint` draagt roept `ModuleGate` niet zelf
@@ -103,6 +103,9 @@ class ModuleGateRegels(
         private const val CONTROLLER = "org.springframework.stereotype.Controller"
         private const val MODULE_ENDPOINT = "nl.nlportal.core.modulegate.ModuleEndpoint"
         private const val MODULE_GATE = "nl.nlportal.core.modulegate.ModuleGate"
+
+        /** Het maximale aantal modules in [OVERGANG]; alleen dalen (ratchet), [ModuleGateRegelsTest] pint het vast. */
+        const val OVERGANG_MAX = 8
 
         /** De modules die nog niet op de gate staan (#521-vervolg); elke overgang haalt zijn naam hier weg. */
         val OVERGANG = setOf("brp", "kvk", "payment-direct", "besluiten", "openklant", "openproduct", "taak", "zaken")
