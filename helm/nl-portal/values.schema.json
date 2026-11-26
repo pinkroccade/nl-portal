@@ -213,6 +213,14 @@
           }
         },
         "featureFlags": { "type": "object" },
+        "featureFlagContext": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "tenant": { "type": "string" },
+            "environment": { "type": "string" }
+          }
+        },
         "frontendProperties": {
           "type": "object",
           "propertyNames": { "pattern": "^[a-zA-Z][a-zA-Z0-9]*$" }

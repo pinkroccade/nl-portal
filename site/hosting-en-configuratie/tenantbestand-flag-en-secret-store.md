@@ -16,7 +16,7 @@ Het onderscheid is bewust: zo weet je altijd waar je een wijziging doet en wat d
 | **Wat staat er nooit in** | Secrets en tokens | URL's, credentials, tenantconfiguratie, beveiligingsbesluiten | Niets anders dan secrets |
 | **Waar leeft het** | Git, één bestand per tenant per omgeving | Het flagbestand (OpenFeature/flagd) | De secret store, ontsloten via External Secrets Operator |
 | **Hoe wijzig je het** | Pull request, daarna uitrol door de gitops-tooling | Het flagbestand aanpassen | Roteren in de secret store |
-| **Wanneer werkt het** | Na een rolling restart | Direct, zonder herstart | Na een rolling restart |
+| **Wanneer werkt het** | Na een rolling restart | Na een rolling restart ([ADR 0014](../development/adr/0014-feature-flags-via-openfeature.md), punt 7) | Na een rolling restart |
 
 Een wijziging in het tenantbestand of de secrets herstart alleen de cel van die tenant, nooit de hele
 dienst. Er is geen hot reload en er is geen Configuration Panel meer.
