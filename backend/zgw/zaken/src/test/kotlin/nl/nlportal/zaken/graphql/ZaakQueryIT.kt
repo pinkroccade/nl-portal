@@ -19,6 +19,7 @@ import tools.jackson.databind.JsonNode
 import nl.nlportal.besluiten.client.BesluitenApiConfig
 import nl.nlportal.commonground.authentication.WithBedrijfUser
 import nl.nlportal.commonground.authentication.WithBurgerUser
+import nl.nlportal.zaken.ZakenFlagFile
 import nl.nlportal.zaken.ZakenTestTenantConfiguratie
 import org.springframework.boot.test.context.TestConfiguration
 import okhttp3.mockwebserver.Dispatcher
@@ -59,6 +60,7 @@ internal class ZaakQueryIT(
         @DynamicPropertySource
         fun properties(propsRegistry: DynamicPropertyRegistry) {
             propsRegistry.add("nl-portal.config.besluitenapi.properties.url") { url }
+            ZakenFlagFile.vlaggen.registreer(propsRegistry)
         }
 
         @JvmStatic
