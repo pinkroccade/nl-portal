@@ -22,7 +22,7 @@ import nl.nlportal.kvk.service.KvkService
 import org.springframework.graphql.data.method.annotation.QueryMapping
 import org.springframework.stereotype.Controller
 
-@ModuleEndpoint("kvk", overgang = true)
+@ModuleEndpoint("kvk")
 @Controller
 class KvkQuery(
     val kvkService: KvkService,

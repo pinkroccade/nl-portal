@@ -29,9 +29,11 @@ import org.springframework.boot.test.context.TestConfiguration
 import org.springframework.boot.webtestclient.autoconfigure.AutoConfigureWebTestClient
 import org.springframework.context.annotation.Bean
 import org.springframework.graphql.test.tester.HttpGraphQlTester
+import org.springframework.test.context.DynamicPropertyRegistry
+import org.springframework.test.context.DynamicPropertySource
 
 /**
- * Foutpad via GraphQL: een tenant zonder `koppelingen.kvk` krijgt `MODULE_NIET_GECONFIGUREERD`, zonder OIN of koppelingnaam in de melding.
+ * Foutpad via GraphQL: de gate weigert een tenant zonder `koppelingen.kvk` met `MODULE_NOT_AVAILABLE`, zonder OIN of koppelingnaam in de melding.
  * Een andere tenant heeft de koppeling wel, zodat de startcontrole van de module slaagt en het verzoek zelf de fout geeft.
  */
 @SpringBootTest
@@ -40,6 +42,12 @@ import org.springframework.graphql.test.tester.HttpGraphQlTester
 internal class KvkQueryZonderKoppelingIT(
     @Autowired private val httpGraphQlTester: HttpGraphQlTester,
 ) {
+    companion object {
+        @JvmStatic
+        @DynamicPropertySource
+        fun featureFlags(registry: DynamicPropertyRegistry) = KvkQueryIT.vlaggen.registreer(registry)
+    }
+
     @TestConfiguration
     class TenantConfiguration {
         @Bean
@@ -58,14 +66,14 @@ internal class KvkQueryZonderKoppelingIT(
 
     @Test
     @WithBedrijfUser(kvkNummer = "90012768")
-    fun `een tenant zonder KvK-koppeling krijgt MODULE_NIET_GECONFIGUREERD en geen stil null`() {
+    fun `een tenant zonder KvK-koppeling krijgt MODULE_NOT_AVAILABLE van de gate en geen stil null`() {
         httpGraphQlTester
             .document("query { getBedrijf { naam } }")
             .execute()
             .errors()
             .satisfy { fout ->
-                assertThat(fout.single().extensions["code"]).isEqualTo("MODULE_NIET_GECONFIGUREERD")
-                assertThat(fout.single().message).doesNotContain(TestTenants.BOSRAND.value, "kvk", "90012768")
+                assertThat(fout.single().extensions["code"]).isEqualTo("MODULE_NOT_AVAILABLE")
+                assertThat(fout.single().message).doesNotContain(TestTenants.BOSRAND.value, "90012768")
             }
     }
 }

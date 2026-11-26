@@ -16,9 +16,11 @@
 package nl.nlportal.kvk.autoconfiguration
 
 import nl.nlportal.core.koppeling.KoppelingRegister
+import nl.nlportal.core.modulegate.ModuleFlag
 import nl.nlportal.core.tenancy.TenantDirectory
 import nl.nlportal.core.tenancy.VervallenProperties
 import nl.nlportal.core.testing.TestTenants
+import nl.nlportal.kvk.KVK_MODULE
 import nl.nlportal.kvk.graphql.KvkQuery
 import nl.nlportal.kvk.service.KvkService
 import org.assertj.core.api.Assertions.assertThat
@@ -50,6 +52,18 @@ internal class KvkAutoConfigurationTest {
             .run { context ->
                 assertThat(context).hasSingleBean(KvkService::class.java)
                 assertThat(context).hasSingleBean(KvkQuery::class.java)
+            }
+    }
+
+    @Test
+    fun `de module maakt zijn permission-flag bekend bij de gate`() {
+        contextRunner
+            .withPropertyValues("nl-portal.config.kvk.enabled=true")
+            .run { context ->
+                assertThat(context.getBean(ModuleFlag::class.java)).isSameAs(KVK_MODULE)
+                assertThat(KVK_MODULE.flag.key).isEqualTo("permission.kvk.enabled")
+                assertThat(KVK_MODULE.koppelingen).containsExactly("kvk")
+                assertThat(KVK_MODULE.moduleConfiguratie).isNull()
             }
     }
 
