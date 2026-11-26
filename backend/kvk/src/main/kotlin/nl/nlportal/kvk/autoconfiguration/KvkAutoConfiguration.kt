@@ -17,8 +17,10 @@ package nl.nlportal.kvk.autoconfiguration
 
 import nl.nlportal.core.koppeling.KoppelingAutoConfiguration
 import nl.nlportal.core.koppeling.KoppelingRegister
+import nl.nlportal.core.modulegate.ModuleFlag
 import nl.nlportal.core.tenancy.TenantDirectory
 import nl.nlportal.core.tenancy.VervallenProperties
+import nl.nlportal.kvk.KVK_MODULE
 import nl.nlportal.kvk.graphql.KvkQuery
 import nl.nlportal.kvk.service.KvkService
 import org.springframework.boot.autoconfigure.AutoConfiguration
@@ -27,12 +29,16 @@ import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty
 import org.springframework.context.annotation.Bean
 
 /**
- * De KvK-module staat aan met `nl-portal.config.kvk.enabled=true`. De bron per tenant is de koppeling `kvk` in het tenantbestand
- * (url en sleutel); deze schakelaar is alleen de keuze of de runtime de module aanbiedt.
+ * De KvK-module staat aan met `nl-portal.config.kvk.enabled=true` (de opstartkeuze, verdwijnt met #162). Per tenant en per request beslist
+ * de centrale gate op de permission-flag `permission.kvk.enabled` en de koppeling `kvk` in het tenantbestand (url en sleutel).
  */
 @AutoConfiguration(after = [KoppelingAutoConfiguration::class])
 @ConditionalOnProperty(prefix = "nl-portal.config", name = ["kvk.enabled"], havingValue = "true")
 class KvkAutoConfiguration {
+    /** Laat de gate, de frontend-modulelijst en de modulematrix de permission-flag van de module kennen. */
+    @Bean
+    fun kvkModuleFlag(): ModuleFlag = KVK_MODULE
+
     @Bean
     @ConditionalOnMissingBean(KvkService::class)
     fun kvkService(koppelingRegister: KoppelingRegister): KvkService = KvkService(koppelingRegister)

@@ -16,7 +16,10 @@
 package nl.nlportal.kvk.graphql
 
 import nl.nlportal.commonground.authentication.WithBedrijfUser
+import nl.nlportal.kvk.KVK_MODULE
 import nl.nlportal.kvk.TestHelper
+import nl.nlportal.core.modulegate.ModuleGate
+import nl.nlportal.core.testing.ModuleFlagBestand
 import nl.nlportal.core.tenancy.GeheimenBron
 import nl.nlportal.core.tenancy.TenantDirectory
 import nl.nlportal.core.tenancy.TenantKoppelingAuth
@@ -28,6 +31,7 @@ import okhttp3.mockwebserver.MockResponse
 import okhttp3.mockwebserver.MockWebServer
 import okhttp3.mockwebserver.RecordedRequest
 import org.junit.jupiter.api.AfterAll
+import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
@@ -39,6 +43,8 @@ import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.boot.test.context.TestConfiguration
 import org.springframework.context.annotation.Bean
 import org.springframework.graphql.test.tester.HttpGraphQlTester
+import org.springframework.test.context.DynamicPropertyRegistry
+import org.springframework.test.context.DynamicPropertySource
 import tools.jackson.databind.JsonNode
 
 @SpringBootTest
@@ -47,8 +53,16 @@ import tools.jackson.databind.JsonNode
 @TestInstance(TestInstance.Lifecycle.PER_METHOD)
 internal class KvkQueryIT(
     @Autowired private val httpGraphQlTester: HttpGraphQlTester,
+    @Autowired private val moduleGate: ModuleGate,
 ) {
     companion object {
+        /** Eén flagbestand voor alle testcontexts van deze module (OpenFeature is een JVM-brede singleton). */
+        internal val vlaggen = ModuleFlagBestand(listOf(KVK_MODULE))
+
+        @JvmStatic
+        @DynamicPropertySource
+        fun featureFlags(registry: DynamicPropertyRegistry) = vlaggen.registreer(registry)
+
         @JvmStatic
         val server: MockWebServer = MockWebServer().also { it.start() }
 
@@ -82,6 +96,37 @@ internal class KvkQueryIT(
 
         @Bean
         fun vasteTenantWebFilter() = VasteTenantWebFilter()
+    }
+
+    @AfterEach
+    internal fun herstelFlag() {
+        vlaggen.herstel(moduleGate)
+    }
+
+    @Test
+    @WithBedrijfUser(kvkNummer = "90012768")
+    fun `getBedrijf is niet beschikbaar als de modulevlag uit staat`() {
+        vlaggen.zet(KVK_MODULE, aan = false, gate = moduleGate)
+
+        httpGraphQlTester
+            .document("query { getBedrijf { naam } }")
+            .execute()
+            .errors()
+            .expect { it.message == "Module 'kvk' is niet beschikbaar" && it.extensions["code"] == "MODULE_NOT_AVAILABLE" }
+            .verify()
+    }
+
+    @Test
+    @WithBedrijfUser(kvkNummer = "90012768")
+    fun `getBedrijf is niet beschikbaar voor een tenant waarvoor de vlag uit staat`() {
+        vlaggen.zet(KVK_MODULE, aan = true, gate = moduleGate, alleenVoor = setOf(TestTenants.WIJDE_VELD))
+
+        httpGraphQlTester
+            .document("query { getBedrijf { naam } }")
+            .execute()
+            .errors()
+            .expect { it.extensions["code"] == "MODULE_NOT_AVAILABLE" }
+            .verify()
     }
 
     @BeforeEach
