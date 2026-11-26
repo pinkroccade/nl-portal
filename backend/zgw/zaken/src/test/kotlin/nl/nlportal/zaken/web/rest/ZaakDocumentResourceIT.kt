@@ -18,6 +18,7 @@ package nl.nlportal.zaken.web.rest
 import nl.nlportal.commonground.authentication.WithBurgerUser
 import nl.nlportal.core.util.Mapper
 import nl.nlportal.zaken.TestHelper
+import nl.nlportal.zaken.ZakenFlagFile
 import nl.nlportal.zaken.ZakenTestTenantConfiguratie
 import org.springframework.boot.test.context.TestConfiguration
 import okhttp3.mockwebserver.MockResponse
@@ -29,6 +30,8 @@ import org.junit.jupiter.api.TestInstance
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.webtestclient.autoconfigure.AutoConfigureWebTestClient
 import org.springframework.boot.test.context.SpringBootTest
+import org.springframework.test.context.DynamicPropertyRegistry
+import org.springframework.test.context.DynamicPropertySource
 import org.springframework.test.web.reactive.server.WebTestClient
 import kotlin.test.assertEquals
 
@@ -110,4 +113,10 @@ class ZaakDocumentResourceIT(
             .getResourceAsStream(name)
             ?.readAllBytes()
             ?.decodeToString()
+
+    companion object {
+        @JvmStatic
+        @DynamicPropertySource
+        fun featureFlags(registry: DynamicPropertyRegistry) = ZakenFlagFile.vlaggen.registreer(registry)
+    }
 }

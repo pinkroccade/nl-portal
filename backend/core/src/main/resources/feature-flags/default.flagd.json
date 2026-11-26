@@ -25,6 +25,14 @@
       },
       "defaultVariant": "off"
     },
+    "permission.zaken.enabled": {
+      "state": "ENABLED",
+      "variants": {
+        "on": true,
+        "off": false
+      },
+      "defaultVariant": "off"
+    },
     "permission.payment-direct.enabled": {
       "state": "ENABLED",
       "variants": {

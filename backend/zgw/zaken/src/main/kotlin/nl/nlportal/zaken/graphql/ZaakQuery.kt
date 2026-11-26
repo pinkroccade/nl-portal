@@ -38,7 +38,7 @@ import org.springframework.graphql.data.method.annotation.QueryMapping
 import org.springframework.graphql.data.method.annotation.SchemaMapping
 import org.springframework.stereotype.Controller
 
-@ModuleEndpoint("zaken", overgang = true)
+@ModuleEndpoint("zaken")
 @Controller
 open class ZaakQuery(
     val zakenApiService: ZakenApiService,
