@@ -27,6 +27,9 @@ class TenantContextMissingException : IllegalStateException("Geen tenant in de R
  * leest de tenant.
  */
 object TenantContext {
+    /** De tenant uit een Reactor-context, of `null` zonder tenant; voor code die de context zelf in handen heeft (bijvoorbeeld GraphQL). */
+    fun van(context: reactor.util.context.ContextView): Oin? = context.getOrEmpty<Oin>(SLEUTEL).orElse(null)
+
     internal const val SLEUTEL: String = "nl.nlportal.core.tenancy.Oin"
 
     /** Voor `suspend`-code: leest de Reactor Context die kotlinx-coroutines-reactor in de coroutinecontext zet. */

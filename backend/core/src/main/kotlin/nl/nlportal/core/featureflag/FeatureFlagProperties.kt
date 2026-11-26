@@ -29,9 +29,6 @@ class FeatureFlagProperties {
     var context: Context = Context()
 
     class Context {
-        /** The tenant this instance serves. Single-tenant for now; resolution per request follows with multi-tenancy. */
-        var tenant: String = "default"
-
         /** The environment, for example `ontwikkel`, `test`, `acceptatie` or `productie`. Omitted when not set. */
         var environment: String? = null
     }

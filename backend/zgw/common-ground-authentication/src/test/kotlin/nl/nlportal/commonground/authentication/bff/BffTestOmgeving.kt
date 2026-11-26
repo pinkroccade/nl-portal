@@ -15,6 +15,7 @@
  */
 package nl.nlportal.commonground.authentication.bff
 
+import nl.nlportal.core.modulegate.ModuleEndpoint
 import com.nimbusds.jose.JWSAlgorithm
 import com.nimbusds.jose.jwk.RSAKey
 import com.nimbusds.jose.jwk.gen.RSAKeyGenerator
@@ -233,6 +234,7 @@ object BffTestOmgeving {
         }
 }
 
+@ModuleEndpoint(ModuleEndpoint.KERN)
 @RestController
 class TestEindpunten {
     @GetMapping("/api/test/wie")
@@ -265,6 +267,7 @@ class TestEindpunten {
 }
 
 /** Een GraphQL-resolver zoals de modules die hebben: de identiteit komt als `PortalAuthentication`, en de bron wordt aangeroepen. */
+@ModuleEndpoint(ModuleEndpoint.KERN)
 @Controller
 class TestGraphQl {
     @QueryMapping

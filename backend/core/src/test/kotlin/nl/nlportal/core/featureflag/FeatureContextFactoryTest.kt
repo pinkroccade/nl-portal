@@ -19,7 +19,10 @@ import dev.openfeature.sdk.EvaluationContext
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertFalse
 import org.junit.jupiter.api.Assertions.assertNull
+import org.junit.jupiter.api.Assertions.assertThrows
 import org.junit.jupiter.api.Test
+import nl.nlportal.core.tenancy.TenantContextMissingException
+import nl.nlportal.core.testing.TestTenants
 import org.springframework.security.authentication.AbstractAuthenticationToken
 import org.springframework.security.authentication.AnonymousAuthenticationToken
 import org.springframework.security.core.authority.SimpleGrantedAuthority
@@ -31,7 +34,6 @@ class FeatureContextFactoryTest {
     private val factory =
         FeatureContextFactory(
             FeatureFlagProperties.Context().apply {
-                tenant = "gemeente-a"
                 environment = "test"
             },
         )
@@ -52,20 +54,21 @@ class FeatureContextFactoryTest {
         override fun getPrincipal(): Any = subject
     }
 
+    private val oin = TestTenants.BOSRAND
     private val citizen = CitizenAuthentication(SUBJECT)
 
     @Test
     fun `an authenticated request carries tenant, environment and user type`() {
-        val context = factory.create(citizen)
+        val context = factory.create(oin, citizen)
 
-        assertEquals("gemeente-a", context.getValue("tenant").asString())
+        assertEquals(oin.value, context.getValue("tenant").asString())
         assertEquals("test", context.getValue("environment").asString())
         assertEquals("bsn", context.getValue("userType").asString())
     }
 
     @Test
     fun `the context never holds a user id, only tenant, environment and user type`() {
-        val context = factory.create(citizen)
+        val context = factory.create(oin, citizen)
 
         assertNull(context.targetingKey)
         assertEquals(setOf("tenant", "environment", "userType"), context.keySet())
@@ -78,7 +81,7 @@ class FeatureContextFactoryTest {
         val unauthenticated = CitizenAuthentication(SUBJECT).apply { isAuthenticated = false }
 
         listOf(anonymous, unauthenticated).forEach {
-            val context = factory.create(it)
+            val context = factory.create(oin, it)
             assertNull(context.targetingKey)
             assertNull(context.getValue("userType"))
         }
@@ -86,11 +89,11 @@ class FeatureContextFactoryTest {
 
     @Test
     fun `an anonymous request carries tenant and environment only`() {
-        val context = factory.create(null)
+        val context = factory.create(oin)
 
         assertNull(context.targetingKey)
         assertNull(context.getValue("userType"))
-        assertEquals("gemeente-a", context.getValue("tenant").asString())
+        assertEquals(oin.value, context.getValue("tenant").asString())
     }
 
     @Test
@@ -102,6 +105,7 @@ class FeatureContextFactoryTest {
                 .flatMap { first -> factory.current().map { second -> first to second } }
                 .subscribeOn(Schedulers.parallel())
                 .contextWrite(ReactiveSecurityContextHolder.withAuthentication(citizen))
+                .contextWrite(TestTenants.tenantContext(oin))
                 .block()!!
 
         assertEquals("bsn", context.first.getValue("userType").asString())
@@ -110,10 +114,15 @@ class FeatureContextFactoryTest {
 
     @Test
     fun `the current context is anonymous outside an authenticated request`() {
-        val context = Mono.defer { factory.current() }.block()!!
+        val context = Mono.defer { factory.current() }.contextWrite(TestTenants.tenantContext(oin)).block()!!
 
         assertNull(context.targetingKey)
-        assertEquals("gemeente-a", context.getValue("tenant").asString())
+        assertEquals(oin.value, context.getValue("tenant").asString())
+    }
+
+    @Test
+    fun `without a tenant in the context there is no evaluation context`() {
+        assertThrows(TenantContextMissingException::class.java) { Mono.defer { factory.current() }.block() }
     }
 
     private fun allValues(context: EvaluationContext): List<String> = listOfNotNull(context.targetingKey) + context.asObjectMap().values.map { it.toString() }

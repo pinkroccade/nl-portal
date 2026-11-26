@@ -46,7 +46,7 @@ backend:
     allowedOrigins: [https://debosrand.example.nl]
   featureFlags:
     flags:
-      ops.documentenapis.enabled:
+      permission.documentenapis.enabled:
         state: ENABLED
         variants: {"on": true, "off": false}
         defaultVariant: "on"

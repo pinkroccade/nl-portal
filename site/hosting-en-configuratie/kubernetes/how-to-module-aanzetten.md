@@ -32,7 +32,7 @@ modulegegevens in het tenantbestand, en de geheimen in het Secret.
 
 5. **Open de egress** van de backend naar de bron ([egress per module](./referentie-infra-vereisten.md#egress-per-module)).
 
-Uitzondering: `berichten` zet je aan met de feature flag `ops.berichten.enabled` in `backend.featureFlags` en `modules.berichten` in het tenantbestand;
+Uitzondering: `berichten` zet je aan met de feature flag `permission.berichten.enabled` in `backend.featureFlags` en `modules.berichten` in het tenantbestand;
 `backend.modules.berichten.enabled` verklaart alleen de bedoeling, zodat de afhankelijkheidscontrole draait. Feature flags lever je als YAML onder
 `backend.featureFlags`; de chart maakt er het flagbestand van ([Feature flags](../feature-flags.md), [Module dependency guide](../module-dependency-guide.md)).
 

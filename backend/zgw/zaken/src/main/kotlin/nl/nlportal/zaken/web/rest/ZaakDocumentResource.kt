@@ -15,6 +15,7 @@
  */
 package nl.nlportal.zaken.web.rest
 
+import nl.nlportal.core.modulegate.ModuleEndpoint
 import io.github.oshai.kotlinlogging.KotlinLogging
 import kotlinx.coroutines.flow.Flow
 import nl.nlportal.portal.authentication.domain.PortalAuthentication
@@ -31,6 +32,7 @@ import org.springframework.web.bind.annotation.RequestMapping
 import org.springframework.web.bind.annotation.RestController
 import org.springframework.web.server.ResponseStatusException
 
+@ModuleEndpoint("zaken", overgang = true)
 @RestController
 @RequestMapping(value = ["/api"])
 class ZaakDocumentResource(

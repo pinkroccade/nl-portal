@@ -25,9 +25,14 @@ import nl.nlportal.core.frontend.web.rest.FrontendConfigurationResource
 import nl.nlportal.core.frontend.web.rest.PingResource
 import nl.nlportal.core.modulegate.ModuleFlag
 import nl.nlportal.core.modulegate.ModuleGate
-import nl.nlportal.core.modulegate.ModuleNotAvailableAdvice
 import nl.nlportal.core.util.Mapper
+import org.springframework.beans.factory.ListableBeanFactory
 import org.springframework.beans.factory.ObjectProvider
+import org.springframework.beans.factory.SmartInitializingSingleton
+import org.springframework.web.reactive.result.method.annotation.RequestMappingHandlerMapping
+import nl.nlportal.core.tenancy.TenantDirectory
+import nl.nlportal.core.modulegate.ModuleEndpoints
+import nl.nlportal.core.modulegate.ModuleGateWebFilter
 import org.springframework.boot.autoconfigure.AutoConfiguration
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty
@@ -55,11 +60,39 @@ class CoreAutoConfiguration {
         featureGate: FeatureGate,
         featureContextFactory: FeatureContextFactory,
         modules: ObjectProvider<ModuleFlag>,
-    ) = ModuleGate(featureGate, featureContextFactory, modules.orderedStream().toList())
+        directory: ObjectProvider<TenantDirectory>,
+    ) = ModuleGate(featureGate, featureContextFactory, modules.orderedStream().toList()) { directory.getObject() }
+
+    /** The registration of the endpoints at the gate; a registration that names an unknown module stops the startup. */
+    @Bean
+    @ConditionalOnMissingBean(ModuleEndpoints::class)
+    fun moduleEndpoints(
+        beanFactory: ListableBeanFactory,
+        modules: ObjectProvider<ModuleFlag>,
+    ) = ModuleEndpoints(beanFactory, modules.orderedStream().toList())
 
     @Bean
-    @ConditionalOnMissingBean(ModuleNotAvailableAdvice::class)
-    fun moduleNotAvailableAdvice() = ModuleNotAvailableAdvice()
+    fun moduleEndpointsControle(endpoints: ModuleEndpoints) = SmartInitializingSingleton { endpoints.controleer() }
+
+    /** Signals at startup a flag that is on without configuration of the tenant (ADR 0021, 0026): the module stays off. */
+    @Bean
+    fun moduleFlagZonderConfiguratieWaarschuwing(gate: ModuleGate) =
+        SmartInitializingSingleton {
+            runCatching { gate.flagZonderConfiguratie() }.getOrDefault(emptyList()).forEach {
+                io.github.oshai.kotlinlogging.KotlinLogging
+                    .logger {}
+                    .warn { "Tenant ${it.oin}: de flag van module '${it.module}' staat aan, maar de configuratie ontbreekt; de module staat uit" }
+            }
+        }
+
+    /** The REST side of the central module gate: deny by default, module off means 503. */
+    @Bean
+    @ConditionalOnMissingBean(ModuleGateWebFilter::class)
+    fun moduleGateWebFilter(
+        handlerMappings: ObjectProvider<RequestMappingHandlerMapping>,
+        endpoints: ModuleEndpoints,
+        gate: ModuleGate,
+    ) = ModuleGateWebFilter(handlerMappings, endpoints, gate)
 
     @Bean
     @ConditionalOnMissingBean(FrontendConfigurationService::class)

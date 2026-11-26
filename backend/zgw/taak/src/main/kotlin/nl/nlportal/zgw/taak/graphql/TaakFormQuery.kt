@@ -15,6 +15,7 @@
  */
 package nl.nlportal.zgw.taak.graphql
 
+import nl.nlportal.core.modulegate.ModuleEndpoint
 import nl.nlportal.portal.authentication.domain.PortalAuthentication
 import nl.nlportal.form.graphql.FormDefinition
 import nl.nlportal.form.service.ObjectsApiFormDefinitionService
@@ -28,6 +29,7 @@ import org.springframework.stereotype.Controller
 import org.springframework.web.server.ResponseStatusException
 import java.util.UUID
 
+@ModuleEndpoint("taak", overgang = true)
 @Controller
 class TaakFormQuery(
     private val taakService: TaakService,

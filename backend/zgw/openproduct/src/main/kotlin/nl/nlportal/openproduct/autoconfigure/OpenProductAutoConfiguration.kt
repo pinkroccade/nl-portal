@@ -33,6 +33,7 @@ import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.autoconfigure.AutoConfiguration
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty
+import nl.nlportal.core.tenancy.NietGemigreerdeModule
 import org.springframework.boot.context.properties.EnableConfigurationProperties
 import org.springframework.context.annotation.Bean
 import org.springframework.web.reactive.function.client.WebClient
@@ -43,6 +44,10 @@ import org.springframework.web.reactive.function.client.WebClient
 )
 @ConditionalOnProperty(prefix = "nl-portal.config", name = ["openproduct.enabled", "objectenapi.enabled", "taak.enabled", "zakenapi.enabled", "documentenapis.enabled"], havingValue = "true")
 class OpenProductAutoConfiguration {
+    /** Openproduct leest nog gedeelde instellingen (T17, uitgesteld tot na de livegang): niet aan in een runtime met meer dan één tenant. */
+    @Bean
+    fun openproductNietGemigreerd() = NietGemigreerdeModule("openproduct")
+
     @Bean
     @ConditionalOnMissingBean(OpenProductClient::class)
     fun openProductClient(openProductModuleConfiguration: OpenProductModuleConfiguration): OpenProductClient =

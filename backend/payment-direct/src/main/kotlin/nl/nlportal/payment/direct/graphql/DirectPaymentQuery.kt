@@ -15,6 +15,7 @@
  */
 package nl.nlportal.payment.direct.graphql
 
+import nl.nlportal.core.modulegate.ModuleEndpoint
 import nl.nlportal.portal.authentication.domain.PortalAuthentication
 import nl.nlportal.payment.direct.domain.DirectPaymentStatus
 import nl.nlportal.payment.direct.service.DirectPaymentService
@@ -22,6 +23,7 @@ import org.springframework.graphql.data.method.annotation.Argument
 import org.springframework.graphql.data.method.annotation.QueryMapping
 import org.springframework.stereotype.Controller
 
+@ModuleEndpoint("payment-direct", overgang = true)
 @Controller
 class DirectPaymentQuery(
     private val directPaymentService: DirectPaymentService,

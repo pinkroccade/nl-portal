@@ -15,6 +15,7 @@
  */
 package nl.nlportal.app.security
 
+import nl.nlportal.core.modulegate.ModuleEndpoint
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.async
@@ -30,6 +31,7 @@ import reactor.core.scheduler.Schedulers
  * Probes voor de tenant-ITs: wat leest code achter de tenantresolutie via [TenantContext] en de MDC? Staat onder
  * `/api/public` zodat de security-keten ze doorlaat; alleen in de testbron.
  */
+@ModuleEndpoint(ModuleEndpoint.KERN)
 @RestController
 class TenantProbeController {
     @GetMapping("/api/public/tenant-probe")

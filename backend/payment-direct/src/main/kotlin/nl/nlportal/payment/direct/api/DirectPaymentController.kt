@@ -15,6 +15,7 @@
  */
 package nl.nlportal.payment.direct.api
 
+import nl.nlportal.core.modulegate.ModuleEndpoint
 import nl.nlportal.payment.direct.service.DirectPaymentService
 import nl.nlportal.payment.direct.service.DirectPaymentWebhookService
 import org.springframework.http.ResponseEntity
@@ -24,6 +25,7 @@ import org.springframework.web.bind.annotation.RequestBody
 import org.springframework.web.bind.annotation.RequestMapping
 import org.springframework.web.bind.annotation.RestController
 
+@ModuleEndpoint("payment-direct", overgang = true)
 @RestController
 @RequestMapping(value = ["/api/public"])
 class DirectPaymentController(

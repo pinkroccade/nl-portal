@@ -15,6 +15,7 @@
  */
 package nl.nlportal.core.frontend.web.rest
 
+import nl.nlportal.core.modulegate.ModuleEndpoint
 import org.springframework.http.HttpStatus
 import org.springframework.http.MediaType
 import org.springframework.web.bind.annotation.GetMapping
@@ -22,6 +23,7 @@ import org.springframework.web.bind.annotation.RequestMapping
 import org.springframework.web.bind.annotation.ResponseStatus
 import org.springframework.web.bind.annotation.RestController
 
+@ModuleEndpoint(ModuleEndpoint.KERN)
 @RestController
 @RequestMapping("/api/public/ping")
 class PingResource {

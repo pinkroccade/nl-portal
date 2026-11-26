@@ -1,107 +1,127 @@
 # Module aan- of uitzetten met een module-flag
 
-Zo schakel je een backendmodule per request aan of uit met een feature flag. Berichten (`:zgw:berichten`) is de
-eerste module die dit doet (#157, onderdeel van #143) en is het voorbeeld voor de andere modules. De keuze voor
-flags staat in [ADR 0014](../adr/0014-feature-flags-via-openfeature.md), de regels voor sleutels en context in
-[ADR 0020](../adr/0020-levenscyclus-feature-flags-en-privacy-evaluatiecontext.md).
+Zo schakel je een backendmodule per tenant aan of uit met een permission-flag. Eén centrale gate beslist; een resolver of
+resource roept de gate zelf niet aan. Het ontwerp staat in
+[ADR 0026](../adr/0026-least-functionality-in-een-gedeelde-runtime.md) (least functionality), de keuze voor flags in
+[ADR 0014](../adr/0014-feature-flags-via-openfeature.md) en de regels voor sleutels en context in
+[ADR 0020](../adr/0020-levenscyclus-feature-flags-en-privacy-evaluatiecontext.md). Berichten (`:zgw:berichten`) is de eerste
+module op de centrale gate en het voorbeeld voor de andere.
 
-::: warning Tussenstap
-Dit patroon (een `require`-aanroep per resolver, beans, clients en schema altijd aanwezig) is een tussenstap.
-[ADR 0026](../adr/0026-least-functionality-in-een-gedeelde-runtime.md) (voorgesteld) vraagt één centrale gate per
-tenant, deny by default, met een ArchUnit-regel dat elk module-endpoint bij de gate is geregistreerd. T22
-([#521](https://github.com/pinkroccade/nl-portal/issues/521)) bouwt dat en vervangt dit patroon; de eisen staan in
-de ADR. Tot die tijd geldt wat hieronder staat: vergeet de `require`-aanroep niet, want een vergeten aanroep is een
-open endpoint.
+::: warning Overgang
+Alleen berichten (met de afhankelijkheid documentenapis) staat nu op de gate. De andere modules dragen op hun controllers
+`@ModuleEndpoint("<module>", overgang = true)`: hun endpoints blijven bereikbaar zoals voorheen, en een ArchUnit-ratchet
+(`ModuleGateRegels`) laat het aantal overgangsregistraties alleen kleiner worden. Elke module gaat in een eigen stap over (T22,
+[#521](https://github.com/pinkroccade/nl-portal/issues/521)); daarna gaan de oude module-properties weg
+([#162](https://github.com/pinkroccade/nl-portal/issues/162)).
 :::
 
 ## Wat de gate doet
 
-- De beans van de module (service, GraphQL-controller, REST-resource) bestaan altijd, ook als de module uit staat.
-- Elke GraphQL-query of -mutatie en elke REST-resource van de module roept eerst `ModuleGate.require(...)` aan.
-  Staat de flag uit, dan volgt een duidelijke "niet beschikbaar"-fout:
-  - GraphQL: een fout met de melding `Module 'berichten' is niet beschikbaar` en `extensions.code = MODULE_NOT_AVAILABLE`.
-  - REST: HTTP 503 met een `ProblemDetail`-antwoord (`detail`: dezelfde melding).
-- Alle GraphQL-fouten van modules zetten `GraphQLExceptionHandler` om, op één plek, met codes in `extensions.code`:
+Een module is **bruikbaar voor een tenant** als twee dingen kloppen, en allebei voor de module zelf en voor elke module die hij
+vereist:
 
-  | Code | Wanneer | Melding naar de browser |
-  |---|---|---|
-  | `MODULE_NOT_AVAILABLE` | de module-flag staat uit (met `extensions.module`) | `Module '<module>' is niet beschikbaar` |
-  | `MODULE_NIET_GECONFIGUREERD` | de tenant heeft geen `modules.<naam>` | `De module is niet beschikbaar` |
-  | `TENANT_ONTBREEKT` | het verzoek heeft geen tenant | `De aanvraag kan niet worden verwerkt` |
-  | `KOPPELING_FOUT` | de bron van een koppeling faalt (met `extensions.correlatieId`) | `Koppeling '<naam>' is niet beschikbaar (referentie <id>)` |
+1. **Configuratie.** Het tenantbestand van de tenant bevat de koppelingen (`koppelingen.<naam>`) en de modulegegevens
+   (`modules.<naam>`) die de module nodig heeft. Dit ligt bij het opstarten vast.
+2. **Flag.** De permission-flag `permission.<module>.enabled` staat voor die tenant aan. Dit wordt per request beoordeeld.
 
-  `MODULE_NOT_AVAILABLE` is bestaand contract (clients kunnen erop toetsen) en blijft daarom Engels.
+Flag zonder configuratie betekent uit; configuratie zonder flag is toegestaan (dark uitrollen). Een ontbrekende flag, een flag die
+niet te evalueren is en een request zonder tenant weigeren (fail-closed). Een flagwijziging vóór de eerstvolgende restart kan dus
+nooit een andere tenant bereikbaar maken en nooit een module zonder configuratie aanzetten: de tenant komt uit de `TenantContext`
+en de configuratie uit het tenantregister dat bij het opstarten is gebouwd.
 
-  De meldingen van `MODULE_NIET_GECONFIGUREERD` en `TENANT_ONTBREEKT` zijn vaste teksten: de OIN en de naam van een instelling gaan
-  alleen naar de log. Een nieuw type fout voeg je toe aan `GraphQLExceptionHandler.afhandeling`.
-- Het GraphQL-schema verandert niet: de velden blijven zichtbaar in introspectie.
-- De `modules`-lijst van `GET /api/public/frontend` en de modulestatus op de beheerpoort (`/actuator/modulestatus`)
-  volgen dezelfde flag. De oude `nl-portal.config.<module>.enabled` bepaalt dat voor een gegate module niet meer.
-- Zonder flagdefinitie staat de module uit (standaard in de code). Zet hem aan in je flagbestand.
+De gate is eenmalig geregistreerd op de rand van de applicatie:
+
+- **GraphQL**: `ModuleGateInstrumentation` (module `:graphql`) laat elk root-veld (query, mutatie, subscription) eerst door de gate
+  lopen, vóór de data fetcher draait. Een module die niet bruikbaar is geeft de fout `Module '<module>' is niet beschikbaar` met
+  `extensions.code = MODULE_NOT_AVAILABLE`. Een root-veld waar geen geregistreerde controller bij hoort geeft `ENDPOINT_NIET_GEREGISTREERD`.
+- **REST**: `ModuleGateWebFilter` (module `core`) zoekt de controller die het request afhandelt en vraagt de gate. Een module die
+  niet bruikbaar is geeft HTTP 503 met een `ProblemDetail`-antwoord; een niet-geregistreerde resource geeft 404. Het filter draait ná
+  de security-keten en de tenantresolutie, dus een anoniem request op een beveiligd pad krijgt eerst 401.
+
+Het GraphQL-schema verandert niet per tenant: de velden blijven bestaan, ook voor een tenant die de module niet heeft. Introspectie
+staat in `:app` uit (`spring.graphql.schema.introspection.enabled=false`), zodat het schema van een uitgeschakelde module niet te
+ontdekken is. `:app-dev` zet introspectie aan voor de codegen van de frontend.
+
+## Deny by default: `@ModuleEndpoint`
+
+Elke GraphQL-controller en elke REST-resource draagt `@ModuleEndpoint`. Zonder de annotatie is het endpoint niet bereikbaar
+(404 voor REST, `ENDPOINT_NIET_GEREGISTREERD` voor GraphQL) en faalt de ArchUnit-regel.
+
+```kotlin
+@ModuleEndpoint("berichten")              // de module met een ModuleFlag-bean
+@Controller
+class BerichtenQuery(private val berichtenService: BerichtenService) { ... }
+
+@ModuleEndpoint(ModuleEndpoint.KERN)      // hoort bij de kern: voor elke tenant bereikbaar
+@RestController
+class FrontendConfigurationResource(...) { ... }
+
+@ModuleEndpoint("zaken", overgang = true) // nog niet op de gate (zie de waarschuwing hierboven)
+@Controller
+class ZaakQuery(...) { ... }
+```
+
+Een `@ModuleEndpoint` met een modulenaam zonder `ModuleFlag`-bean laat het opstarten falen.
+
+Een veld dat een onderdeel is van een gegate bovenliggend object (zoals `Bericht.documenten`) hoeft niets te doen: de gate beslist op
+het root-veld.
 
 ## De module-flag
 
-Een `ModuleFlag("berichten")` is de ops-flag `ops.berichten.enabled`. De module maakt hem bekend als bean, zodat de
-frontend-lijst en de modulestatus hem kennen:
+Een `ModuleFlag` is de permission-flag `permission.<module>.enabled` en weet wat de module van de tenant nodig heeft. De module maakt
+hem bekend als bean, zodat de gate, de frontend-lijst en de modulematrix hem kennen:
 
 ```kotlin
-val BERICHTEN_MODULE = ModuleFlag("berichten")
+val DOCUMENTENAPIS_MODULE = ModuleFlag("documentenapis", moduleConfiguratie = DocumentenApiTenantConfiguratie.NAAM)
+
+val BERICHTEN_MODULE =
+    ModuleFlag(
+        "berichten",
+        requires = listOf(DOCUMENTENAPIS_MODULE),
+        koppelingen = setOf(ObjectsApiClient.MODULE),
+        moduleConfiguratie = BerichtenTenantConfiguratie.NAAM,
+    )
 
 @Bean
 fun berichtenModuleFlag(): ModuleFlag = BERICHTEN_MODULE
 ```
 
-## Gate in een query of resource
+`ops.*`-flags blijven bestaan voor noodremmen en bedrijfsvoering; een module aan- of uitzetten per tenant is een permissie
+([ADR 0020](../adr/0020-levenscyclus-feature-flags-en-privacy-evaluatiecontext.md)).
 
-Geef de authenticatie van het request expliciet mee. De gate bouwt daaruit de evaluatiecontext (tenant, omgeving,
-gebruikerstype); er is geen thread-gebonden state.
+## Afhankelijkheden tussen modules
 
-```kotlin
-@QueryMapping
-suspend fun getBerichten(authentication: PortalAuthentication, ...): BerichtenPage {
-    moduleGate.require(BERICHTEN_MODULE, authentication)
-    return berichtenService.getBerichtenPage(...)
-}
-```
+Een module-flag declareert de flags die hij vereist, in de code bij de flag zelf (`requires`). De gate kijkt naar de eigen flag en
+configuratie en naar die van alle vereiste modules, ook de indirecte. Staat een vereiste flag uit of ontbreekt hij, of mist de tenant
+de configuratie van een vereiste module, dan is de module fail-closed niet beschikbaar, ook als zijn eigen flag aan staat. Cycli
+kunnen niet voorkomen: een `ModuleFlag` bevat zijn vereisten als waarde. `ModuleGate.dependencies()` geeft de graaf als lijst per
+geregistreerde module; de tabel staat in de [feature flags-referentie](../../hosting-en-configuratie/feature-flags.md).
 
-Een veld dat een onderdeel is van een gegate bovenliggend object (zoals `Bericht.documenten`) hoeft de gate niet zelf
-aan te roepen.
+## Frontend en beheer
 
-## Afhankelijkheden tussen modules (#158)
-
-Een module-flag declareert de flags die hij vereist, in de code bij de flag zelf:
-
-```kotlin
-val DOCUMENTENAPIS_MODULE = ModuleFlag("documentenapis")
-val BERICHTEN_MODULE = ModuleFlag("berichten", requires = listOf(DOCUMENTENAPIS_MODULE))
-```
-
-`ModuleGate.isEnabled` en `require` kijken naar de eigen flag en naar alle vereiste flags, ook die van vereiste modules.
-Staat een vereiste flag uit of ontbreekt hij, dan is de module fail-closed niet beschikbaar, ook als zijn eigen flag aan
-staat. Cycli kunnen niet voorkomen: een `ModuleFlag` bevat zijn vereisten als waarde. `ModuleGate.dependencies()` geeft
-de graaf als lijst per geregistreerde module. De bijgewerkte tabel staat in de
-[feature flags-referentie](../../hosting-en-configuratie/feature-flags.md). De vereiste flag hoeft zelf niet als bean
-geregistreerd te zijn: een module die nog niet via zijn flag wordt aan- of uitgezet (zoals documentenapis) is alleen
-afhankelijkheid.
+- De `modules`-lijst van `GET /api/public/frontend` is per tenant en toont alleen de bruikbare modules van een module op de gate.
+- Het beheerendpoint `/actuator/modulestatus` (beheerpoort) toont per module de status van de bronnen en, voor een module op de gate,
+  de **modulematrix** over alle tenants: per tenant `geconfigureerd`, `flag` en `bruikbaar`.
 
 ## Wat startup-gebonden blijft
 
-De gate werkt per request. Dit blijft bij het opstarten vastliggen en valt buiten de gate:
-HTTP-clients, de security filter chain, het GraphQL-schema en de property-binding. Een module blijft daarnaast
-afhankelijk van de modules waar zijn beans om vragen: berichten heeft nog steeds `documentenapis.enabled` nodig
-en een Objecten API-bean. Dat afhankelijkheidsmodel volgt in een apart ticket binnen #143.
+De gate werkt per request. Dit blijft bij het opstarten vastliggen en valt buiten de gate: de HTTP-clients, de security filter chain,
+het GraphQL-schema, de property-binding en de configuratie in het tenantbestand. Een module blijft daarnaast afhankelijk van de modules
+waar zijn beans om vragen: berichten heeft nog steeds `documentenapis.enabled` nodig en een Objecten API-bean. Dat verdwijnt met #162.
 
 ## Testen
 
-Test op de applicatiegrens: start de applicatie met een flagbestand en doe een echt GraphQL- of REST-request.
-`BerichtenQueryIT` en `BerichtDocumentResourceIT` doen dat voor aan en uit. Let op: OpenFeature is een globale
-singleton in de JVM. Laat alle testcontexts van een module daarom hetzelfde flagbestand gebruiken
-(`BerichtenFlagFile`) in plaats van elk een eigen bestand.
+Test op de applicatiegrens: start de applicatie met een flagbestand en doe een echt GraphQL- of REST-request. `BerichtenQueryIT` en
+`BerichtDocumentResourceIT` doen dat voor aan, uit en een uitgeschakelde afhankelijkheid. Let op: OpenFeature is een globale singleton
+in de JVM. Laat alle testcontexts van een module daarom hetzelfde flagbestand gebruiken (`BerichtenFlagFile`) in plaats van elk een
+eigen bestand. Een test met twee tenants zet de flag voor één OIN aan (zie `ModuleGateTest`).
 
 ## Een module overzetten
 
-1. Voeg `ops.<module>.enabled` toe aan `default.flagd.json` (uit) en aan het compose-flagbestand (aan).
-2. Haal `<module>.enabled` uit de `@ConditionalOnProperty` van de autoconfiguratie en uit de `@ConfigurationProperties`.
-3. Registreer de `ModuleFlag` als bean en roep `moduleGate.require(...)` aan in elke query, mutatie en resource.
-4. Verwijder `NLPORTAL_CONFIG_<MODULE>_ENABLED` uit voorbeeld- en compose-bestanden en zet de flag in de testbestanden.
-5. Declareer de vereiste modules met `requires` en schrijf de tests voor aan, uit en een uitgeschakelde afhankelijkheid en neem de flag op in de [feature flags-referentie](../../hosting-en-configuratie/feature-flags.md).
+1. Declareer de `ModuleFlag` met `koppelingen` en `moduleConfiguratie` en registreer hem als bean.
+2. Zet `@ModuleEndpoint("<module>")` op elke controller van de module (haal `overgang = true` weg) en verwijder de `ModuleGate`-parameter
+   en elke `require`-aanroep.
+3. Voeg `permission.<module>.enabled` toe aan `default.flagd.json` (uit) en aan de flagbestanden van compose en de tenants (aan).
+4. Declareer de vereiste modules met `requires`, schrijf de tests voor aan, uit, een uitgeschakelde afhankelijkheid en een tweede tenant,
+   en neem de flag en de afhankelijkheid op in de [feature flags-referentie](../../hosting-en-configuratie/feature-flags.md).
+5. Haal de module uit `ModuleGateRegels.OVERGANG` (de ratchet) en de oude `<module>.enabled`-property uit de autoconfiguratie (#162).

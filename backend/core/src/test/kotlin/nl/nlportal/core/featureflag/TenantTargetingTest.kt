@@ -15,6 +15,7 @@
  */
 package nl.nlportal.core.featureflag
 
+import nl.nlportal.core.testing.TestTenants
 import nl.nlportal.core.util.Mapper
 import org.junit.jupiter.api.Assertions.assertFalse
 import org.junit.jupiter.api.Assertions.assertTrue
@@ -33,7 +34,6 @@ import org.springframework.test.web.reactive.server.WebTestClient
 @SpringBootTest(
     properties = [
         "nl-portal.feature-flags.file=src/test/resources/feature-flags/tenant-targeting.flagd.json",
-        "nl-portal.feature-flags.context.tenant=gemeente-a",
     ],
 )
 @AutoConfigureWebTestClient
@@ -66,7 +66,7 @@ class TenantTargetingTest(
     @Test
     fun `another tenant does not match the targeting rule`() {
         val otherTenant =
-            FeatureContextFactory(FeatureFlagProperties.Context().apply { tenant = "gemeente-b" }).create(null)
+            FeatureContextFactory(FeatureFlagProperties.Context()).create(TestTenants.WIJDE_VELD)
 
         assertFalse(featureGate.isEnabled(FeatureFlag("ops.frontend.message-count", ToggleType.OPS), otherTenant))
     }

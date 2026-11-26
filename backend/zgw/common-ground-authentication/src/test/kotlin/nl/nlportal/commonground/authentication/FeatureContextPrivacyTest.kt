@@ -18,6 +18,7 @@ package nl.nlportal.commonground.authentication
 import dev.openfeature.sdk.EvaluationContext
 import nl.nlportal.core.featureflag.FeatureContextFactory
 import nl.nlportal.core.featureflag.FeatureFlagProperties
+import nl.nlportal.core.tenancy.Oin
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertFalse
 import org.junit.jupiter.api.Assertions.assertNull
@@ -25,18 +26,18 @@ import org.junit.jupiter.api.Test
 
 /** The evaluation context built from the real citizen and company authentications holds no BSN or KVK number. */
 class FeatureContextPrivacyTest {
+    private val OIN = Oin("00000099000000000001")
+
     private val factory =
         FeatureContextFactory(
-            FeatureFlagProperties.Context().apply {
-                tenant = "gemeente-a"
-            },
+            FeatureFlagProperties.Context(),
         )
 
     @Test
     fun `a citizen's BSN never reaches the evaluation context`() {
         val authentication = JwtBuilder().vertegenwoordigdeBsn(BSN).buildAuthentication()
 
-        val context = factory.create(authentication)
+        val context = factory.create(OIN, authentication)
 
         assertEquals("bsn", context.getValue(FeatureContextFactory.USER_TYPE).asString())
         assertNoneOf(context, BSN)
@@ -46,7 +47,7 @@ class FeatureContextPrivacyTest {
     fun `a company's KVK number never reaches the evaluation context`() {
         val authentication = JwtBuilder().vertegenwoordigdeKvk(KVK).buildAuthentication()
 
-        val context = factory.create(authentication)
+        val context = factory.create(OIN, authentication)
 
         assertEquals("kvk", context.getValue(FeatureContextFactory.USER_TYPE).asString())
         assertNoneOf(context, KVK)
@@ -54,7 +55,7 @@ class FeatureContextPrivacyTest {
 
     @Test
     fun `the context holds no user id and neither the subject nor name`() {
-        val context = factory.create(JwtBuilder().vertegenwoordigdeBsn(BSN).buildAuthentication())
+        val context = factory.create(OIN, JwtBuilder().vertegenwoordigdeBsn(BSN).buildAuthentication())
 
         assertNull(context.targetingKey)
         assertEquals(

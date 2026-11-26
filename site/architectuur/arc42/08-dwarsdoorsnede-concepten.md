@@ -141,17 +141,20 @@ via een rolling update wordt uitgerold, niet via hot reload; een andere OpenFeat
 - **Typen**: ops (runtime-gedrag), permission (toegang; bij twijfel geweigerd), experiment en release
   (kortlevend). Flagsleutels hebben het formaat `<type>.<module>.<naam>`.
 - **Evaluatiecontext**: `FeatureContextFactory` bouwt per request een context (tenant, omgeving,
-  en gebruikerstype) uit de reactive security context. De context wordt expliciet aan elke evaluatie
+  en gebruikerstype). De tenant is de OIN uit de `TenantContext`; zonder tenant is er geen context. De context wordt expliciet aan elke evaluatie
   meegegeven, niet thread-gebonden opgeslagen, en bevat nooit persoonsgegevens en geen gebruikers-id;
   een gebruiksgeval voor targeting per burger vraagt een eigen besluit (ADR 0020).
 - **Frontend**: de uitkomst voor de frontend komt via `GET /api/public/frontend`; de browser praat
   nooit met een flag-systeem.
 - **Nu flag-gedreven**: alle frontend-toggles (`ops.frontend.*`), de vrije custom-toggles en de module
-  berichten (`ops.berichten.enabled`): `ModuleGate` (module `core`) beslist per request of een query of
-  resource beschikbaar is en de `modules`-lijst volgt dezelfde flag. Een module-flag declareert de flags die hij
-  vereist (berichten vereist documentenapis); een uitgeschakelde afhankelijkheid maakt de module fail-closed
-  niet beschikbaar; zie
-  [het patroon](../../development/workflows/module-gate-patroon.md). De andere modules volgen (#143).
+  berichten (permission-flag `permission.berichten.enabled`). Eén centrale `ModuleGate` (module `core`) beslist per request
+  en per tenant: een GraphQL-instrumentation (`:graphql`) en een REST-WebFilter (`core`) laten elk endpoint dat bij de gate is
+  geregistreerd (`@ModuleEndpoint`) door de gate lopen, een endpoint zonder registratie weigert (deny by default), en een
+  ArchUnit-regel bewaakt de registratie. Een module is bruikbaar als de flag voor de tenant aan staat én het tenantbestand de
+  configuratie bevat; de `modules`-lijst en de modulematrix op de beheerpoort volgen dezelfde beoordeling. Een module-flag
+  declareert de flags die hij vereist (berichten vereist documentenapis); een uitgeschakelde afhankelijkheid maakt de module
+  fail-closed niet beschikbaar; zie [het patroon](../../development/workflows/module-gate-patroon.md). De andere modules staan
+  als overgang geregistreerd en volgen per module (#521, [ADR 0026](../../development/adr/0026-least-functionality-in-een-gedeelde-runtime.md)).
 - **Grens**: credentials en andere secrets horen niet in een flag-systeem.
 
 ## 8.9 Tenantscheiding en configuratiemodel (voorgesteld)
@@ -207,7 +210,7 @@ via een rolling update wordt uitgerold, niet via hot reload; een andere OpenFeat
   documentdownload (404, ook als de bron de zaak teruggeeft). Een zaaktype-URL zonder herkenbare UUID geldt als uitgesloten (gesloten falen). De koppeling-URL moet gelijk zijn aan de
   canonieke zaaktype-URL's in de Zaken API; anders filtert de bron niets en corrigeert alleen het nafilter, waardoor het totaal en de paginering afwijken.
 - **Drie lagen configuratie.** Het *tenantbestand* (Git: domeinen, URL's, thema, verwijzingen naar secrets;
-  rolling restart), de *flag* (alleen aan/uit per module en tenant; `ops.<module>.enabled`, ook via een rolling restart) en de *secret store* (de secrets
+  rolling restart), de *flag* (alleen aan/uit per module en tenant; `permission.<module>.enabled`, ook via een rolling restart) en de *secret store* (de secrets
   zelf, via ESO). Een module is bruikbaar als configuratie aanwezig is én de flag aanstaat. Zie
   [Tenantbestand, flag en secret store](../../hosting-en-configuratie/tenantbestand-flag-en-secret-store.md).
 - **Geen hot reload, geen uitzondering.** Wijzigingen in tenantconfiguratie, secrets en flags gaan altijd via

@@ -15,8 +15,19 @@
  */
 package nl.nlportal.berichten
 
+import nl.nlportal.berichten.configuratie.BerichtenTenantConfiguratie
 import nl.nlportal.core.modulegate.ModuleFlag
+import nl.nlportal.zgw.objectenapi.client.ObjectsApiClient
 import nl.nlportal.documentenapi.DOCUMENTENAPIS_MODULE
 
-/** The module flag of berichten: `ops.berichten.enabled`. Berichten serves documents and so requires documentenapis. */
-val BERICHTEN_MODULE = ModuleFlag("berichten", requires = listOf(DOCUMENTENAPIS_MODULE))
+/**
+ * The permission flag of berichten: `permission.berichten.enabled`. Berichten serves documents and so requires documentenapis. The module is
+ * only usable for a tenant with `koppelingen.objectenapi` and `modules.berichten` in the tenant file (ADR 0021, 0026).
+ */
+val BERICHTEN_MODULE =
+    ModuleFlag(
+        "berichten",
+        requires = listOf(DOCUMENTENAPIS_MODULE),
+        koppelingen = setOf(ObjectsApiClient.MODULE),
+        moduleConfiguratie = BerichtenTenantConfiguratie.NAAM,
+    )

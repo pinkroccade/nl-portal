@@ -15,11 +15,11 @@
  */
 package nl.nlportal.berichten
 
-import dev.openfeature.sdk.ImmutableContext
 import java.nio.file.Files
 import java.nio.file.Path
 import java.time.Duration
 import nl.nlportal.core.modulegate.ModuleGate
+import nl.nlportal.core.testing.TestTenants
 import nl.nlportal.documentenapi.DOCUMENTENAPIS_MODULE
 import org.awaitility.Awaitility.await
 import org.springframework.test.context.DynamicPropertyRegistry
@@ -27,7 +27,7 @@ import org.springframework.test.context.DynamicPropertyRegistry
 /**
  * The flagd file of the berichten tests. All test contexts share this one file, because OpenFeature is a
  * JVM-wide singleton: contexts that would each have their own file could replace each other's provider.
- * The module is on by default; a test that needs it off calls [switchTo] and restores it afterwards.
+ * The module is on by default for every tenant; a test that needs it off calls [switchTo] and restores it afterwards.
  */
 object BerichtenFlagFile {
     private val file: Path = Files.createTempFile("berichten-flags", ".flagd.json").also { write(it, berichten = true, documentenapis = true) }
@@ -44,7 +44,7 @@ object BerichtenFlagFile {
         documentenapis: Boolean = true,
     ) {
         write(file, berichten = enabled, documentenapis = documentenapis)
-        await().atMost(Duration.ofSeconds(10)).until { moduleGate.isEnabled(BERICHTEN_MODULE, ImmutableContext()) == (enabled && documentenapis) }
+        await().atMost(Duration.ofSeconds(10)).until { moduleGate.isEnabled(BERICHTEN_MODULE, TestTenants.BOSRAND) == (enabled && documentenapis) }
     }
 
     private fun write(

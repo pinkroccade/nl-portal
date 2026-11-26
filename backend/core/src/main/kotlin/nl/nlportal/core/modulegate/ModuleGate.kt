@@ -15,41 +15,104 @@
  */
 package nl.nlportal.core.modulegate
 
-import dev.openfeature.sdk.EvaluationContext
 import nl.nlportal.core.featureflag.FeatureContextFactory
 import nl.nlportal.core.featureflag.FeatureGate
-import org.springframework.security.core.Authentication
+import nl.nlportal.core.tenancy.Oin
+import nl.nlportal.core.tenancy.TenantContext
+import nl.nlportal.core.tenancy.TenantDirectory
+
+/** The verdict on one module for one tenant: the two conditions and their outcome. */
+data class ModuleBeoordeling(
+    val module: String,
+    val oin: Oin,
+    /** The tenant file holds the koppelingen and the module configuration of the module and of every module it requires. */
+    val geconfigureerd: Boolean,
+    /** The permission flag of the module and of every module it requires is on for the tenant. */
+    val flag: Boolean,
+) {
+    /** Usable: flag and configuration (ADR 0021, 0026). */
+    val bruikbaar get() = geconfigureerd && flag
+}
 
 /**
- * Per-request gate of a module. The module's beans are always registered; its GraphQL queries and REST
- * resources call [require] first, so a disabled module answers "not available" instead of failing or
- * returning empty data. A module is also off when a module it requires is off ([ModuleFlag.requires]). The GraphQL schema does not change: the fields stay visible in introspection.
+ * The central gate of the modules (ADR 0026). A module is usable for a tenant when its permission flag and the flags of the
+ * modules it requires ([ModuleFlag.requires]) are on for that tenant and the tenant file holds the configuration of all of them.
+ * The tenant comes from the [TenantContext], never from a parameter of the caller, and the flag is evaluated with the OIN in
+ * the evaluation context; a missing tenant, a missing flag or a failing flag source means "not usable" (fail-closed).
  *
- * The context is passed explicitly, never read from thread-bound state, which does not survive thread hops in WebFlux.
+ * The GraphQL instrumentation and the REST filter call [controleer] for every request to a registered endpoint; resolvers do
+ * not call the gate themselves. The configuration comes from the tenant register, which is fixed at startup, so a flag change
+ * before the next restart can never make another tenant or a module without configuration reachable.
  */
 class ModuleGate(
     private val featureGate: FeatureGate,
     private val featureContextFactory: FeatureContextFactory,
     private val modules: List<ModuleFlag>,
+    private val tenantDirectory: () -> TenantDirectory,
 ) {
+    constructor(
+        featureGate: FeatureGate,
+        featureContextFactory: FeatureContextFactory,
+        modules: List<ModuleFlag>,
+        directory: TenantDirectory,
+    ) : this(featureGate, featureContextFactory, modules, { directory })
+
+    /** Resolved on first use: the directory is part of the tenancy and a context without it only fails when the gate is asked. */
+    private val directory: TenantDirectory by lazy(tenantDirectory)
+
+    /** The verdict on [module] for the tenant [oin]; an unknown tenant is not configured and has no flag. */
+    fun beoordeel(
+        module: ModuleFlag,
+        oin: Oin,
+    ): ModuleBeoordeling {
+        val tenant = directory.forOin(oin)
+        val betrokken = listOf(module) + module.allRequired
+        val context = featureContextFactory.create(oin)
+        return ModuleBeoordeling(
+            module = module.module,
+            oin = oin,
+            geconfigureerd = tenant != null && betrokken.all { it.isConfiguredFor(tenant) },
+            flag = tenant != null && betrokken.all { featureGate.isEnabled(it.flag, context) },
+        )
+    }
+
     fun isEnabled(
         module: ModuleFlag,
-        context: EvaluationContext,
-    ): Boolean = (listOf(module) + module.allRequired).all { featureGate.isEnabled(it.flag, context) }
+        oin: Oin,
+    ): Boolean = beoordeel(module, oin).bruikbaar
 
-    /** Throws [ModuleNotAvailableException] when [module] is off for the request of [authentication]. */
-    fun require(
-        module: ModuleFlag,
-        authentication: Authentication?,
+    /** Whether [module] is usable for the tenant of the current request. */
+    suspend fun isEnabled(module: ModuleFlag): Boolean = isEnabled(module, TenantContext.current())
+
+    /** Throws [ModuleNotAvailableException] when [module] is not usable for the tenant of the current request. */
+    suspend fun require(module: ModuleFlag) {
+        if (!isEnabled(module)) throw ModuleNotAvailableException(module.module)
+    }
+
+    /**
+     * The decision for a request to an endpoint with [toewijzing]: no registration is denied, the core and modules that are not on
+     * the gate yet are let through, a module needs to be usable for the tenant of the current request.
+     */
+    suspend fun controleer(
+        toewijzing: EndpointToewijzing?,
+        endpoint: String,
     ) {
-        if (!isEnabled(module, featureContextFactory.create(authentication))) {
-            throw ModuleNotAvailableException(module.module)
+        when (toewijzing) {
+            null -> throw EndpointNietGeregistreerdException(endpoint)
+            EndpointToewijzing.Kern, is EndpointToewijzing.Overgang -> Unit
+            is EndpointToewijzing.Module -> require(toewijzing.module)
         }
     }
+
+    /** The outcome of every registered module flag for the tenant [oin], by module name. */
+    fun status(oin: Oin): Map<String, Boolean> = modules.associate { it.module to isEnabled(it, oin) }
 
     /** The module names each registered module requires, directly or through other modules, sorted by name. */
     fun dependencies(): Map<String, List<String>> = modules.associate { it.module to it.allRequired.map { required -> required.module }.sorted() }
 
-    /** The outcome of every registered module flag, by module name. */
-    fun status(context: EvaluationContext): Map<String, Boolean> = modules.associate { it.module to isEnabled(it, context) }
+    /** Tenant and module pairs where the flag is on but the tenant lacks the configuration: the module is off and the operator should know. */
+    fun flagZonderConfiguratie(): List<ModuleBeoordeling> = matrix().filter { it.flag && !it.geconfigureerd }
+
+    /** The matrix over all tenants and all registered modules: configured, flag and usable. */
+    fun matrix(): List<ModuleBeoordeling> = directory.tenants.flatMap { tenant -> modules.map { beoordeel(it, tenant.oin) } }
 }

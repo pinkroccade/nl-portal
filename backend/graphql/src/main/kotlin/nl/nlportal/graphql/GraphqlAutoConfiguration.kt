@@ -17,6 +17,8 @@ package nl.nlportal.graphql
 
 import graphql.scalars.ExtendedScalars
 import graphql.schema.idl.RuntimeWiring
+import nl.nlportal.core.modulegate.ModuleEndpoints
+import nl.nlportal.core.modulegate.ModuleGate
 import nl.nlportal.graphql.customtype.graphqlLocalDateTimeType
 import nl.nlportal.graphql.customtype.graphqlZonedDateTimeType
 import org.springframework.boot.autoconfigure.AutoConfiguration
@@ -43,6 +45,14 @@ class GraphqlAutoConfiguration {
                 .scalar(graphqlZonedDateTimeType)
                 .scalar(graphqlLocalDateTimeType)
         }
+
+    /** The GraphQL side of the central module gate: every root field passes the gate for the tenant of the request. */
+    @Bean
+    @ConditionalOnMissingBean(ModuleGateInstrumentation::class)
+    fun moduleGateInstrumentation(
+        endpoints: ModuleEndpoints,
+        gate: ModuleGate,
+    ) = ModuleGateInstrumentation(endpoints, gate)
 
     @Bean
     @ConditionalOnMissingBean(GraphQLExceptionHandler::class)

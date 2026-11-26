@@ -15,6 +15,7 @@
  */
 package nl.nlportal.zgw.taak.web.rest
 
+import nl.nlportal.core.modulegate.ModuleEndpoint
 import io.github.oshai.kotlinlogging.KotlinLogging
 import kotlinx.coroutines.reactive.awaitSingle
 import nl.nlportal.core.koppeling.KoppelingConfiguratieException
@@ -40,6 +41,7 @@ import org.springframework.web.bind.annotation.RequestPart
 import org.springframework.web.bind.annotation.RestController
 import java.util.UUID
 
+@ModuleEndpoint("taak", overgang = true)
 @RestController
 @RequestMapping(value = ["/api/taak"])
 class TaakDocumentResource(

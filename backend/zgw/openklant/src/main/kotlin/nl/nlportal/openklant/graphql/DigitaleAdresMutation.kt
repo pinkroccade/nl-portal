@@ -15,6 +15,7 @@
  */
 package nl.nlportal.openklant.graphql
 
+import nl.nlportal.core.modulegate.ModuleEndpoint
 import java.time.LocalDate
 import java.util.UUID
 import nl.nlportal.portal.authentication.domain.PortalAuthentication
@@ -32,6 +33,7 @@ import org.springframework.http.HttpStatus
 import org.springframework.stereotype.Controller
 import org.springframework.web.server.ResponseStatusException
 
+@ModuleEndpoint("openklant", overgang = true)
 @Controller
 class DigitaleAdresMutation(
     private val openklant2Service: OpenKlant2Service,

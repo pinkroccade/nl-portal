@@ -13,16 +13,17 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package nl.nlportal.core.modulegate
+package nl.nlportal.architecture.fixtures.gatevio.zelfgate
 
-import org.springframework.http.HttpStatus
-import org.springframework.http.ProblemDetail
-import org.springframework.web.bind.annotation.ExceptionHandler
-import org.springframework.web.bind.annotation.RestControllerAdvice
+import nl.nlportal.core.modulegate.ModuleEndpoint
+import nl.nlportal.core.modulegate.ModuleGate
+import org.springframework.stereotype.Controller
 
-/** Answers a REST request for a module that is switched off with 503 and a clear message. */
-@RestControllerAdvice
-class ModuleNotAvailableAdvice {
-    @ExceptionHandler(ModuleNotAvailableException::class)
-    fun notAvailable(error: ModuleNotAvailableException): ProblemDetail = ProblemDetail.forStatusAndDetail(HttpStatus.SERVICE_UNAVAILABLE, error.message)
+/** Een geregistreerde controller die de gate zelf aanroept, zoals het oude patroon met een aanroep per resolver. */
+@ModuleEndpoint("berichten")
+@Controller
+class ZelfGateQuery(
+    private val gate: ModuleGate,
+) {
+    fun gebruik() = gate.hashCode()
 }

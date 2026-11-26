@@ -20,7 +20,6 @@ import nl.nlportal.core.koppeling.KoppelingConfiguratieException
 import nl.nlportal.core.koppeling.KoppelingException
 import nl.nlportal.core.koppeling.KoppelingFoutsoort
 import nl.nlportal.core.koppeling.KoppelingProblem
-import nl.nlportal.core.modulegate.ModuleGate
 import nl.nlportal.core.tenancy.TenantContextMissingException
 import nl.nlportal.core.util.ModuleNotConfiguredException
 import org.assertj.core.api.Assertions.assertThat
@@ -31,8 +30,7 @@ import org.springframework.http.ResponseEntity
 
 class BerichtDocumentResourceFoutenTest {
     private val service: BerichtenService = mock()
-    private val gate: ModuleGate = mock()
-    private val resource = BerichtDocumentResource(service, gate)
+    private val resource = BerichtDocumentResource(service)
 
     @Test
     fun `een storing van de koppeling is een 502 met KOPPELING_FOUT en het correlatieId`() {

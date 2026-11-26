@@ -40,11 +40,21 @@ data class ApiStatus(
     val laatsteFout: LaatsteFout?,
 )
 
+/** The verdict on a module for one tenant (the OIN): the tenant file holds its configuration, its permission flag is on, and both together. */
+data class TenantModuleStatus(
+    val tenant: String,
+    val geconfigureerd: Boolean,
+    val flag: Boolean,
+    val bruikbaar: Boolean,
+)
+
 data class ModuleStatus(
     val module: String,
     val status: ModuleState,
     val reden: Oorzaak?,
     val apis: List<ApiStatus>,
+    /** The module matrix: one row per tenant for a module on the gate; empty for a module that is not (#521). */
+    val tenants: List<TenantModuleStatus> = emptyList(),
 )
 
 /**

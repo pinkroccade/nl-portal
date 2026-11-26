@@ -15,6 +15,7 @@
  */
 package nl.nlportal.openklant.autoconfigure
 
+import nl.nlportal.core.tenancy.NietGemigreerdeModule
 import nl.nlportal.openklant.graphql.DigitaleAdresMutation
 import nl.nlportal.openklant.graphql.DigitaleAdresQuery
 import nl.nlportal.openklant.graphql.KlantContactQuery
@@ -26,6 +27,10 @@ import org.springframework.context.annotation.Bean
 
 @ConditionalOnProperty(prefix = "nl-portal.config", name = ["openklant2.enabled"], havingValue = "true")
 class OpenKlantGraphqlAutoConfiguration {
+    /** Openklant leest nog gedeelde instellingen (T16, uitgesteld tot na de livegang): niet aan in een runtime met meer dan één tenant. */
+    @Bean
+    fun openklantNietGemigreerd() = NietGemigreerdeModule("openklant")
+
     @Bean
     @ConditionalOnMissingBean(DigitaleAdresQuery::class)
     fun digitaleAdresQuery(
