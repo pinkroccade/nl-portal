@@ -105,20 +105,16 @@ tests:
           path: data["nl-portal.flagd.json"]
           pattern: "permission.documentenapis.enabled"
         documentIndex: 1
-  - it: de evaluatiecontext van de flags (tenant, omgeving) komt als omgevingsvariabele
+  - it: de omgeving van de flags komt als omgevingsvariabele
     template: configmap-backend.yaml
     documentIndex: 0
     set:
-      backend.featureFlagContext.tenant: gemeente-a
       backend.featureFlagContext.environment: test
     asserts:
       - equal:
-          path: data.NLPORTAL_FEATUREFLAGS_CONTEXT_TENANT
-          value: gemeente-a
-      - equal:
           path: data.NLPORTAL_FEATUREFLAGS_CONTEXT_ENVIRONMENT
           value: test
-  - it: zonder evaluatiecontext blijven de applicatiestandaarden gelden
+  - it: zonder evaluatiecontext blijven de applicatiestandaarden gelden, en de tenant staat nooit in de chart
     template: configmap-backend.yaml
     documentIndex: 0
     asserts:
