@@ -18,6 +18,7 @@ package nl.nlportal.payment.direct.graphql
 import tools.jackson.databind.JsonNode
 import nl.nlportal.commonground.authentication.WithBurgerUser
 import nl.nlportal.payment.direct.TestHelper
+import nl.nlportal.payment.direct.PaymentFlagFile
 import nl.nlportal.payment.direct.PaymentTestConfiguration
 import nl.nlportal.payment.direct.PaymentTestTenants
 import okhttp3.mockwebserver.Dispatcher
@@ -58,6 +59,7 @@ internal class DirectPaymentMutationIT(
         @DynamicPropertySource
         fun properties(propsRegistry: DynamicPropertyRegistry) {
             propsRegistry.add("test.payment.url") { url }
+            PaymentFlagFile.registreer(propsRegistry)
         }
 
         @JvmStatic

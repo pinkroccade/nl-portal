@@ -41,6 +41,14 @@
       },
       "defaultVariant": "on"
     },
+    "permission.payment-direct.enabled": {
+      "state": "ENABLED",
+      "variants": {
+        "on": true,
+        "off": false
+      },
+      "defaultVariant": "on"
+    },
     "permission.documentenapis.enabled": {
       "state": "ENABLED",
       "variants": {
