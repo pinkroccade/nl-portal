@@ -16,6 +16,7 @@
 package nl.nlportal.zgw.taak.autoconfigure
 
 import nl.nlportal.commonground.authentication.AuthenticationMachtigingsDienstService
+import nl.nlportal.core.modulegate.ModuleFlag
 import nl.nlportal.core.security.config.HttpSecurityConfigurer
 import nl.nlportal.core.tenancy.TenantDirectory
 import nl.nlportal.core.tenancy.VervallenProperties
@@ -23,6 +24,7 @@ import nl.nlportal.documentenapi.service.DocumentenApiService
 import nl.nlportal.documentenapi.service.VirusScanService
 import nl.nlportal.form.service.ObjectsApiFormDefinitionService
 import nl.nlportal.zgw.objectenapi.client.ObjectsApiClient
+import nl.nlportal.zgw.taak.TAAK_MODULE
 import nl.nlportal.zgw.taak.graphql.TaakFormQuery
 import nl.nlportal.zgw.taak.graphql.TaakMutationV2
 import nl.nlportal.zgw.taak.graphql.TaakQueryV2
@@ -38,6 +40,10 @@ import org.springframework.context.annotation.Bean
 @AutoConfiguration
 @ConditionalOnProperty(prefix = "nl-portal.config", name = ["objectenapi.enabled", "taak.enabled"], havingValue = "true")
 class TaakAutoConfiguration {
+    /** Laat de gate, de frontend-modulelijst en de modulematrix de permission-flag van de module kennen. */
+    @Bean
+    fun taakModuleFlag(): ModuleFlag = TAAK_MODULE
+
     /** Aan zonder tenant met `modules.taak` (en de koppeling `objectenapi`) weigert het opstarten. */
     @Bean
     fun taakConfiguratieControle(directory: TenantDirectory) = TaakConfiguratieControle(directory)

@@ -29,7 +29,7 @@ import org.springframework.stereotype.Controller
 import org.springframework.web.server.ResponseStatusException
 import java.util.UUID
 
-@ModuleEndpoint("taak", overgang = true)
+@ModuleEndpoint("taak")
 @Controller
 class TaakFormQuery(
     private val taakService: TaakService,

@@ -25,7 +25,7 @@ import org.springframework.graphql.data.method.annotation.Argument
 import org.springframework.graphql.data.method.annotation.QueryMapping
 import org.springframework.stereotype.Controller
 
-@ModuleEndpoint("taak", overgang = true)
+@ModuleEndpoint("taak")
 @Controller
 class TaakQueryV2(
     private val taskService: TaakService,
