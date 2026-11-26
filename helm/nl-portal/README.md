@@ -101,7 +101,7 @@ chart holds the switch and the non-secret settings that are still environment co
 | `berichten` | `objectenapi`, `documentenapis` |
 | `zakenapi` | `catalogiapi` |
 
-`berichten` is switched on with the flag `permission.berichten.enabled` in `backend.featureFlags` and `modules.berichten` in the tenant
+`berichten` and `haalcentraal-brp` are switched on with the flags `permission.berichten.enabled` and `permission.haalcentraal-brp.enabled` (default off) in `backend.featureFlags` and `modules.berichten` / `modules.brp` in the tenant
 file; `backend.modules.berichten.enabled` only declares the intent so the dependency check runs.
 
 ## Values

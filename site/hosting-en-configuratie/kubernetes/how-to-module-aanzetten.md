@@ -32,8 +32,8 @@ modulegegevens in het tenantbestand, en de geheimen in het Secret.
 
 5. **Open de egress** van de backend naar de bron ([egress per module](./referentie-infra-vereisten.md#egress-per-module)).
 
-Uitzondering: `berichten` zet je aan met de feature flag `permission.berichten.enabled` in `backend.featureFlags` en `modules.berichten` in het tenantbestand;
-`backend.modules.berichten.enabled` verklaart alleen de bedoeling, zodat de afhankelijkheidscontrole draait. Feature flags lever je als YAML onder
+Uitzondering: `berichten` en `haalcentraal-brp` zet je aan met een feature flag in `backend.featureFlags` (`permission.berichten.enabled`, `permission.haalcentraal-brp.enabled`) en de module in het tenantbestand (`modules.berichten`, `modules.brp`);
+`backend.modules.berichten.enabled` verklaart alleen de bedoeling, zodat de afhankelijkheidscontrole draait. De standaard van `backend.featureFlags` is leeg, dus alle flags uit: na een upgrade verliest een tenant die BRP gebruikt de BRP-query tot de flag aan staat. Feature flags lever je als YAML onder
 `backend.featureFlags`; de chart maakt er het flagbestand van ([Feature flags](../feature-flags.md), [Module dependency guide](../module-dependency-guide.md)).
 
 Controleer daarna `GET /actuator/modulestatus` op de beheerpoort ([Beheerpoort: modulestatus](../beheer-modulestatus.md)), als je `backend.beheer` hebt aangezet.

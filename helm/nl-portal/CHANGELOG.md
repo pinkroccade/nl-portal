@@ -29,3 +29,9 @@ wordt genegeerd: de tenant komt uit het request (#521).
 evaluatiecontext is de OIN van de tenant van elk request, dus targetingregels schrijf je op de OIN en er is geen
 `NLPORTAL_FEATUREFLAGS_CONTEXT_TENANT` meer. Haal de sleutel uit je values en pas `tenant == <naam>` in je flagbestand aan
 naar de OIN (#175, #521). `backend.featureFlagContext.environment` blijft.
+
+## 0.2.1
+
+Documentatie: ook `haalcentraal-brp` wordt aan- en uitgezet met een feature flag (`permission.haalcentraal-brp.enabled` in
+`backend.featureFlags`, standaard uit). Zet de flag aan voor tenants die BRP gebruiken, anders is de BRP-query na de upgrade niet
+beschikbaar (#521).
