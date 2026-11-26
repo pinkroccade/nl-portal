@@ -16,3 +16,9 @@ on `oci://ghcr.io/pinkroccade/charts/nl-portal`.
 (`NLPORTAL_FEATUREFLAGS_CONTEXT_TENANT` and `_ENVIRONMENT`), so a flag file can target per tenant and environment.
 Tests now guard that the flag file is mounted as a directory (no `subPath`) and that a flag change restarts the pods
 (`checksum/flags`).
+
+## 0.1.3
+
+De module-flags heten `permission.<module>.enabled` (was `ops.<module>.enabled`): hernoem `ops.berichten.enabled` en
+`ops.documentenapis.enabled` in `backend.featureFlags` en target op de OIN van de tenant. `backend.featureFlagContext.tenant`
+wordt genegeerd: de tenant komt uit het request (#521).
