@@ -15,6 +15,7 @@
  */
 package nl.nlportal.openklant.graphql
 
+import nl.nlportal.core.modulegate.ModuleEndpoint
 import nl.nlportal.portal.authentication.domain.PortalAuthentication
 import nl.nlportal.openklant.graphql.domain.DigitaleAdresResponse
 import nl.nlportal.openklant.service.OpenKlant2Service
@@ -23,6 +24,7 @@ import org.springframework.graphql.data.method.annotation.Argument
 import org.springframework.graphql.data.method.annotation.QueryMapping
 import org.springframework.stereotype.Controller
 
+@ModuleEndpoint("openklant", overgang = true)
 @Controller
 class DigitaleAdresQuery(
     private val openklant2Service: OpenKlant2Service,

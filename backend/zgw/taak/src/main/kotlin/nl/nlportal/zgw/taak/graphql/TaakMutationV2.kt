@@ -15,6 +15,7 @@
  */
 package nl.nlportal.zgw.taak.graphql
 
+import nl.nlportal.core.modulegate.ModuleEndpoint
 import java.util.UUID
 import nl.nlportal.portal.authentication.domain.PortalAuthentication
 import nl.nlportal.zgw.taak.domain.TaakV2
@@ -23,6 +24,7 @@ import org.springframework.graphql.data.method.annotation.Argument
 import org.springframework.graphql.data.method.annotation.MutationMapping
 import org.springframework.stereotype.Controller
 
+@ModuleEndpoint("taak", overgang = true)
 @Controller
 class TaakMutationV2(
     private val taskService: TaakService,

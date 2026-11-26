@@ -21,6 +21,7 @@ import graphql.schema.DataFetchingEnvironment
 import io.github.oshai.kotlinlogging.KotlinLogging
 import nl.nlportal.core.koppeling.KoppelingConfiguratieException
 import nl.nlportal.core.koppeling.KoppelingException
+import nl.nlportal.core.modulegate.EndpointNietGeregistreerdException
 import nl.nlportal.core.modulegate.ModuleNotAvailableException
 import nl.nlportal.core.tenancy.TenantContextMissingException
 import nl.nlportal.core.util.ModuleNotConfiguredException
@@ -43,6 +44,8 @@ class GraphQLExceptionHandler : DataFetcherExceptionResolverAdapter() {
     ): GraphQLError? {
         val uitkomst =
             when (ex) {
+                is EndpointNietGeregistreerdException -> Uitkomst(ex.message, mapOf("code" to "ENDPOINT_NIET_GEREGISTREERD"))
+
                 is ModuleNotAvailableException -> Uitkomst(ex.message, mapOf("code" to "MODULE_NOT_AVAILABLE", "module" to ex.module))
 
                 // Foutdetails van een bron gaan niet naar de browser: alleen een generieke code en de referentie voor de log.

@@ -34,6 +34,7 @@ import nl.nlportal.core.tenancy.TenantKoppeling
 import nl.nlportal.core.tenancy.TenantKoppelingAuth
 import nl.nlportal.core.tenancy.TenantKoppelingAuthType
 import nl.nlportal.core.tenancy.Thema
+import org.springframework.core.Ordered
 import org.springframework.web.reactive.function.client.WebClient
 import org.springframework.web.server.ServerWebExchange
 import org.springframework.web.server.WebFilter
@@ -139,7 +140,11 @@ object TestTenants {
 /** Zet [oin] als tenant op elk request, voor module-ITs die zonder tenantresolutie draaien (registreer als bean). */
 class VasteTenantWebFilter(
     private val oin: Oin = TestTenants.BOSRAND,
-) : WebFilter {
+) : WebFilter,
+    Ordered {
+    /** Vóór de security-keten en de modulegate, net als de echte tenantresolutie. */
+    override fun getOrder() = -200
+
     override fun filter(
         exchange: ServerWebExchange,
         chain: WebFilterChain,

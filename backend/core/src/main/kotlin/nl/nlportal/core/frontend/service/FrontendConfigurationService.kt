@@ -25,6 +25,7 @@ import nl.nlportal.core.frontend.configuration.FrontendModuleConfigurationProper
 import nl.nlportal.core.frontend.domain.FrontendData
 import nl.nlportal.core.frontend.domain.FrontendToggles
 import nl.nlportal.core.modulegate.ModuleGate
+import nl.nlportal.core.tenancy.Oin
 import nl.nlportal.core.util.Mapper
 
 class FrontendConfigurationService(
@@ -33,9 +34,12 @@ class FrontendConfigurationService(
     private val featureGate: FeatureGate,
     private val moduleGate: ModuleGate,
 ) {
-    fun getFrontendData(context: EvaluationContext): FrontendData =
+    fun getFrontendData(
+        oin: Oin,
+        context: EvaluationContext,
+    ): FrontendData =
         FrontendData(
-            modules = getModules(context),
+            modules = getModules(oin),
             toggles = getToggles(context),
             properties = frontendConfigurationProperties.properties,
             theme = frontendConfigurationProperties.theme,
@@ -56,11 +60,11 @@ class FrontendConfigurationService(
         )
     }
 
-    /** Modules that have a module flag are listed by that flag; the others still come from the old properties. */
-    fun getModules(context: EvaluationContext): Map<String, FrontendModuleProperties> {
+    /** The modules usable for the tenant [oin] (flag and configuration); the others still come from the old properties. */
+    fun getModules(oin: Oin): Map<String, FrontendModuleProperties> {
         val modulesWhitelist = frontendConfigurationProperties.modulesWhitelist
         val gated =
-            moduleGate.status(context).mapValues { (_, enabled) -> FrontendModuleProperties().apply { this.enabled = enabled } }
+            moduleGate.status(oin).mapValues { (_, enabled) -> FrontendModuleProperties().apply { this.enabled = enabled } }
         return frontendModuleConfigurationProperties.config
             .filterKeys { it in modulesWhitelist }
             .mapKeys { (key, _) -> key.replace("api", "") }

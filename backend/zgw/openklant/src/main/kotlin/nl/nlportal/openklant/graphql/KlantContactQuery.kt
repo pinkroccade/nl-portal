@@ -15,6 +15,7 @@
  */
 package nl.nlportal.openklant.graphql
 
+import nl.nlportal.core.modulegate.ModuleEndpoint
 import java.util.UUID
 import nl.nlportal.portal.authentication.domain.PortalAuthentication
 import nl.nlportal.openklant.client.domain.OpenKlant2Klantcontact
@@ -24,6 +25,7 @@ import org.springframework.graphql.data.method.annotation.Argument
 import org.springframework.graphql.data.method.annotation.QueryMapping
 import org.springframework.stereotype.Controller
 
+@ModuleEndpoint("openklant", overgang = true)
 @Controller
 class KlantContactQuery(
     private val openklant2Service: OpenKlant2Service,

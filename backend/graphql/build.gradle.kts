@@ -26,6 +26,9 @@ jar.enabled = true
 dependencies {
     implementation(kotlin("stdlib-jdk8"))
     api(project(":core"))
+    implementation(Dependencies.kotlinCoroutinesReactor)
+    implementation("io.micrometer:context-propagation")
+    implementation("io.projectreactor:reactor-core")
 
     // GraphQL
     api("org.springframework.boot:spring-boot-starter-graphql")

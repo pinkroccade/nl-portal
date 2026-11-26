@@ -1,5 +1,6 @@
 # Foutcodes die de browser te zien krijgt (GraphQL extensions.code, REST code). Zie FoutcodesTest.
 # Een code verwijderen of hernoemen breekt de frontend: overleg eerst, werk daarna deze lijst bewust bij.
+graphql: ENDPOINT_NIET_GEREGISTREERD
 graphql: KOPPELING_FOUT
 graphql: MODULE_NIET_GECONFIGUREERD
 graphql: MODULE_NOT_AVAILABLE

@@ -20,6 +20,7 @@ import nl.nlportal.besluiten.client.BesluitenApiConfig
 import nl.nlportal.besluiten.graphql.BesluitenQuery
 import nl.nlportal.besluiten.service.BesluitenService
 import nl.nlportal.catalogiapi.service.CatalogiApiService
+import nl.nlportal.core.tenancy.NietGemigreerdeModule
 import nl.nlportal.documentenapi.service.DocumentenApiService
 import org.springframework.boot.autoconfigure.AutoConfiguration
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean
@@ -32,6 +33,10 @@ import org.springframework.web.reactive.function.client.WebClient
 @EnableConfigurationProperties(BesluitenApiConfig::class)
 @ConditionalOnProperty(prefix = "nl-portal.config", name = ["besluitenapi.enabled", "documentenapis.enabled", "zakenapi.enabled"], havingValue = "true")
 class BesluitenAutoConfiguration {
+    /** Besluiten leest nog gedeelde instellingen (T15, uitgesteld tot na de livegang): niet aan in een runtime met meer dan één tenant. */
+    @Bean
+    fun besluitenNietGemigreerd() = NietGemigreerdeModule("besluiten")
+
     @Bean
     @ConditionalOnMissingBean(BesluitenApiClient::class)
     fun besluitenApiClient(

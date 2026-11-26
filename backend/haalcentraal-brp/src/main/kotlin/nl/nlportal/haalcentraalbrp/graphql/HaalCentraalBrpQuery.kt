@@ -15,6 +15,7 @@
  */
 package nl.nlportal.haalcentraalbrp.graphql
 
+import nl.nlportal.core.modulegate.ModuleEndpoint
 import nl.nlportal.portal.authentication.domain.PortalAuthentication
 import nl.nlportal.haalcentraalbrp.domain.brp.BrpPersoon
 import nl.nlportal.haalcentraalbrp.service.HaalCentraalBrpService
@@ -22,6 +23,7 @@ import org.springframework.graphql.data.method.annotation.QueryMapping
 import org.springframework.graphql.data.method.annotation.SchemaMapping
 import org.springframework.stereotype.Controller
 
+@ModuleEndpoint("brp", overgang = true)
 @Controller
 class HaalCentraalBrpQuery(
     val haalCentraalBrpService: HaalCentraalBrpService,

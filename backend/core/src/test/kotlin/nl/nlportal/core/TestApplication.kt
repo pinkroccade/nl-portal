@@ -16,6 +16,8 @@
 package nl.nlportal.core
 
 import nl.nlportal.core.security.OauthSecurityAutoConfiguration
+import nl.nlportal.testing.VasteTenantConfiguratie
+import org.springframework.context.annotation.Import
 import org.mockito.Mockito
 import org.springframework.boot.autoconfigure.SpringBootApplication
 import org.springframework.boot.runApplication
@@ -24,6 +26,7 @@ import org.springframework.security.config.web.server.ServerHttpSecurity
 import org.springframework.security.oauth2.jwt.ReactiveJwtDecoder
 import org.springframework.security.web.server.SecurityWebFilterChain
 
+@Import(VasteTenantConfiguratie::class)
 @SpringBootApplication(
     exclude = [
         OauthSecurityAutoConfiguration::class,

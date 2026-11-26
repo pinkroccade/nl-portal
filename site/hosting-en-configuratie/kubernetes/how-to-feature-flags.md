@@ -7,16 +7,15 @@ Welke flags er zijn staat in de [feature flags-referentie](../feature-flags.md);
 
 ## Het flagbestand instellen
 
-Zet de flags als YAML onder `backend.featureFlags` (flagd-formaat) en geef de release zijn tenant en omgeving mee:
+Zet de flags als YAML onder `backend.featureFlags` (flagd-formaat) en geef de release zijn omgeving mee. De attribuut `tenant` in de evaluatiecontext is de OIN van de tenant van elk request (uit de host), dus targeting schrijf je op de OIN:
 
 ```yaml
 backend:
   featureFlagContext:
-    tenant: gemeente-a
     environment: productie
   featureFlags:
     flags:
-      ops.berichten.enabled:
+      permission.berichten.enabled:
         state: ENABLED
         variants: { "on": true, "off": false }
         defaultVariant: "on"
@@ -26,7 +25,7 @@ backend:
         defaultVariant: "off"
         targeting:
           if:
-            - "==": [{ var: tenant }, gemeente-a]
+            - "==": [{ var: tenant }, "00000099000000000001"]
             - "on"
             - "off"
 ```
@@ -38,13 +37,13 @@ Wat de chart ervan maakt:
 | ConfigMap `<release>-nl-portal-flags` | Het bestand `nl-portal.flagd.json`, als JSON uit je values. |
 | Volume `flags` | De ConfigMap, als map gemount op `/etc/nl-portal/flags` (alleen lezen, **geen `subPath`**). |
 | `NLPORTAL_FEATUREFLAGS_FILE` | Wijst naar `/etc/nl-portal/flags/nl-portal.flagd.json`. |
-| `NLPORTAL_FEATUREFLAGS_CONTEXT_TENANT` en `_ENVIRONMENT` | Uit `backend.featureFlagContext`; de attributen `tenant` en `environment` voor targetingregels. |
+| `NLPORTAL_FEATUREFLAGS_CONTEXT_ENVIRONMENT` | Uit `backend.featureFlagContext.environment`; het attribuut `environment` voor targetingregels. `backend.featureFlagContext.tenant` bestaat nog in de chart maar wordt genegeerd: de tenant komt uit het request (#521). |
 | Annotatie `checksum/flags` | Hash van `backend.featureFlags` op de pod-template: een wijziging herstart de pods één voor één. |
 
 Zonder `backend.featureFlags` maakt de chart geen ConfigMap en geldt het meegeleverde bestand: alles uit. Een flag die in je bestand ontbreekt, is uit; een
 permission-flag valt bij twijfel altijd terug op uit.
 
-Eén release is één tenant (of cel). Voor meerdere tenants maak je per tenant een release met een eigen `backend.featureFlags` en `featureFlagContext.tenant`.
+Eén release bedient één of meer tenants; het flagbestand van de release bevat per tenant de targeting op de OIN.
 
 ## Een wijziging uitrollen
 

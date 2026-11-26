@@ -68,7 +68,13 @@ staat; voeg een nieuwe term toe zodra een module ernaar vernoemd wordt (zie de
   bij twijfel geweigerd), *experiment* en *release* (kortlevend). NL Portal werkt ook zonder
   aparte flag-voorziening (zie issue #143).
 - **Module** — een afgebakend, aan of uit te zetten onderdeel van NL Portal dat een koppeling of
-  functie levert, bijvoorbeeld Open Product of Zaken. Een module staat per omgeving aan of uit.
+  functie levert, bijvoorbeeld Open Product of Zaken. Een module staat per tenant aan of uit.
+- **Bruikbare module** — een module die een tenant kan gebruiken: de tenant heeft de configuratie die de
+  module nodig heeft én de toegangsschakelaar (permission-flag) van de module staat voor die tenant aan,
+  net als die van elke module waar hij van afhangt. Een schakelaar zonder configuratie betekent uit;
+  configuratie zonder schakelaar is toegestaan (nog niet opengesteld).
+- **Modulematrix** — het overzicht voor beheerders van alle modules over alle tenants: geconfigureerd,
+  schakelaar en bruikbaar.
 - **Harde afhankelijkheid** — een andere module of externe API zonder welke een module zinloos is.
   Staat de module aan terwijl een harde afhankelijkheid uit staat, dan is dat een configuratiefout die
   bij het opstarten wordt gemeld.

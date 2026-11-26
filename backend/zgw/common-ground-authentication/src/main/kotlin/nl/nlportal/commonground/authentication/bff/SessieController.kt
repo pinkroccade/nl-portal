@@ -15,6 +15,7 @@
  */
 package nl.nlportal.commonground.authentication.bff
 
+import nl.nlportal.core.modulegate.ModuleEndpoint
 import com.fasterxml.jackson.annotation.JsonInclude
 import kotlinx.coroutines.reactive.awaitFirstOrNull
 import kotlinx.coroutines.reactor.awaitSingle
@@ -50,6 +51,7 @@ data class SessieStatus(
     val inlogmiddelen: List<String>? = null,
 )
 
+@ModuleEndpoint(ModuleEndpoint.KERN)
 @RestController
 class SessieController(
     private val tenants: TenantDirectory,

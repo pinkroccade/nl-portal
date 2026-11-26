@@ -15,6 +15,7 @@
  */
 package nl.nlportal.core.tenancy
 
+import nl.nlportal.core.modulegate.ModuleEndpoint
 import io.micrometer.core.instrument.MeterRegistry
 import org.assertj.core.api.Assertions.assertThat
 import org.junit.jupiter.api.Test
@@ -52,6 +53,7 @@ class TenancyOverHttpTest(
 ) {
     @TestConfiguration
     class Probe {
+        @ModuleEndpoint(ModuleEndpoint.KERN)
         @RestController
         class ProbeController {
             @GetMapping("/tenant-probe")

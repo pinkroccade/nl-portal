@@ -15,6 +15,7 @@
  */
 package nl.nlportal.besluiten.graphql
 
+import nl.nlportal.core.modulegate.ModuleEndpoint
 import nl.nlportal.besluiten.domain.Besluit
 import nl.nlportal.besluiten.domain.BesluitAuditTrail
 import nl.nlportal.besluiten.domain.BesluitDocument
@@ -27,6 +28,7 @@ import nl.nlportal.documentenapi.domain.Document
 import org.springframework.graphql.data.method.annotation.SchemaMapping
 import org.springframework.stereotype.Controller
 
+@ModuleEndpoint("besluiten", overgang = true)
 @Controller
 class BesluitenQuery(
     val besluitenService: BesluitenService,

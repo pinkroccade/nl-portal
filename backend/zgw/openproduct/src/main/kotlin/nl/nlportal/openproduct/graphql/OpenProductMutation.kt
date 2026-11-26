@@ -15,6 +15,7 @@
  */
 package nl.nlportal.openproduct.graphql
 
+import nl.nlportal.core.modulegate.ModuleEndpoint
 import nl.nlportal.portal.authentication.domain.PortalAuthentication
 import nl.nlportal.openproduct.client.domain.OpenProductProduct
 import nl.nlportal.openproduct.graphql.domain.UpdateProductRequest
@@ -23,6 +24,7 @@ import org.springframework.graphql.data.method.annotation.Argument
 import org.springframework.graphql.data.method.annotation.MutationMapping
 import org.springframework.stereotype.Controller
 
+@ModuleEndpoint("openproduct", overgang = true)
 @Controller
 class OpenProductMutation(
     val openProductService: OpenProductService,

@@ -103,7 +103,7 @@ tests:
         documentIndex: 0
       - matchRegex:
           path: data["nl-portal.flagd.json"]
-          pattern: "ops.documentenapis.enabled"
+          pattern: "permission.documentenapis.enabled"
         documentIndex: 1
   - it: de evaluatiecontext van de flags (tenant, omgeving) komt als omgevingsvariabele
     template: configmap-backend.yaml

@@ -15,7 +15,6 @@
  */
 package nl.nlportal.core.modulestatus
 
-import nl.nlportal.core.featureflag.FeatureContextFactory
 import nl.nlportal.core.frontend.configuration.FrontendModuleConfigurationProperties
 import nl.nlportal.core.modulegate.ModuleGate
 import org.springframework.boot.actuate.endpoint.annotation.Endpoint
@@ -27,9 +26,17 @@ class ModuleStatusEndpoint(
     private val registry: ModuleStatusRegistry,
     private val modules: FrontendModuleConfigurationProperties,
     private val moduleGate: ModuleGate,
-    private val featureContextFactory: FeatureContextFactory,
 ) {
-    /** Modules with a module flag are on or off by that flag; the others by their old `enabled` property. */
+    /**
+     * The status of every module, with for a module on the gate the matrix over all tenants (configured, flag, usable). A module on the gate
+     * counts as on when at least one tenant can use it; the others are on or off by their old `enabled` property.
+     */
     @ReadOperation
-    fun modules(): List<ModuleStatus> = registry.snapshot(modules.config.mapValues { it.value.enabled } + moduleGate.status(featureContextFactory.create(null)))
+    fun modules(): List<ModuleStatus> {
+        val matrix = moduleGate.matrix().groupBy { it.module }
+        val aan = modules.config.mapValues { it.value.enabled } + matrix.mapValues { (_, rijen) -> rijen.any { it.bruikbaar } }
+        return registry.snapshot(aan).map { status ->
+            status.copy(tenants = matrix[status.module].orEmpty().map { TenantModuleStatus(it.oin.value, it.geconfigureerd, it.flag, it.bruikbaar) })
+        }
+    }
 }

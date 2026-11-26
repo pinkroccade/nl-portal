@@ -1,0 +1,8 @@
+oin: "00000099000000000002"
+naam: Gemeente Het Wijde Veld
+domeinen: [wijdeveld.example]
+thema:
+  titel: Het Wijde Veld
+authenticatie:
+  issuer: http://localhost:9999/realms/wijdeveld
+  sleutelBestand: /run/secrets/00000099000000000002/wijdeveld.jwk

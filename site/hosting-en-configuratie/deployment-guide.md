@@ -161,7 +161,7 @@ attributen:
 
 | Attribuut | Inhoud |
 |---|---|
-| `tenant` | De tenant van deze installatie (`nl-portal.feature-flags.context.tenant`). |
+| `tenant` | De OIN van de tenant van het request, uit de tenantresolutie (de host van het request). Zonder tenant wordt er niet geëvalueerd. |
 | `environment` | De omgeving (`nl-portal.feature-flags.context.environment`); ontbreekt als die niet is ingesteld. |
 | `userType` | Soort ingelogde gebruiker: `bsn`, `kvk` of `uid`; ontbreekt bij een anoniem request. |
 
@@ -169,7 +169,6 @@ De context bevat nooit persoonsgegevens zoals BSN, KVK-nummer of naam, en geen g
 
 | Property | Omgevingsvariabele | Betekenis |
 |---|---|---|
-| `nl-portal.feature-flags.context.tenant` | `NLPORTAL_FEATUREFLAGS_CONTEXT_TENANT` | Naam van de tenant (standaard `default`). |
 | `nl-portal.feature-flags.context.environment` | `NLPORTAL_FEATUREFLAGS_CONTEXT_ENVIRONMENT` | Naam van de omgeving, bijvoorbeeld `test` of `productie`. |
 
 Een flag die alleen voor één tenant aan staat:
@@ -179,7 +178,7 @@ Een flag die alleen voor één tenant aan staat:
   "state": "ENABLED",
   "variants": { "on": true, "off": false },
   "defaultVariant": "off",
-  "targeting": { "if": [{ "==": [{ "var": "tenant" }, "gemeente-a"] }, "on", "off"] }
+  "targeting": { "if": [{ "==": [{ "var": "tenant" }, "00000099000000000001"] }, "on", "off"] }
 }
 ```
 

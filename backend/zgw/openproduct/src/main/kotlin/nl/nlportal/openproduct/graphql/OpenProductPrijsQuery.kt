@@ -15,6 +15,7 @@
  */
 package nl.nlportal.openproduct.graphql
 
+import nl.nlportal.core.modulegate.ModuleEndpoint
 import java.util.UUID
 import nl.nlportal.portal.authentication.domain.PortalAuthentication
 import nl.nlportal.openproduct.client.domain.OpenProductPrijs
@@ -23,6 +24,7 @@ import org.springframework.graphql.data.method.annotation.Argument
 import org.springframework.graphql.data.method.annotation.QueryMapping
 import org.springframework.stereotype.Controller
 
+@ModuleEndpoint("openproduct", overgang = true)
 @Controller
 class OpenProductPrijsQuery(
     val openProductService: OpenProductService,

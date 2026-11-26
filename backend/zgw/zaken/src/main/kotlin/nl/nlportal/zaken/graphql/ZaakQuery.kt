@@ -15,6 +15,7 @@
  */
 package nl.nlportal.zaken.graphql
 
+import nl.nlportal.core.modulegate.ModuleEndpoint
 import java.util.UUID
 import nl.nlportal.besluiten.domain.Besluit
 import nl.nlportal.besluiten.service.BesluitenService
@@ -37,6 +38,7 @@ import org.springframework.graphql.data.method.annotation.QueryMapping
 import org.springframework.graphql.data.method.annotation.SchemaMapping
 import org.springframework.stereotype.Controller
 
+@ModuleEndpoint("zaken", overgang = true)
 @Controller
 open class ZaakQuery(
     val zakenApiService: ZakenApiService,

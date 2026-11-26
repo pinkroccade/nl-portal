@@ -22,7 +22,6 @@ import nl.nlportal.berichten.security.config.BerichtDocumentResourceHttpSecurity
 import nl.nlportal.berichten.service.BerichtenService
 import nl.nlportal.berichten.web.rest.BerichtDocumentResource
 import nl.nlportal.core.modulegate.ModuleFlag
-import nl.nlportal.core.modulegate.ModuleGate
 import nl.nlportal.core.security.config.HttpSecurityConfigurer
 import nl.nlportal.core.tenancy.TenantDirectory
 import nl.nlportal.core.tenancy.VervallenProperties
@@ -63,17 +62,11 @@ class BerichtenAutoConfiguration {
 
     @Bean
     @ConditionalOnMissingBean(BerichtenQuery::class)
-    fun berichtenQuery(
-        berichtenService: BerichtenService,
-        moduleGate: ModuleGate,
-    ): BerichtenQuery = BerichtenQuery(berichtenService, moduleGate)
+    fun berichtenQuery(berichtenService: BerichtenService): BerichtenQuery = BerichtenQuery(berichtenService)
 
     @Bean
     @ConditionalOnMissingBean(BerichtDocumentResource::class)
-    fun berichtDocumentResource(
-        berichtenService: BerichtenService,
-        moduleGate: ModuleGate,
-    ): BerichtDocumentResource = BerichtDocumentResource(berichtenService, moduleGate)
+    fun berichtDocumentResource(berichtenService: BerichtenService): BerichtDocumentResource = BerichtDocumentResource(berichtenService)
 
     @Bean
     @ConditionalOnMissingBean(BerichtDocumentResourceHttpSecurityConfigurer::class)

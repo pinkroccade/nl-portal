@@ -15,12 +15,14 @@
  */
 package nl.nlportal.kvk.graphql
 
+import nl.nlportal.core.modulegate.ModuleEndpoint
 import nl.nlportal.portal.authentication.domain.PortalAuthentication
 import nl.nlportal.kvk.domain.MaatschappelijkeActiviteit
 import nl.nlportal.kvk.service.KvkService
 import org.springframework.graphql.data.method.annotation.QueryMapping
 import org.springframework.stereotype.Controller
 
+@ModuleEndpoint("kvk", overgang = true)
 @Controller
 class KvkQuery(
     val kvkService: KvkService,

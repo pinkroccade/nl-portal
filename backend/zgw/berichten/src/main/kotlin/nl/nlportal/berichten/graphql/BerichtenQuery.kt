@@ -16,33 +16,31 @@
 package nl.nlportal.berichten.graphql
 
 import java.util.UUID
-import nl.nlportal.berichten.BERICHTEN_MODULE
 import nl.nlportal.berichten.domain.Bericht
 import nl.nlportal.berichten.service.BerichtenService
 import nl.nlportal.portal.authentication.domain.PortalAuthentication
-import nl.nlportal.core.modulegate.ModuleGate
+import nl.nlportal.core.modulegate.ModuleEndpoint
 import nl.nlportal.documentenapi.domain.Document
 import org.springframework.graphql.data.method.annotation.Argument
 import org.springframework.graphql.data.method.annotation.QueryMapping
 import org.springframework.graphql.data.method.annotation.SchemaMapping
 import org.springframework.stereotype.Controller
 
+/** Registered at the central module gate: the gate checks module `berichten` for every root field (ADR 0026). */
+@ModuleEndpoint("berichten")
 @Controller
 class BerichtenQuery(
     private val berichtenService: BerichtenService,
-    private val moduleGate: ModuleGate,
 ) {
     @QueryMapping
     suspend fun getBericht(
         authentication: PortalAuthentication,
         @Argument id: UUID,
-    ): Bericht? {
-        moduleGate.require(BERICHTEN_MODULE, authentication)
-        return berichtenService.getBericht(
+    ): Bericht? =
+        berichtenService.getBericht(
             authentication = authentication,
             id = id,
         )
-    }
 
     @QueryMapping
     suspend fun getBerichten(
@@ -50,21 +48,16 @@ class BerichtenQuery(
         @Argument pageNumber: Int? = 1,
         @Argument pageSize: Int? = 20,
         @Argument onderwerp: String? = null,
-    ): BerichtenPage {
-        moduleGate.require(BERICHTEN_MODULE, authentication)
-        return berichtenService.getBerichtenPage(
+    ): BerichtenPage =
+        berichtenService.getBerichtenPage(
             authentication = authentication,
             pageNumber = pageNumber ?: 1,
             pageSize = pageSize ?: 20,
             onderwerp = onderwerp,
         )
-    }
 
     @QueryMapping
-    suspend fun getUnopenedBerichtenCount(authentication: PortalAuthentication): Int {
-        moduleGate.require(BERICHTEN_MODULE, authentication)
-        return berichtenService.getUnopenedBerichtenCount(authentication = authentication)
-    }
+    suspend fun getUnopenedBerichtenCount(authentication: PortalAuthentication): Int = berichtenService.getUnopenedBerichtenCount(authentication = authentication)
 
     @SchemaMapping(typeName = "Bericht", field = "documenten")
     suspend fun documenten(

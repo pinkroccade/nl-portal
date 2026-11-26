@@ -19,6 +19,7 @@ import io.github.oshai.kotlinlogging.KotlinLogging
 import org.springframework.boot.autoconfigure.AutoConfiguration
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean
 import org.springframework.boot.context.properties.EnableConfigurationProperties
+import org.springframework.beans.factory.InitializingBean
 import org.springframework.beans.factory.ObjectProvider
 import org.springframework.context.annotation.Bean
 import org.springframework.context.annotation.Condition
@@ -76,6 +77,13 @@ class TenancyAutoConfiguration {
         directory: TenantDirectory,
         properties: TenancyProperties,
     ) = TenantWebFilter(directory, TrustedProxies(properties.trustedProxies))
+
+    /** Een niet-gemigreerde module (besluiten, openklant, openproduct) kan niet aan staan in een runtime met meer dan één tenant. */
+    @Bean
+    fun nietGemigreerdeModulesControle(
+        directory: TenantDirectory,
+        modules: ObjectProvider<NietGemigreerdeModule>,
+    ) = InitializingBean { NietGemigreerdeModule.controleer(directory.tenants.size, modules.orderedStream().toList()) }
 
     @Bean
     fun managementExposureGuard(environment: Environment) = ManagementExposureGuard(environment)

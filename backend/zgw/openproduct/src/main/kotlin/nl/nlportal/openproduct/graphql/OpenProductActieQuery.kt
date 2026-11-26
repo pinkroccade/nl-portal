@@ -15,6 +15,7 @@
  */
 package nl.nlportal.openproduct.graphql
 
+import nl.nlportal.core.modulegate.ModuleEndpoint
 import java.util.UUID
 import nl.nlportal.portal.authentication.domain.PortalAuthentication
 import nl.nlportal.core.util.Mapper
@@ -29,6 +30,7 @@ import org.springframework.stereotype.Controller
 import tools.jackson.core.type.TypeReference
 import tools.jackson.databind.node.ObjectNode
 
+@ModuleEndpoint("openproduct", overgang = true)
 @Controller
 class OpenProductActieQuery(
     val openProductService: OpenProductService,

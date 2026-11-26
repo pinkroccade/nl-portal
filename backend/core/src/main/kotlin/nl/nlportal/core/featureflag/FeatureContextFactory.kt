@@ -22,30 +22,38 @@ import org.springframework.security.authentication.AnonymousAuthenticationToken
 import org.springframework.security.core.Authentication
 import org.springframework.security.core.context.ReactiveSecurityContextHolder
 import reactor.core.publisher.Mono
+import nl.nlportal.core.tenancy.Oin
+import nl.nlportal.core.tenancy.TenantContext
 
 /**
  * Builds the OpenFeature evaluation context for a request. The context is passed explicitly to every
  * evaluation; it is never stored in thread-bound state, which does not survive thread hops in WebFlux.
  *
  * The context never holds personal data and no user id (no targeting key): only tenant, environment and
- * user type. Flags decide per tenant, not per citizen (ADR 0020).
+ * user type. Flags decide per tenant, not per citizen (ADR 0020). The tenant is the OIN of the tenant of the request,
+ * read from the [TenantContext]; without a tenant there is no context and the evaluation fails closed.
  */
 class FeatureContextFactory(
     private val properties: FeatureFlagProperties.Context,
 ) {
-    /** The context of the current request, read from the reactive security context. */
+    /** The context of the current request: tenant from the [TenantContext], user type from the reactive security context. */
     fun current(): Mono<EvaluationContext> =
-        ReactiveSecurityContextHolder
-            .getContext()
-            .mapNotNull { it.authentication }
-            .map { create(it) }
-            .switchIfEmpty(Mono.fromSupplier { create(null) })
+        TenantContext.currentMono().flatMap { oin ->
+            ReactiveSecurityContextHolder
+                .getContext()
+                .mapNotNull { it.authentication }
+                .map { create(oin, it) }
+                .switchIfEmpty(Mono.fromSupplier { create(oin, null) })
+        }
 
-    fun create(authentication: Authentication?): EvaluationContext {
+    fun create(
+        oin: Oin,
+        authentication: Authentication? = null,
+    ): EvaluationContext {
         val user = authentication?.takeIf { it.isAuthenticated && it !is AnonymousAuthenticationToken }
         val attributes =
             buildMap {
-                put(TENANT, Value(properties.tenant))
+                put(TENANT, Value(oin.value))
                 properties.environment?.let { put(ENVIRONMENT, Value(it)) }
                 (user as? UserTypeAware)?.let { put(USER_TYPE, Value(it.userType)) }
             }

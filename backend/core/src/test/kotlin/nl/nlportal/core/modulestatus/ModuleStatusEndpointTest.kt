@@ -113,4 +113,24 @@ class ModuleStatusEndpointTest(
             .jsonPath("$[?(@.module=='voorbeeld')].status")
             .isEqualTo("DISABLED")
     }
+
+    @Test
+    fun `een module op de gate toont de modulematrix over alle tenants`() {
+        client
+            .get()
+            .uri("/actuator/modulestatus")
+            .headers { it.setBasicAuth("beheer", "geheim") }
+            .exchange()
+            .expectStatus()
+            .isOk
+            .expectBody()
+            .jsonPath("$[?(@.module=='voorbeeld')].tenants[0].tenant")
+            .isEqualTo("00000099000000000001")
+            .jsonPath("$[?(@.module=='voorbeeld')].tenants[0].geconfigureerd")
+            .isEqualTo(true)
+            .jsonPath("$[?(@.module=='voorbeeld')].tenants[0].flag")
+            .isEqualTo(false)
+            .jsonPath("$[?(@.module=='voorbeeld')].tenants[0].bruikbaar")
+            .isEqualTo(false)
+    }
 }

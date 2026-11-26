@@ -17,14 +17,13 @@ package nl.nlportal.berichten.web.rest
 
 import io.github.oshai.kotlinlogging.KotlinLogging
 import kotlinx.coroutines.flow.Flow
-import nl.nlportal.berichten.BERICHTEN_MODULE
 import nl.nlportal.berichten.service.BerichtenService
 import nl.nlportal.core.koppeling.KoppelingConfiguratieException
 import nl.nlportal.core.koppeling.KoppelingException
 import nl.nlportal.core.tenancy.TenantContextMissingException
 import nl.nlportal.core.util.ModuleNotConfiguredException
 import nl.nlportal.portal.authentication.domain.PortalAuthentication
-import nl.nlportal.core.modulegate.ModuleGate
+import nl.nlportal.core.modulegate.ModuleEndpoint
 import nl.nlportal.documentenapi.util.FilenameSanitizer
 import org.springframework.core.io.buffer.DataBuffer
 import org.springframework.http.HttpHeaders
@@ -39,11 +38,12 @@ import org.springframework.web.bind.annotation.RestController
 import org.springframework.web.server.ResponseStatusException
 import java.util.UUID
 
+/** Registered at the central module gate: the gate checks module `berichten` for every path (ADR 0026). */
+@ModuleEndpoint("berichten")
 @RestController
 @RequestMapping(value = ["/api/berichten"])
 class BerichtDocumentResource(
     private val berichtenService: BerichtenService,
-    private val moduleGate: ModuleGate,
 ) {
     @GetMapping(value = ["/{berichtId}/document/{documentId}/content"])
     suspend fun downloadStreaming(
@@ -51,7 +51,6 @@ class BerichtDocumentResource(
         @PathVariable documentId: UUID,
         authentication: PortalAuthentication,
     ): ResponseEntity<Flow<DataBuffer>> {
-        moduleGate.require(BERICHTEN_MODULE, authentication)
         val (document, content) =
             berichtenService.getBerichtDocumentContent(authentication, berichtId, documentId)
                 ?: throw ResponseStatusException(HttpStatus.NOT_FOUND, "Bericht not found")

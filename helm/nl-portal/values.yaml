@@ -107,7 +107,7 @@ backend:
   featureFlags: {}
   # featureFlags:
   #   flags:
-  #     ops.documentenapis.enabled:
+  #     permission.documentenapis.enabled:
   #       state: ENABLED
   #       variants: {on: true, off: false}
   #       defaultVariant: "on"
@@ -159,7 +159,7 @@ backend:
       port: 3310
     taak:
       enabled: false
-    # The module is switched on with the flag ops.berichten.enabled (backend.featureFlags) and modules.berichten in the tenant file;
+    # The module is switched on with the flag permission.berichten.enabled (backend.featureFlags) and modules.berichten in the tenant file;
     # this switch declares the intent, so the dependency check runs.
     berichten:
       enabled: false

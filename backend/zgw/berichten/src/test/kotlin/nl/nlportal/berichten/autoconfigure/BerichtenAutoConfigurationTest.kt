@@ -15,7 +15,6 @@
  */
 package nl.nlportal.berichten.autoconfigure
 
-import nl.nlportal.core.modulegate.ModuleGate
 import nl.nlportal.core.tenancy.TenantDirectory
 import nl.nlportal.core.tenancy.VervallenProperties
 import nl.nlportal.documentenapi.service.DocumentenApiService
@@ -37,7 +36,6 @@ internal class BerichtenAutoConfigurationTest {
             .withBean(ObjectenApiService::class.java, { mock<ObjectenApiService>() })
             .withBean(DocumentenApiService::class.java, { mock<DocumentenApiService>() })
             .withBean(TenantDirectory::class.java, { mock<TenantDirectory>() })
-            .withBean(ModuleGate::class.java, { mock<ModuleGate>() })
             .withPropertyValues("nl-portal.config.documentenapis.enabled=true")
 
     @Test
