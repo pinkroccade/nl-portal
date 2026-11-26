@@ -48,9 +48,10 @@ Zet de flag voor een tenant aan met targeting op de OIN (zie de [deployment guid
 | `permission.berichten.enabled` | permission | uit | Zet de module berichten aan voor een tenant: de GraphQL-queries `getBericht`, `getBerichten` en `getUnopenedBerichtenCount` en de download `GET /api/berichten/{berichtId}/document/{documentId}/content`. Bruikbaar als ook `permission.documentenapis.enabled` aan staat (zie de afhankelijkheden hieronder) en de tenant `koppelingen.objectenapi` en `modules.berichten` heeft. Daarnaast heeft hij nog `nl-portal.config.documentenapis.enabled` nodig (blijft een opstartinstelling tot #162). De eigenschap `nl-portal.config.berichten.enabled` bestaat niet meer. |
 | `permission.haalcentraal-brp.enabled` | permission | uit | Zet de BRP-module aan voor een tenant: de GraphQL-query `getPersoonV2` (met het aantal bewoners). Bruikbaar als de tenant `koppelingen.brp` en `modules.brp` heeft. Daarnaast heeft hij nog `nl-portal.config.haalcentraal-brp.enabled` nodig (blijft een opstartinstelling tot #162). De modulenaam voor de frontend is `haalcentraal-brp`. |
 | `permission.taak.enabled` | permission | uit | Zet de taakmodule aan voor een tenant: de GraphQL-queries en -mutaties voor taken en formulieren en de upload `POST /api/taak/{taakId}/document/content`. Bruikbaar als de tenant `koppelingen.objectenapi` en `modules.taak` heeft. Daarnaast heeft hij nog `nl-portal.config.taak.enabled` en `objectenapi.enabled` nodig (opstartinstellingen tot #162). |
+| `permission.payment-direct.enabled` | permission | uit | Zet de payment-direct-module aan voor een tenant: de GraphQL-query `getDirectPaymentStatus`, de mutatie `doDirectPayment` en de postsale-webhook `POST /api/public/payment/direct/postsale` die de bank aanroept (de gate beslist per tenant, die volgt uit de host; bij een uitgeschakelde module antwoordt de webhook 503). Bruikbaar als de tenant `modules.payment-direct` heeft; elk profiel verwijst naar een koppeling onder `koppelingen`, wat de tenantvalidatie bewaakt. De webhook heeft daarnaast `koppelingen.objectenapi` en `nl-portal.config.objectenapi.enabled` nodig. De eigenschap `nl-portal.config.payment.direct.enabled` bestaat niet meer. |
 | `permission.documentenapis.enabled` | permission | uit | Afhankelijkheidsvlag van de documenten API. Modules die documenten serveren (nu berichten) vereisen hem; de tenant moet `modules.documenten-api` hebben. De module zelf wordt er nog niet door aan- of uitgezet; dat gebeurt nog met `nl-portal.config.documentenapis.enabled`. |
 
-De overige backendmodules (zaken, kvk, besluiten, openklant, openproduct, payment-direct) staan nog niet op de gate: hun
+De overige backendmodules (zaken, kvk, besluiten, openklant, openproduct) staan nog niet op de gate: hun
 endpoints zijn geregistreerd met `overgang = true` en volgen met #521 per module. Zolang ze nog geen permission-flag hebben, bepaalt
 `nl-portal.config.<module>.enabled` bij het opstarten of ze er zijn.
 
@@ -71,6 +72,7 @@ Een module-flag declareert de flags die hij vereist. Een module is alleen bereik
 | `documentenapis` | (geen) |
 | `haalcentraal-brp` | (geen) |
 | `taak` | (geen) |
+| `payment-direct` | (geen) |
 
 De graaf staat in de code bij de module-flag (`BERICHTEN_MODULE`, `DOCUMENTENAPIS_MODULE`, `BRP_MODULE`); voeg bij een nieuwe module een regel toe aan deze tabel. Staat een vereiste module uit of mist de tenant zijn configuratie, dan is ook de module zelf niet bruikbaar.
 

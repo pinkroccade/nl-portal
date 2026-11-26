@@ -24,7 +24,7 @@ import org.springframework.graphql.data.method.annotation.Argument
 import org.springframework.graphql.data.method.annotation.MutationMapping
 import org.springframework.stereotype.Controller
 
-@ModuleEndpoint("payment-direct", overgang = true)
+@ModuleEndpoint("payment-direct")
 @Controller
 class DirectPaymentMutation(
     private val directPaymentService: DirectPaymentService,

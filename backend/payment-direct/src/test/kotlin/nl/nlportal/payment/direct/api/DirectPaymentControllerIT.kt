@@ -17,6 +17,7 @@ package nl.nlportal.payment.direct.api
 
 import nl.nlportal.payment.direct.TestHelper
 import nl.nlportal.payment.direct.ObjectenTestServer
+import nl.nlportal.payment.direct.PaymentFlagFile
 import nl.nlportal.payment.direct.PaymentTestConfiguration
 import nl.nlportal.payment.direct.PaymentTestTenants
 import nl.nlportal.payment.direct.service.DirectPaymentService
@@ -35,6 +36,8 @@ import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.context.annotation.Import
 import org.springframework.http.HttpHeaders
 import org.springframework.http.MediaType
+import org.springframework.test.context.DynamicPropertyRegistry
+import org.springframework.test.context.DynamicPropertySource
 import org.springframework.test.web.reactive.server.WebTestClient
 import java.nio.charset.Charset
 import javax.crypto.Mac
@@ -340,6 +343,10 @@ internal class DirectPaymentControllerIT(
 
     companion object {
         const val PAYMENT_DIRECT_POSTSALE_ENDPOINT: String = "/api/public/payment/direct/postsale"
+
+        @JvmStatic
+        @DynamicPropertySource
+        fun featureFlags(registry: DynamicPropertyRegistry) = PaymentFlagFile.registreer(registry)
 
         fun createSignature(
             body: String,
