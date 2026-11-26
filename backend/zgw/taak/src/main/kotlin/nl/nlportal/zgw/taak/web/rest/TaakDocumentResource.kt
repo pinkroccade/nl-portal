@@ -41,7 +41,7 @@ import org.springframework.web.bind.annotation.RequestPart
 import org.springframework.web.bind.annotation.RestController
 import java.util.UUID
 
-@ModuleEndpoint("taak", overgang = true)
+@ModuleEndpoint("taak")
 @RestController
 @RequestMapping(value = ["/api/taak"])
 class TaakDocumentResource(

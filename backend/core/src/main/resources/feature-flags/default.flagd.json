@@ -17,6 +17,14 @@
       },
       "defaultVariant": "off"
     },
+    "permission.taak.enabled": {
+      "state": "ENABLED",
+      "variants": {
+        "on": true,
+        "off": false
+      },
+      "defaultVariant": "off"
+    },
     "permission.documentenapis.enabled": {
       "state": "ENABLED",
       "variants": {

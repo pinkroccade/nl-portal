@@ -17,6 +17,7 @@ package nl.nlportal.zgw.taak.graphql
 
 import tools.jackson.databind.JsonNode
 import nl.nlportal.commonground.authentication.WithBurgerUser
+import nl.nlportal.zgw.taak.TaakFlagFile
 import nl.nlportal.zgw.taak.TestHelper
 import okhttp3.mockwebserver.Dispatcher
 import okhttp3.mockwebserver.MockResponse
@@ -35,6 +36,8 @@ import org.springframework.boot.graphql.test.autoconfigure.tester.AutoConfigureH
 import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.boot.webtestclient.autoconfigure.AutoConfigureWebTestClient
 import org.springframework.graphql.test.tester.HttpGraphQlTester
+import org.springframework.test.context.DynamicPropertyRegistry
+import org.springframework.test.context.DynamicPropertySource
 
 @SpringBootTest
 @AutoConfigureHttpGraphQlTester
@@ -160,5 +163,11 @@ internal class TaakFormQueryIT(
                 }
             }
         server.dispatcher = dispatcher
+    }
+
+    companion object {
+        @JvmStatic
+        @DynamicPropertySource
+        fun featureFlags(registry: DynamicPropertyRegistry) = TaakFlagFile.vlaggen.registreer(registry)
     }
 }
