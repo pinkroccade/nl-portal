@@ -62,11 +62,13 @@ anders, gebruik dan ook geen `subPath`. Een flagwijziging blijft daarmee via de 
 
 ## Testplan voor devops: tonen dat het flagbestand in k8s wordt ingelezen
 
-Doel: aantonen dat (1) de flags uit de ConfigMap daadwerkelijk in de pod aankomen, (2) een wijziging een rolling update geeft en (3) een fout in het bestand
-veilig afloopt. Je hebt `kubectl`, `helm` en toegang tot een testnamespace nodig.
+Doel: aantonen dat (1) de flags uit de ConfigMap daadwerkelijk in de pod aankomen, (2) een wijziging een rolling update geeft en (3) je ziet wat er
+gebeurt bij een fout in het bestand. Je hebt `kubectl`, `helm` en toegang tot een testnamespace nodig.
 De namen hieronder gaan uit van release `nl-portal`; pas ze aan.
 
-**Voorbereiding.** Installeer de release met `ops.frontend.message-count` uit en bepaal de backendpod en de naam van de Deployment:
+**Voorbereiding.** Installeer de release met `ops.frontend.message-count` uit (`defaultVariant: "off"`) en **zonder** targetingregel; die voeg je pas in stap 8 toe.
+Een targetingregel die past op de tenant wint van `defaultVariant`: met de regel uit het voorbeeld hierboven staat de flag voor `gemeente-a` meteen aan.
+Bepaal daarna de backendpod en de naam van de Deployment:
 
 ```shell
 NS=nl-portal-test
@@ -83,15 +85,17 @@ kubectl -n $NS port-forward deploy/nl-portal-backend 8080:8080
 | 5 | Zet in je values `ops.frontend.message-count` op `defaultVariant: "on"` en voer `helm upgrade` uit. Volg met `kubectl -n $NS rollout status deploy/nl-portal-backend`. | Een rolling update: nieuwe pods starten één voor één, de rollout slaagt. |
 | 6 | Herhaal stap 3. | De hash is veranderd. |
 | 7 | Zet de port-forward opnieuw op en herhaal stap 4. | `messageCountEnabled` staat op `true`. |
-| 8 | Test targeting: zet `featureFlagContext.tenant` op een andere naam dan in je targetingregel, upgrade en herhaal stap 4. | `messageCountEnabled` staat weer op `false`: de regel past niet op deze tenant. |
-| 9 | Zet in de ConfigMap een kapot bestand (`helm upgrade --set-json 'backend.featureFlags={"flags":{"x":{"state":"BAD"}}}'` of een syntaxfout in de JSON) en volg de rollout. | Zie de noot hieronder: noteer wat je ziet. De oude pods blijven draaien zolang de nieuwe niet ready zijn. |
+| 8 | Test targeting: laat `message-count` op `defaultVariant: "off"` en voeg de targetingregel uit het voorbeeld toe (`tenant == gemeente-a`, dan `on`). Zet `featureFlagContext.tenant` op een andere naam (bijvoorbeeld `gemeente-b`), upgrade en herhaal stap 4. | `messageCountEnabled` staat op `false`: de regel past niet op deze tenant. Met de tenant terug op `gemeente-a` staat hij op `true`. |
+| 9 | Zet in de ConfigMap een kapot bestand, bijvoorbeeld een flag met `state: BAD` en zonder `variants`, upgrade en volg de rollout en de log van de nieuwe pod. | De rollout slaagt en de pod wordt ready. De log toont `Invalid flag configuration` (WARN) en de flag telt als afwezig: stap 4 geeft `false`. Zie de noot hieronder. |
 | 10 | Draai terug: `helm rollback nl-portal` en herhaal stap 4. | `messageCountEnabled` staat op de waarde van vóór stap 9. |
 
 
 **Terugkoppeling.** Wijkt iets af van de verwachting, dan is dat een fout in deze pagina of in de chart: meld het als issue, zodat de tekst wordt gecorrigeerd. Dit
 plan toont het inlezen en de rolling update; metrics en de flagcatalogus vallen erbuiten (zie [#174](https://github.com/pinkroccade/nl-portal/issues/174)).
 
-::: info Stap 9 is bewust een observatie
-Hoe de provider op een kapot flagbestand reageert (de pod start niet, of start met de standaardwaarden uit de code) is nog niet als gedrag vastgelegd. Noteer wat je
-ziet; de uitkomst hoort in deze pagina.
+::: warning Een kapot flagbestand stopt de rollout niet
+Gemeten op kind (stap 9): de pod start en wordt ready, de provider logt een waarschuwing en de kapotte flag valt terug op de standaard in de code. Een
+permission-flag staat dan uit (fail-closed), een ops-flag op zijn code-default. De readiness-probe merkt niets. Controleer een flagwijziging daarom vóór de merge
+en zoek na de uitrol in de log van de nieuwe pod naar `Invalid flag configuration`. Een geautomatiseerde controle volgt in
+[#630](https://github.com/pinkroccade/nl-portal/issues/630).
 :::
