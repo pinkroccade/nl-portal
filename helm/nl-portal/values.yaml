@@ -158,7 +158,7 @@ backend:
       port: 3310
     taak:
       enabled: false
-    # The module is switched on with the flag permission.berichten.enabled (backend.featureFlags) and modules.berichten in the tenant file;
+    # berichten and haalcentraal-brp are switched on with the flags permission.<module>.enabled (backend.featureFlags) and the module in the tenant file;
     # this switch declares the intent, so the dependency check runs.
     berichten:
       enabled: false

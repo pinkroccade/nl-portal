@@ -3,7 +3,7 @@ name: nl-portal
 description: NL Portal Pink Edition (backend and frontend) for Kubernetes. Redis, Keycloak and the ZGW sources are prerequisites, not bundled.
 type: application
 # Chart version (SemVer) is independent of appVersion. Bump it on every change to the chart.
-version: 0.2.0
+version: 0.2.1
 # The default image tag of backend and frontend. Override with backend.image.tag / frontend.image.tag.
 appVersion: "0.1.0"
 kubeVersion: ">=1.27.0-0"
