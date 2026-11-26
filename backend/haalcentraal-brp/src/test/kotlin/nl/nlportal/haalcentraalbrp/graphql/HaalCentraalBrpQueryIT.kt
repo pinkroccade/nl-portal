@@ -19,6 +19,7 @@ import tools.jackson.databind.JsonNode
 import nl.nlportal.commonground.authentication.WithBurgerUser
 import nl.nlportal.core.modulegate.ModuleGate
 import nl.nlportal.core.tenancy.GeheimenBron
+import nl.nlportal.core.tenancy.Oin
 import nl.nlportal.core.tenancy.TenantDirectory
 import nl.nlportal.core.tenancy.TenantKoppelingAuth
 import nl.nlportal.core.tenancy.TenantKoppelingAuthType
@@ -91,8 +92,10 @@ internal class HaalCentraalBrpQueryIT(
         @Bean
         fun tenantDirectory(): TenantDirectory {
             val basis = server.url("/").toString().trimEnd('/')
-            return TestTenants.directory(
+
+            fun gemeente(oin: Oin) =
                 TestTenants.tenant(
+                    oin = oin,
                     koppelingen =
                         mapOf(
                             "brp" to TestTenants.koppeling("$basis/brp", TenantKoppelingAuth(TenantKoppelingAuthType.GEEN)),
@@ -106,8 +109,8 @@ internal class HaalCentraalBrpQueryIT(
                                     aanvullendeHeaders = passThroughHeaders,
                                 ),
                         ),
-                ),
-            )
+                )
+            return TestTenants.directory(gemeente(TestTenants.BOSRAND), gemeente(TestTenants.WIJDE_VELD))
         }
 
         @Bean
@@ -140,6 +143,7 @@ internal class HaalCentraalBrpQueryIT(
     fun `getPersoonV2 is niet beschikbaar voor een tenant waarvoor de vlag uit staat`() {
         vlaggen.zet(BRP_MODULE, aan = true, gate = moduleGate, alleenVoor = setOf(TestTenants.WIJDE_VELD))
 
+        assertEquals(true, moduleGate.beoordeel(BRP_MODULE, TestTenants.WIJDE_VELD).flag)
         httpGraphQlTester
             .document("query { getPersoonV2 { burgerservicenummer } }")
             .execute()

@@ -113,7 +113,7 @@ waar zijn beans om vragen: berichten heeft nog steeds `documentenapis.enabled` n
 
 Test op de applicatiegrens: start de applicatie met een flagbestand en doe een echt GraphQL- of REST-request. `BerichtenQueryIT` en
 `BerichtDocumentResourceIT` doen dat voor aan, uit en een uitgeschakelde afhankelijkheid. Let op: OpenFeature is een globale singleton
-in de JVM. Laat alle testcontexts van een module daarom hetzelfde flagbestand gebruiken (`BerichtenFlagFile`) in plaats van elk een
+in de JVM. Laat alle testcontexts van een module daarom hetzelfde flagbestand gebruiken (`ModuleFlagBestand` uit de testFixtures van core; berichten gebruikt nog `BerichtenFlagFile`) in plaats van elk een
 eigen bestand. Een test met twee tenants zet de flag voor één OIN aan (zie `ModuleGateTest`).
 
 ## Een module overzetten

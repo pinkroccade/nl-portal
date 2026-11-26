@@ -70,6 +70,6 @@ Een module-flag declareert de flags die hij vereist. Een module is alleen bereik
 | `documentenapis` | (geen) |
 | `haalcentraal-brp` | (geen) |
 
-De graaf staat in de code bij de module-flag (`BERICHTEN_MODULE`, `DOCUMENTENAPIS_MODULE`); voeg bij een nieuwe module een regel toe aan deze tabel. Staat een vereiste module uit of mist de tenant zijn configuratie, dan is ook de module zelf niet bruikbaar.
+De graaf staat in de code bij de module-flag (`BERICHTEN_MODULE`, `DOCUMENTENAPIS_MODULE`, `BRP_MODULE`); voeg bij een nieuwe module een regel toe aan deze tabel. Staat een vereiste module uit of mist de tenant zijn configuratie, dan is ook de module zelf niet bruikbaar.
 
 Het meegeleverde bestand (`backend/core/src/main/resources/feature-flags/default.flagd.json`) zet alle toggles en modules uit (ook de afhankelijkheidsvlag `permission.documentenapis.enabled`). Het compose-bestand `docker-compose/imports/flags/nl-portal.flagd.json` zet ze voor de lokale stack aan (en ook `permission.berichten.enabled` en `permission.documentenapis.enabled`, voor elke tenant), behalve `open-product` en `cases-result-explanation`.

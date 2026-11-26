@@ -56,6 +56,7 @@ class ModuleFlagBestand(
         alleenVoor: Set<Oin>? = null,
         wacht: Oin = TestTenants.BOSRAND,
     ) {
+        require(alleenVoor == null || aan) { "alleenVoor betekent aan voor die tenants; aan = false met alleenVoor is dubbelzinnig" }
         staat[module] = alleenVoor ?: if (aan) null else emptySet()
         schrijf()
         val verwacht = alleenVoor?.contains(wacht) ?: aan
