@@ -8,7 +8,7 @@ resource roept de gate zelf niet aan. Het ontwerp staat in
 module op de centrale gate en het voorbeeld voor de andere.
 
 ::: warning Overgang
-Alleen berichten (met de afhankelijkheid documentenapis) staat nu op de gate. De andere modules dragen op hun controllers
+Berichten (met de afhankelijkheid documentenapis) en BRP (`haalcentraal-brp`) staan nu op de gate. De andere modules dragen op hun controllers
 `@ModuleEndpoint("<module>", overgang = true)`: hun endpoints blijven bereikbaar zoals voorheen, en een ArchUnit-ratchet
 (`ModuleGateRegels`) laat het aantal overgangsregistraties alleen kleiner worden. Elke module gaat in een eigen stap over (T22,
 [#521](https://github.com/pinkroccade/nl-portal/issues/521)); daarna gaan de oude module-properties weg
