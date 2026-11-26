@@ -217,7 +217,6 @@
           "type": "object",
           "additionalProperties": false,
           "properties": {
-            "tenant": { "type": "string" },
             "environment": { "type": "string" }
           }
         },

@@ -22,3 +22,10 @@ Tests now guard that the flag file is mounted as a directory (no `subPath`) and 
 De module-flags heten `permission.<module>.enabled` (was `ops.<module>.enabled`): hernoem `ops.berichten.enabled` en
 `ops.documentenapis.enabled` in `backend.featureFlags` en target op de OIN van de tenant. `backend.featureFlagContext.tenant`
 wordt genegeerd: de tenant komt uit het request (#521).
+
+## 0.2.0
+
+**Breaking (values):** `backend.featureFlagContext.tenant` is verwijderd; het schema weigert de sleutel nu. De tenant in de
+evaluatiecontext is de OIN van de tenant van elk request, dus targetingregels schrijf je op de OIN en er is geen
+`NLPORTAL_FEATUREFLAGS_CONTEXT_TENANT` meer. Haal de sleutel uit je values en pas `tenant == <naam>` in je flagbestand aan
+naar de OIN (#175, #521). `backend.featureFlagContext.environment` blijft.

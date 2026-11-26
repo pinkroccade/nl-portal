@@ -37,7 +37,7 @@ Wat de chart ervan maakt:
 | ConfigMap `<release>-nl-portal-flags` | Het bestand `nl-portal.flagd.json`, als JSON uit je values. |
 | Volume `flags` | De ConfigMap, als map gemount op `/etc/nl-portal/flags` (alleen lezen, **geen `subPath`**). |
 | `NLPORTAL_FEATUREFLAGS_FILE` | Wijst naar `/etc/nl-portal/flags/nl-portal.flagd.json`. |
-| `NLPORTAL_FEATUREFLAGS_CONTEXT_ENVIRONMENT` | Uit `backend.featureFlagContext.environment`; het attribuut `environment` voor targetingregels. `backend.featureFlagContext.tenant` bestaat nog in de chart maar wordt genegeerd: de tenant komt uit het request (#521). |
+| `NLPORTAL_FEATUREFLAGS_CONTEXT_ENVIRONMENT` | Uit `backend.featureFlagContext.environment`; het attribuut `environment` voor targetingregels. Een `tenant` zet je niet in de chart: die is de OIN van het request (chart 0.2.0). |
 | Annotatie `checksum/flags` | Hash van `backend.featureFlags` op de pod-template: een wijziging herstart de pods één voor één. |
 
 Zonder `backend.featureFlags` maakt de chart geen ConfigMap en geldt het meegeleverde bestand: alles uit. Een flag die in je bestand ontbreekt, is uit; een
@@ -66,7 +66,7 @@ gebeurt bij een fout in het bestand. Je hebt `kubectl`, `helm` en toegang tot ee
 De namen hieronder gaan uit van release `nl-portal`; pas ze aan.
 
 **Voorbereiding.** Installeer de release met `ops.frontend.message-count` uit (`defaultVariant: "off"`) en **zonder** targetingregel; die voeg je pas in stap 8 toe.
-Een targetingregel die past op de tenant wint van `defaultVariant`: met de regel uit het voorbeeld hierboven staat de flag voor `gemeente-a` meteen aan.
+Een targetingregel die past op de tenant van het request wint van `defaultVariant`: met de regel uit het voorbeeld hierboven staat de flag meteen aan voor de tenant met die OIN.
 Bepaal daarna de backendpod en de naam van de Deployment:
 
 ```shell
@@ -84,7 +84,7 @@ kubectl -n $NS port-forward deploy/nl-portal-backend 8080:8080
 | 5 | Zet in je values `ops.frontend.message-count` op `defaultVariant: "on"` en voer `helm upgrade` uit. Volg met `kubectl -n $NS rollout status deploy/nl-portal-backend`. | Een rolling update: nieuwe pods starten één voor één, de rollout slaagt. |
 | 6 | Herhaal stap 3. | De hash is veranderd. |
 | 7 | Zet de port-forward opnieuw op en herhaal stap 4. | `messageCountEnabled` staat op `true`. |
-| 8 | Test targeting: laat `message-count` op `defaultVariant: "off"` en voeg de targetingregel uit het voorbeeld toe (`tenant == gemeente-a`, dan `on`). Zet `featureFlagContext.tenant` op een andere naam (bijvoorbeeld `gemeente-b`), upgrade en herhaal stap 4. | `messageCountEnabled` staat op `false`: de regel past niet op deze tenant. Met de tenant terug op `gemeente-a` staat hij op `true`. |
+| 8 | Test targeting: laat `message-count` op `defaultVariant: "off"` en voeg de targetingregel uit het voorbeeld toe, met een andere OIN dan die van de tenant waarmee je `curl`t, upgrade en herhaal stap 4. | `messageCountEnabled` staat op `false`: de regel past niet op deze tenant. Zet je de OIN in de regel op die van je tenant, dan staat hij na de volgende upgrade op `true`. |
 | 9 | Zet in de ConfigMap een kapot bestand, bijvoorbeeld een flag met `state: BAD` en zonder `variants`, upgrade en volg de rollout en de log van de nieuwe pod. | De rollout slaagt en de pod wordt ready. De log toont `Invalid flag configuration` (WARN) en de flag telt als afwezig: stap 4 geeft `false`. Zie de noot hieronder. |
 | 10 | Draai terug: `helm rollback nl-portal` en herhaal stap 4. | `messageCountEnabled` staat op de waarde van vóór stap 9. |
 
