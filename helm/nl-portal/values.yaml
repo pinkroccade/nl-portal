@@ -112,6 +112,13 @@ backend:
   #       variants: {on: true, off: false}
   #       defaultVariant: "on"
 
+  # Evaluation context of the feature flags: the fixed attributes a targeting rule in the flag file can match on.
+  featureFlagContext:
+    # -- Tenant name (NLPORTAL_FEATUREFLAGS_CONTEXT_TENANT) for `tenant` targeting; empty: the application default (`default`).
+    tenant: ""
+    # -- Environment name (NLPORTAL_FEATUREFLAGS_CONTEXT_ENVIRONMENT) for `environment` targeting, for example `test` or `productie`; empty: not set.
+    environment: ""
+
   # -- Frontend properties served via GET /api/public/frontend (`NLPORTAL_FRONTEND_PROPERTIES_<NAME>`), by camelCase name.
   frontendProperties: {}
   # frontendProperties:

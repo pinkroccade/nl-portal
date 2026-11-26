@@ -3,7 +3,7 @@
 ## Status
 
 Geaccepteerd en deels uitgevoerd (#154, onderdeel van #143). Beslissing 7 (rolling update in plaats van
-hot reload) is toegevoegd in #389. De keuze van een productie-provider is
+hot reload) is toegevoegd in #389 en beslissing 8 (Unleash als vervolgbesluit) in #175. De keuze van een productie-provider is
 bewust uitgesteld (spike #147). De afspraken over levenscyclus en privacy van de evaluatiecontext staan
 in [ADR 0020](./0020-levenscyclus-feature-flags-en-privacy-evaluatiecontext.md) (#148).
 
@@ -37,6 +37,10 @@ want credentials horen niet in een flag-systeem).
    eigenschap van de bibliotheek die zich niet netjes laat uitzetten, geen gedrag dat we beloven. Een
    externe provider (#147) mag wel runtime-evaluatie bieden; dat is een eigenschap van die provider, geen
    eis aan NL Portal. Er is geen nieuwe ADR: dit is een verduidelijking van deze beslissing.
+8. **Voorlopig draaien we geen centrale flag-server (Unleash).** Het flagbestand per tenant als ConfigMap in de
+   Helm-chart is de operationele route (#175). Een overstap naar Unleash is een vervolgbesluit; de trigger
+   (bijvoorbeeld het aantal klanten of de behoefte aan een beheer-UI) stellen we samen met de eigenaar vast. De overstap
+   is klein, omdat featurecode alleen `FeatureGate` kent en de provider een OpenFeature-aansluiting is.
 
 ## Overwogen alternatieven
 

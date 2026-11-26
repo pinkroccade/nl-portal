@@ -11,7 +11,7 @@ Deze sectie volgt [Diátaxis](https://diataxis.fr/): elke pagina is van één so
 | Type | Je wilt | Pagina's |
 |---|---|---|
 | **Tutorial** (leren) | een eerste werkende installatie, stap voor stap | [Een eerste NL Portal op kind](./tutorial-kind.md) |
-| **How-to** (doen) | een bekende taak uitvoeren | [Installeren met helm install of Argo CD](./how-to-installeren.md), [De chart opnemen in een base-chart](./how-to-base-chart.md), [Secrets uit Vault via ESO](./how-to-secrets-eso.md), [Een module aanzetten](./how-to-module-aanzetten.md), [Upgraden](./how-to-upgraden.md), [De handtekening verifiëren](./how-to-handtekening-verifieren.md), [Via Harbor](./how-to-harbor.md), [De beproeving](./how-to-beproeving.md) |
+| **How-to** (doen) | een bekende taak uitvoeren | [Installeren met helm install of Argo CD](./how-to-installeren.md), [De chart opnemen in een base-chart](./how-to-base-chart.md), [Secrets uit Vault via ESO](./how-to-secrets-eso.md), [Een module aanzetten](./how-to-module-aanzetten.md), [Feature flags per tenant](./how-to-feature-flags.md), [Upgraden](./how-to-upgraden.md), [De handtekening verifiëren](./how-to-handtekening-verifieren.md), [Via Harbor](./how-to-harbor.md), [De beproeving](./how-to-beproeving.md) |
 | **Referentie** (opzoeken) | feiten: values, keys, poorten, labels, vereisten | [Values](./referentie-values.md), [Secret-keys](./referentie-secret-keys.md), [Contract](./referentie-contract.md), [Infra-vereisten](./referentie-infra-vereisten.md) |
 | **Uitleg** (begrijpen) | weten waarom de chart zo is | [Architectuur](./uitleg-architectuur.md), [Securitymodel](./uitleg-securitymodel.md), [Ontwerpkeuzes](./uitleg-ontwerpkeuzes.md) |
 

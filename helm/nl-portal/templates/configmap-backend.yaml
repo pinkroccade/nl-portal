@@ -14,6 +14,8 @@
 {{- $_ = set $env "NL_PORTAL_SLEUTELMAP" "/etc/nl-portal/sleutels" -}}
 {{- if $b.trustedProxies }}{{ $_ := set $env "NL_PORTAL_TRUSTED_PROXIES" (join "," $b.trustedProxies) }}{{ end -}}
 {{- if $b.featureFlags }}{{ $_ := set $env "NLPORTAL_FEATUREFLAGS_FILE" "/etc/nl-portal/flags/nl-portal.flagd.json" }}{{ end -}}
+{{- if $b.featureFlagContext.tenant }}{{ $_ := set $env "NLPORTAL_FEATUREFLAGS_CONTEXT_TENANT" $b.featureFlagContext.tenant }}{{ end -}}
+{{- if $b.featureFlagContext.environment }}{{ $_ := set $env "NLPORTAL_FEATUREFLAGS_CONTEXT_ENVIRONMENT" $b.featureFlagContext.environment }}{{ end -}}
 {{- if $b.beheer.enabled }}{{ $_ := set $env "NLPORTAL_BEHEER_GEBRUIKERSNAAM" $b.beheer.username }}{{ end -}}
 {{- if $b.cors.allowedOrigins -}}
 {{- $_ = set $env "NLPORTAL_SECURITY_CORS_0_PATH" "/**" -}}

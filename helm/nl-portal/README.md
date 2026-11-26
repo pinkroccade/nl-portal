@@ -130,6 +130,8 @@ The table is generated from the comments in `values.yaml` by helm-docs (`mise ru
 | backend.extraEnv | list | `[]` | Extra environment variables for what the chart does not model yet (EnvVar objects). |
 | backend.extraVolumeMounts | list | `[]` |  |
 | backend.extraVolumes | list | `[]` |  |
+| backend.featureFlagContext.environment | string | `""` | Environment name (NLPORTAL_FEATUREFLAGS_CONTEXT_ENVIRONMENT) for `environment` targeting, for example `test` or `productie`; empty: not set. |
+| backend.featureFlagContext.tenant | string | `""` | Tenant name (NLPORTAL_FEATUREFLAGS_CONTEXT_TENANT) for `tenant` targeting; empty: the application default (`default`). |
 | backend.featureFlags | object | `{}` | Feature flags in flagd format; rendered into a ConfigMap and mounted (NLPORTAL_FEATUREFLAGS_FILE). Empty: the defaults compiled into the image apply (all off). |
 | backend.frontendProperties | object | `{}` | Frontend properties served via GET /api/public/frontend (`NLPORTAL_FRONTEND_PROPERTIES_<NAME>`), by camelCase name. |
 | backend.image.digest | string | `""` | When set, the digest replaces the tag. |

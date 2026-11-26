@@ -80,6 +80,36 @@ tests:
       - equal:
           path: spec.template.metadata.annotations["nl-portal.pinkroccade.nl/secret-version"]
           value: "2026-11-22"
+  - it: het flagbestand wordt als map gemount, zonder subPath, zodat een ConfigMap-wijziging bij de pod aankomt
+    template: deployment-backend.yaml
+    asserts:
+      - contains:
+          path: spec.template.spec.containers[0].volumeMounts
+          content:
+            name: flags
+            mountPath: /etc/nl-portal/flags
+            readOnly: true
+      - notExists:
+          path: spec.template.spec.containers[0].volumeMounts[3].subPath
+      - contains:
+          path: spec.template.spec.volumes
+          content:
+            name: flags
+            configMap:
+              name: rel-portaal-flags
+  - it: zonder flags geen flagmount en geen flagchecksum
+    template: deployment-backend.yaml
+    set:
+      backend.featureFlags: null
+    asserts:
+      - notExists:
+          path: spec.template.metadata.annotations["checksum/flags"]
+      - notContains:
+          path: spec.template.spec.volumes
+          content:
+            name: flags
+            configMap:
+              name: rel-portaal-flags
   - it: de frontend wijst nginx naar de backend-Service
     template: configmap-frontend.yaml
     asserts:

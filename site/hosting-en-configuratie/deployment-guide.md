@@ -146,8 +146,9 @@ bestand is het uitgangspunt: kopieer het uit de broncode van NL Portal
 }
 ```
 
-Op Kubernetes mount je het bestand uit een ConfigMap en zet je `NLPORTAL_FEATUREFLAGS_FILE` op het
-gemounte pad. Een flag die ontbreekt in je bestand valt terug op de standaardwaarde in de code, en een
+Op Kubernetes mount je het bestand uit een ConfigMap (zonder `subPath`) en zet je `NLPORTAL_FEATUREFLAGS_FILE` op het
+gemounte pad. De Helm-chart doet dat voor je, met een checksum-annotatie en een testplan voor devops:
+[feature flags per tenant in Kubernetes](./kubernetes/how-to-feature-flags.md). Een flag die ontbreekt in je bestand valt terug op de standaardwaarde in de code, en een
 flag voor toegang (permission) valt bij twijfel altijd terug op uit. Een wijziging van het flagbestand rol je uit met een
 rolling update (zet een checksum van de ConfigMap als annotatie op de Deployment, zodat pods herstarten);
 NL Portal belooft geen live herladen.
