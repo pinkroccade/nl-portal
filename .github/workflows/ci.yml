@@ -67,9 +67,14 @@ jobs:
     validate:
         needs: changes
         uses: ./.github/workflows/_validate-build.yml
+        permissions:
+            contents: read
+            pull-requests: read # SonarCloud-analyse van de backend (#651)
         with:
             runBackend: ${{ needs.changes.outputs.backend == 'true' }}
             runFrontend: ${{ needs.changes.outputs.frontend == 'true' }}
+        secrets:
+            SONARCLOUD_TOKEN: ${{ secrets.SONARCLOUD_TOKEN }}
 
     # Places, updates or removes one PR comment asking reviewers to confirm new modules and layer
     # changes in ModuleLayers (#177). No comment when there is nothing to ask. Skipped for forks:

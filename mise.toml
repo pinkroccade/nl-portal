@@ -64,6 +64,12 @@ dir = "backend"
 shell = "bash -c"
 run = "./gradlew test --console=plain"
 
+[tasks."backend:sonar"]
+description = "SonarCloud-analyse van de backend op de bestaande testresultaten (draai eerst backend:check; SONAR_TOKEN nodig)"
+dir = "backend"
+shell = "bash -c"
+run = "./gradlew jacocoTestReport sonar --console=plain"
+
 [tasks."backend:lint"]
 description = "Controleer opmaak en kopregels van de backend (Spotless/ktlint)"
 dir = "backend"
