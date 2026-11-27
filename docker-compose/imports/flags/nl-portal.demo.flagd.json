@@ -103,7 +103,7 @@
         "on": true,
         "off": false
       },
-      "defaultVariant": "off"
+      "defaultVariant": "on"
     },
     "ops.frontend.cases-contact-moments": {
       "state": "ENABLED",

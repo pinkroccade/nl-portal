@@ -1,0 +1,52 @@
+[
+  {
+    "burgerservicenummer": "999993847",
+    "geheimhoudingPersoonsgegevens": "0",
+    "verblijfplaats": {
+      "datumAanvangAdreshouding": "20010215",
+      "straat": "King Olivereiland",
+      "adresseerbaarObjectIdentificatie": "0518010000631274",
+      "aangifteAdreshouding": "I"
+    }
+  },
+  {
+    "burgerservicenummer": "999990184",
+    "geheimhoudingPersoonsgegevens": "0",
+    "verblijfplaats": {
+      "datumAanvangAdreshouding": "20010215",
+      "straat": "King Olivereiland",
+      "adresseerbaarObjectIdentificatie": "0518010000631274",
+      "aangifteAdreshouding": "I"
+    }
+  },
+  {
+    "burgerservicenummer": "999996601",
+    "geheimhoudingPersoonsgegevens": "0",
+    "verblijfplaats": {
+      "datumAanvangAdreshouding": "20120314",
+      "straat": "King Olivereiland",
+      "adresseerbaarObjectIdentificatie": "0518010000631274",
+      "aangifteAdreshouding": "I"
+    }
+  },
+  {
+    "burgerservicenummer": "999996613",
+    "geheimhoudingPersoonsgegevens": "0",
+    "verblijfplaats": {
+      "datumAanvangAdreshouding": "20150921",
+      "straat": "King Olivereiland",
+      "adresseerbaarObjectIdentificatie": "0518010000631274",
+      "aangifteAdreshouding": "I"
+    }
+  },
+  {
+    "burgerservicenummer": "999996625",
+    "geheimhoudingPersoonsgegevens": "0",
+    "verblijfplaats": {
+      "datumAanvangAdreshouding": "20190606",
+      "straat": "King Olivereiland",
+      "adresseerbaarObjectIdentificatie": "0518010000631274",
+      "aangifteAdreshouding": "I"
+    }
+  }
+]

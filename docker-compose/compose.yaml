@@ -179,7 +179,7 @@ services:
             - CACHE_DEFAULT=nl-portal-redis:6379/0
             - CACHE_AXES=nl-portal-redis:6379/0
             - DEBUG=true
-            - ALLOWED_HOSTS=localhost,host.docker.internal,172.17.0.1,openzaak,nl-portal-openzaak,example.com
+            - ALLOWED_HOSTS=localhost,host.docker.internal,172.17.0.1,openzaak,nl-portal-openzaak,nl-portal-openzaak.test,example.com
             - OPENZAAK_SUPERUSER_USERNAME=admin
             - OPENZAAK_SUPERUSER_EMAIL=admin@example.org
             - CELERY_BROKER_URL=redis://nl-portal-redis:6379/1
@@ -192,6 +192,12 @@ services:
             - nl-portal-redis
         volumes:
             - openzaak-private-media:/app/private-media
+        networks:
+            default:
+                # Open Zaak weigert een zaak-URL met een hostnaam zonder punt als ongeldig (Django URLValidator); de
+                # koppelingen gebruiken daarom deze naam met punt.
+                aliases:
+                    - nl-portal-openzaak.test
 
     nl-portal-openzaak-import:
         image: openzaak/open-zaak:1.31.2
