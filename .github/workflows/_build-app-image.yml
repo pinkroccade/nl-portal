@@ -127,15 +127,19 @@ jobs:
                        --certificate-identity "https://github.com/${GITHUB_REPOSITORY}/.github/workflows/_build-app-image.yml@${GITHUB_REF}" \
                        --certificate-oidc-issuer https://token.actions.githubusercontent.com
 
+            # Syft komt via mise (versie vastgepind in mise.toml) in plaats van via anchore/sbom-action:
+            # die haalt de releasepagina van GitHub op en faalde op een HTTP 504 daarvan.
+            -   name: Set up Syft
+                if: ${{ inputs.push }}
+                uses: jdx/mise-action@924e7c586e33d7d4bae9c14e26c5d22e2beb6e78 # v5.3.0
+                with:
+                    install_args: "syft"
+                    cache: false # image wordt gepusht en ondertekend; geen cache die een andere run kan vergiftigen
             -   name: Generate the image SBOM with Syft
                 if: ${{ inputs.push }}
-                uses: anchore/sbom-action@66cbf4bc1f1c0d2edc94016e65bc221b6bb0ad6c # v0.24.3
-                with:
-                    image: ${{ inputs.primaryTag }}@${{ steps.build-and-push.outputs.digest }}
-                    format: cyclonedx-json
-                    output-file: image-sbom.cyclonedx.json
-                    upload-artifact: false
-                    upload-release-assets: false
+                env:
+                    IMAGE: ${{ inputs.primaryTag }}@${{ steps.build-and-push.outputs.digest }}
+                run: syft "registry:${IMAGE}" -o cyclonedx-json=image-sbom.cyclonedx.json
 
             -   name: Attest the SBOM on the image digest
                 if: ${{ inputs.push }}
