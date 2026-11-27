@@ -51,7 +51,19 @@ jobs:
                 env:
                     VERSION: ${{ inputs.version }}
                     GRADLE_TASK: ${{ inputs.runTests && 'build' || 'assemble' }}
-                run: ./gradlew "${GRADLE_TASK}" -Pversion="${VERSION}" --stacktrace
+                # Vangnet voor een tijdelijke netwerkfout bij het ophalen van dependencies (Maven Central geeft op
+                # gedeelde runner-IP's soms een HTTP 429): één herhaling na een pauze, en alleen als het log daarop
+                # wijst. Een falende test of compilefout wordt dus niet herhaald.
+                run: |
+                    if ! ./gradlew "${GRADLE_TASK}" -Pversion="${VERSION}" --stacktrace 2>&1 | tee gradle-build.log; then
+                      if grep -q -E "Received status code (429|5[0-9][0-9]) from server|Could not (GET|HEAD) 'https?://" gradle-build.log; then
+                        echo "::warning::Dependency-download mislukt; één herhaling over 60 seconden"
+                        sleep 60
+                        ./gradlew "${GRADLE_TASK}" -Pversion="${VERSION}" --stacktrace
+                      else
+                        exit 1
+                      fi
+                    fi
             # Hergebruikt de testresultaten van de build hierboven (zelfde versie, dus UP-TO-DATE): geen
             # tweede testrun (#651). Informatief: een falende analyse blokkeert de build niet.
             -   name: SonarCloud analysis

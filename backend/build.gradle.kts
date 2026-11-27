@@ -100,6 +100,11 @@ spotless {
 
 allprojects {
     repositories {
+        // In CI first ask Google's mirror of Maven Central: Central rate-limits (HTTP 429) the shared GitHub runner IPs.
+        // A 404 falls through to mavenCentral(); artifact hashes are still checked by gradle/verification-metadata.xml.
+        if (System.getenv("CI") == "true") {
+            maven(URI("https://maven-central.storage-download.googleapis.com/maven2/"))
+        }
         mavenCentral()
         // The legacy repositories below are only consulted for non-OpenFeature artifacts: the OpenFeature flagd
         // provider uses dynamic version ranges, and listing those in an unreachable repository fails the build.
