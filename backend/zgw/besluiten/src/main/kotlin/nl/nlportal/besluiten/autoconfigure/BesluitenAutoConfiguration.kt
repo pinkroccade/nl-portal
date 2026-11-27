@@ -15,11 +15,13 @@
  */
 package nl.nlportal.besluiten.autoconfigure
 
+import nl.nlportal.besluiten.BESLUITEN_MODULE
 import nl.nlportal.besluiten.client.BesluitenApiClient
 import nl.nlportal.besluiten.client.BesluitenApiConfig
 import nl.nlportal.besluiten.graphql.BesluitenQuery
 import nl.nlportal.besluiten.service.BesluitenService
 import nl.nlportal.catalogiapi.service.CatalogiApiService
+import nl.nlportal.core.modulegate.ModuleFlag
 import nl.nlportal.core.tenancy.NietGemigreerdeModule
 import nl.nlportal.documentenapi.service.DocumentenApiService
 import org.springframework.boot.autoconfigure.AutoConfiguration
@@ -33,6 +35,10 @@ import org.springframework.web.reactive.function.client.WebClient
 @EnableConfigurationProperties(BesluitenApiConfig::class)
 @ConditionalOnProperty(prefix = "nl-portal.config", name = ["besluitenapi.enabled", "documentenapis.enabled", "zakenapi.enabled"], havingValue = "true")
 class BesluitenAutoConfiguration {
+    /** Laat de gate, de frontend-modulelijst en de modulematrix de permission-flag van de module kennen. */
+    @Bean
+    fun besluitenModuleFlag(): ModuleFlag = BESLUITEN_MODULE
+
     /** Besluiten leest nog gedeelde instellingen (T15, uitgesteld tot na de livegang): niet aan in een runtime met meer dan één tenant. */
     @Bean
     fun besluitenNietGemigreerd() = NietGemigreerdeModule("besluiten")

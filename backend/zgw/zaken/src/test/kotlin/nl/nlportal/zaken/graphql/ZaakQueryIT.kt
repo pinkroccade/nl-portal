@@ -16,9 +16,12 @@
 package nl.nlportal.zaken.graphql
 
 import tools.jackson.databind.JsonNode
+import nl.nlportal.besluiten.BESLUITEN_MODULE
 import nl.nlportal.besluiten.client.BesluitenApiConfig
 import nl.nlportal.commonground.authentication.WithBedrijfUser
 import nl.nlportal.commonground.authentication.WithBurgerUser
+import nl.nlportal.core.modulegate.ModuleGate
+import nl.nlportal.core.tenancy.Oin
 import nl.nlportal.zaken.ZakenFlagFile
 import nl.nlportal.zaken.ZakenTestTenantConfiguratie
 import org.springframework.boot.test.context.TestConfiguration
@@ -27,6 +30,7 @@ import okhttp3.mockwebserver.MockResponse
 import okhttp3.mockwebserver.MockWebServer
 import okhttp3.mockwebserver.RecordedRequest
 import org.junit.jupiter.api.AfterAll
+import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.BeforeAll
 import org.junit.jupiter.api.BeforeEach
@@ -48,6 +52,7 @@ import org.springframework.test.context.DynamicPropertySource
 internal class ZaakQueryIT(
     @Autowired private val httpGraphQlTester: HttpGraphQlTester,
     @Autowired private val besluitenApiConfig: BesluitenApiConfig,
+    @Autowired private val moduleGate: ModuleGate,
 ) {
     companion object {
         @JvmStatic
@@ -87,6 +92,50 @@ internal class ZaakQueryIT(
         url = server?.url("/").toString()
 
         besluitenApiConfig.properties.url = url
+    }
+
+    @AfterEach
+    fun herstelFlags() = ZakenFlagFile.vlaggen.herstel(moduleGate)
+
+    @Test
+    @WithBurgerUser("123")
+    fun `besluiten of a zaak is not available when the besluiten flag is off`() {
+        ZakenFlagFile.vlaggen.zet(BESLUITEN_MODULE, aan = false, gate = moduleGate)
+
+        httpGraphQlTester
+            .document("""query { getZaak(id: "5d479908-fbb7-49c2-98c9-9afecf8de79a") { uuid besluiten { identificatie } } }""")
+            .execute()
+            .errors()
+            .expect { it.message == "Module 'besluiten' is niet beschikbaar" && it.extensions["code"] == "MODULE_NOT_AVAILABLE" }
+            .verify()
+    }
+
+    @Test
+    @WithBurgerUser("123")
+    fun `besluiten of a zaak is not available for a tenant the besluiten flag is not on for`() {
+        ZakenFlagFile.vlaggen.zet(BESLUITEN_MODULE, aan = true, gate = moduleGate, alleenVoor = setOf(Oin("00000099000000000002")))
+
+        httpGraphQlTester
+            .document("""query { getZaak(id: "5d479908-fbb7-49c2-98c9-9afecf8de79a") { uuid besluiten { identificatie } } }""")
+            .execute()
+            .errors()
+            .expect { it.extensions["code"] == "MODULE_NOT_AVAILABLE" }
+            .verify()
+    }
+
+    @Test
+    @WithBurgerUser("123")
+    fun `a zaak without besluiten stays available when the besluiten flag is off`() {
+        ZakenFlagFile.vlaggen.zet(BESLUITEN_MODULE, aan = false, gate = moduleGate)
+
+        httpGraphQlTester
+            .document("""query { getZaak(id: "5d479908-fbb7-49c2-98c9-9afecf8de79a") { uuid } }""")
+            .execute()
+            .errors()
+            .verify()
+            .path("getZaak.uuid")
+            .entity(String::class.java)
+            .isEqualTo("5d479908-fbb7-49c2-98c9-9afecf8de79a")
     }
 
     @Test

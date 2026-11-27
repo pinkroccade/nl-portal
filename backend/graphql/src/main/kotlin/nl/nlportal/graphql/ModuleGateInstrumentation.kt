@@ -23,6 +23,7 @@ import kotlinx.coroutines.reactor.mono
 import nl.nlportal.core.modulegate.EndpointToewijzing
 import nl.nlportal.core.modulegate.ModuleEndpoints
 import nl.nlportal.core.modulegate.ModuleGate
+import nl.nlportal.core.modulegate.ModuleVeld
 import org.springframework.core.annotation.AnnotatedElementUtils
 import org.springframework.graphql.data.method.annotation.SchemaMapping
 import org.springframework.graphql.execution.ContextPropagationHelper
@@ -36,7 +37,8 @@ import java.util.concurrent.CompletionStage
  * The GraphQL side of the central module gate (ADR 0026). Every root field (query, mutation, subscription) first passes the
  * [ModuleGate] for the tenant of the request, before its data fetcher runs: a module that is not usable answers
  * `MODULE_NOT_AVAILABLE`, a root field that no registered controller ([nl.nlportal.core.modulegate.ModuleEndpoint]) maps is denied
- * (deny by default). Nested fields belong to their root field and are not checked again. Introspection fields (`__schema`,
+ * (deny by default). Nested fields belong to their root field and are not checked again, except a nested field registered with
+ * [ModuleVeld]: that is the entry of a module without root fields of its own (besluiten, reached through `Zaak.besluiten`). Introspection fields (`__schema`,
  * `__type`) are not data and stay with the introspection setting of the application.
  */
 class ModuleGateInstrumentation(
@@ -50,6 +52,19 @@ class ModuleGateInstrumentation(
         }
     }
 
+    /** The nested fields (`Zaak.besluiten`) registered with [ModuleVeld] with the module they belong to, resolved on first use. */
+    val moduleVelden: Map<String, EndpointToewijzing> by lazy {
+        buildMap {
+            endpoints.registraties.keys.forEach { type ->
+                ReflectionUtils.doWithMethods(type) { methode ->
+                    val veld = AnnotatedElementUtils.findMergedAnnotation(methode, ModuleVeld::class.java) ?: return@doWithMethods
+                    val mapping = AnnotatedElementUtils.findMergedAnnotation(methode, SchemaMapping::class.java) ?: return@doWithMethods
+                    put("${mapping.typeName}.${mapping.field.ifEmpty { methode.name }}", endpoints.moduleToewijzing(veld.module))
+                }
+            }
+        }
+    }
+
     override fun instrumentDataFetcher(
         dataFetcher: DataFetcher<*>,
         parameters: InstrumentationFieldFetchParameters,
@@ -60,14 +75,16 @@ class ModuleGateInstrumentation(
         val wortelTypes = listOfNotNull(schema.queryType, schema.mutationType, schema.subscriptionType).map { it.name }
         val veld = stap.fieldDefinition?.name
         val parent = stap.objectType?.name
-        if (veld == null || parent == null || stap.path.level != 1 || parent !in wortelTypes || veld.startsWith("__")) return dataFetcher
-
+        if (veld == null || parent == null || veld.startsWith("__")) return dataFetcher
         val coordinaat = "$parent.$veld"
+        val isWortel = stap.path.level == 1 && parent in wortelTypes
+        if (!isWortel && coordinaat !in moduleVelden) return dataFetcher
+
         return DataFetcher<Any?> { env ->
             // The tenant lives in the Reactor context of the web request; Spring GraphQL carries it in the context snapshot of the request.
             val reactorContext = ContextPropagationHelper.captureFrom(env.graphQlContext).updateContext(Context.empty())
             val toegestaan: CompletableFuture<Unit?> =
-                mono { gate.controleer(wortelvelden[coordinaat], coordinaat) }
+                mono { gate.controleer(if (isWortel) wortelvelden[coordinaat] else moduleVelden[coordinaat], coordinaat) }
                     .contextWrite(reactorContext)
                     .toFuture()
             toegestaan.thenCompose<Any?> {

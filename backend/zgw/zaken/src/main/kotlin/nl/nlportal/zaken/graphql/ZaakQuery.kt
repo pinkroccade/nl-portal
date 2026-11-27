@@ -16,6 +16,7 @@
 package nl.nlportal.zaken.graphql
 
 import nl.nlportal.core.modulegate.ModuleEndpoint
+import nl.nlportal.core.modulegate.ModuleVeld
 import java.util.UUID
 import nl.nlportal.besluiten.domain.Besluit
 import nl.nlportal.besluiten.service.BesluitenService
@@ -107,6 +108,7 @@ open class ZaakQuery(
         zaak: Zaak,
     ): ZaakDetails = zakenApiService.getZaakDetails(zaak.url)
 
+    @ModuleVeld("besluiten")
     @SchemaMapping(typeName = "Zaak", field = "besluiten")
     suspend fun besluiten(
         zaak: Zaak,

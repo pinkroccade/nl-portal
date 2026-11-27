@@ -15,10 +15,11 @@
  */
 package nl.nlportal.zaken
 
+import nl.nlportal.besluiten.BESLUITEN_MODULE
 import nl.nlportal.core.testing.ModuleFlagBestand
 import nl.nlportal.documentenapi.DOCUMENTENAPIS_MODULE
 
 /** Eén flagbestand voor alle testcontexts van deze module (OpenFeature is een JVM-brede singleton); de vereiste module staat eerst, zodat `herstel` hem eerst weer aanzet. */
 object ZakenFlagFile {
-    val vlaggen = ModuleFlagBestand(listOf(DOCUMENTENAPIS_MODULE, ZAKEN_MODULE))
+    val vlaggen = ModuleFlagBestand(listOf(DOCUMENTENAPIS_MODULE, ZAKEN_MODULE, BESLUITEN_MODULE))
 }
