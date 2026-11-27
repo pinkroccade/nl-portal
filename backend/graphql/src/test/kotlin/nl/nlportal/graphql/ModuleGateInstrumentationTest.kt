@@ -27,6 +27,7 @@ import nl.nlportal.core.modulegate.ModuleEndpoints
 import nl.nlportal.core.modulegate.ModuleFlag
 import nl.nlportal.core.modulegate.ModuleGate
 import nl.nlportal.core.modulegate.ModuleNotAvailableException
+import nl.nlportal.core.modulegate.ModuleVeld
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
@@ -42,6 +43,7 @@ import org.springframework.graphql.data.method.annotation.SchemaMapping
 /** Elk root-veld loopt eerst door de gate: een module die uit staat en een veld zonder registratie worden geweigerd, de kern en nested velden niet. */
 class ModuleGateInstrumentationTest {
     private val module = ModuleFlag("voorbeeld")
+    private val extra = ModuleFlag("extra")
 
     @ModuleEndpoint("voorbeeld")
     class ModuleController {
@@ -53,6 +55,10 @@ class ModuleGateInstrumentationTest {
 
         @SchemaMapping(typeName = "Voorbeeld", field = "detail")
         fun detail() = "detail"
+
+        @ModuleVeld("extra")
+        @SchemaMapping(typeName = "Voorbeeld", field = "extra")
+        fun extra() = "extra"
     }
 
     @ModuleEndpoint(ModuleEndpoint.KERN)
@@ -61,16 +67,19 @@ class ModuleGateInstrumentationTest {
         fun kern() = "kern"
     }
 
-    private fun graphQl(moduleAan: Boolean): GraphQL {
+    private fun graphQl(
+        moduleAan: Boolean,
+        extraAan: Boolean = true,
+    ): GraphQL {
         val beans = StaticListableBeanFactory(mapOf("module" to ModuleController(), "kern" to KernController()))
-        val endpoints = ModuleEndpoints(beans, listOf(module))
+        val endpoints = ModuleEndpoints(beans, listOf(module, extra))
         val gate: ModuleGate = mock()
         // De echte gate beslist op flag en configuratie; hier telt alleen wat de instrumentation met de uitkomst doet.
         org.mockito.kotlin.KStubbing(gate).apply {
             onBlocking { controleer(anyOrNull(), any()) }.doAnswer { aanroep ->
                 when (val toewijzing = aanroep.arguments[0] as EndpointToewijzing?) {
                     null -> throw EndpointNietGeregistreerdException(aanroep.arguments[1] as String)
-                    is EndpointToewijzing.Module -> if (!moduleAan) throw ModuleNotAvailableException(toewijzing.module.module)
+                    is EndpointToewijzing.Module -> if (!(if (toewijzing.module == extra) extraAan else moduleAan)) throw ModuleNotAvailableException(toewijzing.module.module)
                     else -> Unit
                 }
             }
@@ -81,14 +90,14 @@ class ModuleGateInstrumentationTest {
                     """
                     type Query { voorbeeld: Voorbeeld kern: String onbekend: String }
                     type Mutation { wijzig: String }
-                    type Voorbeeld { detail: String }
+                    type Voorbeeld { detail: String extra: String }
                     """.trimIndent(),
                 ),
                 RuntimeWiring
                     .newRuntimeWiring()
                     .type("Query") { it.dataFetcher("voorbeeld") { Any() }.dataFetcher("kern") { "kern" }.dataFetcher("onbekend") { "onbekend" } }
                     .type("Mutation") { it.dataFetcher("wijzig") { "gewijzigd" } }
-                    .type("Voorbeeld") { it.dataFetcher("detail") { "detail" } }
+                    .type("Voorbeeld") { it.dataFetcher("detail") { "detail" }.dataFetcher("extra") { "extra" } }
                     .build(),
             )
         return GraphQL.newGraphQL(schema).instrumentation(ModuleGateInstrumentation(endpoints, gate)).build()
@@ -165,10 +174,47 @@ class ModuleGateInstrumentationTest {
     @Test
     fun `the root fields of the registered controllers are mapped to their assignment`() {
         val beans = StaticListableBeanFactory(mapOf("module" to ModuleController(), "kern" to KernController()))
-        val instrumentation = ModuleGateInstrumentation(ModuleEndpoints(beans, listOf(module)), mock())
+        val instrumentation = ModuleGateInstrumentation(ModuleEndpoints(beans, listOf(module, extra)), mock())
 
         assertEquals(setOf("Query.voorbeeld", "Mutation.wijzig", "Query.kern"), instrumentation.wortelvelden.keys)
         assertTrue(instrumentation.wortelvelden.getValue("Query.kern") is EndpointToewijzing.Kern)
         assertTrue(instrumentation.wortelvelden.getValue("Query.voorbeeld") is EndpointToewijzing.Module)
+    }
+
+    @Test
+    fun `a nested field registered with ModuleVeld is gated on its own module`() {
+        val resultaat = voerUit(graphQl(moduleAan = true, extraAan = false), "{ voorbeeld { detail extra } }")
+
+        assertTrue(
+            resultaat.errors
+                .single()
+                .message
+                .contains("Module 'extra' is niet beschikbaar"),
+            resultaat.errors.toString(),
+        )
+    }
+
+    @Test
+    fun `a nested field registered with ModuleVeld passes when its module is on`() {
+        val resultaat = voerUit(graphQl(moduleAan = true, extraAan = true), "{ voorbeeld { detail extra } }")
+
+        assertTrue(resultaat.errors.isEmpty(), resultaat.errors.toString())
+        assertEquals(mapOf("voorbeeld" to mapOf("detail" to "detail", "extra" to "extra")), resultaat.getData<Map<String, Any>>())
+    }
+
+    @Test
+    fun `a nested field without ModuleVeld is not checked even when its module is off`() {
+        val resultaat = voerUit(graphQl(moduleAan = true, extraAan = false), "{ voorbeeld { detail } }")
+
+        assertTrue(resultaat.errors.isEmpty(), resultaat.errors.toString())
+    }
+
+    @Test
+    fun `the ModuleVeld fields are mapped to the assignment of their module`() {
+        val beans = StaticListableBeanFactory(mapOf("module" to ModuleController(), "kern" to KernController()))
+        val instrumentation = ModuleGateInstrumentation(ModuleEndpoints(beans, listOf(module, extra)), mock())
+
+        assertEquals(setOf("Voorbeeld.extra"), instrumentation.moduleVelden.keys)
+        assertEquals(EndpointToewijzing.Module(extra), instrumentation.moduleVelden.getValue("Voorbeeld.extra"))
     }
 }

@@ -8,7 +8,7 @@ resource roept de gate zelf niet aan. Het ontwerp staat in
 module op de centrale gate en het voorbeeld voor de andere.
 
 ::: warning Overgang
-Berichten (met de afhankelijkheid documentenapis), BRP (`haalcentraal-brp`), taak, zaken (ook met documentenapis) payment-direct (inclusief de postsale-webhook) en KvK (`kvk`) staan nu op de gate. De andere modules dragen op hun controllers
+Berichten (met de afhankelijkheid documentenapis), BRP (`haalcentraal-brp`), taak, zaken (ook met documentenapis) payment-direct (inclusief de postsale-webhook), KvK (`kvk`) en besluiten staan nu op de gate. De andere modules (openklant, openproduct) dragen op hun controllers
 `@ModuleEndpoint("<module>", overgang = true)`: hun endpoints blijven bereikbaar zoals voorheen, en een ArchUnit-ratchet
 (`ModuleGateRegels`) laat het aantal overgangsregistraties alleen kleiner worden. Elke module gaat in een eigen stap over (T22,
 [#521](https://github.com/pinkroccade/nl-portal/issues/521)); daarna gaan de oude module-properties weg
@@ -65,6 +65,26 @@ Een `@ModuleEndpoint` met een modulenaam zonder `ModuleFlag`-bean laat het opsta
 
 Een veld dat een onderdeel is van een gegate bovenliggend object (zoals `Bericht.documenten`) hoeft niets te doen: de gate beslist op
 het root-veld.
+
+### Een module zonder root-velden: `@ModuleVeld`
+
+Een module die alleen via het veld van een andere module bereikbaar is (besluiten via `Zaak.besluiten`) heeft geen root-veld waar de gate
+op kan beslissen. Zet `@ModuleVeld("<module>")` naast de `@SchemaMapping` van dat veld: de gate toetst dan ook de module van het veld. Zonder de flag
+geeft alleen dat veld `MODULE_NOT_AVAILABLE`; de rest van het bovenliggende object blijft beschikbaar (let op: is het veld non-null, dan vervalt het
+bovenliggende object zoals GraphQL voorschrijft).
+
+```kotlin
+@ModuleVeld("besluiten")
+@SchemaMapping(typeName = "Zaak", field = "besluiten")
+suspend fun besluiten(zaak: Zaak): List<Besluit> = ...
+```
+
+### Een module zonder tenantconfiguratie
+
+Besluiten, openklant en openproduct hebben nog geen `modules.<naam>` of koppeling in het tenantbestand (T15 tot en met T17, uitgesteld tot na de
+livegang). Hun `ModuleFlag` heeft dan geen `koppelingen` en geen `moduleConfiguratie`: bruikbaar is de flag plus de vereiste modules. De
+startweigering `NietGemigreerdeModule` blijft: de gegevens komen uit gedeelde properties en een eigen client, en een flag per tenant voorkomt niet dat de ene
+gemeente de bron van de andere raakt. De gate beslist wie de module mag gebruiken; de weigering bewaakt dat er maar één bron is.
 
 ## De module-flag
 

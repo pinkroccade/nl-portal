@@ -105,10 +105,10 @@ class ModuleGateRegels(
         private const val MODULE_GATE = "nl.nlportal.core.modulegate.ModuleGate"
 
         /** Het maximale aantal modules in [OVERGANG]; alleen dalen (ratchet), [ModuleGateRegelsTest] pint het vast. */
-        const val OVERGANG_MAX = 3
+        const val OVERGANG_MAX = 2
 
         /** De modules die nog niet op de gate staan (#521-vervolg); elke overgang haalt zijn naam hier weg. */
-        val OVERGANG = setOf("besluiten", "openklant", "openproduct")
+        val OVERGANG = setOf("openklant", "openproduct")
 
         /** De regels voor de echte code. */
         val production = ModuleGateRegels(overgang = OVERGANG)

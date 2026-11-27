@@ -28,7 +28,7 @@ import nl.nlportal.documentenapi.domain.Document
 import org.springframework.graphql.data.method.annotation.SchemaMapping
 import org.springframework.stereotype.Controller
 
-@ModuleEndpoint("besluiten", overgang = true)
+@ModuleEndpoint("besluiten")
 @Controller
 class BesluitenQuery(
     val besluitenService: BesluitenService,

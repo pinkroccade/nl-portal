@@ -55,6 +55,12 @@ class ModuleEndpoints(
     /** The assignment of the controller [type], or `null` when it is not registered: deny by default. */
     fun van(type: Class<*>): EndpointToewijzing? = registraties[ClassUtils.getUserClass(type)]
 
+    /** The assignment of the module with [naam] (for a nested field registered with [ModuleVeld]); fails when it has no [ModuleFlag] bean. */
+    fun moduleToewijzing(naam: String): EndpointToewijzing.Module =
+        EndpointToewijzing.Module(
+            checkNotNull(modules.firstOrNull { it.module == naam }) { "@ModuleVeld noemt module '$naam', maar er is geen ModuleFlag-bean met die naam" },
+        )
+
     /** Fails when a registration names a module without a registered [ModuleFlag]; call once at startup. */
     fun controleer() {
         registraties

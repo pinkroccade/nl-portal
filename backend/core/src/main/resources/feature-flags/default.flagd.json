@@ -25,6 +25,14 @@
       },
       "defaultVariant": "off"
     },
+    "permission.besluiten.enabled": {
+      "state": "ENABLED",
+      "variants": {
+        "on": true,
+        "off": false
+      },
+      "defaultVariant": "off"
+    },
     "permission.kvk.enabled": {
       "state": "ENABLED",
       "variants": {
