@@ -114,6 +114,13 @@ Never commit to or push `main` directly, also not "just locally":
 changes reach `main` only through a PR. If a commit already landed on `main` by mistake and is not
 pushed, move it: `git branch <new-branch> && git reset --hard origin/main && git switch <new-branch>`.
 
+### Sessie afronden
+
+Een sessie is af als haar werk een PR heeft en na de merge is opgeruimd. Draai vóór je een sessie
+afsluit of archiveert `mise run sessie:opruimen` (dry-run): de uitvoer toont gemergde worktrees en branches
+en meldt onder "Werk zonder PR" wat nog een PR nodig heeft of bewust weg moet. Met `-- --ja` ruimt de
+taak de gemergde op; werk zonder PR laat ze staan.
+
 ### Git hooks and `pnpm`
 
 Draai `git commit` en `git push` direct: de Husky-hooks onder `frontend/.husky` draaien `pnpm` en

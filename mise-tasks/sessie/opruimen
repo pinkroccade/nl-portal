@@ -1,0 +1,83 @@
+#!/usr/bin/env bash
+#MISE description="Rond sessies af: ruim worktrees en lokale branches op waarvan de PR gemerged is, en meld werk zonder PR. Standaard een dry-run; met --ja wordt echt opgeruimd. Gebruik: mise run sessie:opruimen [-- --ja]"
+set -euo pipefail
+
+ja=0
+[ "${1:-}" = "--ja" ] && ja=1
+
+git fetch --prune --quiet origin
+# De eerste worktree is de hoofdmap en blijft staan, net als de worktree waarin dit draait.
+hoofd=$(git worktree list --porcelain | sed -n "1s/^worktree //p")
+hier=$(git rev-parse --show-toplevel)
+huidig=$(git branch --show-current)
+zonder_pr=()
+
+# Een squash-merge laat de commits van de branch buiten main; `git branch --merged` ziet dat dus niet.
+# De PR-status is de bron van waarheid.
+pr_status() {
+  gh pr list --state all --head "$1" --json state --jq 'map(.state) | if index("MERGED") then "MERGED" elif index("OPEN") then "OPEN" else "GEEN" end'
+}
+
+# Bepaalt per branch: opruimen | bewaren | melden. Schrijft de reden naar stdout.
+beoordeel() {
+  local branch="$1" ref="$2" status voorloop
+  status=$(pr_status "$branch")
+  if [ "$status" = MERGED ]; then echo "opruimen|PR gemerged"; return; fi
+  if [ "$status" = OPEN ]; then echo "bewaren|PR is open"; return; fi
+  voorloop=$(git rev-list --count "origin/main..$ref")
+  if [ "$voorloop" -eq 0 ]; then echo "opruimen|geen commits buiten main"; return; fi
+  echo "melden|$voorloop commit(s) zonder PR, laatste $(git log -1 --format=%cs "$ref"); een squash-merge onder een andere branchnaam laat dit ook zien, controleer voor je weggooit"
+}
+
+doe() { # beschrijving, commando...
+  local tekst="$1"; shift
+  if [ "$ja" = 1 ]; then "$@"; echo "  gedaan: $tekst"; else echo "  zou doen: $tekst"; fi
+}
+
+echo "== Worktrees =="
+pad="" ; branch=""
+while IFS= read -r regel || [ -n "$pad" ]; do
+  case "$regel" in
+    "worktree "*) pad="${regel#worktree }" ; branch="" ;;
+    "branch "*) branch="${regel#branch refs/heads/}" ;;
+    "")
+      if [ -n "$pad" ] && [ "$pad" != "$hoofd" ] && [ "$pad" != "$hier" ]; then
+        if [ -z "$branch" ]; then
+          # detached HEAD: opruimen zodra de commit al in main zit
+          if git merge-base --is-ancestor "$(git -C "$pad" rev-parse HEAD)" origin/main; then oordeel="opruimen|detached, commit staat in main"; else oordeel="melden|detached HEAD buiten main"; fi
+          naam="(detached)"
+        else
+          oordeel=$(beoordeel "$branch" "$branch"); naam="$branch"
+        fi
+        actie="${oordeel%%|*}"; reden="${oordeel#*|}"
+        if [ "$actie" = opruimen ] && [ -n "$(git -C "$pad" status --porcelain)" ]; then
+          actie=melden; reden="$reden, maar niet-gecommitte wijzigingen"
+        fi
+        echo "$naam [$pad]: $actie ($reden)"
+        case "$actie" in
+          opruimen) doe "worktree $pad verwijderen" mise run worktree:opruimen "$pad" ;;
+          melden) zonder_pr+=("$naam: $reden") ;;
+        esac
+      fi
+      pad="" ; branch="" ;;
+  esac
+done < <(git worktree list --porcelain; echo)
+
+echo "== Lokale branches zonder worktree =="
+while IFS= read -r b; do
+  [ "$b" = main ] || [ "$b" = "$huidig" ] && continue
+  git worktree list --porcelain | grep -qx "branch refs/heads/$b" && continue
+  oordeel=$(beoordeel "$b" "$b"); actie="${oordeel%%|*}"; reden="${oordeel#*|}"
+  echo "$b: $actie ($reden)"
+  case "$actie" in
+    opruimen) doe "branch $b verwijderen" git branch -D "$b" ;;
+    melden) zonder_pr+=("$b: $reden") ;;
+  esac
+done < <(git for-each-ref --format='%(refname:short)' refs/heads)
+
+if [ "${#zonder_pr[@]}" -gt 0 ]; then
+  echo
+  echo "== Werk zonder PR (niet opgeruimd; open een PR of gooi het bewust weg) =="
+  printf '  %s\n' "${zonder_pr[@]}"
+fi
+if [ "$ja" = 0 ]; then echo; echo "Dry-run; draai met -- --ja om op te ruimen."; fi
