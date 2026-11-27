@@ -36,6 +36,20 @@ docker compose -f compose.yaml -f compose.demo.yaml up -d
 
 Start daarnaast Open Zaak, Open Object en Open Notificaties met demo-fixtures en zet de modules voor zaken en
 taken aan (`imports/flags/nl-portal.demo.flagd.json`). Het laden van de fixtures duurt de eerste keer een paar minuten.
+De demo start ook de BRP-mock en een mock van het Sociaal Portaal (<http://localhost:8095>).
+
+### Taak-demo: externe taak naar de backoffice
+
+Een externe taak komt in Open Object en verschijnt voor de burger in NL Portal. De link in de taak opent de mock van het
+Sociaal Portaal, een statische landingspagina die de backoffice voorstelt (`imports/sociaal-portaal-mock/index.html`).
+
+```shell
+bash voorbeelden/taak/taak-aanmaken.sh                       # vanuit docker-compose/
+bash voorbeelden/taak/taak-aanmaken.sh "Eigen titel" 999993847   # eigen titel en BSN
+```
+
+Log daarna in op <http://localhost:3000> als `burger` / `burger` (BSN 999993847) en open de taak. Het script leest
+`OBJECTS_API_TOKEN` uit `.env` en maakt een Taak V2 met `soort: url` aan.
 
 ## Optionele profielen
 

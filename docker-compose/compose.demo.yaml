@@ -24,6 +24,19 @@ services:
     nl-portal-open-notificaties-rabbitmq: *altijd
     nl-portal-redis: *altijd
 
+    # BRP-mock voor de persoonsgegevens van de burger (BSN 999993847).
+    nl-portal-haalcentraal-personen: *altijd
+
+    # Landingspagina die de backoffice (bijvoorbeeld het Sociaal Portaal) voorstelt: de taak-link uit Open Object wijst hiernaartoe.
+    # Zie voorbeelden/taak/taak-aanmaken.sh.
+    nl-portal-sociaal-portaal-mock:
+        container_name: nl-portal-sociaal-portaal-mock
+        image: nginx:1.27-alpine
+        ports:
+            - "127.0.0.1:${SOCIAAL_PORTAAL_MOCK_PORT:-8095}:80"
+        volumes:
+            - ./imports/sociaal-portaal-mock:/usr/share/nginx/html:ro
+
     nl-portal-backend:
         environment:
             NLPORTAL_FEATUREFLAGS_FILE: /etc/nl-portal/flags/nl-portal.demo.flagd.json
