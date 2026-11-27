@@ -74,6 +74,32 @@ jobs:
         uses: ./.github/workflows/_stage-be.yml
         with:
             version: ${{ needs.prepare.outputs.tag }}
+            # Op main draait de SonarCloud-analyse op de tests van deze ene run (#651), niet in een eigen workflow.
+            sonar: ${{ github.event_name == 'push' }}
+        secrets:
+            SONARCLOUD_TOKEN: ${{ secrets.SONARCLOUD_TOKEN }}
+
+    # Escaleert Blocker/Critical-kwetsbaarheden van SonarCloud, alleen op main (voorheen in sonarcloud.yml).
+    # Draait na de analyse in stage-be, dus op de bevindingen van deze commit.
+    escalate-sonar:
+        needs: stage-be
+        if: ${{ always() && github.event_name == 'push' && needs.stage-be.result == 'success' }}
+        runs-on: ubuntu-latest
+        permissions:
+            contents: read
+            issues: write # escaleert bevindingen als issue
+        steps:
+            -   uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+                with:
+                    persist-credentials: false
+            -   name: Set up Node.js
+                uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6.5.0
+                with:
+                    node-version: "24"
+            -   name: Escaleer backend
+                env:
+                    GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+                run: node scripts/escalate-findings.mjs --source=sonarcloud --component=pinkroccade_nl-portal-backend
 
     stage-fe:
         needs: prepare

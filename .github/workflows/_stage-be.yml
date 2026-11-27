@@ -15,6 +15,14 @@ on:
                 description: "Produce the license/dependency reports + SBOM (release)."
                 type: boolean
                 default: false
+            sonar:
+                description: "SonarCloud-analyse op de testresultaten van deze build (alleen met runTests; build-once op main)."
+                type: boolean
+                default: false
+        secrets:
+            SONARCLOUD_TOKEN:
+                description: "Token voor de SonarCloud-analyse; nodig als sonar aan staat."
+                required: false
 
 permissions:
     contents: read
@@ -26,6 +34,7 @@ jobs:
             -   uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
                 with:
                     persist-credentials: false
+                    fetch-depth: ${{ inputs.sonar && '0' || '1' }} # SonarCloud heeft de historie nodig
             -   name: Set up mise (java uit mise.toml)
                 uses: jdx/mise-action@924e7c586e33d7d4bae9c14e26c5d22e2beb6e78 # v5.3.0
                 with:
@@ -43,6 +52,27 @@ jobs:
                     VERSION: ${{ inputs.version }}
                     GRADLE_TASK: ${{ inputs.runTests && 'build' || 'assemble' }}
                 run: ./gradlew "${GRADLE_TASK}" -Pversion="${VERSION}" --stacktrace
+            # Hergebruikt de testresultaten van de build hierboven (zelfde versie, dus UP-TO-DATE): geen
+            # tweede testrun (#651). Informatief: een falende analyse blokkeert de build niet.
+            -   name: SonarCloud analysis
+                id: sonar
+                if: ${{ inputs.sonar && inputs.runTests }}
+                continue-on-error: true
+                working-directory: backend
+                env:
+                    VERSION: ${{ inputs.version }}
+                    SONAR_TOKEN: ${{ secrets.SONARCLOUD_TOKEN }}
+                    GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+                run: ./gradlew jacocoTestReport sonar -Pversion="${VERSION}" --console=plain
+            -   name: Wait for SonarCloud quality gate
+                if: ${{ steps.sonar.outcome == 'success' }}
+                continue-on-error: true
+                uses: sonarsource/sonarqube-quality-gate-action@7a5fffe8e523c40e0c740b6bc2712ab503e52efa # v1.2.1
+                timeout-minutes: 10
+                env:
+                    SONAR_TOKEN: ${{ secrets.SONARCLOUD_TOKEN }}
+                with:
+                    scanMetadataReportFile: backend/build/sonar/report-task.txt
             -   name: Generate SBOM
                 if: ${{ inputs.generateReports }}
                 uses: anchore/sbom-action@66cbf4bc1f1c0d2edc94016e65bc221b6bb0ad6c # v0.24.3

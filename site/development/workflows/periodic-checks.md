@@ -11,7 +11,8 @@ escalatie bij een productie-relevante vondst.
 
 | Check | Cadans | Workflow |
 |---|---|---|
-| SAST (backend + frontend) | Elke push naar `main` + elke PR | [`sonarcloud.yml`](https://github.com/pinkroccade/nl-portal/blob/main/.github/workflows/sonarcloud.yml) |
+| SAST frontend | Elke push naar `main` + elke PR | [`sonarcloud.yml`](https://github.com/pinkroccade/nl-portal/blob/main/.github/workflows/sonarcloud.yml) |
+| SAST backend | Elke push naar `main` (in de build-once-run) + elke PR (in de CI-build); hergebruikt de testresultaten van die run, geen aparte testrun | [`build-once.yml`](https://github.com/pinkroccade/nl-portal/blob/main/.github/workflows/build-once.yml), [`_validate-build.yml`](https://github.com/pinkroccade/nl-portal/blob/main/.github/workflows/_validate-build.yml) |
 | Secret-scanning | Elke push naar `main` + elke PR | [`secret-scan.yml`](https://github.com/pinkroccade/nl-portal/blob/main/.github/workflows/secret-scan.yml) |
 | Backend dependency-kwetsbaarheden | Wekelijks, zo 18:00 UTC | [`dependency-check.yml`](https://github.com/pinkroccade/nl-portal/blob/main/.github/workflows/dependency-check.yml) |
 | Frontend dependency-kwetsbaarheden | Wekelijks, zo 19:00 UTC | [`frontend-vulnerability-scan.yml`](https://github.com/pinkroccade/nl-portal/blob/main/.github/workflows/frontend-vulnerability-scan.yml) |
@@ -63,7 +64,7 @@ liggen.
 |---|---|---|
 | `dependency-check.yml` | OWASP Dependency-Check JSON-rapport | severity Critical/High |
 | `frontend-vulnerability-scan.yml` | grype JSON-output | severity Critical/High |
-| `sonarcloud.yml` (nieuwe `escalate`-job, alleen op push naar `main`) | SonarCloud API, `types=VULNERABILITY` | severity Blocker/Critical |
+| `build-once.yml` (`escalate-sonar`, backend) en `sonarcloud.yml` (`escalate`, frontend), alleen op push naar `main` | SonarCloud API, `types=VULNERABILITY` | severity Blocker/Critical |
 | `secret-scan.yml` | gitleaks JSON-rapport (`--redact`, nooit de rauwe secret) | elke bevinding |
 
 Gedeelde logica in [`scripts/escalate-findings.mjs`](https://github.com/pinkroccade/nl-portal/blob/main/scripts/escalate-findings.mjs)
