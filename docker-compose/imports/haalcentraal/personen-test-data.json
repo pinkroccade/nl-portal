@@ -1,0 +1,708 @@
+[
+  {
+    "aNummer": "2352984859",
+    "burgerservicenummer": "999993847",
+    "datumEersteInschrijvingGBA": "19940930",
+    "geslacht": {
+      "code": "V",
+      "omschrijving": "vrouw"
+    },
+    "naam": {
+      "aanduidingNaamgebruik": {
+        "code": "E",
+        "omschrijving": "eigen geslachtsnaam"
+      },
+      "voornamen": "Merel",
+      "geslachtsnaam": "Kooyman"
+    },
+    "nationaliteiten": [
+      {
+        "datumIngangGeldigheid": "19820410",
+        "nationaliteit": {
+          "code": "0001",
+          "omschrijving": "Nederlandse"
+        },
+        "redenOpname": {
+          "code": "001",
+          "omschrijving": "Wet op het Nederlanderschap 1892, art.1, lid 1a"
+        }
+      }
+    ],
+    "geboorte": {
+      "land": {
+        "code": "6030",
+        "omschrijving": "Nederland"
+      },
+      "plaats": {
+        "code": "0545",
+        "omschrijving": "Leerdam"
+      },
+      "datum": "19820410"
+    },
+    "verblijfplaats": {
+      "functieAdres": {
+        "code": "W",
+        "omschrijving": "woonadres"
+      },
+      "adresseerbaarObjectIdentificatie": "0518010000631274",
+      "nummeraanduidingIdentificatie": "0518200000631273",
+      "datumIngangGeldigheid": "20111101",
+      "datumAanvangAdreshouding": "20010215",
+      "naamOpenbareRuimte": "King Olivereiland",
+      "straat": "King Olivereiland",
+      "huisnummer": "64",
+      "postcode": "2551JV",
+      "woonplaats": "'s-Gravenhage"
+    },
+    "immigratie": {},
+    "gemeenteVanInschrijving": {
+      "code": "0518",
+      "omschrijving": "'s-Gravenhage"
+    },
+    "datumInschrijvingInGemeente": "20010215",
+    "gezag": [],
+    "kinderen": [
+      {
+        "burgerservicenummer": "999996601",
+        "naam": {
+          "voornamen": "Sem",
+          "geslachtsnaam": "Kooyman"
+        },
+        "geboorte": {
+          "land": {
+            "code": "6030",
+            "omschrijving": "Nederland"
+          },
+          "plaats": {
+            "code": "0518",
+            "omschrijving": "'s-Gravenhage"
+          },
+          "datum": "20120314"
+        }
+      },
+      {
+        "burgerservicenummer": "999996613",
+        "naam": {
+          "voornamen": "Noor",
+          "geslachtsnaam": "Kooyman"
+        },
+        "geboorte": {
+          "land": {
+            "code": "6030",
+            "omschrijving": "Nederland"
+          },
+          "plaats": {
+            "code": "0518",
+            "omschrijving": "'s-Gravenhage"
+          },
+          "datum": "20150921"
+        }
+      },
+      {
+        "burgerservicenummer": "999996625",
+        "naam": {
+          "voornamen": "Fenna",
+          "geslachtsnaam": "Kooyman"
+        },
+        "geboorte": {
+          "land": {
+            "code": "6030",
+            "omschrijving": "Nederland"
+          },
+          "plaats": {
+            "code": "0518",
+            "omschrijving": "'s-Gravenhage"
+          },
+          "datum": "20190606"
+        }
+      }
+    ],
+    "ouders": [
+      {
+        "burgerservicenummer": "999991887",
+        "geslacht": {
+          "code": "V",
+          "omschrijving": "vrouw"
+        },
+        "ouderAanduiding": "1",
+        "datumIngangFamilierechtelijkeBetrekking": "19820410",
+        "naam": {
+          "voornamen": "Irene Louise",
+          "geslachtsnaam": "Holthuizen"
+        },
+        "geboorte": {
+          "land": {
+            "code": "6030",
+            "omschrijving": "Nederland"
+          },
+          "plaats": {
+            "code": "0363",
+            "omschrijving": "Amsterdam"
+          },
+          "datum": "19540505"
+        }
+      },
+      {
+        "burgerservicenummer": "999991346",
+        "geslacht": {
+          "code": "M",
+          "omschrijving": "man"
+        },
+        "ouderAanduiding": "2",
+        "datumIngangFamilierechtelijkeBetrekking": "19820410",
+        "naam": {
+          "voornamen": "Jan Adrianus",
+          "geslachtsnaam": "Kooyman"
+        },
+        "geboorte": {
+          "land": {
+            "code": "6030",
+            "omschrijving": "Nederland"
+          },
+          "plaats": {
+            "code": "0545",
+            "omschrijving": "Leerdam"
+          },
+          "datum": "19500304"
+        }
+      }
+    ],
+    "partners": [
+      {
+        "burgerservicenummer": "999990184",
+        "geslacht": {
+          "code": "M",
+          "omschrijving": "man"
+        },
+        "soortVerbintenis": {
+          "code": "H",
+          "omschrijving": "huwelijk"
+        },
+        "naam": {
+          "voornamen": "Martin Gerard",
+          "geslachtsnaam": "Maassen"
+        },
+        "geboorte": {
+          "land": {
+            "code": "6030",
+            "omschrijving": "Nederland"
+          },
+          "plaats": {
+            "code": "0344",
+            "omschrijving": "Utrecht"
+          },
+          "datum": "19750306"
+        },
+        "aangaanHuwelijkPartnerschap": {
+          "datum": "20010215",
+          "land": {
+            "code": "6030",
+            "omschrijving": "Nederland"
+          },
+          "plaats": {
+            "code": "0344",
+            "omschrijving": "Utrecht"
+          }
+        }
+      }
+    ]
+  },
+  {
+    "aNummer": "5083595621",
+    "burgerservicenummer": "999990184",
+    "datumEersteInschrijvingGBA": "19940930",
+    "geslacht": {
+      "code": "M",
+      "omschrijving": "man"
+    },
+    "naam": {
+      "aanduidingNaamgebruik": {
+        "code": "E",
+        "omschrijving": "eigen geslachtsnaam"
+      },
+      "voornamen": "Martin Gerard",
+      "geslachtsnaam": "Maassen"
+    },
+    "nationaliteiten": [
+      {
+        "datumIngangGeldigheid": "19750306",
+        "nationaliteit": {
+          "code": "0001",
+          "omschrijving": "Nederlandse"
+        },
+        "redenOpname": {
+          "code": "001",
+          "omschrijving": "Wet op het Nederlanderschap 1892, art.1, lid 1a"
+        }
+      }
+    ],
+    "geboorte": {
+      "land": {
+        "code": "6030",
+        "omschrijving": "Nederland"
+      },
+      "plaats": {
+        "code": "0344",
+        "omschrijving": "Utrecht"
+      },
+      "datum": "19750306"
+    },
+    "verblijfplaats": {
+      "functieAdres": {
+        "code": "W",
+        "omschrijving": "woonadres"
+      },
+      "adresseerbaarObjectIdentificatie": "0518010000631274",
+      "nummeraanduidingIdentificatie": "0518200000631273",
+      "datumIngangGeldigheid": "20111101",
+      "datumAanvangAdreshouding": "20010215",
+      "naamOpenbareRuimte": "King Olivereiland",
+      "straat": "King Olivereiland",
+      "huisnummer": "64",
+      "postcode": "2551JV",
+      "woonplaats": "'s-Gravenhage"
+    },
+    "immigratie": {},
+    "gemeenteVanInschrijving": {
+      "code": "0518",
+      "omschrijving": "'s-Gravenhage"
+    },
+    "datumInschrijvingInGemeente": "20010215",
+    "gezag": [],
+    "kinderen": [
+      {
+        "burgerservicenummer": "999994918",
+        "naam": {
+          "voornamen": "Catharina-Amalia",
+          "geslachtsnaam": "Maassen"
+        },
+        "geboorte": {
+          "land": {
+            "code": "6030",
+            "omschrijving": "Nederland"
+          },
+          "plaats": {
+            "code": "0518",
+            "omschrijving": "'s-Gravenhage"
+          },
+          "datum": "20031107"
+        }
+      },
+      {
+        "burgerservicenummer": "999995121",
+        "naam": {
+          "voornamen": "Lisanne-Caroline",
+          "geslachtsnaam": "Maassen"
+        },
+        "geboorte": {
+          "land": {
+            "code": "9999",
+            "omschrijving": "Internationaal gebied"
+          },
+          "plaats": {
+            "omschrijving": "a.b. m.s. Neeltje Jans 48.3° OL 12.5° NB"
+          },
+          "datum": "20020222"
+        }
+      }
+    ],
+    "ouders": [
+      {
+        "burgerservicenummer": "999993276",
+        "geslacht": {
+          "code": "V",
+          "omschrijving": "vrouw"
+        },
+        "ouderAanduiding": "1",
+        "datumIngangFamilierechtelijkeBetrekking": "19750306",
+        "naam": {
+          "voornamen": "Angélie",
+          "geslachtsnaam": "Holthuizen"
+        },
+        "geboorte": {
+          "land": {
+            "code": "6030",
+            "omschrijving": "Nederland"
+          },
+          "plaats": {
+            "code": "0363",
+            "omschrijving": "Amsterdam"
+          },
+          "datum": "19510612"
+        }
+      },
+      {
+        "burgerservicenummer": "999992442",
+        "geslacht": {
+          "code": "M",
+          "omschrijving": "man"
+        },
+        "ouderAanduiding": "2",
+        "datumIngangFamilierechtelijkeBetrekking": "19750306",
+        "naam": {
+          "voornamen": "Hubert Jozef",
+          "geslachtsnaam": "Maassen"
+        },
+        "geboorte": {
+          "land": {
+            "code": "6030",
+            "omschrijving": "Nederland"
+          },
+          "plaats": {
+            "code": "0268",
+            "omschrijving": "Nijmegen"
+          },
+          "datum": "19511217"
+        }
+      }
+    ],
+    "partners": [
+      {
+        "burgerservicenummer": "999993847",
+        "geslacht": {
+          "code": "V",
+          "omschrijving": "vrouw"
+        },
+        "soortVerbintenis": {
+          "code": "H",
+          "omschrijving": "huwelijk"
+        },
+        "naam": {
+          "voornamen": "Merel",
+          "geslachtsnaam": "Kooyman"
+        },
+        "geboorte": {
+          "land": {
+            "code": "6030",
+            "omschrijving": "Nederland"
+          },
+          "plaats": {
+            "code": "0545",
+            "omschrijving": "Leerdam"
+          },
+          "datum": "19820410"
+        },
+        "aangaanHuwelijkPartnerschap": {
+          "datum": "20010215",
+          "land": {
+            "code": "6030",
+            "omschrijving": "Nederland"
+          },
+          "plaats": {
+            "code": "0344",
+            "omschrijving": "Utrecht"
+          }
+        }
+      }
+    ]
+  },
+  {
+    "aNummer": "9999966010",
+    "burgerservicenummer": "999996601",
+    "datumEersteInschrijvingGBA": "20120314",
+    "geslacht": {
+      "code": "M",
+      "omschrijving": "man"
+    },
+    "naam": {
+      "aanduidingNaamgebruik": {
+        "code": "E",
+        "omschrijving": "eigen geslachtsnaam"
+      },
+      "voornamen": "Sem",
+      "geslachtsnaam": "Kooyman"
+    },
+    "nationaliteiten": [
+      {
+        "datumIngangGeldigheid": "19820410",
+        "nationaliteit": {
+          "code": "0001",
+          "omschrijving": "Nederlandse"
+        },
+        "redenOpname": {
+          "code": "001",
+          "omschrijving": "Wet op het Nederlanderschap 1892, art.1, lid 1a"
+        }
+      }
+    ],
+    "geboorte": {
+      "land": {
+        "code": "6030",
+        "omschrijving": "Nederland"
+      },
+      "plaats": {
+        "code": "0518",
+        "omschrijving": "'s-Gravenhage"
+      },
+      "datum": "20120314"
+    },
+    "verblijfplaats": {
+      "functieAdres": {
+        "code": "W",
+        "omschrijving": "woonadres"
+      },
+      "adresseerbaarObjectIdentificatie": "0518010000631274",
+      "nummeraanduidingIdentificatie": "0518200000631273",
+      "datumIngangGeldigheid": "20120314",
+      "datumAanvangAdreshouding": "20120314",
+      "naamOpenbareRuimte": "King Olivereiland",
+      "straat": "King Olivereiland",
+      "huisnummer": "64",
+      "postcode": "2551JV",
+      "woonplaats": "'s-Gravenhage"
+    },
+    "immigratie": {},
+    "gemeenteVanInschrijving": {
+      "code": "0518",
+      "omschrijving": "'s-Gravenhage"
+    },
+    "datumInschrijvingInGemeente": "20120314",
+    "gezag": [],
+    "kinderen": [],
+    "ouders": [
+      {
+        "burgerservicenummer": "999993847",
+        "naam": {
+          "voornamen": "Merel",
+          "geslachtsnaam": "Kooyman"
+        },
+        "geboorte": {
+          "land": {
+            "code": "6030",
+            "omschrijving": "Nederland"
+          },
+          "plaats": {
+            "code": "0545",
+            "omschrijving": "Leerdam"
+          },
+          "datum": "19820410"
+        }
+      },
+      {
+        "burgerservicenummer": "999990184",
+        "naam": {
+          "voornamen": "Martin Gerard",
+          "geslachtsnaam": "Maassen"
+        },
+        "geboorte": {
+          "land": {
+            "code": "6030",
+            "omschrijving": "Nederland"
+          },
+          "plaats": {
+            "code": "0344",
+            "omschrijving": "Utrecht"
+          },
+          "datum": "19750306"
+        }
+      }
+    ],
+    "partners": []
+  },
+  {
+    "aNummer": "9999966130",
+    "burgerservicenummer": "999996613",
+    "datumEersteInschrijvingGBA": "20150921",
+    "geslacht": {
+      "code": "V",
+      "omschrijving": "vrouw"
+    },
+    "naam": {
+      "aanduidingNaamgebruik": {
+        "code": "E",
+        "omschrijving": "eigen geslachtsnaam"
+      },
+      "voornamen": "Noor",
+      "geslachtsnaam": "Kooyman"
+    },
+    "nationaliteiten": [
+      {
+        "datumIngangGeldigheid": "19820410",
+        "nationaliteit": {
+          "code": "0001",
+          "omschrijving": "Nederlandse"
+        },
+        "redenOpname": {
+          "code": "001",
+          "omschrijving": "Wet op het Nederlanderschap 1892, art.1, lid 1a"
+        }
+      }
+    ],
+    "geboorte": {
+      "land": {
+        "code": "6030",
+        "omschrijving": "Nederland"
+      },
+      "plaats": {
+        "code": "0518",
+        "omschrijving": "'s-Gravenhage"
+      },
+      "datum": "20150921"
+    },
+    "verblijfplaats": {
+      "functieAdres": {
+        "code": "W",
+        "omschrijving": "woonadres"
+      },
+      "adresseerbaarObjectIdentificatie": "0518010000631274",
+      "nummeraanduidingIdentificatie": "0518200000631273",
+      "datumIngangGeldigheid": "20150921",
+      "datumAanvangAdreshouding": "20150921",
+      "naamOpenbareRuimte": "King Olivereiland",
+      "straat": "King Olivereiland",
+      "huisnummer": "64",
+      "postcode": "2551JV",
+      "woonplaats": "'s-Gravenhage"
+    },
+    "immigratie": {},
+    "gemeenteVanInschrijving": {
+      "code": "0518",
+      "omschrijving": "'s-Gravenhage"
+    },
+    "datumInschrijvingInGemeente": "20150921",
+    "gezag": [],
+    "kinderen": [],
+    "ouders": [
+      {
+        "burgerservicenummer": "999993847",
+        "naam": {
+          "voornamen": "Merel",
+          "geslachtsnaam": "Kooyman"
+        },
+        "geboorte": {
+          "land": {
+            "code": "6030",
+            "omschrijving": "Nederland"
+          },
+          "plaats": {
+            "code": "0545",
+            "omschrijving": "Leerdam"
+          },
+          "datum": "19820410"
+        }
+      },
+      {
+        "burgerservicenummer": "999990184",
+        "naam": {
+          "voornamen": "Martin Gerard",
+          "geslachtsnaam": "Maassen"
+        },
+        "geboorte": {
+          "land": {
+            "code": "6030",
+            "omschrijving": "Nederland"
+          },
+          "plaats": {
+            "code": "0344",
+            "omschrijving": "Utrecht"
+          },
+          "datum": "19750306"
+        }
+      }
+    ],
+    "partners": []
+  },
+  {
+    "aNummer": "9999966250",
+    "burgerservicenummer": "999996625",
+    "datumEersteInschrijvingGBA": "20190606",
+    "geslacht": {
+      "code": "V",
+      "omschrijving": "vrouw"
+    },
+    "naam": {
+      "aanduidingNaamgebruik": {
+        "code": "E",
+        "omschrijving": "eigen geslachtsnaam"
+      },
+      "voornamen": "Fenna",
+      "geslachtsnaam": "Kooyman"
+    },
+    "nationaliteiten": [
+      {
+        "datumIngangGeldigheid": "19820410",
+        "nationaliteit": {
+          "code": "0001",
+          "omschrijving": "Nederlandse"
+        },
+        "redenOpname": {
+          "code": "001",
+          "omschrijving": "Wet op het Nederlanderschap 1892, art.1, lid 1a"
+        }
+      }
+    ],
+    "geboorte": {
+      "land": {
+        "code": "6030",
+        "omschrijving": "Nederland"
+      },
+      "plaats": {
+        "code": "0518",
+        "omschrijving": "'s-Gravenhage"
+      },
+      "datum": "20190606"
+    },
+    "verblijfplaats": {
+      "functieAdres": {
+        "code": "W",
+        "omschrijving": "woonadres"
+      },
+      "adresseerbaarObjectIdentificatie": "0518010000631274",
+      "nummeraanduidingIdentificatie": "0518200000631273",
+      "datumIngangGeldigheid": "20190606",
+      "datumAanvangAdreshouding": "20190606",
+      "naamOpenbareRuimte": "King Olivereiland",
+      "straat": "King Olivereiland",
+      "huisnummer": "64",
+      "postcode": "2551JV",
+      "woonplaats": "'s-Gravenhage"
+    },
+    "immigratie": {},
+    "gemeenteVanInschrijving": {
+      "code": "0518",
+      "omschrijving": "'s-Gravenhage"
+    },
+    "datumInschrijvingInGemeente": "20190606",
+    "gezag": [],
+    "kinderen": [],
+    "ouders": [
+      {
+        "burgerservicenummer": "999993847",
+        "naam": {
+          "voornamen": "Merel",
+          "geslachtsnaam": "Kooyman"
+        },
+        "geboorte": {
+          "land": {
+            "code": "6030",
+            "omschrijving": "Nederland"
+          },
+          "plaats": {
+            "code": "0545",
+            "omschrijving": "Leerdam"
+          },
+          "datum": "19820410"
+        }
+      },
+      {
+        "burgerservicenummer": "999990184",
+        "naam": {
+          "voornamen": "Martin Gerard",
+          "geslachtsnaam": "Maassen"
+        },
+        "geboorte": {
+          "land": {
+            "code": "6030",
+            "omschrijving": "Nederland"
+          },
+          "plaats": {
+            "code": "0344",
+            "omschrijving": "Utrecht"
+          },
+          "datum": "19750306"
+        }
+      }
+    ],
+    "partners": []
+  }
+]

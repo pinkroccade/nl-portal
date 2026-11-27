@@ -17,7 +17,7 @@ authenticatie:
 koppelingen:
     # De Documenten API: elke documenten-API is een eigen koppeling; modules.documenten-api noemt ze bij naam.
     documenten-api:
-        url: http://nl-portal-openzaak:8001/documenten/api/v1
+        url: http://nl-portal-openzaak.test:8001/documenten/api/v1
         leverancier: Open Zaak
         auth:
             type: zgw-jwt
@@ -51,13 +51,13 @@ koppelingen:
     #         headerNaam: X-API-KEY
     #         waarde: 00000099000000000001.kvk-sleutel
     zakenapi:
-        url: http://nl-portal-openzaak:8001
+        url: http://nl-portal-openzaak.test:8001
         auth:
             type: zgw-jwt
             clientId: nl-portal
             secret: 00000099000000000001.zaken-secret
     catalogiapi:
-        url: http://nl-portal-openzaak:8001
+        url: http://nl-portal-openzaak.test:8001
         auth:
             type: zgw-jwt
             clientId: nl-portal
@@ -92,7 +92,7 @@ modules:
         documentApis:
             documenten-api:
                 rsin: "051845623"
-                documentTypeUrl: http://nl-portal-openzaak:8001/catalogi/api/v1/informatieobjecttypen/36e40d95-e411-4884-b08f-e5864ec8167f
+                documentTypeUrl: http://nl-portal-openzaak.test:8001/catalogi/api/v1/informatieobjecttypen/36e40d95-e411-4884-b08f-e5864ec8167f
             documenten-dummydoc:
                 rsin: "051845623"
         # toegestaneMimeTypes: [application/pdf, image/png, image/jpeg]

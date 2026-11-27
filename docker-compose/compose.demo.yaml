@@ -23,9 +23,22 @@ services:
     nl-portal-open-notificaties-database: *altijd
     nl-portal-open-notificaties-rabbitmq: *altijd
     nl-portal-redis: *altijd
+    # Open Klant: de contactgegevens (e-mail, telefoon) op Mijn gegevens; zonder Open Klant meldt die pagina dat niet alle gegevens zijn opgehaald.
+    nl-portal-openklant-2: *altijd
+    nl-portal-openklant-2-import: *altijd
+    nl-portal-openklant-2-db: *altijd
 
-    # BRP-mock voor de persoonsgegevens van de burger (BSN 999993847).
-    nl-portal-haalcentraal-personen: *altijd
+    # BRP- en Bewoning-mock met eigen demodata: Merel Kooyman (BSN 999993847) woont met partner en drie minderjarige kinderen op
+    # een adres (imports/haalcentraal/).
+    nl-portal-haalcentraal-personen:
+        profiles: !reset []
+        volumes:
+            - ./imports/haalcentraal/personen-test-data.json:/app/Data/test-data.json:ro
+
+    nl-portal-haalcentraal-bewoningen:
+        profiles: !reset []
+        volumes:
+            - ./imports/haalcentraal/bewoning-test-data.json:/app/Data/test-data.json:ro
 
     # Landingspagina die de backoffice (bijvoorbeeld het Sociaal Portaal) voorstelt: de taak-link uit Open Object wijst hiernaartoe.
     # Zie voorbeelden/taak/taak-aanmaken.sh.

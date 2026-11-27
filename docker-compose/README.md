@@ -36,7 +36,9 @@ docker compose -f compose.yaml -f compose.demo.yaml up -d
 
 Start daarnaast Open Zaak, Open Object en Open Notificaties met demo-fixtures en zet de modules voor zaken en
 taken aan (`imports/flags/nl-portal.demo.flagd.json`). Het laden van de fixtures duurt de eerste keer een paar minuten.
-De demo start ook de BRP-mock en een mock van het Sociaal Portaal (<http://localhost:8095>).
+De demo start ook Open Klant (contactgegevens), de BRP- en Bewoning-mock en een mock van het Sociaal Portaal (<http://localhost:8095>).
+De mocks gebruiken eigen demodata (`imports/haalcentraal/`): Merel Kooyman (BSN 999993847) woont met haar partner en drie
+minderjarige kinderen op één adres, dus Mijn gegevens toont vijf inwoners.
 
 ### Taak-demo: externe taak naar de backoffice
 
@@ -80,7 +82,8 @@ Elke service publiceert zijn eigen poorten op `127.0.0.1`; `docker compose ps` t
 | 8000 | debugger van de backend, alleen dev-variant | `JDWP_PORT` |
 
 Binnen de stack bereiken services elkaar via hun naam op het netwerk `mijngemeente` (`NL_PORTAL_NETWORK`), bijvoorbeeld
-`http://nl-portal-openzaak:8001`. De browser bereikt Keycloak op `localhost:8082`; de backend bereikt het via het
+`http://nl-portal-open-object:8010`. Open Zaak is de uitzondering: het weigert zaak-URL's met een hostnaam zonder punt, dus de
+koppelingen gebruiken zijn alias `http://nl-portal-openzaak.test:8001`. De browser bereikt Keycloak op `localhost:8082`; de backend bereikt het via het
 netwerk (`interneBasisUrl` in het tenantbestand) en valideert de issuer van de tenant, ook als het token intern is opgehaald.
 
 ## Eigen URL's en mocks
