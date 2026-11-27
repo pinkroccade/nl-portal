@@ -21,6 +21,10 @@ plugins {
 }
 
 repositories {
+    // Same CI-only mirror as in backend/build.gradle.kts (buildSrc cannot share that script).
+    if (System.getenv("CI") == "true") {
+        maven(uri("https://maven-central.storage-download.googleapis.com/maven2/"))
+    }
     mavenCentral()
 }
 
